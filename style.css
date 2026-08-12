@@ -519,26 +519,18 @@ h1, h2, h3, h4, .card-num {
 }
 
 .preview-toggle {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
   font-size: 0.8rem;
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 4px;
   cursor: pointer;
-  padding: 4px 0;
   width: fit-content;
-  transition: color 0.2s ease;
-}
-
-.preview-toggle:hover:not(:disabled) {
-  color: var(--text-main);
+  transition: all 0.2s ease;
 }
 
 .preview-toggle:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
@@ -591,6 +583,16 @@ h1, h2, h3, h4, .card-num {
   gap: 4px;
 }
 
+#list-unfollowed {
+  left: 0;
+  right: auto;
+}
+
+#list-starred {
+  right: 0;
+  left: auto;
+}
+
 [data-theme="dark"] .dropdown-menu {
   background-color: rgba(24, 24, 27, 0.95) !important;
   backdrop-filter: blur(12px);
@@ -625,26 +627,6 @@ h1, h2, h3, h4, .card-num {
   }
   .dropdown-menu {
     width: calc(200% + 8px) !important;
-  }
-  #list-unfollowed {
-    left: 0;
-    right: auto;
-  }
-  #list-starred {
-    right: 0;
-    left: auto;
-  }
-  .star-unfollowed-btn,
-  .remove-unfollowed-btn,
-  .unstar-btn {
-    width: 28px !important;
-    height: 28px !important;
-  }
-  .star-unfollowed-btn svg,
-  .remove-unfollowed-btn svg,
-  .unstar-btn svg {
-    width: 14px !important;
-    height: 14px !important;
   }
 }
 
@@ -1497,38 +1479,3 @@ h1, h2, h3, h4, .card-num {
   text-transform: lowercase;
   white-space: nowrap;
 }
-
-/* Circular action buttons for unfollowed and starred dropdown lists */
-.star-unfollowed-btn,
-.remove-unfollowed-btn,
-.unstar-btn {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background-color: var(--btn-secondary-bg) !important;
-  border: 1px solid var(--card-border) !important;
-  color: var(--text-muted) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  cursor: pointer;
-  padding: 0 !important;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.star-unfollowed-btn:hover,
-.remove-unfollowed-btn:hover,
-.unstar-btn:hover {
-  background-color: var(--btn-secondary-hover) !important;
-  color: var(--text-main) !important;
-  border-color: var(--text-muted) !important;
-}
-
-.star-unfollowed-btn svg,
-.remove-unfollowed-btn svg,
-.unstar-btn svg {
-  width: 12px !important;
-  height: 12px !important;
-}
-
