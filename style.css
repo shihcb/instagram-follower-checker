@@ -804,6 +804,33 @@ h1, h2, h3, h4, .card-num {
   gap: 4px;
 }
 
+.action-star {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--btn-secondary-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  padding: 0;
+}
+
+.action-star:hover {
+  background-color: var(--btn-secondary-hover);
+  color: var(--text-main);
+  border-color: var(--text-muted);
+}
+
+.action-star.starred {
+  background-color: var(--text-main);
+  color: var(--text-inverse);
+  border-color: transparent;
+}
+
 .action-arrow {
   width: 28px;
   height: 28px;

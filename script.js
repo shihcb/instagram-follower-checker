@@ -6,6 +6,7 @@ const state = {
   followers: [],  // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   unfollowers: [], // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   unfollowed: [],  // Array of { username, originalUsername, fullName, timestamp, profileUrl }
+  starred: JSON.parse(localStorage.getItem('starred_users') || '[]'), // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   selectedIndex: -1 // Current keyboard selection index (0-indexed) in the filtered list
 };
 
@@ -50,7 +51,9 @@ const elements = {
   listUnfollowers: document.getElementById('list-unfollowers'),
   emptyState: document.getElementById('unfollowers-empty-state'),
   togglePreviewUnfollowed: document.getElementById('toggle-preview-unfollowed'),
-  listUnfollowed: document.getElementById('list-unfollowed')
+  listUnfollowed: document.getElementById('list-unfollowed'),
+  togglePreviewStarred: document.getElementById('toggle-preview-starred'),
+  listStarred: document.getElementById('list-starred')
 };
 
 // -------------------------------------------------------------
@@ -356,14 +359,18 @@ function parseInput(text) {
 function calculateUnfollowers() {
   const followersSet = new Set(state.followers.map(user => user.username));
   const unfollowedSet = new Set(state.unfollowed.map(user => user.username));
+  const starredSet = new Set(state.starred.map(user => user.username));
   
-  // Math difference: filter out any 'following' users that are in the 'followers' set OR have been unfollowed
+  // Math difference: filter out any 'following' users that are in the 'followers' set, unfollowed list, or starred list
   state.unfollowers = state.following.filter(user => 
-    !followersSet.has(user.username) && !unfollowedSet.has(user.username)
+    !followersSet.has(user.username) && 
+    !unfollowedSet.has(user.username) &&
+    !starredSet.has(user.username)
   );
   
   updateResultsUI();
   updateUnfollowedUI();
+  updateStarredUI();
 }
 
 function updateUnfollowedUI() {
@@ -387,6 +394,40 @@ function updateUnfollowedUI() {
   } else {
     toggleBtn.setAttribute('disabled', 'true');
     toggleBtn.querySelector('span').textContent = 'show unfollowed users';
+    listEl.innerHTML = '';
+    listEl.classList.add('hidden');
+    toggleBtn.classList.remove('active');
+  }
+}
+
+function updateStarredUI() {
+  const listData = state.starred;
+  const listEl = elements.listStarred;
+  const toggleBtn = elements.togglePreviewStarred;
+
+  if (listData.length > 0) {
+    toggleBtn.removeAttribute('disabled');
+    toggleBtn.querySelector('span').textContent = toggleBtn.classList.contains('active') 
+      ? `hide starred users (${listData.length})` 
+      : `show starred users (${listData.length})`;
+    
+    // Render elements (same layout as parsed-list)
+    listEl.innerHTML = listData.map(user => `
+      <div class="parsed-item">
+        <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span>${user.fullName ? user.fullName : (user.timestamp ? formatDate(user.timestamp) : '')}</span>
+          <button class="unstar-btn" data-username="${user.username}" aria-label="unstar user" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-main); padding: 4px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+          </button>
+        </div>
+      </div>
+    `).join('');
+  } else {
+    toggleBtn.setAttribute('disabled', 'true');
+    toggleBtn.querySelector('span').textContent = 'show starred users';
     listEl.innerHTML = '';
     listEl.classList.add('hidden');
     toggleBtn.classList.remove('active');
@@ -488,6 +529,11 @@ function updateResultsUI() {
                 ${formatDate(user.timestamp)}
               </span>
             ` : ''}
+            <button class="action-star" aria-label="star user" title="star/favorite user to separate them from results">
+              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+            </button>
             <a href="${user.profileUrl}" target="_blank" rel="noopener" class="action-arrow" aria-label="Visit Instagram Profile">
               <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -657,11 +703,29 @@ function setupEventListeners() {
     elements.togglePreviewFollowers.querySelector('span').textContent = isHidden ? 'show loaded users' : 'hide loaded users';
   });
 
-  // Handle click on username or action arrow to unfollow
+  // Handle click on username, action arrow, or star button
   elements.listUnfollowers.addEventListener('click', (e) => {
     const userLink = e.target.closest('.user-link');
     const actionArrow = e.target.closest('.action-arrow');
+    const actionStar = e.target.closest('.action-star');
     
+    if (actionStar) {
+      const userRow = e.target.closest('.user-row');
+      if (userRow) {
+        const username = userRow.getAttribute('data-username');
+        const userObj = state.unfollowers.find(u => u.username === username);
+        if (userObj) {
+          // Move user to Starred (favorite) list
+          if (!state.starred.some(u => u.username === username)) {
+            state.starred.push(userObj);
+            localStorage.setItem('starred_users', JSON.stringify(state.starred));
+          }
+          calculateUnfollowers();
+        }
+      }
+      return;
+    }
+
     if (userLink || actionArrow) {
       const userRow = e.target.closest('.user-row');
       if (userRow) {
@@ -684,6 +748,26 @@ function setupEventListeners() {
     elements.togglePreviewUnfollowed.querySelector('span').textContent = isHidden 
       ? `show unfollowed users (${state.unfollowed.length})` 
       : `hide unfollowed users (${state.unfollowed.length})`;
+  });
+
+  // Toggle preview starred list
+  elements.togglePreviewStarred.addEventListener('click', () => {
+    const isHidden = elements.listStarred.classList.toggle('hidden');
+    elements.togglePreviewStarred.classList.toggle('active', !isHidden);
+    elements.togglePreviewStarred.querySelector('span').textContent = isHidden 
+      ? `show starred users (${state.starred.length})` 
+      : `hide starred users (${state.starred.length})`;
+  });
+
+  // Handle click on unstar inside starred list
+  elements.listStarred.addEventListener('click', (e) => {
+    const unstarBtn = e.target.closest('.unstar-btn');
+    if (unstarBtn) {
+      const username = unstarBtn.getAttribute('data-username');
+      state.starred = state.starred.filter(u => u.username !== username);
+      localStorage.setItem('starred_users', JSON.stringify(state.starred));
+      calculateUnfollowers();
+    }
   });
 
   // Setup inputs
@@ -806,4 +890,5 @@ function setupEventListeners() {
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   setupEventListeners();
+  updateStarredUI();
 });
