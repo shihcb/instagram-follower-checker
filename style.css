@@ -13,6 +13,7 @@
   --grad-instagram: linear-gradient(135deg, var(--grad-1), var(--grad-2), var(--grad-3));
 
   /* Light Theme variables (Fallback / Active under light mode) */
+  --logo-color: #000000;
   --bg-color: #f8fafc;
   --bg-gradient: linear-gradient(185deg, #f8fafc 0%, #f1f5f9 100%);
   --card-bg: rgba(255, 255, 255, 0.7);
@@ -44,6 +45,7 @@
 
 [data-theme="dark"] {
   /* Dark Theme variables */
+  --logo-color: #ffffff;
   --bg-color: #080a14;
   --bg-gradient: linear-gradient(185deg, #070912 0%, #0d1020 100%);
   --card-bg: rgba(15, 18, 36, 0.55);
@@ -189,10 +191,7 @@ h1, h2, h3, h4, .card-num {
   font-size: 2.25rem;
   line-height: 1;
   margin: 0;
-  background: var(--grad-instagram);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--logo-color);
   display: inline-block;
 }
 
