@@ -26,7 +26,8 @@ const state = {
   unfollowers: [], // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   unfollowed: [],  // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   starred: JSON.parse(localStorage.getItem('starred_users') || '[]'), // Array of { username, originalUsername, fullName, timestamp, profileUrl }
-  selectedIndex: -1 // Current keyboard selection index (0-indexed) in the filtered list
+  selectedIndex: -1, // Current keyboard selection index (0-indexed) in the filtered list
+  pendingAutoOpen: false // Flag to track when a return to the tab should trigger opening the next user
 };
 
 // Action / Noise keywords to filter out of raw text lists
@@ -736,6 +737,11 @@ function setupEventListeners() {
     }
 
     if (userLink || actionArrow || actionDelete) {
+      const autoOpenToggle = document.getElementById('auto-open-toggle');
+      if (autoOpenToggle && autoOpenToggle.checked && (userLink || actionArrow)) {
+        state.pendingAutoOpen = true;
+      }
+
       // Move user to Unfollowed list
       if (!state.unfollowed.some(u => u.username === username)) {
         state.unfollowed.unshift(userObj);
@@ -1023,6 +1029,11 @@ function setupEventListeners() {
           // Open Instagram profile
           window.open(userObj.profileUrl, '_blank');
           
+          const autoOpenToggle = document.getElementById('auto-open-toggle');
+          if (autoOpenToggle && autoOpenToggle.checked) {
+            state.pendingAutoOpen = true;
+          }
+          
           // Move user to Unfollowed list
           if (!state.unfollowed.some(u => u.username === username)) {
             state.unfollowed.unshift(userObj);
@@ -1058,6 +1069,59 @@ function setupEventListeners() {
       } else {
         row.classList.remove('selected');
       }
+    });
+  }
+
+  // Handle tab focus for auto-opening the next user
+  window.addEventListener('focus', () => {
+    const autoOpenToggle = document.getElementById('auto-open-toggle');
+    if (autoOpenToggle && autoOpenToggle.checked && state.pendingAutoOpen) {
+      state.pendingAutoOpen = false; // Reset to avoid double execution
+
+      // Wait a tiny bit for the page focus layout to stabilise
+      setTimeout(() => {
+        const nextUser = state.unfollowers[0];
+        if (!nextUser) return;
+
+        const firstRow = elements.listUnfollowers.querySelector('.user-row');
+        if (firstRow) {
+          // Open Instagram profile
+          window.open(nextUser.profileUrl, '_blank');
+          
+          // Re-enable flag so it opens the next one on the next return
+          state.pendingAutoOpen = true;
+
+          // Move user to Unfollowed list
+          if (!state.unfollowed.some(u => u.username === nextUser.username)) {
+            state.unfollowed.unshift(nextUser);
+          }
+
+          // Smoothly animate the row out
+          firstRow.style.opacity = '0';
+          firstRow.style.transform = 'scale(0.95)';
+          setTimeout(() => {
+            firstRow.remove();
+            state.unfollowers = state.unfollowers.filter(u => u.username !== nextUser.username);
+            elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
+            updateUnfollowedUI();
+
+            if (state.unfollowers.length === 0) {
+              updateResultsUI();
+            }
+            pushToCloud();
+          }, 150);
+        }
+      }, 100);
+    }
+  });
+
+  // Enable toggling the switch via its text label click
+  const autoOpenLabel = document.getElementById('auto-open-label');
+  const autoOpenToggle = document.getElementById('auto-open-toggle');
+  if (autoOpenLabel && autoOpenToggle) {
+    autoOpenLabel.addEventListener('click', () => {
+      autoOpenToggle.checked = !autoOpenToggle.checked;
+      autoOpenToggle.dispatchEvent(new Event('change'));
     });
   }
 }
