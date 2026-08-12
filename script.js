@@ -532,9 +532,9 @@ function updateListUI(type) {
   const actionsContainer = document.getElementById(`actions-${type}`);
   if (actionsContainer) {
     if (textarea.value.trim() === '') {
-      actionsContainer.classList.add('hidden');
+      actionsContainer.classList.remove('show');
     } else {
-      actionsContainer.classList.remove('hidden');
+      actionsContainer.classList.add('show');
     }
   }
 }
