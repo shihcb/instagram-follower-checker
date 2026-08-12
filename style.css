@@ -615,15 +615,25 @@ h1, h2, h3, h4, .card-num {
   .results-dropdowns-group {
     width: 100%;
     margin-top: 4px;
+    position: static;
   }
   .results-dropdowns-group .dropdown-wrapper {
     flex: 1;
+    position: relative !important;
   }
   .results-dropdowns-group .dropdown-wrapper button {
     width: 100%;
   }
   .dropdown-menu {
     width: calc(200% + 8px) !important;
+  }
+  #list-unfollowed {
+    left: 0 !important;
+    right: auto !important;
+  }
+  #list-starred {
+    right: 0 !important;
+    left: auto !important;
   }
 }
 
