@@ -390,6 +390,7 @@ h1, h2, h3, h4, .card-num {
 
 .card-num,
 .count-badge,
+.result-badge,
 #unfollowers-count {
   background: #000000 !important;
   color: #ffffff !important;
@@ -399,6 +400,7 @@ h1, h2, h3, h4, .card-num {
 /* Dark theme overrides for list badges & card numbers */
 [data-theme="dark"] .card-num,
 [data-theme="dark"] .count-badge,
+[data-theme="dark"] .result-badge,
 [data-theme="dark"] #unfollowers-count {
   background: #ffffff !important;
   color: #000000 !important;
@@ -419,18 +421,6 @@ h1, h2, h3, h4, .card-num {
   border-radius: 99px;
 }
 
-.count-badge {
-  background-color: var(--btn-secondary-bg);
-  color: var(--text-muted);
-  border: 1px solid var(--card-border);
-}
-
-.result-badge {
-  background-color: var(--btn-secondary-bg);
-  color: var(--text-main);
-  border: 1px solid var(--btn-secondary-border);
-}
-
 .card-body {
   padding: 24px;
   display: flex;
@@ -440,13 +430,12 @@ h1, h2, h3, h4, .card-num {
   min-height: 0; /* Important for inner flex scroll */
 }
 
-/* Highlight Third Card */
+/* Highlight Third Card - matched with Card 1 & 2 */
 .highlighted-card {
-  border-color: var(--highlight-border);
-  box-shadow: 0 20px 40px -15px var(--highlight-shadow), var(--card-shadow);
+  border-color: var(--card-border);
+  box-shadow: var(--card-shadow);
 }
 .highlighted-card:hover {
-  border-color: var(--text-main);
 }
 
 /* -------------------------------------------------------------
