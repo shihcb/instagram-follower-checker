@@ -431,9 +431,7 @@ function updateUnfollowedUI() {
 
   if (listData.length > 0) {
     toggleBtn.removeAttribute('disabled');
-    toggleBtn.querySelector('span').textContent = toggleBtn.classList.contains('active') 
-      ? `hide unfollowed users (${listData.length})` 
-      : `show unfollowed users (${listData.length})`;
+    toggleBtn.querySelector('span').textContent = `unfollowed (${listData.length})`;
     
     // Render elements (same layout as parsed-list)
     listEl.innerHTML = listData.map(user => `
@@ -444,7 +442,7 @@ function updateUnfollowedUI() {
     `).join('');
   } else {
     toggleBtn.setAttribute('disabled', 'true');
-    toggleBtn.querySelector('span').textContent = 'show unfollowed users';
+    toggleBtn.querySelector('span').textContent = 'unfollowed (0)';
     listEl.innerHTML = '';
     listEl.classList.add('hidden');
     toggleBtn.classList.remove('active');
@@ -458,9 +456,7 @@ function updateStarredUI() {
 
   if (listData.length > 0) {
     toggleBtn.removeAttribute('disabled');
-    toggleBtn.querySelector('span').textContent = toggleBtn.classList.contains('active') 
-      ? `hide starred users (${listData.length})` 
-      : `show starred users (${listData.length})`;
+    toggleBtn.querySelector('span').textContent = `starred (${listData.length})`;
     
     // Render elements (same layout as parsed-list)
     listEl.innerHTML = listData.map(user => `
@@ -478,7 +474,7 @@ function updateStarredUI() {
     `).join('');
   } else {
     toggleBtn.setAttribute('disabled', 'true');
-    toggleBtn.querySelector('span').textContent = 'show starred users';
+    toggleBtn.querySelector('span').textContent = 'starred (0)';
     listEl.innerHTML = '';
     listEl.classList.add('hidden');
     toggleBtn.classList.remove('active');
@@ -792,22 +788,38 @@ function setupEventListeners() {
     }
   });
 
-  // Toggle preview unfollowed list
-  elements.togglePreviewUnfollowed.addEventListener('click', () => {
+  // Toggle preview unfollowed list dropdown
+  elements.togglePreviewUnfollowed.addEventListener('click', (e) => {
+    e.stopPropagation();
     const isHidden = elements.listUnfollowed.classList.toggle('hidden');
     elements.togglePreviewUnfollowed.classList.toggle('active', !isHidden);
-    elements.togglePreviewUnfollowed.querySelector('span').textContent = isHidden 
-      ? `show unfollowed users (${state.unfollowed.length})` 
-      : `hide unfollowed users (${state.unfollowed.length})`;
+    
+    // Close starred dropdown if open
+    elements.listStarred.classList.add('hidden');
+    elements.togglePreviewStarred.classList.remove('active');
   });
 
-  // Toggle preview starred list
-  elements.togglePreviewStarred.addEventListener('click', () => {
+  // Toggle preview starred list dropdown
+  elements.togglePreviewStarred.addEventListener('click', (e) => {
+    e.stopPropagation();
     const isHidden = elements.listStarred.classList.toggle('hidden');
     elements.togglePreviewStarred.classList.toggle('active', !isHidden);
-    elements.togglePreviewStarred.querySelector('span').textContent = isHidden 
-      ? `show starred users (${state.starred.length})` 
-      : `hide starred users (${state.starred.length})`;
+    
+    // Close unfollowed dropdown if open
+    elements.listUnfollowed.classList.add('hidden');
+    elements.togglePreviewUnfollowed.classList.remove('active');
+  });
+
+  // Close dropdowns on outside clicks
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#toggle-preview-unfollowed') && !e.target.closest('#list-unfollowed')) {
+      elements.listUnfollowed.classList.add('hidden');
+      elements.togglePreviewUnfollowed.classList.remove('active');
+    }
+    if (!e.target.closest('#toggle-preview-starred') && !e.target.closest('#list-starred')) {
+      elements.listStarred.classList.add('hidden');
+      elements.togglePreviewStarred.classList.remove('active');
+    }
   });
 
   // Handle click on unstar inside starred list

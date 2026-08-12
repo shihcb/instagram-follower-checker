@@ -560,6 +560,59 @@ h1, h2, h3, h4, .card-num {
   gap: 4px;
 }
 
+/* Dropdown layouts for unfollowed and starred popovers */
+.dropdown-wrapper {
+  position: relative;
+}
+
+.results-dropdowns-group {
+  display: flex;
+  gap: 8px;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 280px;
+  max-height: 240px;
+  margin-top: 0 !important;
+  background-color: var(--input-bg) !important;
+  border: 1px solid var(--card-border) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.05);
+  padding: 8px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+[data-theme="dark"] .dropdown-menu {
+  background-color: rgba(24, 24, 27, 0.95) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 1024px) {
+  .results-dropdowns-group {
+    width: 100%;
+    margin-top: 4px;
+  }
+  .results-dropdowns-group .dropdown-wrapper {
+    flex: 1;
+  }
+  .results-dropdowns-group .dropdown-wrapper button {
+    width: 100%;
+  }
+  .dropdown-menu {
+    width: 100%;
+    left: 0;
+    right: 0;
+  }
+}
+
 .parsed-item {
   font-size: 0.8rem;
   color: var(--text-muted);

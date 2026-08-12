@@ -197,7 +197,16 @@
             <span class="card-num">3</span>
             <h2>not following back</h2>
           </div>
-          <span class="badge result-badge" id="unfollowers-count">0 found</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button id="copy-unfollowers" class="btn btn-secondary btn-sm" disabled style="padding: 6px 12px; font-size: 0.8rem; height: 30px; display: inline-flex; align-items: center; gap: 4px;">
+              <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="transform: translateY(-0.5px);">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              copy list
+            </button>
+            <span class="badge result-badge" id="unfollowers-count">0 found</span>
+          </div>
         </div>
         
         <div class="card-body">
@@ -216,13 +225,27 @@
               <input type="text" id="search-unfollowers" placeholder="search usernames or names..." disabled>
             </div>
             
-            <button id="copy-unfollowers" class="btn btn-primary btn-sm" disabled>
-              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-              <span>copy list</span>
-            </button>
+            <div class="results-dropdowns-group">
+              <div class="dropdown-wrapper">
+                <button class="preview-toggle btn btn-secondary btn-sm" id="toggle-preview-unfollowed" disabled style="height: 100%; display: inline-flex; align-items: center; gap: 4px; padding: 10px 14px;">
+                  <span>unfollowed (0)</span>
+                  <svg class="chevron-icon" viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+                <div class="parsed-list dropdown-menu hidden" id="list-unfollowed"></div>
+              </div>
+
+              <div class="dropdown-wrapper">
+                <button class="preview-toggle btn btn-secondary btn-sm" id="toggle-preview-starred" disabled style="height: 100%; display: inline-flex; align-items: center; gap: 4px; padding: 10px 14px;">
+                  <span>starred (0)</span>
+                  <svg class="chevron-icon" viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+                <div class="parsed-list dropdown-menu hidden" id="list-starred"></div>
+              </div>
+            </div>
           </div>
 
           <div class="results-container">
@@ -239,27 +262,7 @@
             <div class="results-list hidden" id="list-unfollowers"></div>
           </div>
 
-          <div class="card-previews-group">
-            <div class="parsed-preview-container">
-              <button class="preview-toggle" id="toggle-preview-unfollowed" disabled>
-                <span>show unfollowed users</span>
-                <svg class="chevron-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
-              <div class="parsed-list hidden" id="list-unfollowed"></div>
-            </div>
 
-            <div class="parsed-preview-container">
-              <button class="preview-toggle" id="toggle-preview-starred" disabled>
-                <span>show starred users</span>
-                <svg class="chevron-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </button>
-              <div class="parsed-list hidden" id="list-starred"></div>
-            </div>
-          </div>
         </div>
       </section>
 
