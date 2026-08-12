@@ -1,6 +1,25 @@
 // -------------------------------------------------------------
 // App State Configuration
 // -------------------------------------------------------------
+// -------------------------------------------------------------
+// Supabase Configuration (Option B Cloud Sync Settings)
+// -------------------------------------------------------------
+// To enable automatic cloud sync:
+// 1. Create a free project at https://supabase.com
+// 2. Go to Project Settings -> API and copy your URL and Anon Key.
+// 3. Paste them below.
+const SUPABASE_URL = ''; 
+const SUPABASE_ANON_KEY = ''; 
+
+let supabaseClient = null;
+if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+  try {
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } catch (err) {
+    console.error('Failed to initialize Supabase client:', err);
+  }
+}
+
 const state = {
   following: [],  // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   followers: [],  // Array of { username, originalUsername, fullName, timestamp, profileUrl }
@@ -53,7 +72,26 @@ const elements = {
   togglePreviewUnfollowed: document.getElementById('toggle-preview-unfollowed'),
   listUnfollowed: document.getElementById('list-unfollowed'),
   togglePreviewStarred: document.getElementById('toggle-preview-starred'),
-  listStarred: document.getElementById('list-starred')
+  listStarred: document.getElementById('list-starred'),
+
+  // Auth & Cloud Sync DOM elements
+  authBtn: document.getElementById('auth-btn'),
+  userBadge: document.getElementById('user-badge'),
+  authModal: document.getElementById('auth-modal'),
+  authModalClose: document.getElementById('auth-modal-close'),
+  authConfigWarning: document.getElementById('auth-config-warning'),
+  authProfileView: document.getElementById('auth-profile-view'),
+  authFormView: document.getElementById('auth-form-view'),
+  tabLogin: document.getElementById('tab-login'),
+  tabSignup: document.getElementById('tab-signup'),
+  authForm: document.getElementById('auth-form'),
+  authEmail: document.getElementById('auth-email'),
+  authPassword: document.getElementById('auth-password'),
+  authSubmitBtn: document.getElementById('btn-auth-submit'),
+  authErrorMsg: document.getElementById('auth-error-msg'),
+  authSuccessMsg: document.getElementById('auth-success-msg'),
+  authUserEmail: document.getElementById('auth-user-email'),
+  btnLogout: document.getElementById('btn-logout')
 };
 
 // -------------------------------------------------------------
@@ -356,6 +394,8 @@ function parseInput(text) {
 /**
  * Performs the core set difference math: NotFollowingBack = Following - Followers.
  */
+let isSyncingFromCloud = false;
+
 function calculateUnfollowers() {
   const followersSet = new Set(state.followers.map(user => user.username));
   const unfollowedSet = new Set(state.unfollowed.map(user => user.username));
@@ -371,6 +411,11 @@ function calculateUnfollowers() {
   updateResultsUI();
   updateUnfollowedUI();
   updateStarredUI();
+
+  // Sync state changes with the cloud automatically
+  if (!isSyncingFromCloud) {
+    pushToCloud();
+  }
 }
 
 function updateUnfollowedUI() {
@@ -887,10 +932,223 @@ function setupEventListeners() {
 }
 
 // -------------------------------------------------------------
+// Supabase Cloud Authentication & Data Sync (Option B)
+// -------------------------------------------------------------
+let currentUser = null;
+let isSigningUp = false;
+
+function initAuth() {
+  if (!supabaseClient) {
+    // Show configuration warning if URL/Anon key are empty
+    elements.authConfigWarning.classList.remove('hidden');
+    elements.authFormView.classList.add('hidden');
+    return;
+  }
+
+  // Subscribe to auth state updates
+  supabaseClient.auth.onAuthStateChange(async (event, session) => {
+    if (session) {
+      currentUser = session.user;
+      elements.userBadge.classList.remove('hidden');
+      elements.authUserEmail.textContent = currentUser.email;
+      
+      // Update UI panels in modal
+      elements.authProfileView.classList.remove('hidden');
+      elements.authFormView.classList.add('hidden');
+
+      // Fetch cloud data and merge/sync
+      await pullFromCloud();
+    } else {
+      currentUser = null;
+      elements.userBadge.classList.add('hidden');
+      
+      // Update UI panels in modal
+      elements.authProfileView.classList.add('hidden');
+      elements.authFormView.classList.remove('hidden');
+      
+      // Reset local lists to local-only status
+      state.unfollowed = [];
+      state.starred = JSON.parse(localStorage.getItem('starred_users') || '[]');
+      calculateUnfollowers();
+    }
+  });
+
+  // Wire up auth layout UI tab triggers
+  elements.tabLogin.addEventListener('click', () => {
+    isSigningUp = false;
+    elements.tabLogin.classList.add('active');
+    elements.tabSignup.classList.remove('active');
+    elements.authSubmitBtn.textContent = 'log in';
+    elements.authErrorMsg.classList.add('hidden');
+    elements.authSuccessMsg.classList.add('hidden');
+    clearAuthAlerts();
+  });
+
+  elements.tabSignup.addEventListener('click', () => {
+    isSigningUp = true;
+    elements.tabLogin.classList.remove('active');
+    elements.tabSignup.classList.add('active');
+    elements.authSubmitBtn.textContent = 'create account';
+    elements.authErrorMsg.classList.add('hidden');
+    elements.authSuccessMsg.classList.add('hidden');
+    clearAuthAlerts();
+  });
+
+  // Modal open/close actions
+  elements.authBtn.addEventListener('click', () => {
+    elements.authModal.classList.remove('hidden');
+  });
+
+  elements.authModalClose.addEventListener('click', () => {
+    elements.authModal.classList.add('hidden');
+    clearAuthAlerts();
+  });
+
+  // Close modal when tapping overlay backdrop
+  elements.authModal.addEventListener('click', (e) => {
+    if (e.target === elements.authModal) {
+      elements.authModal.classList.add('hidden');
+      clearAuthAlerts();
+    }
+  });
+
+  // Handle Form Submission (Sign In or Sign Up)
+  elements.authForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearAuthAlerts();
+    
+    const email = elements.authEmail.value.trim();
+    const password = elements.authPassword.value;
+    
+    elements.authSubmitBtn.setAttribute('disabled', 'true');
+    elements.authSubmitBtn.textContent = isSigningUp ? 'creating account...' : 'logging in...';
+
+    if (isSigningUp) {
+      // Supabase Sign Up
+      const { data, error } = await supabaseClient.auth.signUp({ email, password });
+      
+      if (error) {
+        showAuthError(error.message);
+      } else {
+        showAuthSuccess('account created! check your email if confirmation is required, or try logging in.');
+      }
+    } else {
+      // Supabase Log In
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      
+      if (error) {
+        showAuthError(error.message);
+      } else {
+        showAuthSuccess('login successful!');
+        setTimeout(() => {
+          elements.authModal.classList.add('hidden');
+          clearAuthAlerts();
+        }, 1200);
+      }
+    }
+
+    elements.authSubmitBtn.removeAttribute('disabled');
+    elements.authSubmitBtn.textContent = isSigningUp ? 'create account' : 'log in';
+  });
+
+  // Handle Log Out
+  elements.btnLogout.addEventListener('click', async () => {
+    if (supabaseClient) {
+      await supabaseClient.auth.signOut();
+      elements.authModal.classList.add('hidden');
+    }
+  });
+}
+
+function clearAuthAlerts() {
+  elements.authErrorMsg.classList.add('hidden');
+  elements.authErrorMsg.textContent = '';
+  elements.authSuccessMsg.classList.add('hidden');
+  elements.authSuccessMsg.textContent = '';
+}
+
+function showAuthError(msg) {
+  elements.authErrorMsg.textContent = msg.toLowerCase();
+  elements.authErrorMsg.classList.remove('hidden');
+}
+
+function showAuthSuccess(msg) {
+  elements.authSuccessMsg.textContent = msg.toLowerCase();
+  elements.authSuccessMsg.classList.remove('hidden');
+}
+
+// Sync helpers
+async function pullFromCloud() {
+  if (!supabaseClient || !currentUser) return;
+
+  isSyncingFromCloud = true;
+  try {
+    const { data, error } = await supabaseClient
+      .from('checker_data')
+      .select('starred, unfollowed')
+      .eq('user_id', currentUser.id)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (data) {
+      // Pull cloud data into local state
+      state.starred = data.starred || [];
+      state.unfollowed = data.unfollowed || [];
+      
+      // Update local storage
+      localStorage.setItem('starred_users', JSON.stringify(state.starred));
+    } else {
+      // Create cloud record with existing local data
+      const initialStarred = JSON.parse(localStorage.getItem('starred_users') || '[]');
+      
+      const { error: insertError } = await supabaseClient
+        .from('checker_data')
+        .insert({
+          user_id: currentUser.id,
+          starred: initialStarred,
+          unfollowed: []
+        });
+
+      if (insertError) throw insertError;
+      
+      state.starred = initialStarred;
+      state.unfollowed = [];
+    }
+
+    calculateUnfollowers();
+  } catch (err) {
+    console.error('Error pulling user data from Supabase:', err);
+  } finally {
+    isSyncingFromCloud = false;
+  }
+}
+
+async function pushToCloud() {
+  if (!supabaseClient || !currentUser) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from('checker_data')
+      .upsert({
+        user_id: currentUser.id,
+        starred: state.starred,
+        unfollowed: state.unfollowed,
+        updated_at: new Date().toISOString()
+      });
+
+    if (error) throw error;
+  } catch (err) {
+    console.error('Error syncing data to Supabase:', err);
+  }
+}
+
+// -------------------------------------------------------------
 // App Initialization
 // -------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   setupEventListeners();
+  initAuth();
   updateStarredUI();
 });
