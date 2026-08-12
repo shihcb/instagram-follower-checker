@@ -541,7 +541,18 @@ h1, h2, h3, h4, .card-num {
 }
 
 .preview-toggle .chevron-icon {
+  width: 14px !important;
+  height: 14px !important;
+  min-width: 14px !important;
+  min-height: 14px !important;
+  color: #000000 !important;
+  stroke: #000000 !important;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="dark"] .preview-toggle .chevron-icon {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
 }
 
 .preview-toggle.active .chevron-icon {
