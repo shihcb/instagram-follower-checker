@@ -47,21 +47,18 @@ const elements = {
 
   // Following list elements
   inputFollowing: document.getElementById('input-following'),
-  fileFollowing: document.getElementById('file-following'),
-  dropFollowing: document.getElementById('drop-following'),
   clearFollowing: document.getElementById('clear-following'),
   followingCount: document.getElementById('following-count'),
-  togglePreviewFollowing: document.getElementById('toggle-preview-following'),
-  listFollowing: document.getElementById('list-following'),
 
   // Followers list elements
   inputFollowers: document.getElementById('input-followers'),
-  fileFollowers: document.getElementById('file-followers'),
-  dropFollowers: document.getElementById('drop-followers'),
   clearFollowers: document.getElementById('clear-followers'),
   followersCount: document.getElementById('followers-count'),
-  togglePreviewFollowers: document.getElementById('toggle-preview-followers'),
-  listFollowers: document.getElementById('list-followers'),
+
+  // Import file input (in account dropdown)
+  importFileInput: document.getElementById('import-file-input'),
+  importErrorMsg: document.getElementById('import-error-msg'),
+  importSuccessMsg: document.getElementById('import-success-msg'),
 
   // Unfollowers (Results) elements
   unfollowersCount: document.getElementById('unfollowers-count'),
@@ -499,28 +496,7 @@ function deduplicateEntries(entries) {
 function updateListUI(type) {
   const listData = state[type];
   const countBadge = elements[`${type}Count`];
-  const listEl = elements[`list${type.charAt(0).toUpperCase() + type.slice(1)}`];
-  const toggleBtn = elements[`togglePreview${type.charAt(0).toUpperCase() + type.slice(1)}`];
-
   countBadge.textContent = `${listData.length} loaded`;
-  
-  if (listData.length > 0) {
-    toggleBtn.removeAttribute('disabled');
-    
-    // Render preview elements
-    listEl.innerHTML = listData.map(user => `
-      <div class="parsed-item">
-        <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
-        <span>${user.fullName ? user.fullName : (user.timestamp ? formatDate(user.timestamp) : '')}</span>
-      </div>
-    `).join('');
-  } else {
-    toggleBtn.setAttribute('disabled', 'true');
-    listEl.innerHTML = '';
-    listEl.classList.add('hidden');
-    toggleBtn.classList.remove('active');
-    toggleBtn.querySelector('span').textContent = 'show loaded users';
-  }
 }
 
 function updateResultsUI() {
@@ -633,15 +609,18 @@ const handleFollowersInput = debounce(function() {
   calculateUnfollowers();
 }, 250);
 
-function handleFileSelect(file, type) {
-  if (!file) return;
+// Allowed filenames mapped to their list type
+const ALLOWED_FILES = {
+  'following.html': 'following',
+  'followers_1.html': 'followers'
+};
+
+function loadFileIntoList(file, type) {
   const reader = new FileReader();
   reader.onload = function(e) {
     const content = e.target.result;
     const inputEl = elements[`input${type.charAt(0).toUpperCase() + type.slice(1)}`];
     inputEl.value = content;
-    
-    // Dispatch input event to trigger parser
     if (type === 'following') {
       handleFollowingInput();
     } else {
@@ -651,35 +630,38 @@ function handleFileSelect(file, type) {
   reader.readAsText(file);
 }
 
-// Set up drag and drop behaviors
-function setupDragAndDrop(dropZone, fileInput, type) {
-  ['dragenter', 'dragover'].forEach(eventName => {
-    dropZone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      dropZone.classList.add('dragover');
-    }, false);
-  });
+function handleImportFiles(files) {
+  const errEl = elements.importErrorMsg;
+  const okEl  = elements.importSuccessMsg;
+  errEl.classList.add('hidden');
+  okEl.classList.add('hidden');
 
-  ['dragleave', 'drop'].forEach(eventName => {
-    dropZone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      dropZone.classList.remove('dragover');
-    }, false);
-  });
+  const rejected = [];
+  const accepted = [];
 
-  dropZone.addEventListener('drop', (e) => {
-    const dt = e.dataTransfer;
-    const files = dt.files;
-    if (files.length > 0) {
-      handleFileSelect(files[0], type);
+  Array.from(files).forEach(file => {
+    const name = file.name.toLowerCase();
+    if (ALLOWED_FILES[name]) {
+      accepted.push({ file, type: ALLOWED_FILES[name] });
+    } else {
+      rejected.push(file.name);
     }
   });
 
-  fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-      handleFileSelect(e.target.files[0], type);
-    }
-  });
+  if (rejected.length > 0) {
+    errEl.textContent = `rejected: ${rejected.join(', ')} — only following.html and followers_1.html are accepted.`;
+    errEl.classList.remove('hidden');
+  }
+
+  if (accepted.length > 0) {
+    accepted.forEach(({ file, type }) => loadFileIntoList(file, type));
+    const labels = accepted.map(({ type }) => type === 'following' ? 'following.html' : 'followers_1.html');
+    okEl.textContent = `imported: ${labels.join(', ')}`;
+    okEl.classList.remove('hidden');
+  }
+
+  // Reset input so same files can be re-selected
+  elements.importFileInput.value = '';
 }
 
 // -------------------------------------------------------------
@@ -736,18 +718,6 @@ function setupEventListeners() {
     calculateUnfollowers();
   });
 
-  // Accordion toggles for source previews
-  elements.togglePreviewFollowing.addEventListener('click', () => {
-    const isHidden = elements.listFollowing.classList.toggle('hidden');
-    elements.togglePreviewFollowing.classList.toggle('active', !isHidden);
-    elements.togglePreviewFollowing.querySelector('span').textContent = isHidden ? 'show loaded users' : 'hide loaded users';
-  });
-
-  elements.togglePreviewFollowers.addEventListener('click', () => {
-    const isHidden = elements.listFollowers.classList.toggle('hidden');
-    elements.togglePreviewFollowers.classList.toggle('active', !isHidden);
-    elements.togglePreviewFollowers.querySelector('span').textContent = isHidden ? 'show loaded users' : 'hide loaded users';
-  });
 
   // Handle click on username, action arrow, or star button
   elements.listUnfollowers.addEventListener('click', (e) => {
@@ -816,13 +786,14 @@ function setupEventListeners() {
     }
   });
 
-  // Setup inputs
+  // Setup manual textarea inputs
   elements.inputFollowing.addEventListener('input', handleFollowingInput);
   elements.inputFollowers.addEventListener('input', handleFollowersInput);
 
-  // Setup drag and drop
-  setupDragAndDrop(elements.dropFollowing, elements.fileFollowing, 'following');
-  setupDragAndDrop(elements.dropFollowers, elements.fileFollowers, 'followers');
+  // Setup centralised import handler in account dropdown
+  elements.importFileInput.addEventListener('change', (e) => {
+    handleImportFiles(e.target.files);
+  });
 
   // Keyboard navigation shortcuts (Desktop only)
   document.addEventListener('keydown', (e) => {

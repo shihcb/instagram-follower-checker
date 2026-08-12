@@ -57,6 +57,22 @@
                 <h3>account</h3>
               </div>
 
+              <!-- Import HTML Files Section -->
+              <div class="dropdown-section" style="padding-bottom: 16px; border-bottom: 1px solid var(--card-border); margin-bottom: 4px;">
+                <label for="import-file-input" class="btn btn-primary btn-block" style="cursor: pointer; padding: 10px 16px; font-size: 0.85rem;">
+                  <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  <span>import html files</span>
+                </label>
+                <input type="file" id="import-file-input" multiple accept=".html" style="display: none;">
+                
+                <div id="import-error-msg" class="auth-error hidden" style="margin-top: 10px;"></div>
+                <div id="import-success-msg" class="auth-success hidden" style="margin-top: 10px;"></div>
+              </div>
+
               <!-- Settings Configuration Check -->
               <div id="auth-config-warning" class="auth-warning hidden">
                 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; color: var(--error-color);">
@@ -133,37 +149,9 @@
           <span class="badge count-badge" id="following-count">0 loaded</span>
         </div>
         <div class="card-body">
-          <div class="drop-zone" id="drop-following">
-            <textarea id="input-following" placeholder="paste your following list"></textarea>
-            <div class="drop-zone-overlay">
-              <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-              </svg>
-              <span>drop file to load following</span>
-            </div>
-          </div>
-          
+          <textarea id="input-following" class="app-textarea" placeholder="paste your following list"></textarea>
           <div class="card-actions">
-            <label class="btn btn-secondary btn-sm" for="file-following">
-              <input type="file" id="file-following" accept=".html,.json,.txt" class="hidden">
-              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
-              </svg>
-              choose file
-            </label>
             <button id="clear-following" class="btn btn-tertiary btn-sm">clear</button>
-          </div>
-
-          <div class="parsed-preview-container">
-            <button class="preview-toggle" id="toggle-preview-following" disabled>
-              <span>show loaded users</span>
-              <svg class="chevron-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </button>
-            <div class="parsed-list hidden" id="list-following"></div>
           </div>
         </div>
       </section>
@@ -178,37 +166,9 @@
           <span class="badge count-badge" id="followers-count">0 loaded</span>
         </div>
         <div class="card-body">
-          <div class="drop-zone" id="drop-followers">
-            <textarea id="input-followers" placeholder="paste your followers list"></textarea>
-            <div class="drop-zone-overlay">
-              <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-              </svg>
-              <span>drop file to load followers</span>
-            </div>
-          </div>
-
+          <textarea id="input-followers" class="app-textarea" placeholder="paste your followers list"></textarea>
           <div class="card-actions">
-            <label class="btn btn-secondary btn-sm" for="file-followers">
-              <input type="file" id="file-followers" accept=".html,.json,.txt" class="hidden">
-              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
-              </svg>
-              choose file
-            </label>
             <button id="clear-followers" class="btn btn-tertiary btn-sm">clear</button>
-          </div>
-
-          <div class="parsed-preview-container">
-            <button class="preview-toggle" id="toggle-preview-followers" disabled>
-              <span>show loaded users</span>
-              <svg class="chevron-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </button>
-            <div class="parsed-list hidden" id="list-followers"></div>
           </div>
         </div>
       </section>
