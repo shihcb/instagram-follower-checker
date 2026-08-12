@@ -428,13 +428,24 @@ function updateUnfollowedUI() {
     toggleBtn.removeAttribute('disabled');
     toggleBtn.querySelector('span').textContent = `unfollowed (${listData.length})`;
     
-    // Render elements (same layout as parsed-list)
-    listEl.innerHTML = listData.map(user => `
-      <div class="parsed-item">
-        <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
-        <span>${user.fullName ? user.fullName : ''}</span>
+    // Render elements with a reset button at the top and a scroll container below
+    listEl.innerHTML = `
+      <button class="btn btn-secondary btn-sm" id="reset-unfollowed-btn" style="width: 100%; margin-bottom: 6px; font-size: 0.75rem; padding: 6px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+        <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        reset list
+      </button>
+      <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow-y: auto; width: 100%;">
+        ${listData.map(user => `
+          <div class="parsed-item">
+            <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
+            <span>${user.fullName ? user.fullName : ''}</span>
+          </div>
+        `).join('')}
       </div>
-    `).join('');
+    `;
   } else {
     toggleBtn.setAttribute('disabled', 'true');
     toggleBtn.querySelector('span').textContent = 'unfollowed (0)';
@@ -644,7 +655,6 @@ function setupEventListeners() {
   elements.clearFollowing.addEventListener('click', () => {
     elements.inputFollowing.value = '';
     state.following = [];
-    state.unfollowed = [];
     state.selectedIndex = -1; // Reset selection index
     updateListUI('following');
     calculateUnfollowers();
@@ -653,7 +663,6 @@ function setupEventListeners() {
   elements.clearFollowers.addEventListener('click', () => {
     elements.inputFollowers.value = '';
     state.followers = [];
-    state.unfollowed = [];
     state.selectedIndex = -1; // Reset selection index
     updateListUI('followers');
     calculateUnfollowers();
@@ -765,6 +774,19 @@ function setupEventListeners() {
       state.starred = state.starred.filter(u => u.username !== username);
       localStorage.setItem('starred_users', JSON.stringify(state.starred));
       calculateUnfollowers();
+    }
+  });
+
+  // Handle click on reset button inside unfollowed list
+  elements.listUnfollowed.addEventListener('click', async (e) => {
+    const resetBtn = e.target.closest('#reset-unfollowed-btn');
+    if (resetBtn) {
+      if (confirm('Are you sure you want to reset your unfollowed list history?')) {
+        state.unfollowed = [];
+        calculateUnfollowers();
+        updateUnfollowedUI();
+        await pushToCloud();
+      }
     }
   });
 
