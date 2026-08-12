@@ -1384,7 +1384,7 @@ h1, h2, h3, h4, .card-num {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   display: flex;
@@ -1392,12 +1392,16 @@ h1, h2, h3, h4, .card-num {
   justify-content: center;
   z-index: 9999;
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, visibility;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.love-overlay:not(.hidden) {
+.love-overlay.show {
   opacity: 1;
+  visibility: visible;
   pointer-events: auto;
 }
 
@@ -1416,8 +1420,11 @@ h1, h2, h3, h4, .card-num {
   max-width: 420px;
   position: relative;
   overflow: hidden;
-  transform: scale(0.9);
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0;
+  transform: scale(0.85) translateY(12px);
+  will-change: opacity, transform;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 [data-theme="dark"] .love-card {
@@ -1426,8 +1433,9 @@ h1, h2, h3, h4, .card-num {
   box-shadow: 0 25px 50px -12px rgba(239, 68, 68, 0.4), 0 0 45px rgba(239, 68, 68, 0.15);
 }
 
-.love-overlay:not(.hidden) .love-card {
-  transform: scale(1);
+.love-overlay.show .love-card {
+  opacity: 1;
+  transform: scale(1) translateY(0);
 }
 
 .love-heart-main {

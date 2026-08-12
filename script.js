@@ -920,7 +920,7 @@ function setupEventListeners() {
   }
 
   function showLoveOverlay() {
-    loveOverlay.classList.remove('hidden');
+    loveOverlay.classList.add('show');
     // Periodically spawn floating hearts
     heartInterval = setInterval(spawnFloatHeart, 300);
     // Spawn initial bunch of hearts immediately
@@ -930,12 +930,16 @@ function setupEventListeners() {
   }
 
   function hideLoveOverlay() {
-    loveOverlay.classList.add('hidden');
+    loveOverlay.classList.remove('show');
     if (heartInterval) {
       clearInterval(heartInterval);
       heartInterval = null;
     }
-    loveHeartsContainer.innerHTML = '';
+    setTimeout(() => {
+      if (!loveOverlay.classList.contains('show')) {
+        loveHeartsContainer.innerHTML = '';
+      }
+    }, 450);
   }
 
   let lastLogoTap = 0;
