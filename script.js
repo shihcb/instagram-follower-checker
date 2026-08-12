@@ -47,8 +47,6 @@ const elements = {
 
   // Following list elements
   inputFollowing: document.getElementById('input-following'),
-  fileFollowing: document.getElementById('file-following'),
-  dropFollowing: document.getElementById('drop-following'),
   clearFollowing: document.getElementById('clear-following'),
   followingCount: document.getElementById('following-count'),
   togglePreviewFollowing: document.getElementById('toggle-preview-following'),
@@ -56,8 +54,6 @@ const elements = {
 
   // Followers list elements
   inputFollowers: document.getElementById('input-followers'),
-  fileFollowers: document.getElementById('file-followers'),
-  dropFollowers: document.getElementById('drop-followers'),
   clearFollowers: document.getElementById('clear-followers'),
   followersCount: document.getElementById('followers-count'),
   togglePreviewFollowers: document.getElementById('toggle-preview-followers'),
@@ -90,7 +86,8 @@ const elements = {
   authErrorMsg: document.getElementById('auth-error-msg'),
   authSuccessMsg: document.getElementById('auth-success-msg'),
   authUserEmail: document.getElementById('auth-user-email'),
-  btnLogout: document.getElementById('btn-logout')
+  btnLogout: document.getElementById('btn-logout'),
+  importFilesInput: document.getElementById('import-files-input')
 };
 
 // -------------------------------------------------------------
@@ -643,52 +640,27 @@ const handleFollowersInput = debounce(function() {
   calculateUnfollowers();
 }, 250);
 
-function handleFileSelect(file, type) {
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const content = e.target.result;
-    const inputEl = elements[`input${type.charAt(0).toUpperCase() + type.slice(1)}`];
-    inputEl.value = content;
-    
-    // Dispatch input event to trigger parser
-    if (type === 'following') {
-      handleFollowingInput();
-    } else {
-      handleFollowersInput();
+function readAndProcessFile(file, type) {
+  return new Promise((resolve) => {
+    if (!file) {
+      resolve();
+      return;
     }
-  };
-  reader.readAsText(file);
-}
-
-// Set up drag and drop behaviors
-function setupDragAndDrop(dropZone, fileInput, type) {
-  ['dragenter', 'dragover'].forEach(eventName => {
-    dropZone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      dropZone.classList.add('dragover');
-    }, false);
-  });
-
-  ['dragleave', 'drop'].forEach(eventName => {
-    dropZone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      dropZone.classList.remove('dragover');
-    }, false);
-  });
-
-  dropZone.addEventListener('drop', (e) => {
-    const dt = e.dataTransfer;
-    const files = dt.files;
-    if (files.length > 0) {
-      handleFileSelect(files[0], type);
-    }
-  });
-
-  fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-      handleFileSelect(e.target.files[0], type);
-    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const content = e.target.result;
+      const inputEl = elements[`input${type.charAt(0).toUpperCase() + type.slice(1)}`];
+      inputEl.value = content;
+      
+      if (type === 'following') {
+        handleFollowingInput();
+      } else {
+        handleFollowersInput();
+      }
+      // Debounce delay buffer to ensure recalculation finishes before next file
+      setTimeout(resolve, 300);
+    };
+    reader.readAsText(file);
   });
 }
 
@@ -829,10 +801,6 @@ function setupEventListeners() {
   // Setup inputs
   elements.inputFollowing.addEventListener('input', handleFollowingInput);
   elements.inputFollowers.addEventListener('input', handleFollowersInput);
-
-  // Setup drag and drop
-  setupDragAndDrop(elements.dropFollowing, elements.fileFollowing, 'following');
-  setupDragAndDrop(elements.dropFollowers, elements.fileFollowers, 'followers');
 
   // Keyboard navigation shortcuts (Desktop only)
   document.addEventListener('keydown', (e) => {
@@ -1087,6 +1055,43 @@ function initAuth() {
       elements.authDropdown.classList.add('hidden');
     }
   });
+
+  // Handle Import Files Selection
+  if (elements.importFilesInput) {
+    elements.importFilesInput.addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+
+      let importedFollowing = false;
+      let importedFollowers = false;
+      let invalidFiles = [];
+
+      for (const file of files) {
+        if (file.name === 'following.html') {
+          await readAndProcessFile(file, 'following');
+          importedFollowing = true;
+        } else if (file.name === 'followers_1.html') {
+          await readAndProcessFile(file, 'followers');
+          importedFollowers = true;
+        } else {
+          invalidFiles.push(file.name);
+        }
+      }
+
+      if (invalidFiles.length > 0) {
+        alert(`ignored files: ${invalidFiles.join(', ')}.\nonly 'followers_1.html' and 'following.html' are accepted.`);
+      }
+
+      if (importedFollowing || importedFollowers) {
+        // Close dropdown after successful import
+        elements.authDropdown.classList.add('hidden');
+        clearAuthAlerts();
+      }
+
+      // Reset input value
+      elements.importFilesInput.value = '';
+    });
+  }
 }
 
 function clearAuthAlerts() {

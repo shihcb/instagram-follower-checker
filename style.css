@@ -464,67 +464,34 @@ h1, h2, h3, h4, .card-num {
 /* -------------------------------------------------------------
  * Drop Zone and Text Area Inputs
  * ------------------------------------------------------------- */
-.drop-zone {
-  position: relative;
-  flex: 1;
-  border: 2px dashed var(--input-border);
-  border-radius: 12px;
-  background-color: var(--input-bg);
-  transition: all 0.25s ease;
-  overflow: hidden;
-}
-
-.drop-zone.dragover {
-  border-color: var(--grad-2);
-  background-color: rgba(236, 72, 153, 0.04);
-}
-
-.drop-zone textarea {
+.card-body textarea {
   width: 100%;
-  height: 100%;
-  border: none;
-  background: transparent;
-  padding: 16px;
+  height: 120px;
+  border: 1px solid var(--input-border);
+  border-radius: 10px;
+  background-color: var(--input-bg);
+  padding: 14px;
   color: var(--text-main);
   font-family: var(--font-sans);
   font-size: 0.9rem;
   resize: none;
   outline: none;
   line-height: 1.6;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  margin-bottom: 12px;
 }
 
-.drop-zone textarea::placeholder {
+.card-body textarea:focus {
+  border-color: var(--text-main);
+}
+
+.card-body textarea::placeholder {
   color: var(--text-muted);
-}
-
-.drop-zone-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--card-bg);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: var(--grad-2);
-  font-weight: 600;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.drop-zone.dragover .drop-zone-overlay {
-  opacity: 1;
 }
 
 .card-actions {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
 }
 
