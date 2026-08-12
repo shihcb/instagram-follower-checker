@@ -842,6 +842,7 @@ function setupEventListeners() {
 
   // Handle click on unstar inside starred list
   elements.listStarred.addEventListener('click', (e) => {
+    e.stopPropagation();
     const unstarBtn = e.target.closest('.unstar-btn');
     if (unstarBtn) {
       const username = unstarBtn.getAttribute('data-username');
@@ -853,6 +854,7 @@ function setupEventListeners() {
 
   // Handle click on elements inside unfollowed list (reset, remove, or star)
   elements.listUnfollowed.addEventListener('click', async (e) => {
+    e.stopPropagation();
     const resetBtn = e.target.closest('#reset-unfollowed-btn');
     if (resetBtn) {
       if (confirm('Are you sure you want to reset your unfollowed list history?')) {

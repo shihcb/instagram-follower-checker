@@ -854,13 +854,14 @@ h1, h2, h3, h4, .card-num {
 
 .user-row.selected {
   border-color: var(--text-main);
-  background-color: var(--input-bg);
+  background-color: transparent !important;
   box-shadow: 0 0 0 1px var(--text-main);
 }
 
 [data-theme="dark"] .user-row.selected {
-  background-color: #000000 !important;
+  background-color: transparent !important;
   border-color: #ffffff !important;
+  box-shadow: 0 0 0 1px #ffffff !important;
 }
 
 .user-info {
