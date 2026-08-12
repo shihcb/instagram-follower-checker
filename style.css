@@ -466,10 +466,11 @@ h1, h2, h3, h4, .card-num {
   position: absolute;
   top: -48px;
   left: 0;
-  width: calc(66.666% - 12px);
+  width: 100%;
   z-index: 10;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   padding: 8px 16px;
   border-radius: 12px;
@@ -923,6 +924,7 @@ h1, h2, h3, h4, .card-num {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  margin-bottom: 50px;
 }
 
 .user-row {
