@@ -965,9 +965,22 @@ function initAuth() {
       elements.authProfileView.classList.add('hidden');
       elements.authFormView.classList.remove('hidden');
       
-      // Reset local lists to local-only status
+      // Clear all loaded information and input textareas
+      state.following = [];
+      state.followers = [];
+      state.unfollowers = [];
       state.unfollowed = [];
-      state.starred = JSON.parse(localStorage.getItem('starred_users') || '[]');
+      state.starred = [];
+      state.selectedIndex = -1;
+      
+      localStorage.removeItem('starred_users');
+      
+      elements.inputFollowing.value = '';
+      elements.inputFollowers.value = '';
+      elements.searchUnfollowers.value = '';
+      
+      updateListUI('following');
+      updateListUI('followers');
       calculateUnfollowers();
     }
   });
