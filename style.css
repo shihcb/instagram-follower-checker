@@ -631,11 +631,13 @@ h1, h2, h3, h4, .card-num {
     left: auto;
   }
   .star-unfollowed-btn,
-  .remove-unfollowed-btn {
+  .remove-unfollowed-btn,
+  .unstar-btn {
     padding: 6px !important;
   }
   .star-unfollowed-btn svg,
-  .remove-unfollowed-btn svg {
+  .remove-unfollowed-btn svg,
+  .unstar-btn svg {
     width: 18px !important;
     height: 18px !important;
   }
