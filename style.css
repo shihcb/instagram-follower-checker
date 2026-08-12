@@ -388,12 +388,7 @@ h1, h2, h3, h4, .card-num {
   color: var(--text-muted);
 }
 
-#card-unfollowers .card-num {
-  background: #000000 !important;
-  color: #ffffff !important;
-  border: 1px solid #000000 !important;
-}
-
+.card-num,
 .count-badge,
 #unfollowers-count {
   background: #000000 !important;
@@ -401,13 +396,8 @@ h1, h2, h3, h4, .card-num {
   border: 1px solid #000000 !important;
 }
 
-/* Dark theme overrides for list badges */
-[data-theme="dark"] #card-unfollowers .card-num {
-  background: #ffffff !important;
-  color: #000000 !important;
-  border-color: #ffffff !important;
-}
-
+/* Dark theme overrides for list badges & card numbers */
+[data-theme="dark"] .card-num,
 [data-theme="dark"] .count-badge,
 [data-theme="dark"] #unfollowers-count {
   background: #ffffff !important;
