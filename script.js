@@ -832,15 +832,37 @@ function setupEventListeners() {
     }
 
     if (userLink || actionArrow) {
+      // Prevent the anchor's default navigation so JS runs first
+      e.preventDefault();
+
       const userRow = e.target.closest('.user-row');
       if (userRow) {
         const username = userRow.getAttribute('data-username');
         const userObj = state.unfollowers.find(u => u.username === username);
         if (userObj) {
+          // Open profile in new tab manually
+          window.open(userObj.profileUrl, '_blank', 'noopener');
+
+          // Add to unfollowed if not already there
           if (!state.unfollowed.some(u => u.username === username)) {
             state.unfollowed.push(userObj);
           }
-          calculateUnfollowers();
+
+          // Animate row out smoothly, then recalculate
+          userRow.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+          userRow.style.opacity = '0';
+          userRow.style.transform = 'translateX(12px)';
+          setTimeout(() => {
+            calculateUnfollowers();
+
+            // Auto-expand the unfollowed accordion if it's collapsed
+            if (elements.listUnfollowed.classList.contains('hidden')) {
+              elements.listUnfollowed.classList.remove('hidden');
+              elements.togglePreviewUnfollowed.classList.add('active');
+              elements.togglePreviewUnfollowed.querySelector('span').textContent =
+                `hide unfollowed users (${state.unfollowed.length})`;
+            }
+          }, 220);
         }
       }
     }
