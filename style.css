@@ -774,16 +774,7 @@ h1, h2, h3, h4, .card-num {
   }
 }
 
-/* -------------------------------------------------------------
- * Accordion Help Panel & Details Tag
- * ------------------------------------------------------------- */
-.app-footer {
-  text-align: center;
-  padding: 16px 0;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  width: 100%;
-}
+
 
 /* -------------------------------------------------------------
  * Responsive Design Queries (Tablet & Mobile)
