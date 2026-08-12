@@ -6,10 +6,10 @@
   --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
-  /* Instagram Gradient Colors */
-  --grad-1: #f97316; /* Orange */
-  --grad-2: #ec4899; /* Pink */
-  --grad-3: #a855f7; /* Purple */
+  /* Grayscale Theme Gradient Colors */
+  --grad-1: #000000;
+  --grad-2: #374151; /* Slate gray */
+  --grad-3: #71717a; /* Zinc gray */
   --grad-instagram: linear-gradient(135deg, var(--grad-1), var(--grad-2), var(--grad-3));
 
   /* Light Theme variables (Fallback / Active under light mode) */
@@ -20,6 +20,8 @@
   --card-border: rgba(15, 23, 42, 0.08);
   --card-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.05), 
                  0 1px 3px rgba(15, 23, 42, 0.02);
+  --highlight-border: rgba(0, 0, 0, 0.18);
+  --highlight-shadow: rgba(0, 0, 0, 0.03);
   --text-main: #0f172a;
   --text-muted: #64748b;
   --text-inverse: #ffffff;
@@ -45,6 +47,9 @@
 
 [data-theme="dark"] {
   /* Dark Theme variables */
+  --grad-1: #ffffff;
+  --grad-2: #a1a1aa; /* Light gray */
+  --grad-3: #3f3f46; /* Medium gray */
   --logo-color: #ffffff;
   --bg-color: #080a14;
   --bg-gradient: linear-gradient(185deg, #070912 0%, #0d1020 100%);
@@ -52,6 +57,8 @@
   --card-border: rgba(255, 255, 255, 0.06);
   --card-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), 
                  inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --highlight-border: rgba(255, 255, 255, 0.18);
+  --highlight-shadow: rgba(255, 255, 255, 0.02);
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
   --text-inverse: #0f172a;
@@ -62,7 +69,7 @@
   --btn-secondary-hover: rgba(255, 255, 255, 0.09);
   --btn-secondary-border: rgba(255, 255, 255, 0.05);
 
-  --glow-opacity: 0.22;
+  --glow-opacity: 0.18;
   
   --scrollbar-thumb: rgba(255, 255, 255, 0.12);
   --scrollbar-track: rgba(0, 0, 0, 0.2);
@@ -409,11 +416,11 @@ h1, h2, h3, h4, .card-num {
 
 /* Highlight Third Card */
 .highlighted-card {
-  border-color: rgba(168, 85, 247, 0.25);
-  box-shadow: 0 20px 40px -15px rgba(168, 85, 247, 0.08), var(--card-shadow);
+  border-color: var(--highlight-border);
+  box-shadow: 0 20px 40px -15px var(--highlight-shadow), var(--card-shadow);
 }
 .highlighted-card:hover {
-  border-color: rgba(168, 85, 247, 0.45);
+  border-color: var(--text-main);
 }
 
 /* -------------------------------------------------------------
@@ -715,15 +722,15 @@ h1, h2, h3, h4, .card-num {
 }
 
 .user-row:hover {
-  border-color: rgba(236, 72, 153, 0.3);
+  border-color: var(--text-main);
   transform: translateX(2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .user-row.selected {
-  border-color: var(--grad-2);
-  background-color: rgba(236, 72, 153, 0.05);
-  box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.15);
+  border-color: var(--text-main);
+  background-color: var(--btn-secondary-bg);
+  box-shadow: 0 0 0 2px var(--card-border);
   transform: translateX(2px);
 }
 
@@ -840,6 +847,9 @@ h1, h2, h3, h4, .card-num {
   .card {
     height: 500px;
   }
+  #card-unfollowers {
+    height: 700px;
+  }
   .help-grid {
     grid-template-columns: 1fr;
     gap: 20px;
@@ -859,6 +869,9 @@ h1, h2, h3, h4, .card-num {
   }
   .card {
     height: 460px;
+  }
+  #card-unfollowers {
+    height: 680px;
   }
   .card-header, .card-body {
     padding: 16px;

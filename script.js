@@ -425,7 +425,7 @@ function updateListUI(type) {
     // Render preview elements
     listEl.innerHTML = listData.map(user => `
       <div class="parsed-item">
-        <span class="parsed-username">@${user.originalUsername}</span>
+        <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
         <span>${user.fullName ? user.fullName : (user.timestamp ? formatDate(user.timestamp) : '')}</span>
       </div>
     `).join('');
