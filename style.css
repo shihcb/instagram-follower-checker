@@ -36,7 +36,7 @@
   --glass-blur: 16px;
   
   --success-color: #10b981;
-  --error-color: #ef4444;
+  --error-color: #0f172a;
   --warning-color: #f59e0b;
 
   --scrollbar-thumb: rgba(15, 23, 42, 0.15);
@@ -68,6 +68,7 @@
   --btn-secondary-bg: rgba(255, 255, 255, 0.05);
   --btn-secondary-hover: rgba(255, 255, 255, 0.09);
   --btn-secondary-border: rgba(255, 255, 255, 0.05);
+  --error-color: #f8fafc;
 
   --glow-opacity: 0.18;
   
@@ -298,8 +299,8 @@ h1, h2, h3, h4, .card-num {
 }
 
 .btn-tertiary:hover:not(:disabled) {
-  color: var(--error-color);
-  background: rgba(239, 68, 68, 0.08);
+  color: var(--text-main);
+  background: var(--btn-secondary-hover);
 }
 
 .icon-btn {
@@ -374,6 +375,12 @@ h1, h2, h3, h4, .card-num {
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
+}
+
+#card-unfollowers .card-num {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  border-color: #000000 !important;
 }
 
 .card-num.bg-gradient {
@@ -1043,8 +1050,8 @@ h1, h2, h3, h4, .card-num {
   gap: 10px;
   padding: 12px;
   border-radius: 8px;
-  background-color: rgba(239, 68, 68, 0.06);
-  border: 1px solid rgba(239, 68, 68, 0.12);
+  background-color: var(--btn-secondary-bg);
+  border: 1px solid var(--card-border);
   color: var(--text-muted);
   font-size: 0.75rem;
   line-height: 1.5;
@@ -1060,8 +1067,8 @@ h1, h2, h3, h4, .card-num {
 .auth-error {
   padding: 10px 12px;
   border-radius: 8px;
-  background-color: rgba(239, 68, 68, 0.06);
-  border: 1px solid rgba(239, 68, 68, 0.12);
+  background-color: var(--btn-secondary-bg);
+  border: 1px solid var(--card-border);
   color: var(--error-color);
   font-size: 0.75rem;
   text-transform: lowercase;

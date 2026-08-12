@@ -998,7 +998,7 @@ function initAuth() {
       if (signup) {
         elements.tabLogin.classList.remove('active');
         elements.tabSignup.classList.add('active');
-        elements.authSubmitBtn.textContent = 'create account';
+        elements.authSubmitBtn.textContent = 'sign up';
       } else {
         elements.tabLogin.classList.add('active');
         elements.tabSignup.classList.remove('active');
@@ -1040,7 +1040,7 @@ function initAuth() {
     const password = elements.authPassword.value;
     
     elements.authSubmitBtn.setAttribute('disabled', 'true');
-    elements.authSubmitBtn.textContent = isSigningUp ? 'creating account...' : 'logging in...';
+    elements.authSubmitBtn.textContent = isSigningUp ? 'signing up...' : 'logging in...';
 
     if (isSigningUp) {
       // Supabase Sign Up
@@ -1067,7 +1067,7 @@ function initAuth() {
     }
 
     elements.authSubmitBtn.removeAttribute('disabled');
-    elements.authSubmitBtn.textContent = isSigningUp ? 'create account' : 'log in';
+    elements.authSubmitBtn.textContent = isSigningUp ? 'sign up' : 'log in';
   });
 
   // Handle Log Out
