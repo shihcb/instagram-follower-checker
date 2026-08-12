@@ -1270,6 +1270,8 @@ function initAuth() {
         elements.userBadge.classList.remove('hidden');
         elements.authUserEmail.textContent = currentUser.email;
 
+        const appGrid = document.querySelector('.app-grid');
+        if (appGrid) appGrid.style.marginTop = '0';
         const importAccountWarning = document.getElementById('import-account-warning');
         if (importAccountWarning) importAccountWarning.classList.add('hidden-warning');
         
@@ -1299,6 +1301,8 @@ function initAuth() {
         currentUser = null;
         elements.userBadge.classList.add('hidden');
 
+        const appGrid = document.querySelector('.app-grid');
+        if (appGrid && window.innerWidth > 1024) appGrid.style.marginTop = '48px';
         const importAccountWarning = document.getElementById('import-account-warning');
         if (importAccountWarning) importAccountWarning.classList.remove('hidden-warning');
         
