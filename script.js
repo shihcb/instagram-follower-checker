@@ -467,7 +467,7 @@ function updateUnfollowedUI() {
     toggleBtn.setAttribute('disabled', 'true');
     toggleBtn.querySelector('span').textContent = 'unfollowed (0)';
     listEl.innerHTML = '';
-    listEl.classList.add('hidden');
+    listEl.classList.remove('show');
     toggleBtn.classList.remove('active');
   }
 }
@@ -499,7 +499,7 @@ function updateStarredUI() {
     toggleBtn.setAttribute('disabled', 'true');
     toggleBtn.querySelector('span').textContent = 'starred (0)';
     listEl.innerHTML = '';
-    listEl.classList.add('hidden');
+    listEl.classList.remove('show');
     toggleBtn.classList.remove('active');
   }
 }
@@ -779,33 +779,33 @@ function setupEventListeners() {
   // Toggle preview unfollowed list dropdown
   elements.togglePreviewUnfollowed.addEventListener('click', (e) => {
     e.stopPropagation();
-    const isHidden = elements.listUnfollowed.classList.toggle('hidden');
-    elements.togglePreviewUnfollowed.classList.toggle('active', !isHidden);
+    const isShown = elements.listUnfollowed.classList.toggle('show');
+    elements.togglePreviewUnfollowed.classList.toggle('active', isShown);
     
     // Close starred dropdown if open
-    elements.listStarred.classList.add('hidden');
+    elements.listStarred.classList.remove('show');
     elements.togglePreviewStarred.classList.remove('active');
   });
 
   // Toggle preview starred list dropdown
   elements.togglePreviewStarred.addEventListener('click', (e) => {
     e.stopPropagation();
-    const isHidden = elements.listStarred.classList.toggle('hidden');
-    elements.togglePreviewStarred.classList.toggle('active', !isHidden);
+    const isShown = elements.listStarred.classList.toggle('show');
+    elements.togglePreviewStarred.classList.toggle('active', isShown);
     
     // Close unfollowed dropdown if open
-    elements.listUnfollowed.classList.add('hidden');
+    elements.listUnfollowed.classList.remove('show');
     elements.togglePreviewUnfollowed.classList.remove('active');
   });
 
   // Close dropdowns on outside clicks
   document.addEventListener('click', (e) => {
     if (!e.target.closest('#toggle-preview-unfollowed') && !e.target.closest('#list-unfollowed')) {
-      elements.listUnfollowed.classList.add('hidden');
+      elements.listUnfollowed.classList.remove('show');
       elements.togglePreviewUnfollowed.classList.remove('active');
     }
     if (!e.target.closest('#toggle-preview-starred') && !e.target.closest('#list-starred')) {
-      elements.listStarred.classList.add('hidden');
+      elements.listStarred.classList.remove('show');
       elements.togglePreviewStarred.classList.remove('active');
     }
   });
@@ -1225,60 +1225,67 @@ function initAuth() {
 
   // Subscribe to auth state updates
   supabaseClient.auth.onAuthStateChange(async (event, session) => {
-    if (session) {
-      currentUser = session.user;
-      elements.userBadge.classList.remove('hidden');
-      elements.authUserEmail.textContent = currentUser.email;
-      
-      // Update UI panels in modal
-      elements.authProfileView.classList.remove('hidden');
-      elements.authFormView.classList.add('hidden');
+    try {
+      if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+      }
+      if (session) {
+        currentUser = session.user;
+        elements.userBadge.classList.remove('hidden');
+        elements.authUserEmail.textContent = currentUser.email;
+        
+        // Update UI panels in modal
+        elements.authProfileView.classList.remove('hidden');
+        elements.authFormView.classList.add('hidden');
 
-      // Fetch cloud data and merge/sync
-      await pullFromCloud();
+        // Fetch cloud data and merge/sync
+        await pullFromCloud();
 
-      // Load saved Following/Followers lists if present in localStorage
-      const savedFollowing = localStorage.getItem('following_users');
-      const savedFollowers = localStorage.getItem('followers_users');
-      
-      if (savedFollowing) {
-        state.following = JSON.parse(savedFollowing);
-        elements.inputFollowing.value = state.following.map(user => `@${user.originalUsername}`).join('\n');
+        // Load saved Following/Followers lists if present in localStorage
+        const savedFollowing = localStorage.getItem('following_users');
+        const savedFollowers = localStorage.getItem('followers_users');
+        
+        if (savedFollowing) {
+          state.following = JSON.parse(savedFollowing);
+          elements.inputFollowing.value = state.following.map(user => `@${user.originalUsername}`).join('\n');
+          updateListUI('following');
+        }
+        if (savedFollowers) {
+          state.followers = JSON.parse(savedFollowers);
+          elements.inputFollowers.value = state.followers.map(user => `@${user.originalUsername}`).join('\n');
+          updateListUI('followers');
+        }
+        calculateUnfollowers();
+      } else {
+        currentUser = null;
+        elements.userBadge.classList.add('hidden');
+        
+        // Update UI panels in modal
+        elements.authProfileView.classList.add('hidden');
+        elements.authFormView.classList.remove('hidden');
+        
+        // Clear all loaded information and input textareas
+        state.following = [];
+        state.followers = [];
+        state.unfollowers = [];
+        state.unfollowed = [];
+        state.starred = [];
+        state.selectedIndex = -1;
+        
+        localStorage.removeItem('starred_users');
+        localStorage.removeItem('following_users');
+        localStorage.removeItem('followers_users');
+        
+        elements.inputFollowing.value = '';
+        elements.inputFollowers.value = '';
+        elements.searchUnfollowers.value = '';
+        
         updateListUI('following');
-      }
-      if (savedFollowers) {
-        state.followers = JSON.parse(savedFollowers);
-        elements.inputFollowers.value = state.followers.map(user => `@${user.originalUsername}`).join('\n');
         updateListUI('followers');
+        calculateUnfollowers();
       }
-      calculateUnfollowers();
-    } else {
-      currentUser = null;
-      elements.userBadge.classList.add('hidden');
-      
-      // Update UI panels in modal
-      elements.authProfileView.classList.add('hidden');
-      elements.authFormView.classList.remove('hidden');
-      
-      // Clear all loaded information and input textareas
-      state.following = [];
-      state.followers = [];
-      state.unfollowers = [];
-      state.unfollowed = [];
-      state.starred = [];
-      state.selectedIndex = -1;
-      
-      localStorage.removeItem('starred_users');
-      localStorage.removeItem('following_users');
-      localStorage.removeItem('followers_users');
-      
-      elements.inputFollowing.value = '';
-      elements.inputFollowers.value = '';
-      elements.searchUnfollowers.value = '';
-      
-      updateListUI('following');
-      updateListUI('followers');
-      calculateUnfollowers();
+    } catch (err) {
+      console.error('Error in onAuthStateChange handler:', err);
     }
   });
 
@@ -1315,13 +1322,16 @@ function initAuth() {
   // Toggle drop down menu on button click
   elements.authBtn.addEventListener('click', (e) => {
     e.stopPropagation();
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
     elements.authDropdown.classList.toggle('show');
   });
 
   // Close drop down on clicking outside
   document.addEventListener('click', (e) => {
     if (elements.authDropdown.classList.contains('show')) {
-      if (!elements.authDropdown.contains(e.target) && !elements.authBtn.contains(e.target)) {
+      if (!e.target.closest('#auth-dropdown') && !e.target.closest('#auth-btn')) {
         elements.authDropdown.classList.remove('show');
         clearAuthAlerts();
       }
@@ -1356,8 +1366,11 @@ function initAuth() {
         showAuthError(error.message);
       } else {
         showAuthSuccess('login successful!');
+        if (document.activeElement && typeof document.activeElement.blur === 'function') {
+          document.activeElement.blur();
+        }
         setTimeout(() => {
-          elements.authDropdown.classList.add('hidden');
+          elements.authDropdown.classList.remove('show');
           clearAuthAlerts();
         }, 1200);
       }
@@ -1368,10 +1381,19 @@ function initAuth() {
   });
 
   // Handle Log Out
-  elements.btnLogout.addEventListener('click', async () => {
+  elements.btnLogout.addEventListener('click', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
     if (supabaseClient) {
-      await supabaseClient.auth.signOut();
-      elements.authDropdown.classList.add('hidden');
+      elements.authDropdown.classList.remove('show');
+      try {
+        await supabaseClient.auth.signOut();
+      } catch (err) {
+        console.error('Error signing out:', err);
+      }
     }
   });
 
@@ -1403,7 +1425,7 @@ function initAuth() {
 
       if (importedFollowing || importedFollowers) {
         // Close dropdown after successful import
-        elements.authDropdown.classList.add('hidden');
+        elements.authDropdown.classList.remove('show');
         clearAuthAlerts();
       }
 

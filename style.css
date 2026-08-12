@@ -85,6 +85,18 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none;
+}
+
+*:focus,
+*:active,
+button:focus,
+button:active,
+a:focus,
+a:active {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
 }
 
 body {
@@ -98,6 +110,7 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent !important;
 }
 
 a {
@@ -273,9 +286,6 @@ h1, h2, h3, h4, .card-num {
 }
 
 .btn-primary:hover:not(:disabled) {
-  opacity: 0.9;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .btn-primary:active:not(:disabled) {
@@ -296,8 +306,6 @@ h1, h2, h3, h4, .card-num {
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: var(--btn-secondary-hover);
-  border-color: var(--text-muted);
 }
 
 .btn-tertiary {
@@ -307,8 +315,6 @@ h1, h2, h3, h4, .card-num {
 }
 
 .btn-tertiary:hover:not(:disabled) {
-  color: var(--text-main);
-  background: var(--btn-secondary-hover);
 }
 
 .icon-btn {
@@ -326,8 +332,6 @@ h1, h2, h3, h4, .card-num {
 }
 
 .icon-btn:hover {
-  background: var(--btn-secondary-hover);
-  transform: scale(1.05);
 }
 
 .hidden {
@@ -355,7 +359,6 @@ h1, h2, h3, h4, .card-num {
 }
 
 .card:hover {
-  border-color: var(--btn-secondary-border);
 }
 
 .card-header {
@@ -391,19 +394,21 @@ h1, h2, h3, h4, .card-num {
   border: 1px solid #000000 !important;
 }
 
+.count-badge,
 #unfollowers-count {
   background: #000000 !important;
   color: #ffffff !important;
   border: 1px solid #000000 !important;
 }
 
-/* Dark theme overrides for list 3 badges */
+/* Dark theme overrides for list badges */
 [data-theme="dark"] #card-unfollowers .card-num {
   background: #ffffff !important;
   color: #000000 !important;
   border-color: #ffffff !important;
 }
 
+[data-theme="dark"] .count-badge,
 [data-theme="dark"] #unfollowers-count {
   background: #ffffff !important;
   color: #000000 !important;
@@ -580,7 +585,6 @@ h1, h2, h3, h4, .card-num {
 .dropdown-menu {
   position: absolute;
   top: calc(100% + 6px);
-  right: 0;
   width: 280px;
   max-height: 380px;
   margin-top: 0 !important;
@@ -593,6 +597,19 @@ h1, h2, h3, h4, .card-num {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  
+  /* Animation base properties */
+  opacity: 0;
+  transform: scale(0.95) translateY(-8px);
+  pointer-events: none;
+  transform-origin: top left;
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dropdown-menu.show {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
 }
 
 #list-unfollowed,
@@ -641,10 +658,12 @@ h1, h2, h3, h4, .card-num {
   #list-unfollowed {
     left: 0 !important;
     right: auto !important;
+    transform-origin: top left !important;
   }
   #list-starred {
     right: 0 !important;
     left: auto !important;
+    transform-origin: top right !important;
   }
 }
 
@@ -814,8 +833,6 @@ h1, h2, h3, h4, .card-num {
 }
 
 .user-row:hover {
-  border-color: var(--text-main);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .user-row.selected {
@@ -914,9 +931,6 @@ h1, h2, h3, h4, .card-num {
 }
 
 .action-star:hover {
-  background-color: var(--btn-secondary-hover);
-  color: var(--text-main);
-  border-color: var(--text-muted);
 }
 
 .action-star.starred {
@@ -941,9 +955,6 @@ h1, h2, h3, h4, .card-num {
 }
 
 .action-delete:hover {
-  background-color: var(--btn-secondary-hover);
-  color: var(--text-main);
-  border-color: var(--text-muted);
 }
 
 .action-arrow {
@@ -960,10 +971,6 @@ h1, h2, h3, h4, .card-num {
 }
 
 .user-row:hover .action-arrow {
-  background: var(--text-main);
-  color: var(--text-inverse);
-  border-color: transparent;
-  transform: rotate(-45deg);
 }
 
 @keyframes row-fade-in {
@@ -1068,6 +1075,7 @@ h1, h2, h3, h4, .card-num {
 
 #auth-btn {
   position: relative;
+  z-index: 2200;
 }
 
 .user-badge {
