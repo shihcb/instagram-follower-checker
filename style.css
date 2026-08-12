@@ -346,11 +346,7 @@ h1, h2, h3, h4, .card-num {
 .card {
   display: flex;
   flex-direction: column;
-  height: fit-content;
-}
-
-#card-unfollowers {
-  height: 620px;
+  height: 580px;
 }
 
 .card:hover {
