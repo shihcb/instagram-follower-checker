@@ -305,6 +305,17 @@ h1, h2, h3, h4, .card-num {
   border: 1px solid var(--btn-secondary-border);
 }
 
+[data-theme="dark"] .btn-secondary {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-color: #ffffff !important;
+}
+
+[data-theme="dark"] .btn-secondary svg {
+  color: #000000 !important;
+  stroke: #000000 !important;
+}
+
 .btn-secondary:hover:not(:disabled) {
 }
 
