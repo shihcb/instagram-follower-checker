@@ -860,6 +860,10 @@ h1, h2, h3, h4, .card-num {
   cursor: pointer;
 }
 
+[data-theme="dark"] .user-row {
+  background-color: transparent !important;
+}
+
 .user-row:hover {
 }
 
