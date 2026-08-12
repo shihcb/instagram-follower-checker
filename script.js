@@ -432,7 +432,7 @@ function updateUnfollowedUI() {
     listEl.innerHTML = listData.map(user => `
       <div class="parsed-item">
         <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
-        <span>${user.fullName ? user.fullName : (user.timestamp ? formatDate(user.timestamp) : '')}</span>
+        <span>${user.fullName ? user.fullName : ''}</span>
       </div>
     `).join('');
   } else {
@@ -458,7 +458,7 @@ function updateStarredUI() {
       <div class="parsed-item">
         <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span>${user.fullName ? user.fullName : (user.timestamp ? formatDate(user.timestamp) : '')}</span>
+          <span>${user.fullName ? user.fullName : ''}</span>
           <button class="unstar-btn" data-username="${user.username}" aria-label="unstar user" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-main); padding: 4px;">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" stroke="currentColor" stroke-width="2">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
@@ -537,17 +537,6 @@ function updateResultsUI() {
             </div>
           </div>
           <div class="user-meta">
-            ${user.timestamp ? `
-              <span class="follow-date">
-                <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="16" y1="2" x2="16" y2="6"></line>
-                  <line x1="8" y1="2" x2="8" y2="6"></line>
-                  <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-                ${formatDate(user.timestamp)}
-              </span>
-            ` : ''}
             <div class="user-row-actions">
               <button class="action-star" aria-label="star user" title="star/favorite user to separate them from results">
                 <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
