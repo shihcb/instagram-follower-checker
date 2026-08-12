@@ -708,18 +708,20 @@ function setupEventListeners() {
   // Accordion toggles for source previews
 
 
-  // Handle click on username, action arrow, or star button
+  // Handle click on username, action arrow, star or delete button
   elements.listUnfollowers.addEventListener('click', (e) => {
-    const userLink = e.target.closest('.user-link');
-    const actionArrow = e.target.closest('.action-arrow');
-    const actionStar = e.target.closest('.action-star');
-    const actionDelete = e.target.closest('.action-delete');
     const userRow = e.target.closest('.user-row');
     if (!userRow) return;
 
     const username = userRow.getAttribute('data-username');
+    const rowIndex = parseInt(userRow.getAttribute('data-index'), 10);
     const userObj = state.unfollowers.find(u => u.username === username);
     if (!userObj) return;
+
+    const userLink = e.target.closest('.user-link');
+    const actionArrow = e.target.closest('.action-arrow');
+    const actionStar = e.target.closest('.action-star');
+    const actionDelete = e.target.closest('.action-delete');
 
     if (actionStar) {
       // Move user to Starred (favorite) list
@@ -728,51 +730,76 @@ function setupEventListeners() {
         localStorage.setItem('starred_users', JSON.stringify(state.starred));
       }
 
-      // Smoothly animate only this specific row out in the DOM
       userRow.style.opacity = '0';
       userRow.style.transform = 'scale(0.95)';
       setTimeout(() => {
         userRow.remove();
-        // Update local state without full list redraw
         state.unfollowers = state.unfollowers.filter(u => u.username !== username);
         elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
         updateStarredUI();
         
         if (state.unfollowers.length === 0) {
-          updateResultsUI(); // Redraw empty state if no users left
+          updateResultsUI();
         }
         pushToCloud();
       }, 150);
       return;
     }
 
-    if (userLink || actionArrow || actionDelete) {
-      const autoOpenToggle = document.getElementById('auto-open-toggle');
-      if (autoOpenToggle && autoOpenToggle.checked && (userLink || actionArrow)) {
-        state.pendingAutoOpen = true;
-        state.autoOpenCount = 1; // Start counting from 1
-      }
-
-      // Move user to Unfollowed list
+    if (actionDelete) {
+      // Move user to Unfollowed list without opening Instagram profile
       if (!state.unfollowed.some(u => u.username === username)) {
         state.unfollowed.unshift(userObj);
       }
 
-      // Smoothly animate only this specific row out in the DOM
       userRow.style.opacity = '0';
       userRow.style.transform = 'scale(0.95)';
       setTimeout(() => {
         userRow.remove();
-        // Update local state without full list redraw
         state.unfollowers = state.unfollowers.filter(u => u.username !== username);
         elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
         updateUnfollowedUI();
 
         if (state.unfollowers.length === 0) {
-          updateResultsUI(); // Redraw empty state if no users left
+          updateResultsUI();
         }
         pushToCloud();
       }, 150);
+      return;
+    }
+
+    if (userLink || actionArrow) {
+      // Open Instagram profile
+      const autoOpenToggle = document.getElementById('auto-open-toggle');
+      if (autoOpenToggle && autoOpenToggle.checked) {
+        state.pendingAutoOpen = true;
+        state.autoOpenCount = 1;
+      }
+
+      if (!state.unfollowed.some(u => u.username === username)) {
+        state.unfollowed.unshift(userObj);
+      }
+
+      userRow.style.opacity = '0';
+      userRow.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        userRow.remove();
+        state.unfollowers = state.unfollowers.filter(u => u.username !== username);
+        elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
+        updateUnfollowedUI();
+
+        if (state.unfollowers.length === 0) {
+          updateResultsUI();
+        }
+        pushToCloud();
+      }, 150);
+      return;
+    }
+
+    // Clicking anywhere else in the row selects the username row!
+    if (!isNaN(rowIndex)) {
+      state.selectedIndex = rowIndex;
+      highlightRow(state.selectedIndex);
     }
   });
 

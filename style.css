@@ -830,6 +830,7 @@ h1, h2, h3, h4, .card-num {
   background-color: var(--card-bg);
   border: 1px solid var(--card-border);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
 }
 
 .user-row:hover {
