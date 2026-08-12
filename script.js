@@ -590,12 +590,10 @@ function updateResultsUI() {
     }).join('');
   } else {
     elements.listUnfollowers.classList.add('hidden');
-    elements.emptyState.classList.remove('hidden');
-    
     if (state.following.length === 0 && state.followers.length === 0) {
-      elements.emptyState.querySelector('.empty-title').textContent = 'waiting for data';
-      elements.emptyState.querySelector('.empty-desc').textContent = '';
+      elements.emptyState.classList.add('hidden');
     } else {
+      elements.emptyState.classList.remove('hidden');
       elements.emptyState.querySelector('.empty-title').textContent = 'no results found';
       elements.emptyState.querySelector('.empty-desc').textContent = query ? 'no matching usernames found in the filter.' : 'wow! everyone you follow follows you back.';
     }
