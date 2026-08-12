@@ -57,22 +57,6 @@
                 <h3>account</h3>
               </div>
 
-              <!-- Import HTML Files Section -->
-              <div class="dropdown-section" style="padding-bottom: 16px; border-bottom: 1px solid var(--card-border); margin-bottom: 4px;">
-                <label for="import-file-input" class="btn btn-primary btn-block" style="cursor: pointer; padding: 10px 16px; font-size: 0.85rem;">
-                  <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="17 8 12 3 7 8"></polyline>
-                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                  </svg>
-                  <span>import html files</span>
-                </label>
-                <input type="file" id="import-file-input" multiple accept=".html" style="display: none;">
-                
-                <div id="import-error-msg" class="auth-error hidden" style="margin-top: 10px;"></div>
-                <div id="import-success-msg" class="auth-success hidden" style="margin-top: 10px;"></div>
-              </div>
-
               <!-- Settings Configuration Check -->
               <div id="auth-config-warning" class="auth-warning hidden">
                 <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; color: var(--error-color);">
@@ -87,6 +71,19 @@
               <div id="auth-profile-view" class="auth-view hidden">
                 <p class="auth-status-text">logged in as <strong id="auth-user-email">email@domain.com</strong></p>
                 <p class="auth-desc">your starred and unfollowed lists are automatically synced with the cloud in real-time.</p>
+
+                <!-- Import files button -->
+                <label class="btn btn-secondary btn-block" for="import-files" style="cursor: pointer;">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  import instagram files
+                </label>
+                <input type="file" id="import-files" accept=".html" multiple class="hidden">
+                <div id="import-status" class="auth-desc" style="margin: 0;"></div>
+
                 <button id="btn-logout" class="btn btn-primary btn-block">log out</button>
               </div>
 
@@ -149,7 +146,18 @@
           <span class="badge count-badge" id="following-count">0 loaded</span>
         </div>
         <div class="card-body">
-          <textarea id="input-following" class="app-textarea" placeholder="paste your following list"></textarea>
+          <div class="drop-zone" id="drop-following">
+            <textarea id="input-following" placeholder="paste your following list"></textarea>
+            <div class="drop-zone-overlay">
+              <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <span>drop file to load following</span>
+            </div>
+          </div>
+          
           <div class="card-actions">
             <button id="clear-following" class="btn btn-tertiary btn-sm">clear</button>
           </div>
@@ -166,7 +174,18 @@
           <span class="badge count-badge" id="followers-count">0 loaded</span>
         </div>
         <div class="card-body">
-          <textarea id="input-followers" class="app-textarea" placeholder="paste your followers list"></textarea>
+          <div class="drop-zone" id="drop-followers">
+            <textarea id="input-followers" placeholder="paste your followers list"></textarea>
+            <div class="drop-zone-overlay">
+              <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <span>drop file to load followers</span>
+            </div>
+          </div>
+
           <div class="card-actions">
             <button id="clear-followers" class="btn btn-tertiary btn-sm">clear</button>
           </div>

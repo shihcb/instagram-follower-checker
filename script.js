@@ -47,18 +47,19 @@ const elements = {
 
   // Following list elements
   inputFollowing: document.getElementById('input-following'),
+  dropFollowing: document.getElementById('drop-following'),
   clearFollowing: document.getElementById('clear-following'),
   followingCount: document.getElementById('following-count'),
 
   // Followers list elements
   inputFollowers: document.getElementById('input-followers'),
+  dropFollowers: document.getElementById('drop-followers'),
   clearFollowers: document.getElementById('clear-followers'),
   followersCount: document.getElementById('followers-count'),
 
-  // Import file input (in account dropdown)
-  importFileInput: document.getElementById('import-file-input'),
-  importErrorMsg: document.getElementById('import-error-msg'),
-  importSuccessMsg: document.getElementById('import-success-msg'),
+  // Import files
+  importFiles: document.getElementById('import-files'),
+  importStatus: document.getElementById('import-status'),
 
   // Unfollowers (Results) elements
   unfollowersCount: document.getElementById('unfollowers-count'),
@@ -496,7 +497,30 @@ function deduplicateEntries(entries) {
 function updateListUI(type) {
   const listData = state[type];
   const countBadge = elements[`${type}Count`];
+  const listEl = elements[`list${type.charAt(0).toUpperCase() + type.slice(1)}`];
+  const toggleBtn = elements[`togglePreview${type.charAt(0).toUpperCase() + type.slice(1)}`];
+
   countBadge.textContent = `${listData.length} loaded`;
+  
+  if (listEl && toggleBtn) {
+    if (listData.length > 0) {
+      toggleBtn.removeAttribute('disabled');
+      
+      // Render preview elements
+      listEl.innerHTML = listData.map(user => `
+        <div class="parsed-item">
+          <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
+          <span>${user.fullName ? user.fullName : (user.timestamp ? formatDate(user.timestamp) : '')}</span>
+        </div>
+      `).join('');
+    } else {
+      toggleBtn.setAttribute('disabled', 'true');
+      listEl.innerHTML = '';
+      listEl.classList.add('hidden');
+      toggleBtn.classList.remove('active');
+      toggleBtn.querySelector('span').textContent = 'show loaded users';
+    }
+  }
 }
 
 function updateResultsUI() {
@@ -609,18 +633,15 @@ const handleFollowersInput = debounce(function() {
   calculateUnfollowers();
 }, 250);
 
-// Allowed filenames mapped to their list type
-const ALLOWED_FILES = {
-  'following.html': 'following',
-  'followers_1.html': 'followers'
-};
-
-function loadFileIntoList(file, type) {
+function handleFileSelect(file, type) {
+  if (!file) return;
   const reader = new FileReader();
   reader.onload = function(e) {
     const content = e.target.result;
     const inputEl = elements[`input${type.charAt(0).toUpperCase() + type.slice(1)}`];
     inputEl.value = content;
+    
+    // Dispatch input event to trigger parser
     if (type === 'following') {
       handleFollowingInput();
     } else {
@@ -630,38 +651,104 @@ function loadFileIntoList(file, type) {
   reader.readAsText(file);
 }
 
-function handleImportFiles(files) {
-  const errEl = elements.importErrorMsg;
-  const okEl  = elements.importSuccessMsg;
-  errEl.classList.add('hidden');
-  okEl.classList.add('hidden');
+// Extract @usernames from Instagram HTML export files
+function extractUsernamesFromHTML(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const links = doc.querySelectorAll('a[href*="instagram.com"]');
+  const usernames = [];
+  links.forEach(link => {
+    const href = link.getAttribute('href') || '';
+    const match = href.match(/instagram\.com\/([^/?#]+)/);
+    if (match && match[1] && match[1] !== 'explore') {
+      usernames.push('@' + match[1]);
+    }
+  });
+  // Fallback: also collect text content that looks like usernames
+  if (usernames.length === 0) {
+    const spans = doc.querySelectorAll('span');
+    spans.forEach(span => {
+      const text = span.textContent.trim();
+      if (text && !text.includes(' ') && text.length < 32) {
+        usernames.push('@' + text);
+      }
+    });
+  }
+  return [...new Set(usernames)].join('\n');
+}
 
+// Handle the import-files input from the account dropdown
+function handleImportFiles(files) {
+  const statusEl = elements.importStatus;
+  if (!statusEl) return;
+
+  const allowed = ['following.html', 'followers_1.html'];
   const rejected = [];
-  const accepted = [];
+  const promises = [];
 
   Array.from(files).forEach(file => {
-    const name = file.name.toLowerCase();
-    if (ALLOWED_FILES[name]) {
-      accepted.push({ file, type: ALLOWED_FILES[name] });
-    } else {
+    if (!allowed.includes(file.name)) {
       rejected.push(file.name);
+      return;
     }
+    const p = new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = e => resolve({ name: file.name, content: e.target.result });
+      reader.readAsText(file);
+    });
+    promises.push(p);
   });
 
   if (rejected.length > 0) {
-    errEl.textContent = `rejected: ${rejected.join(', ')} — only following.html and followers_1.html are accepted.`;
-    errEl.classList.remove('hidden');
+    statusEl.textContent = `❌ rejected: ${rejected.join(', ')} — only following.html and followers_1.html are accepted.`;
+    statusEl.style.color = 'var(--text-muted)';
   }
 
-  if (accepted.length > 0) {
-    accepted.forEach(({ file, type }) => loadFileIntoList(file, type));
-    const labels = accepted.map(({ type }) => type === 'following' ? 'following.html' : 'followers_1.html');
-    okEl.textContent = `imported: ${labels.join(', ')}`;
-    okEl.classList.remove('hidden');
-  }
+  Promise.all(promises).then(results => {
+    let loaded = [];
+    results.forEach(({ name, content }) => {
+      const usernames = extractUsernamesFromHTML(content);
+      if (name === 'following.html') {
+        elements.inputFollowing.value = usernames;
+        handleFollowingInput();
+        loaded.push('following');
+      } else if (name === 'followers_1.html') {
+        elements.inputFollowers.value = usernames;
+        handleFollowersInput();
+        loaded.push('followers');
+      }
+    });
+    if (loaded.length > 0) {
+      statusEl.textContent = `✓ loaded: ${loaded.join(' & ')}`;
+      statusEl.style.color = 'var(--success-color)';
+      setTimeout(() => { statusEl.textContent = ''; }, 4000);
+    }
+  });
+}
 
-  // Reset input so same files can be re-selected
-  elements.importFileInput.value = '';
+// Set up drag and drop behaviors (drop-zone only, no file input needed)
+function setupDragAndDrop(dropZone, type) {
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropZone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    }, false);
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+    }, false);
+  });
+
+  dropZone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    if (files.length > 0) {
+      handleFileSelect(files[0], type);
+    }
+  });
 }
 
 // -------------------------------------------------------------
@@ -717,6 +804,8 @@ function setupEventListeners() {
     updateListUI('followers');
     calculateUnfollowers();
   });
+
+  // Accordion toggles removed — show loaded users panels removed from list 1 & 2
 
 
   // Handle click on username, action arrow, or star button
@@ -786,14 +875,23 @@ function setupEventListeners() {
     }
   });
 
-  // Setup manual textarea inputs
+  // Setup inputs
   elements.inputFollowing.addEventListener('input', handleFollowingInput);
   elements.inputFollowers.addEventListener('input', handleFollowersInput);
 
-  // Setup centralised import handler in account dropdown
-  elements.importFileInput.addEventListener('change', (e) => {
-    handleImportFiles(e.target.files);
-  });
+  // Setup drag and drop (drop zones only)
+  setupDragAndDrop(elements.dropFollowing, 'following');
+  setupDragAndDrop(elements.dropFollowers, 'followers');
+
+  // Import files from account dropdown
+  if (elements.importFiles) {
+    elements.importFiles.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        handleImportFiles(e.target.files);
+        e.target.value = ''; // reset so same files can be re-selected
+      }
+    });
+  }
 
   // Keyboard navigation shortcuts (Desktop only)
   document.addEventListener('keydown', (e) => {
