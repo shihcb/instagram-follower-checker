@@ -827,3 +827,38 @@ h1, h2, h3, h4, .card-num {
     flex-direction: column;
   }
 }
+
+/* -------------------------------------------------------------
+ * Desktop Viewport Constraint (No page scroll, only inner lists scroll)
+ * ------------------------------------------------------------- */
+@media (min-width: 1025px) {
+  html, body {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .app-container {
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    padding-bottom: 24px;
+  }
+
+  .app-grid {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .card {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .card-body {
+    flex: 1;
+    min-height: 0;
+  }
+}
+
