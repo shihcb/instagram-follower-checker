@@ -443,7 +443,12 @@ function updateUnfollowedUI() {
             <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
             <div style="display: flex; align-items: center; gap: 8px;">
               <span>${user.fullName ? user.fullName : ''}</span>
-              <button class="remove-unfollowed-btn" data-username="${user.username}" aria-label="remove from unfollowed" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-main); padding: 4px;">
+              <button class="star-unfollowed-btn" data-username="${user.username}" aria-label="star user" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-main); padding: 4px;" title="move to starred list">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+              </button>
+              <button class="remove-unfollowed-btn" data-username="${user.username}" aria-label="remove from unfollowed" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-main); padding: 4px;" title="remove from history">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -562,7 +567,13 @@ function updateResultsUI() {
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                 </svg>
               </button>
-              <a href="${user.profileUrl}" target="_blank" rel="noopener" class="action-arrow" aria-label="Visit Instagram Profile">
+              <button class="action-delete" aria-label="delete user" title="unfollow user without opening profile">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+              <a href="${user.profileUrl}" target="_blank" rel="noopener" class="action-arrow" aria-label="Visit Instagram Profile" title="Visit Instagram Profile">
                 <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                   <polyline points="12 5 19 12 12 19"></polyline>
@@ -684,6 +695,7 @@ function setupEventListeners() {
     const userLink = e.target.closest('.user-link');
     const actionArrow = e.target.closest('.action-arrow');
     const actionStar = e.target.closest('.action-star');
+    const actionDelete = e.target.closest('.action-delete');
     const userRow = e.target.closest('.user-row');
     if (!userRow) return;
 
@@ -716,7 +728,7 @@ function setupEventListeners() {
       return;
     }
 
-    if (userLink || actionArrow) {
+    if (userLink || actionArrow || actionDelete) {
       // Move user to Unfollowed list
       if (!state.unfollowed.some(u => u.username === username)) {
         state.unfollowed.push(userObj);
@@ -785,7 +797,7 @@ function setupEventListeners() {
     }
   });
 
-  // Handle click on elements inside unfollowed list (reset or or individual remove)
+  // Handle click on elements inside unfollowed list (reset, remove, or star)
   elements.listUnfollowed.addEventListener('click', async (e) => {
     const resetBtn = e.target.closest('#reset-unfollowed-btn');
     if (resetBtn) {
@@ -793,6 +805,24 @@ function setupEventListeners() {
         state.unfollowed = [];
         calculateUnfollowers();
         updateUnfollowedUI();
+        await pushToCloud();
+      }
+      return;
+    }
+
+    const starBtn = e.target.closest('.star-unfollowed-btn');
+    if (starBtn) {
+      const username = starBtn.getAttribute('data-username');
+      const userObj = state.unfollowed.find(u => u.username === username);
+      if (userObj) {
+        state.unfollowed = state.unfollowed.filter(u => u.username !== username);
+        if (!state.starred.some(u => u.username === username)) {
+          state.starred.push(userObj);
+          localStorage.setItem('starred_users', JSON.stringify(state.starred));
+        }
+        calculateUnfollowers();
+        updateUnfollowedUI();
+        updateStarredUI();
         await pushToCloud();
       }
       return;
