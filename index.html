@@ -24,7 +24,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=125">
+  <link rel="stylesheet" href="style.css?v=130">
   <!-- Supabase Client Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -138,6 +138,16 @@
     <!-- Main Grid Layout -->
     <main class="app-grid">
       
+      <!-- Temporary Account Requirement Warning -->
+      <div id="import-account-warning" class="import-account-warning">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>to import lists you need to have an account</span>
+      </div>
+
       <!-- List 1: Following -->
       <section class="card glass" id="card-following">
         <div class="card-header">
@@ -274,6 +284,6 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="script.js?v=125"></script>
+  <script src="script.js?v=130"></script>
 </body>
 </html>

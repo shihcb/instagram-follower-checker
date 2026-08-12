@@ -1269,6 +1269,9 @@ function initAuth() {
         currentUser = session.user;
         elements.userBadge.classList.remove('hidden');
         elements.authUserEmail.textContent = currentUser.email;
+
+        const importAccountWarning = document.getElementById('import-account-warning');
+        if (importAccountWarning) importAccountWarning.classList.add('hidden-warning');
         
         // Update UI panels in modal
         elements.authProfileView.classList.remove('hidden');
@@ -1295,6 +1298,9 @@ function initAuth() {
       } else {
         currentUser = null;
         elements.userBadge.classList.add('hidden');
+
+        const importAccountWarning = document.getElementById('import-account-warning');
+        if (importAccountWarning) importAccountWarning.classList.remove('hidden-warning');
         
         // Update UI panels in modal
         elements.authProfileView.classList.add('hidden');
