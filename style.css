@@ -150,13 +150,12 @@ h1, h2, h3, h4, .card-num {
 .app-container {
   max-width: 1440px;
   margin: 0 auto;
-  padding: 40px 24px;
+  padding: 40px 24px 24px 24px;
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  min-height: 100vh;
+  gap: 24px;
 }
 
 /* Header Styles */
@@ -164,6 +163,13 @@ h1, h2, h3, h4, .card-num {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.header-logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .header-logo {
@@ -772,120 +778,11 @@ h1, h2, h3, h4, .card-num {
  * Accordion Help Panel & Details Tag
  * ------------------------------------------------------------- */
 .app-footer {
-  margin-top: auto;
-  border-radius: 20px;
-}
-
-.help-accordion {
-  width: 100%;
-}
-
-.help-summary {
-  padding: 24px;
-  font-weight: 600;
-  font-size: 1.05rem;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
-}
-
-.help-summary::-webkit-details-marker {
-  display: none;
-}
-
-.help-summary .chevron-icon {
-  margin-left: auto;
-  transition: transform 0.25s ease;
-  color: var(--text-muted);
-}
-
-.help-accordion[open] .help-summary .chevron-icon {
-  transform: rotate(180deg);
-}
-
-.help-content {
-  padding: 0 24px 24px 24px;
-  border-top: 1px solid var(--card-border);
-  font-size: 0.9rem;
-  animation: accordion-slide 0.3s ease forwards;
-}
-
-@keyframes accordion-slide {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.help-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 32px;
-  margin-top: 16px;
-}
-
-.help-method h4 {
-  margin-bottom: 12px;
-  font-size: 0.95rem;
-  color: var(--text-main);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.help-method ol {
-  padding-left: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  color: var(--text-muted);
-}
-
-.help-method li strong {
-  color: var(--text-main);
-}
-
-.help-method code {
-  font-family: monospace;
-  background: var(--btn-secondary-bg);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  border: 1px solid var(--card-border);
-}
-
-.help-method kbd {
-  background-color: var(--btn-secondary-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 3px;
-  box-shadow: 0 1px 0px rgba(0,0,0,0.2), inset 0 0 0 1px #fff;
-  color: var(--text-main);
-  display: inline-block;
-  font-family: inherit;
-  font-size: 0.75rem;
-  line-height: 1.4;
-  margin: 0 .1em;
-  padding: .1em .6em;
-  text-shadow: 0 1px 0 #fff;
-}
-[data-theme="dark"] .help-method kbd {
-  box-shadow: 0 1px 0px rgba(0,0,0,0.4);
-  text-shadow: none;
-}
-
-.footer-bottom {
   text-align: center;
-  padding: 16px;
+  padding: 16px 0;
   font-size: 0.8rem;
   color: var(--text-muted);
-  border-top: 1px solid var(--card-border);
+  width: 100%;
 }
 
 /* -------------------------------------------------------------

@@ -34,29 +34,21 @@
   <div class="app-container">
     <!-- Header -->
     <header class="app-header">
-      <div class="header-logo">
-        <svg viewBox="0 0 24 24" width="32" height="32" class="logo-icon">
-          <defs>
-            <linearGradient id="insta-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="var(--grad-1)"></stop>
-              <stop offset="50%" stop-color="var(--grad-2)"></stop>
-              <stop offset="100%" stop-color="var(--grad-3)"></stop>
-            </linearGradient>
-          </defs>
-          <rect x="2" y="2" width="20" height="20" rx="5" ry="5" stroke="url(#insta-gradient)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"></rect>
-          <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" stroke="url(#insta-gradient)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
-          <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" stroke="url(#insta-gradient)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"></line>
-        </svg>
-        <h1>shihab</h1>
-      </div>
-      
-      <div class="header-controls">
-        <div class="privacy-badge">
-          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      <div class="header-logo-row">
+        <div class="header-logo">
+          <svg viewBox="0 0 24 24" width="32" height="32" class="logo-icon">
+            <defs>
+              <linearGradient id="insta-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="var(--grad-1)"></stop>
+                <stop offset="50%" stop-color="var(--grad-2)"></stop>
+                <stop offset="100%" stop-color="var(--grad-3)"></stop>
+              </linearGradient>
+            </defs>
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5" stroke="url(#insta-gradient)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"></rect>
+            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" stroke="url(#insta-gradient)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" stroke="url(#insta-gradient)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"></line>
           </svg>
-          <span>Local processing (no server uploads)</span>
+          <h1>shihab</h1>
         </div>
         
         <button id="theme-toggle" class="icon-btn" aria-label="Toggle theme">
@@ -218,48 +210,9 @@
 
     </main>
 
-    <!-- Help / Guide Accordion Section -->
-    <footer class="app-footer glass">
-      <details class="help-accordion">
-        <summary class="help-summary">
-          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="16" x2="12" y2="12"></line>
-            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-          </svg>
-          <span>How do I get my Instagram Following & Followers data?</span>
-          <svg class="chevron-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </summary>
-        <div class="help-content">
-          <div class="help-grid">
-            <div class="help-method">
-              <h4>Method A: Export Official Data (Highly Recommended & Most Accurate)</h4>
-              <ol>
-                <li>Go to Instagram Settings &gt; <strong>Your activity</strong> &gt; <strong>Download your information</strong>.</li>
-                <li>Request a download, select <strong>Some of your information</strong>, then select <strong>Followers and following</strong>.</li>
-                <li>Choose either <strong>HTML</strong> or <strong>JSON</strong> format (HTML is usually faster to receive, JSON is also fully supported) and media quality <strong>Low</strong> (you don't need media).</li>
-                <li>Once you download the ZIP file and extract it, open the folder.</li>
-                <li>Drag and drop the files <code>following.html</code> (or <code>following.json</code>) and <code>followers.html</code> (or <code>followers.json</code>) directly into their respective boxes above.</li>
-              </ol>
-            </div>
-            <div class="help-method">
-              <h4>Method B: Copy-Paste from Instagram Web (Quick Check)</h4>
-              <ol>
-                <li>Log in to <a href="https://www.instagram.com" target="_blank" rel="noopener">instagram.com</a> on your computer.</li>
-                <li>Go to your profile page and click <strong>Following</strong>.</li>
-                <li>Scroll down to load the entire list, then press <kbd>Ctrl+A</kbd> / <kbd>Cmd+A</kbd> to select all or highlight the usernames list, and copy (<kbd>Ctrl+C</kbd> / <kbd>Cmd+C</kbd>).</li>
-                <li>Paste (<kbd>Ctrl+V</kbd> / <kbd>Cmd+V</kbd>) into the **Following** box. Our parser will filter out extraneous text.</li>
-                <li>Repeat the process for your <strong>Followers</strong> popup and paste it into the **Followers** box.</li>
-              </ol>
-            </div>
-          </div>
-        </div>
-      </details>
-      <div class="footer-bottom">
-        <p>&copy; 2026 InstaUnfollow. Clean code, local calculation, absolute privacy.</p>
-      </div>
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>&copy; 2026 shihab. Clean code, local calculation, absolute privacy.</p>
     </footer>
   </div>
 
