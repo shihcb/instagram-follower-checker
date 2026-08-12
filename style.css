@@ -582,9 +582,9 @@ h1, h2, h3, h4, .card-num {
 }
 
 .card-actions.show {
-  max-height: 45px;
+  max-height: 38px;
   opacity: 1;
-  margin-top: 12px;
+  margin-top: -8px;
   margin-bottom: 0;
 }
 
