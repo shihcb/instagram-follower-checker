@@ -1434,6 +1434,8 @@ h1, h2, h3, h4, .card-num {
   gap: 8px;
   user-select: none;
   margin-left: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .switch {
@@ -1491,5 +1493,6 @@ h1, h2, h3, h4, .card-num {
   color: var(--text-muted);
   cursor: pointer;
   text-transform: lowercase;
+  white-space: nowrap;
 }
 
