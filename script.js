@@ -526,6 +526,17 @@ function updateListUI(type) {
   const listData = state[type];
   const countBadge = elements[`${type}Count`];
   countBadge.textContent = `${listData.length} loaded`;
+
+  // Dynamically show or hide the actions container (Clear button)
+  const textarea = type === 'following' ? elements.inputFollowing : elements.inputFollowers;
+  const actionsContainer = document.getElementById(`actions-${type}`);
+  if (actionsContainer) {
+    if (textarea.value.trim() === '') {
+      actionsContainer.classList.add('hidden');
+    } else {
+      actionsContainer.classList.remove('hidden');
+    }
+  }
 }
 
 function updateResultsUI() {
