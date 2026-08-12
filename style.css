@@ -701,6 +701,24 @@ h1, h2, h3, h4, .card-num {
   font-weight: 600;
 }
 
+/* Dark mode overrides for keyboard hints and dropdown opener buttons */
+[data-theme="dark"] .keyboard-hints {
+  background-color: #000000 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .keyboard-hints kbd {
+  background-color: #18181b !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #f4f4f5 !important;
+}
+
+[data-theme="dark"] .preview-toggle {
+  background-color: #000000 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: var(--text-main) !important;
+}
+
 @media (max-width: 1024px) {
   .keyboard-hints {
     display: none !important;
