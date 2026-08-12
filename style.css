@@ -561,6 +561,13 @@ h1, h2, h3, h4, .card-num {
   color: var(--text-main);
 }
 
+.parsed-item a.parsed-username:hover {
+  background: var(--grad-instagram);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 /* -------------------------------------------------------------
  * Results Container (Column 3)
  * ------------------------------------------------------------- */
