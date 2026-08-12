@@ -650,9 +650,11 @@ h1, h2, h3, h4, .card-num {
 .parsed-item {
   font-size: 0.8rem;
   color: var(--text-muted);
-  padding: 4px 8px;
+  padding: 6px 8px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.02);
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   display: flex;
   justify-content: space-between;
 }
