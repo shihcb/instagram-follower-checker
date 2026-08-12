@@ -569,6 +569,47 @@ h1, h2, h3, h4, .card-num {
 }
 
 /* -------------------------------------------------------------
+ * Keyboard Shortcut Hints
+ * ------------------------------------------------------------- */
+.keyboard-hints {
+  display: flex;
+  gap: 16px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  justify-content: center;
+  align-items: center;
+  padding: 6px 12px;
+  background-color: var(--btn-secondary-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+.keyboard-hints span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.keyboard-hints kbd {
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  box-shadow: 0 1px 0px rgba(0, 0, 0, 0.2);
+  color: var(--text-main);
+  padding: 2px 6px;
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+@media (max-width: 1024px) {
+  .keyboard-hints {
+    display: none !important;
+  }
+}
+
+/* -------------------------------------------------------------
  * Results Container (Column 3)
  * ------------------------------------------------------------- */
 .results-controls {
@@ -678,6 +719,13 @@ h1, h2, h3, h4, .card-num {
   border-color: rgba(236, 72, 153, 0.3);
   transform: translateX(2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.user-row.selected {
+  border-color: var(--grad-2);
+  background-color: rgba(236, 72, 153, 0.05);
+  box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.15);
+  transform: translateX(2px);
 }
 
 .user-info {

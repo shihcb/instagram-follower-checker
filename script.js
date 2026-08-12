@@ -5,7 +5,8 @@ const state = {
   following: [],  // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   followers: [],  // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   unfollowers: [], // Array of { username, originalUsername, fullName, timestamp, profileUrl }
-  unfollowed: []   // Array of { username, originalUsername, fullName, timestamp, profileUrl }
+  unfollowed: [],  // Array of { username, originalUsername, fullName, timestamp, profileUrl }
+  selectedIndex: -1 // Current keyboard selection index (0-indexed) in the filtered list
 };
 
 // Action / Noise keywords to filter out of raw text lists
@@ -458,12 +459,13 @@ function updateResultsUI() {
     elements.emptyState.classList.add('hidden');
     elements.listUnfollowers.classList.remove('hidden');
     
-    elements.listUnfollowers.innerHTML = filtered.map(user => {
+    elements.listUnfollowers.innerHTML = filtered.map((user, index) => {
       // Get display initials for profile avatar fallback
       const initials = user.originalUsername.substring(0, 2);
+      const isSelected = index === state.selectedIndex;
       
       return `
-        <div class="user-row" data-username="${user.username}">
+        <div class="user-row${isSelected ? ' selected' : ''}" data-username="${user.username}" data-index="${index}">
           <div class="user-info">
             <div class="user-avatar">${initials}</div>
             <div class="user-details">
@@ -594,9 +596,10 @@ function setupDragAndDrop(dropZone, fileInput, type) {
 function setupEventListeners() {
   // Realtime search filtering
   elements.searchUnfollowers.addEventListener('input', () => {
+    state.selectedIndex = -1; // Reset keyboard selection on search query change
     updateResultsUI();
   });
-
+  
   // Copy unfollowers list to clipboard
   elements.copyUnfollowers.addEventListener('click', () => {
     if (state.unfollowers.length === 0) return;
@@ -626,6 +629,7 @@ function setupEventListeners() {
     elements.inputFollowing.value = '';
     state.following = [];
     state.unfollowed = [];
+    state.selectedIndex = -1; // Reset selection index
     updateListUI('following');
     calculateUnfollowers();
   });
@@ -634,6 +638,7 @@ function setupEventListeners() {
     elements.inputFollowers.value = '';
     state.followers = [];
     state.unfollowed = [];
+    state.selectedIndex = -1; // Reset selection index
     updateListUI('followers');
     calculateUnfollowers();
   });
@@ -687,6 +692,105 @@ function setupEventListeners() {
   // Setup drag and drop
   setupDragAndDrop(elements.dropFollowing, elements.fileFollowing, 'following');
   setupDragAndDrop(elements.dropFollowers, elements.fileFollowers, 'followers');
+
+  // Keyboard navigation shortcuts (Desktop only)
+  document.addEventListener('keydown', (e) => {
+    // Only enable if screen layout is desktop sizing
+    if (window.innerWidth < 1025) return;
+
+    const searchInput = elements.searchUnfollowers;
+    const isSearchFocused = document.activeElement === searchInput;
+
+    // 1. If search filter is active
+    if (isSearchFocused) {
+      if (e.key === 'Escape') {
+        searchInput.blur();
+        e.preventDefault();
+      } else if (e.key === 'ArrowDown') {
+        const rows = elements.listUnfollowers.querySelectorAll('.user-row');
+        if (rows.length > 0) {
+          state.selectedIndex = 0;
+          highlightRow(0);
+          searchInput.blur();
+          e.preventDefault();
+        }
+      }
+      return;
+    }
+
+    // 2. If list navigation is active
+    if (e.key === '/') {
+      searchInput.focus();
+      setTimeout(() => searchInput.select(), 0);
+      e.preventDefault();
+      return;
+    }
+
+    const rows = elements.listUnfollowers.querySelectorAll('.user-row');
+    if (rows.length === 0) return;
+
+    if (e.key === 'ArrowDown' || e.key === 'j') {
+      e.preventDefault();
+      state.selectedIndex++;
+      if (state.selectedIndex >= rows.length) {
+        state.selectedIndex = 0; // Wrap back to start
+      }
+      highlightRow(state.selectedIndex);
+    } else if (e.key === 'ArrowUp' || e.key === 'k') {
+      e.preventDefault();
+      state.selectedIndex--;
+      if (state.selectedIndex < 0) {
+        state.selectedIndex = rows.length - 1; // Wrap back to end
+      }
+      highlightRow(state.selectedIndex);
+    } else if (e.key === 'Enter' || e.key === 'o') {
+      e.preventDefault();
+      if (state.selectedIndex >= 0 && state.selectedIndex < rows.length) {
+        const selectedRow = rows[state.selectedIndex];
+        const username = selectedRow.getAttribute('data-username');
+        const userObj = state.unfollowers.find(u => u.username === username);
+        
+        if (userObj) {
+          // Open Instagram profile
+          window.open(userObj.profileUrl, '_blank');
+          
+          // Move user to Unfollowed list
+          if (!state.unfollowed.some(u => u.username === username)) {
+            state.unfollowed.push(userObj);
+          }
+          calculateUnfollowers();
+          
+          // Selection index remains the same but points to next item. 
+          // If out of bounds (reached end of list), clip it.
+          const newRows = elements.listUnfollowers.querySelectorAll('.user-row');
+          if (newRows.length > 0) {
+            if (state.selectedIndex >= newRows.length) {
+              state.selectedIndex = newRows.length - 1;
+            }
+            highlightRow(state.selectedIndex);
+          } else {
+            state.selectedIndex = -1;
+          }
+        }
+      }
+    } else if (e.key === 'Escape') {
+      state.selectedIndex = -1;
+      highlightRow(-1);
+      e.preventDefault();
+    }
+  });
+
+  function highlightRow(index) {
+    const rows = elements.listUnfollowers.querySelectorAll('.user-row');
+    rows.forEach((row, i) => {
+      if (i === index) {
+        row.classList.add('selected');
+        row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      } else {
+        row.classList.remove('selected');
+      }
+    });
+  }
 }
 
 // -------------------------------------------------------------
