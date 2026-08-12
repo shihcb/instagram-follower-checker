@@ -577,19 +577,35 @@ h1, h2, h3, h4, .card-num {
   flex-direction: column;
   gap: 6px;
   
-  /* Smooth animation base properties */
+  /* GPU Accelerated Smooth Animation */
   opacity: 0;
-  transform: scale(0.92) translateY(-10px);
+  transform: scale(0.94) translateY(-8px);
   pointer-events: none;
   transform-origin: top left;
-  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dropdown-menu.show {
   opacity: 1;
   transform: scale(1) translateY(0);
   pointer-events: auto;
+}
+
+#reset-unfollowed-btn {
+  color: var(--text-main);
+}
+
+[data-theme="dark"] #reset-unfollowed-btn {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-color: #ffffff !important;
+}
+
+[data-theme="dark"] #reset-unfollowed-btn svg {
+  color: #000000 !important;
+  stroke: #000000 !important;
 }
 
 #list-unfollowed,
