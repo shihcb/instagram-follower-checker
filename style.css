@@ -350,7 +350,7 @@ h1, h2, h3, h4, .card-num {
 }
 
 .card:hover {
-  border-color: rgba(236, 72, 153, 0.2);
+  border-color: var(--highlight-border);
 }
 
 .card-header {
@@ -429,9 +429,9 @@ h1, h2, h3, h4, .card-num {
 }
 
 .result-badge {
-  background-color: rgba(236, 72, 153, 0.1);
-  color: var(--grad-2);
-  border: 1px solid rgba(236, 72, 153, 0.2);
+  background-color: var(--btn-secondary-bg);
+  color: var(--text-muted);
+  border: 1px solid var(--card-border);
 }
 
 .card-body {
@@ -475,8 +475,8 @@ h1, h2, h3, h4, .card-num {
 }
 
 .drop-zone.dragover {
-  border-color: var(--grad-2);
-  background-color: rgba(236, 72, 153, 0.04);
+  border-color: var(--text-main);
+  background-color: var(--btn-secondary-hover);
 }
 
 .drop-zone textarea {
