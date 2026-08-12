@@ -584,13 +584,13 @@ h1, h2, h3, h4, .card-num {
 }
 
 #list-unfollowed {
-  left: 0;
-  right: auto;
+  left: 0 !important;
+  right: auto !important;
 }
 
 #list-starred {
-  right: 0;
-  left: auto;
+  right: 0 !important;
+  left: auto !important;
 }
 
 [data-theme="dark"] .dropdown-menu {
