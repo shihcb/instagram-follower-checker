@@ -557,12 +557,13 @@ h1, h2, h3, h4, .card-num {
 
 /* Dropdown layouts for unfollowed and starred popovers */
 .dropdown-wrapper {
-  position: relative;
+  /* position relative removed so dropdown child menus align to results-dropdowns-group container */
 }
 
 .results-dropdowns-group {
   display: flex;
   gap: 8px;
+  position: relative;
 }
 
 .dropdown-menu {
@@ -583,14 +584,10 @@ h1, h2, h3, h4, .card-num {
   gap: 4px;
 }
 
-#list-unfollowed {
+#list-unfollowed,
+#list-starred {
   left: 0 !important;
   right: auto !important;
-}
-
-#list-starred {
-  right: 0 !important;
-  left: auto !important;
 }
 
 [data-theme="dark"] .dropdown-menu {
@@ -1478,4 +1475,22 @@ h1, h2, h3, h4, .card-num {
   cursor: pointer;
   text-transform: lowercase;
   white-space: nowrap;
+}
+
+/* Hide scrollbar indicators while preserving touch and track scroll functionality */
+.dropdown-scroll-items::-webkit-scrollbar,
+.dropdown-menu::-webkit-scrollbar,
+.parsed-list::-webkit-scrollbar,
+.results-list::-webkit-scrollbar,
+textarea::-webkit-scrollbar {
+  display: none !important;
+}
+
+.dropdown-scroll-items,
+.dropdown-menu,
+.parsed-list,
+.results-list,
+textarea {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
