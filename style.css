@@ -382,9 +382,15 @@ h1, h2, h3, h4, .card-num {
 }
 
 #card-unfollowers .card-num {
-  background-color: #000000 !important;
+  background: #000000 !important;
   color: #ffffff !important;
-  border-color: #000000 !important;
+  border: 1px solid #000000 !important;
+}
+
+#unfollowers-count {
+  background: #000000 !important;
+  color: #ffffff !important;
+  border: 1px solid #000000 !important;
 }
 
 .card-num.bg-gradient {
