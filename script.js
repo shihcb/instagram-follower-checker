@@ -77,8 +77,7 @@ const elements = {
   // Auth & Cloud Sync DOM elements
   authBtn: document.getElementById('auth-btn'),
   userBadge: document.getElementById('user-badge'),
-  authModal: document.getElementById('auth-modal'),
-  authModalClose: document.getElementById('auth-modal-close'),
+  authDropdown: document.getElementById('auth-dropdown'),
   authConfigWarning: document.getElementById('auth-config-warning'),
   authProfileView: document.getElementById('auth-profile-view'),
   authFormView: document.getElementById('auth-form-view'),
@@ -1003,21 +1002,19 @@ function initAuth() {
   elements.tabLogin.addEventListener('click', () => switchTab(false));
   elements.tabSignup.addEventListener('click', () => switchTab(true));
 
-  // Modal open/close actions
-  elements.authBtn.addEventListener('click', () => {
-    elements.authModal.classList.remove('hidden');
+  // Toggle drop down menu on button click
+  elements.authBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    elements.authDropdown.classList.toggle('hidden');
   });
 
-  elements.authModalClose.addEventListener('click', () => {
-    elements.authModal.classList.add('hidden');
-    clearAuthAlerts();
-  });
-
-  // Close modal when tapping overlay backdrop
-  elements.authModal.addEventListener('click', (e) => {
-    if (e.target === elements.authModal) {
-      elements.authModal.classList.add('hidden');
-      clearAuthAlerts();
+  // Close drop down on clicking outside
+  document.addEventListener('click', (e) => {
+    if (!elements.authDropdown.classList.contains('hidden')) {
+      if (!elements.authDropdown.contains(e.target) && !elements.authBtn.contains(e.target)) {
+        elements.authDropdown.classList.add('hidden');
+        clearAuthAlerts();
+      }
     }
   });
 
@@ -1050,7 +1047,7 @@ function initAuth() {
       } else {
         showAuthSuccess('login successful!');
         setTimeout(() => {
-          elements.authModal.classList.add('hidden');
+          elements.authDropdown.classList.add('hidden');
           clearAuthAlerts();
         }, 1200);
       }
@@ -1064,7 +1061,7 @@ function initAuth() {
   elements.btnLogout.addEventListener('click', async () => {
     if (supabaseClient) {
       await supabaseClient.auth.signOut();
-      elements.authModal.classList.add('hidden');
+      elements.authDropdown.classList.add('hidden');
     }
   });
 }

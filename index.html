@@ -42,13 +42,63 @@
         </div>
         
         <div class="header-actions">
-          <button id="auth-btn" class="icon-btn" aria-label="profile options" title="login & sync options">
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
-            </svg>
-            <span class="user-badge hidden" id="user-badge"></span>
-          </button>
+          <div class="auth-container">
+            <button id="auth-btn" class="icon-btn" aria-label="profile options" title="login & sync options">
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              <span class="user-badge hidden" id="user-badge"></span>
+            </button>
+
+            <!-- Auth Dropdown Menu -->
+            <div class="auth-dropdown glass hidden" id="auth-dropdown">
+              <div class="dropdown-header">
+                <h3>cloud sync options</h3>
+              </div>
+
+              <!-- Settings Configuration Check -->
+              <div id="auth-config-warning" class="auth-warning hidden">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; color: var(--error-color);">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span>please configure your supabase project url and anon key at the top of <code>script.js</code> to enable login.</span>
+              </div>
+
+              <!-- Authenticated Profile View -->
+              <div id="auth-profile-view" class="auth-view hidden">
+                <p class="auth-status-text">logged in as <strong id="auth-user-email">email@domain.com</strong></p>
+                <p class="auth-desc">your starred and unfollowed lists are automatically synced with the cloud in real-time.</p>
+                <button id="btn-logout" class="btn btn-primary btn-block">log out</button>
+              </div>
+
+              <!-- Login/Registration Tabs -->
+              <div id="auth-form-view" class="auth-view">
+                <div class="auth-tabs">
+                  <button class="auth-tab active" id="tab-login">log in</button>
+                  <button class="auth-tab" id="tab-signup">sign up</button>
+                </div>
+
+                <form id="auth-form" class="auth-form">
+                  <div class="form-group">
+                    <label for="auth-email">email address</label>
+                    <input type="email" id="auth-email" placeholder="enter your email..." required>
+                  </div>
+                  <div class="form-group">
+                    <label for="auth-password">password</label>
+                    <input type="password" id="auth-password" placeholder="enter your password..." minlength="6" required>
+                  </div>
+
+                  <div id="auth-error-msg" class="auth-error hidden"></div>
+                  <div id="auth-success-msg" class="auth-success hidden"></div>
+
+                  <button type="submit" id="btn-auth-submit" class="btn btn-primary btn-block">log in</button>
+                </form>
+              </div>
+            </div>
+          </div>
 
           <button id="theme-toggle" class="icon-btn" aria-label="toggle theme">
             <svg id="sun-icon" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="theme-icon">
@@ -240,61 +290,7 @@
 
   </div>
 
-  <!-- Authentication Modal -->
-  <div class="modal-overlay hidden" id="auth-modal">
-    <div class="modal-card glass">
-      <div class="modal-header">
-        <h3 id="modal-title">cloud sync options</h3>
-        <button class="modal-close" id="auth-modal-close" aria-label="close modal">
-          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
 
-      <!-- Settings Configuration Check -->
-      <div id="auth-config-warning" class="auth-warning hidden">
-        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; color: var(--error-color);">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
-        <span>please configure your supabase project url and anon key at the top of <code>script.js</code> to enable login.</span>
-      </div>
-
-      <!-- Authenticated Profile View -->
-      <div id="auth-profile-view" class="auth-view hidden">
-        <p class="auth-status-text">logged in as <strong id="auth-user-email">email@domain.com</strong></p>
-        <p class="auth-desc">your starred and unfollowed lists are automatically synced with the cloud in real-time.</p>
-        <button id="btn-logout" class="btn btn-primary btn-block">log out</button>
-      </div>
-
-      <!-- Login/Registration Tabs -->
-      <div id="auth-form-view" class="auth-view">
-        <div class="auth-tabs">
-          <button class="auth-tab active" id="tab-login">log in</button>
-          <button class="auth-tab" id="tab-signup">sign up</button>
-        </div>
-
-        <form id="auth-form" class="auth-form">
-          <div class="form-group">
-            <label for="auth-email">email address</label>
-            <input type="email" id="auth-email" placeholder="enter your email..." required>
-          </div>
-          <div class="form-group">
-            <label for="auth-password">password</label>
-            <input type="password" id="auth-password" placeholder="enter your password..." minlength="6" required>
-          </div>
-
-          <div id="auth-error-msg" class="auth-error hidden"></div>
-          <div id="auth-success-msg" class="auth-success hidden"></div>
-
-          <button type="submit" id="btn-auth-submit" class="btn btn-primary btn-block">log in</button>
-        </form>
-      </div>
-    </div>
-  </div>
 
   <!-- Main JavaScript File -->
   <script src="script.js?v=3"></script>
