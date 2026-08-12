@@ -1,0 +1,17 @@
+{
+  "name": "instagram-follower-checker",
+  "version": "1.0.0",
+  "description": "A modern, sleek, and minimal client-side website to check who doesn't follow you back on Instagram.",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server -p 8080"
+  },
+  "keywords": [
+    "instagram",
+    "followers",
+    "unfollow",
+    "checker"
+  ],
+  "author": "",
+  "license": "MIT"
+}
