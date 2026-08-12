@@ -4,7 +4,8 @@
 const state = {
   following: [],  // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   followers: [],  // Array of { username, originalUsername, fullName, timestamp, profileUrl }
-  unfollowers: [] // Array of { username, originalUsername, fullName, timestamp, profileUrl }
+  unfollowers: [], // Array of { username, originalUsername, fullName, timestamp, profileUrl }
+  unfollowed: []   // Array of { username, originalUsername, fullName, timestamp, profileUrl }
 };
 
 // Action / Noise keywords to filter out of raw text lists
@@ -46,7 +47,9 @@ const elements = {
   searchUnfollowers: document.getElementById('search-unfollowers'),
   copyUnfollowers: document.getElementById('copy-unfollowers'),
   listUnfollowers: document.getElementById('list-unfollowers'),
-  emptyState: document.getElementById('unfollowers-empty-state')
+  emptyState: document.getElementById('unfollowers-empty-state'),
+  togglePreviewUnfollowed: document.getElementById('toggle-preview-unfollowed'),
+  listUnfollowed: document.getElementById('list-unfollowed')
 };
 
 // -------------------------------------------------------------
@@ -350,11 +353,42 @@ function parseInput(text) {
  */
 function calculateUnfollowers() {
   const followersSet = new Set(state.followers.map(user => user.username));
+  const unfollowedSet = new Set(state.unfollowed.map(user => user.username));
   
-  // Math difference: filter out any 'following' users that are in the 'followers' set
-  state.unfollowers = state.following.filter(user => !followersSet.has(user.username));
+  // Math difference: filter out any 'following' users that are in the 'followers' set OR have been unfollowed
+  state.unfollowers = state.following.filter(user => 
+    !followersSet.has(user.username) && !unfollowedSet.has(user.username)
+  );
   
   updateResultsUI();
+  updateUnfollowedUI();
+}
+
+function updateUnfollowedUI() {
+  const listData = state.unfollowed;
+  const listEl = elements.listUnfollowed;
+  const toggleBtn = elements.togglePreviewUnfollowed;
+
+  if (listData.length > 0) {
+    toggleBtn.removeAttribute('disabled');
+    toggleBtn.querySelector('span').textContent = toggleBtn.classList.contains('active') 
+      ? `Hide unfollowed users (${listData.length})` 
+      : `Show unfollowed users (${listData.length})`;
+    
+    // Render elements (same layout as parsed-list)
+    listEl.innerHTML = listData.map(user => `
+      <div class="parsed-item">
+        <span class="parsed-username">@${user.originalUsername}</span>
+        <span>${user.fullName ? user.fullName : (user.timestamp ? formatDate(user.timestamp) : '')}</span>
+      </div>
+    `).join('');
+  } else {
+    toggleBtn.setAttribute('disabled', 'true');
+    toggleBtn.querySelector('span').textContent = 'Show unfollowed users';
+    listEl.innerHTML = '';
+    listEl.classList.add('hidden');
+    toggleBtn.classList.remove('active');
+  }
 }
 
 /**
@@ -429,7 +463,7 @@ function updateResultsUI() {
       const initials = user.originalUsername.substring(0, 2);
       
       return `
-        <div class="user-row">
+        <div class="user-row" data-username="${user.username}">
           <div class="user-info">
             <div class="user-avatar">${initials}</div>
             <div class="user-details">
@@ -591,6 +625,7 @@ function setupEventListeners() {
   elements.clearFollowing.addEventListener('click', () => {
     elements.inputFollowing.value = '';
     state.following = [];
+    state.unfollowed = [];
     updateListUI('following');
     calculateUnfollowers();
   });
@@ -598,6 +633,7 @@ function setupEventListeners() {
   elements.clearFollowers.addEventListener('click', () => {
     elements.inputFollowers.value = '';
     state.followers = [];
+    state.unfollowed = [];
     updateListUI('followers');
     calculateUnfollowers();
   });
@@ -613,6 +649,35 @@ function setupEventListeners() {
     const isHidden = elements.listFollowers.classList.toggle('hidden');
     elements.togglePreviewFollowers.classList.toggle('active', !isHidden);
     elements.togglePreviewFollowers.querySelector('span').textContent = isHidden ? 'Show loaded users' : 'Hide loaded users';
+  });
+
+  // Handle click on username or action arrow to unfollow
+  elements.listUnfollowers.addEventListener('click', (e) => {
+    const userLink = e.target.closest('.user-link');
+    const actionArrow = e.target.closest('.action-arrow');
+    
+    if (userLink || actionArrow) {
+      const userRow = e.target.closest('.user-row');
+      if (userRow) {
+        const username = userRow.getAttribute('data-username');
+        const userObj = state.unfollowers.find(u => u.username === username);
+        if (userObj) {
+          if (!state.unfollowed.some(u => u.username === username)) {
+            state.unfollowed.push(userObj);
+          }
+          calculateUnfollowers();
+        }
+      }
+    }
+  });
+
+  // Toggle preview unfollowed list
+  elements.togglePreviewUnfollowed.addEventListener('click', () => {
+    const isHidden = elements.listUnfollowed.classList.toggle('hidden');
+    elements.togglePreviewUnfollowed.classList.toggle('active', !isHidden);
+    elements.togglePreviewUnfollowed.querySelector('span').textContent = isHidden 
+      ? `Show unfollowed users (${state.unfollowed.length})` 
+      : `Hide unfollowed users (${state.unfollowed.length})`;
   });
 
   // Setup inputs
