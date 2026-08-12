@@ -8,25 +8,25 @@
 
   /* Grayscale Theme Gradient Colors */
   --grad-1: #000000;
-  --grad-2: #374151; /* Slate gray */
-  --grad-3: #71717a; /* Zinc gray */
+  --grad-2: #3f3f46;
+  --grad-3: #71717a;
   --grad-instagram: linear-gradient(135deg, var(--grad-1), var(--grad-2), var(--grad-3));
 
   /* Light Theme variables (Fallback / Active under light mode) */
   --logo-color: #000000;
-  --bg-color: #f8fafc;
-  --bg-gradient: linear-gradient(185deg, #f8fafc 0%, #f1f5f9 100%);
-  --card-bg: rgba(255, 255, 255, 0.7);
-  --card-border: rgba(15, 23, 42, 0.08);
-  --card-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.05), 
-                 0 1px 3px rgba(15, 23, 42, 0.02);
+  --bg-color: #fafafa;
+  --bg-gradient: linear-gradient(185deg, #ffffff 0%, #f4f4f5 100%);
+  --card-bg: rgba(255, 255, 255, 0.8);
+  --card-border: rgba(9, 9, 11, 0.08);
+  --card-shadow: 0 10px 30px -10px rgba(9, 9, 11, 0.05), 
+                 0 1px 3px rgba(9, 9, 11, 0.02);
   --highlight-border: rgba(0, 0, 0, 0.18);
   --highlight-shadow: rgba(0, 0, 0, 0.03);
-  --text-main: #0f172a;
-  --text-muted: #64748b;
+  --text-main: #09090b;
+  --text-muted: #71717a;
   --text-inverse: #ffffff;
-  --input-bg: rgba(255, 255, 255, 0.9);
-  --input-border: rgba(15, 23, 42, 0.12);
+  --input-bg: #ffffff;
+  --input-border: rgba(9, 9, 11, 0.12);
   --btn-primary-bg: #000000;
   --btn-primary-text: #ffffff;
   --btn-secondary-bg: #f3f4f6;
@@ -40,8 +40,8 @@
   --error-color: #0f172a;
   --warning-color: #f59e0b;
 
-  --scrollbar-thumb: rgba(15, 23, 42, 0.15);
-  --scrollbar-track: rgba(15, 23, 42, 0.03);
+  --scrollbar-thumb: rgba(9, 9, 11, 0.15);
+  --scrollbar-track: rgba(9, 9, 11, 0.03);
 
   color-scheme: light dark;
 }
@@ -52,20 +52,19 @@
   --grad-2: #a1a1aa; /* Light gray */
   --grad-3: #3f3f46; /* Medium gray */
   --logo-color: #ffffff;
-  --bg-color: #080a14;
-  --bg-gradient: linear-gradient(185deg, #070912 0%, #0d1020 100%);
-  --card-bg: rgba(15, 18, 36, 0.55);
-  --card-border: rgba(255, 255, 255, 0.06);
-  --card-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5), 
+  --bg-color: #09090b;
+  --bg-gradient: linear-gradient(185deg, #09090b 0%, #18181b 100%);
+  --card-bg: rgba(24, 24, 27, 0.65);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 
                  inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  --highlight-border: rgba(255, 255, 255, 0.18);
-  --highlight-shadow: rgba(255, 255, 255, 0.02);
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-inverse: #0f172a;
-  --input-bg: rgba(10, 12, 26, 0.7);
+  --highlight-border: rgba(255, 255, 255, 0.15);
+  --highlight-shadow: rgba(0, 0, 0, 0.5);
+  --text-main: #f4f4f5;
+  --text-muted: #a1a1aa;
+  --text-inverse: #09090b;
+  --input-bg: rgba(9, 9, 11, 0.8);
   --input-border: rgba(255, 255, 255, 0.08);
-  --btn-primary-text: #ffffff;
   --btn-primary-bg: #ffffff;
   --btn-primary-text: #000000;
   --btn-secondary-bg: #1f2937;
@@ -75,8 +74,8 @@
 
   --glow-opacity: 0.18;
   
-  --scrollbar-thumb: rgba(255, 255, 255, 0.12);
-  --scrollbar-track: rgba(0, 0, 0, 0.2);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.1);
+  --scrollbar-track: rgba(0, 0, 0, 0.3);
 }
 
 /* -------------------------------------------------------------
@@ -605,10 +604,7 @@ h1, h2, h3, h4, .card-num {
 }
 
 .parsed-item a.parsed-username:hover {
-  background: var(--grad-instagram);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  text-decoration: underline;
 }
 
 /* -------------------------------------------------------------
@@ -789,8 +785,9 @@ h1, h2, h3, h4, .card-num {
   font-family: var(--font-display);
   font-size: 0.85rem;
   font-weight: 700;
-  color: #fff;
-  background: var(--grad-instagram);
+  color: var(--text-inverse);
+  background: var(--text-main);
+  border: 1px solid var(--card-border);
   flex-shrink: 0;
   text-transform: lowercase;
 }
@@ -811,10 +808,7 @@ h1, h2, h3, h4, .card-num {
 }
 
 .user-link:hover {
-  background: var(--grad-instagram);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  text-decoration: underline;
 }
 
 .user-fullname {
@@ -888,8 +882,8 @@ h1, h2, h3, h4, .card-num {
 }
 
 .user-row:hover .action-arrow {
-  background: var(--grad-instagram);
-  color: #ffffff;
+  background: var(--text-main);
+  color: var(--text-inverse);
   border-color: transparent;
   transform: rotate(-45deg);
 }
