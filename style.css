@@ -354,7 +354,7 @@ h1, h2, h3, h4, .card-num {
 }
 
 .card-header {
-  padding: 24px;
+  padding: 16px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -411,9 +411,6 @@ h1, h2, h3, h4, .card-num {
   border: none;
 }
 
-.card-header h2 {
-  font-size: 1.35rem;
-}
 
 .badge {
   font-size: 0.75rem;
@@ -1070,6 +1067,16 @@ h1, h2, h3, h4, .card-num {
   opacity: 0;
   transform: scale(0.95) translateY(-8px);
   pointer-events: none;
+}
+
+.card-header h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-transform: lowercase;
 }
 
 .dropdown-header {
