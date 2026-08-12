@@ -809,6 +809,39 @@ function setupEventListeners() {
   elements.inputFollowing.addEventListener('input', handleFollowingInput);
   elements.inputFollowers.addEventListener('input', handleFollowersInput);
 
+  // Bind double-click username helper on Following and Followers textareas
+  const bindDblClickInstagram = (textareaEl) => {
+    textareaEl.addEventListener('dblclick', (e) => {
+      const text = textareaEl.value;
+      const caretPos = textareaEl.selectionStart;
+      
+      // Find word boundaries around the caret position
+      let start = caretPos;
+      while (start > 0 && !/\s/.test(text[start - 1])) {
+        start--;
+      }
+      let end = caretPos;
+      while (end < text.length && !/\s/.test(text[end])) {
+        end++;
+      }
+      
+      let clickedWord = text.substring(start, end).trim();
+      if (clickedWord.startsWith('@')) {
+        clickedWord = clickedWord.substring(1);
+      }
+      
+      // Clean punctuation
+      clickedWord = clickedWord.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
+      
+      if (clickedWord && /^[a-zA-Z0-9._]+$/.test(clickedWord)) {
+        window.open(`https://instagram.com/${clickedWord}`, '_blank');
+      }
+    });
+  };
+  
+  bindDblClickInstagram(elements.inputFollowing);
+  bindDblClickInstagram(elements.inputFollowers);
+
   // Keyboard navigation shortcuts (Desktop only)
   document.addEventListener('keydown', (e) => {
     // Only enable if screen layout is desktop sizing

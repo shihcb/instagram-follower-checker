@@ -496,6 +496,12 @@ h1, h2, h3, h4, .card-num {
   align-items: center;
 }
 
+.textarea-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  user-select: none;
+}
+
 /* -------------------------------------------------------------
  * Parsed User Preview List Accordion
  * ------------------------------------------------------------- */
