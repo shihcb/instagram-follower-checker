@@ -8,8 +8,8 @@
 // 1. Create a free project at https://supabase.com
 // 2. Go to Project Settings -> API and copy your URL and Anon Key.
 // 3. Paste them below.
-const SUPABASE_URL = ''; 
-const SUPABASE_ANON_KEY = ''; 
+const SUPABASE_URL = 'https://umwgulwrmdlleqzkfumm.supabase.co'; 
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtd2d1bHdybWRsbGVxemtmdW1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0OTI2ODYsImV4cCI6MjEwMjA2ODY4Nn0.qVROwKLelVOW2-Si_nXl0UAK5Fd1x2HHC9W0QKeogJQ'; 
 
 let supabaseClient = null;
 if (SUPABASE_URL && SUPABASE_ANON_KEY) {
