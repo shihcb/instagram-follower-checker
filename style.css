@@ -67,9 +67,9 @@
   --input-border: rgba(255, 255, 255, 0.08);
   --btn-primary-bg: #ffffff;
   --btn-primary-text: #000000;
-  --btn-secondary-bg: #1f2937;
-  --btn-secondary-hover: #374151;
-  --btn-secondary-border: #4b5563;
+  --btn-secondary-bg: #18181b;
+  --btn-secondary-hover: #27272a;
+  --btn-secondary-border: #3f3f46;
   --error-color: #f8fafc;
 
   --glow-opacity: 0.18;
@@ -835,8 +835,13 @@ h1, h2, h3, h4, .card-num {
 
 .user-row.selected {
   border-color: var(--text-main);
-  background-color: var(--btn-secondary-bg);
-  box-shadow: 0 0 0 2px var(--card-border);
+  background-color: var(--input-bg);
+  box-shadow: 0 0 0 1px var(--text-main);
+}
+
+[data-theme="dark"] .user-row.selected {
+  background-color: #000000 !important;
+  border-color: #ffffff !important;
 }
 
 .user-info {
