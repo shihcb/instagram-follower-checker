@@ -27,7 +27,8 @@ const state = {
   unfollowed: [],  // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   starred: JSON.parse(localStorage.getItem('starred_users') || '[]'), // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   selectedIndex: -1, // Current keyboard selection index (0-indexed) in the filtered list
-  pendingAutoOpen: false // Flag to track when a return to the tab should trigger opening the next user
+  pendingAutoOpen: false, // Flag to track when a return to the tab should trigger opening the next user
+  autoOpenCount: 0 // Counter of profiles opened in the current auto-open sequence
 };
 
 // Action / Noise keywords to filter out of raw text lists
@@ -740,6 +741,7 @@ function setupEventListeners() {
       const autoOpenToggle = document.getElementById('auto-open-toggle');
       if (autoOpenToggle && autoOpenToggle.checked && (userLink || actionArrow)) {
         state.pendingAutoOpen = true;
+        state.autoOpenCount = 1; // Start counting from 1
       }
 
       // Move user to Unfollowed list
@@ -1032,6 +1034,7 @@ function setupEventListeners() {
           const autoOpenToggle = document.getElementById('auto-open-toggle');
           if (autoOpenToggle && autoOpenToggle.checked) {
             state.pendingAutoOpen = true;
+            state.autoOpenCount = 1; // Start counting from 1
           }
           
           // Move user to Unfollowed list
@@ -1078,6 +1081,18 @@ function setupEventListeners() {
     if (autoOpenToggle && autoOpenToggle.checked && state.pendingAutoOpen) {
       state.pendingAutoOpen = false; // Reset to avoid double execution
 
+      // Check if we've already automatically opened 5 profiles
+      if (state.autoOpenCount >= 5) {
+        const proceed = confirm("you have automatically opened 5 profiles. do you want to continue auto-opening the next 5 profiles?");
+        if (!proceed) {
+          autoOpenToggle.checked = false;
+          state.pendingAutoOpen = false;
+          state.autoOpenCount = 0;
+          return;
+        }
+        state.autoOpenCount = 0; // Reset counter for the next batch
+      }
+
       // Wait a tiny bit for the page focus layout to stabilise
       setTimeout(() => {
         const nextUser = state.unfollowers[0];
@@ -1088,8 +1103,9 @@ function setupEventListeners() {
           // Open Instagram profile
           window.open(nextUser.profileUrl, '_blank');
           
-          // Re-enable flag so it opens the next one on the next return
+          // Re-enable flag and increment counter
           state.pendingAutoOpen = true;
+          state.autoOpenCount++;
 
           // Move user to Unfollowed list
           if (!state.unfollowed.some(u => u.username === nextUser.username)) {
