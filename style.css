@@ -973,14 +973,24 @@ h1, h2, h3, h4, .card-num {
   background-color: var(--btn-secondary-bg);
   border: 1px solid var(--card-border);
   color: var(--text-muted);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: rotate(0deg);
+  will-change: transform;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.3s ease,
+              color 0.3s ease,
+              border-color 0.3s ease;
+}
+
+.action-arrow svg {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: center;
 }
 
 .user-row.selected .action-arrow {
-  background: var(--text-main);
-  color: var(--text-inverse);
-  border-color: transparent;
-  transform: rotate(-45deg);
+  background: var(--text-main) !important;
+  color: var(--text-inverse) !important;
+  border-color: transparent !important;
+  transform: rotate(-45deg) !important;
 }
 
 @keyframes row-fade-in {
