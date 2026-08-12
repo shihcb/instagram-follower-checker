@@ -698,8 +698,14 @@ function setupEventListeners() {
     // Only enable if screen layout is desktop sizing
     if (window.innerWidth < 1025) return;
 
+    // Ignore shortcuts if the user is typing in Following or Followers textareas
+    const active = document.activeElement;
+    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') && active !== elements.searchUnfollowers) {
+      return;
+    }
+
     const searchInput = elements.searchUnfollowers;
-    const isSearchFocused = document.activeElement === searchInput;
+    const isSearchFocused = active === searchInput;
 
     // 1. If search filter is active
     if (isSearchFocused) {
