@@ -646,6 +646,7 @@ h1, h2, h3, h4, .card-num {
   #toggle-preview-unfollowed,
   #toggle-preview-starred {
     width: 100% !important;
+    min-width: 0 !important;
   }
   .results-dropdowns-group {
     width: 100%;
@@ -653,11 +654,13 @@ h1, h2, h3, h4, .card-num {
     position: static;
   }
   .results-dropdowns-group .dropdown-wrapper {
-    flex: 1;
+    flex: 1 1 0px !important;
+    min-width: 0 !important;
     position: relative !important;
   }
   .results-dropdowns-group .dropdown-wrapper button {
-    width: 100%;
+    width: 100% !important;
+    min-width: 0 !important;
   }
   .dropdown-menu {
     width: calc(200% + 8px) !important;
