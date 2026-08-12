@@ -889,8 +889,23 @@ function setupEventListeners() {
     loveHeartsContainer.innerHTML = '';
   }
 
+  let lastLogoTap = 0;
   if (headerLogo && loveOverlay) {
-    headerLogo.addEventListener('dblclick', showLoveOverlay);
+    const detectDoubleTap = (e) => {
+      const now = Date.now();
+      const DOUBLE_PRESS_DELAY = 300; // ms
+      if (now - lastLogoTap < DOUBLE_PRESS_DELAY) {
+        e.preventDefault();
+        showLoveOverlay();
+        lastLogoTap = 0; // Reset
+      } else {
+        lastLogoTap = now;
+      }
+    };
+
+    headerLogo.addEventListener('click', detectDoubleTap);
+    headerLogo.addEventListener('touchstart', detectDoubleTap, { passive: false });
+    
     loveCloseBtn.addEventListener('click', hideLoveOverlay);
     loveOverlay.addEventListener('click', (e) => {
       if (e.target === loveOverlay) {

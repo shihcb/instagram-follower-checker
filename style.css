@@ -188,6 +188,10 @@ h1, h2, h3, h4, .card-num {
   display: flex;
   align-items: center;
   gap: 12px;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  cursor: pointer;
 }
 
 .logo-icon {
