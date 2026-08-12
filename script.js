@@ -58,7 +58,6 @@ const elements = {
   // Unfollowers (Results) elements
   unfollowersCount: document.getElementById('unfollowers-count'),
   searchUnfollowers: document.getElementById('search-unfollowers'),
-  copyUnfollowers: document.getElementById('copy-unfollowers'),
   listUnfollowers: document.getElementById('list-unfollowers'),
   emptyState: document.getElementById('unfollowers-empty-state'),
   togglePreviewUnfollowed: document.getElementById('toggle-preview-unfollowed'),
@@ -507,10 +506,8 @@ function updateResultsUI() {
   
   if (state.following.length > 0 || state.followers.length > 0) {
     elements.searchUnfollowers.removeAttribute('disabled');
-    elements.copyUnfollowers.removeAttribute('disabled');
   } else {
     elements.searchUnfollowers.setAttribute('disabled', 'true');
-    elements.copyUnfollowers.setAttribute('disabled', 'true');
   }
 
   const query = elements.searchUnfollowers.value.toLowerCase().trim();
@@ -652,30 +649,7 @@ function setupEventListeners() {
     state.selectedIndex = -1; // Reset keyboard selection on search query change
     updateResultsUI();
   });
-  
-  // Copy unfollowers list to clipboard
-  elements.copyUnfollowers.addEventListener('click', () => {
-    if (state.unfollowers.length === 0) return;
-    
-    const usernames = state.unfollowers.map(user => `@${user.originalUsername}`).join('\n');
-    navigator.clipboard.writeText(usernames).then(() => {
-      const originalContent = elements.copyUnfollowers.innerHTML;
-      elements.copyUnfollowers.classList.add('btn-success');
-      elements.copyUnfollowers.innerHTML = `
-        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
-        <span>copied!</span>
-      `;
-      
-      setTimeout(() => {
-        elements.copyUnfollowers.classList.remove('btn-success');
-        elements.copyUnfollowers.innerHTML = originalContent;
-      }, 2000);
-    }).catch(err => {
-      console.error('Failed to copy text: ', err);
-    });
-  });
+
 
   // Action buttons: Clear
   elements.clearFollowing.addEventListener('click', () => {
