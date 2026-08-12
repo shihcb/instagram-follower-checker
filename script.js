@@ -973,26 +973,35 @@ function initAuth() {
     }
   });
 
-  // Wire up auth layout UI tab triggers
-  elements.tabLogin.addEventListener('click', () => {
-    isSigningUp = false;
-    elements.tabLogin.classList.add('active');
-    elements.tabSignup.classList.remove('active');
-    elements.authSubmitBtn.textContent = 'log in';
-    elements.authErrorMsg.classList.add('hidden');
-    elements.authSuccessMsg.classList.add('hidden');
-    clearAuthAlerts();
-  });
+  // Wire up auth layout UI tab triggers with a smooth cross-fade transition
+  function switchTab(signup) {
+    if (isSigningUp === signup) return;
+    
+    // Add fade-out state
+    elements.authForm.style.opacity = '0';
+    elements.authForm.style.transform = 'translateY(6px)';
+    
+    setTimeout(() => {
+      isSigningUp = signup;
+      if (signup) {
+        elements.tabLogin.classList.remove('active');
+        elements.tabSignup.classList.add('active');
+        elements.authSubmitBtn.textContent = 'create account';
+      } else {
+        elements.tabLogin.classList.add('active');
+        elements.tabSignup.classList.remove('active');
+        elements.authSubmitBtn.textContent = 'log in';
+      }
+      clearAuthAlerts();
+      
+      // Fade back in
+      elements.authForm.style.opacity = '1';
+      elements.authForm.style.transform = 'translateY(0)';
+    }, 150);
+  }
 
-  elements.tabSignup.addEventListener('click', () => {
-    isSigningUp = true;
-    elements.tabLogin.classList.remove('active');
-    elements.tabSignup.classList.add('active');
-    elements.authSubmitBtn.textContent = 'create account';
-    elements.authErrorMsg.classList.add('hidden');
-    elements.authSuccessMsg.classList.add('hidden');
-    clearAuthAlerts();
-  });
+  elements.tabLogin.addEventListener('click', () => switchTab(false));
+  elements.tabSignup.addEventListener('click', () => switchTab(true));
 
   // Modal open/close actions
   elements.authBtn.addEventListener('click', () => {

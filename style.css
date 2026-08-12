@@ -987,15 +987,15 @@ h1, h2, h3, h4, .card-num {
   width: 100vw;
   height: 100vh;
   height: 100dvh;
-  background-color: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
   opacity: 1;
-  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modal-overlay.hidden {
@@ -1005,19 +1005,19 @@ h1, h2, h3, h4, .card-num {
 
 .modal-card {
   width: 90%;
-  max-width: 400px;
+  max-width: 380px;
   border-radius: 16px;
   padding: 28px;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  transform: translateY(0);
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform: scale(1) translateY(0);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.3);
 }
 
 .modal-overlay.hidden .modal-card {
-  transform: translateY(20px);
+  transform: scale(0.96) translateY(12px);
 }
 
 .modal-header {
@@ -1027,7 +1027,7 @@ h1, h2, h3, h4, .card-num {
 }
 
 .modal-header h3 {
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: var(--text-main);
   letter-spacing: -0.02em;
@@ -1040,7 +1040,7 @@ h1, h2, h3, h4, .card-num {
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 4px;
+  padding: 6px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1054,13 +1054,28 @@ h1, h2, h3, h4, .card-num {
 }
 
 /* Warnings and Alerts */
+.auth-warning, .auth-error, .auth-success {
+  animation: alert-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes alert-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .auth-warning {
   display: flex;
   gap: 10px;
   padding: 12px;
   border-radius: 8px;
   background-color: rgba(239, 68, 68, 0.06);
-  border: 1px solid rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.12);
   color: var(--text-muted);
   font-size: 0.75rem;
   line-height: 1.5;
@@ -1077,7 +1092,7 @@ h1, h2, h3, h4, .card-num {
   padding: 10px 12px;
   border-radius: 8px;
   background-color: rgba(239, 68, 68, 0.06);
-  border: 1px solid rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.12);
   color: var(--error-color);
   font-size: 0.75rem;
   text-transform: lowercase;
@@ -1087,7 +1102,7 @@ h1, h2, h3, h4, .card-num {
   padding: 10px 12px;
   border-radius: 8px;
   background-color: rgba(16, 185, 129, 0.06);
-  border: 1px solid rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.12);
   color: var(--success-color);
   font-size: 0.75rem;
   text-transform: lowercase;
@@ -1108,25 +1123,30 @@ h1, h2, h3, h4, .card-num {
   text-transform: lowercase;
 }
 
-/* Tabs */
+/* iOS Segmented Control Tabs */
 .auth-tabs {
   display: flex;
-  border-bottom: 1px solid var(--card-border);
-  gap: 16px;
+  background-color: var(--btn-secondary-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 4px;
   margin-bottom: 20px;
 }
 
 .auth-tab {
+  flex: 1;
   background: transparent;
   border: none;
   color: var(--text-muted);
   font-weight: 600;
-  font-size: 0.9rem;
-  padding: 8px 0;
+  font-size: 0.85rem;
+  padding: 8px 12px;
+  border-radius: 7px;
   cursor: pointer;
-  position: relative;
+  text-align: center;
   text-transform: lowercase;
-  transition: color 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .auth-tab:hover {
@@ -1134,17 +1154,10 @@ h1, h2, h3, h4, .card-num {
 }
 
 .auth-tab.active {
+  background-color: var(--card-bg);
   color: var(--text-main);
-}
-
-.auth-tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background-color: var(--logo-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 
+              0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 /* Forms */
@@ -1152,6 +1165,7 @@ h1, h2, h3, h4, .card-num {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .form-group {
@@ -1176,12 +1190,12 @@ h1, h2, h3, h4, .card-num {
   font-family: inherit;
   font-size: 0.85rem;
   outline: none;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .form-group input:focus {
   border-color: var(--text-main);
-  box-shadow: 0 0 0 2px var(--card-border);
+  box-shadow: 0 0 0 3px var(--card-border);
 }
 
 .btn-block {
