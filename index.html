@@ -24,7 +24,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=115">
+  <link rel="stylesheet" href="style.css?v=120">
   <!-- Supabase Client Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -48,7 +48,11 @@
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                 <circle cx="12" cy="7" r="4"></circle>
               </svg>
-              <span class="user-badge hidden" id="user-badge"></span>
+              <span class="user-badge hidden" id="user-badge" aria-label="Logged In">
+                <svg viewBox="0 0 24 24" width="9" height="9" stroke="#ffffff" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </span>
             </button>
 
             <!-- Auth Dropdown Menu -->
@@ -270,6 +274,6 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="script.js?v=115"></script>
+  <script src="script.js?v=120"></script>
 </body>
 </html>
