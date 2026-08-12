@@ -736,36 +736,59 @@ function setupEventListeners() {
     const userLink = e.target.closest('.user-link');
     const actionArrow = e.target.closest('.action-arrow');
     const actionStar = e.target.closest('.action-star');
-    
+    const userRow = e.target.closest('.user-row');
+    if (!userRow) return;
+
+    const username = userRow.getAttribute('data-username');
+    const userObj = state.unfollowers.find(u => u.username === username);
+    if (!userObj) return;
+
     if (actionStar) {
-      const userRow = e.target.closest('.user-row');
-      if (userRow) {
-        const username = userRow.getAttribute('data-username');
-        const userObj = state.unfollowers.find(u => u.username === username);
-        if (userObj) {
-          // Move user to Starred (favorite) list
-          if (!state.starred.some(u => u.username === username)) {
-            state.starred.push(userObj);
-            localStorage.setItem('starred_users', JSON.stringify(state.starred));
-          }
-          calculateUnfollowers();
-        }
+      // Move user to Starred (favorite) list
+      if (!state.starred.some(u => u.username === username)) {
+        state.starred.push(userObj);
+        localStorage.setItem('starred_users', JSON.stringify(state.starred));
       }
+
+      // Smoothly animate only this specific row out in the DOM
+      userRow.style.opacity = '0';
+      userRow.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        userRow.remove();
+        // Update local state without full list redraw
+        state.unfollowers = state.unfollowers.filter(u => u.username !== username);
+        elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
+        updateStarredUI();
+        
+        if (state.unfollowers.length === 0) {
+          updateResultsUI(); // Redraw empty state if no users left
+        }
+        pushToCloud();
+      }, 150);
       return;
     }
 
     if (userLink || actionArrow) {
-      const userRow = e.target.closest('.user-row');
-      if (userRow) {
-        const username = userRow.getAttribute('data-username');
-        const userObj = state.unfollowers.find(u => u.username === username);
-        if (userObj) {
-          if (!state.unfollowed.some(u => u.username === username)) {
-            state.unfollowed.push(userObj);
-          }
-          calculateUnfollowers();
-        }
+      // Move user to Unfollowed list
+      if (!state.unfollowed.some(u => u.username === username)) {
+        state.unfollowed.push(userObj);
       }
+
+      // Smoothly animate only this specific row out in the DOM
+      userRow.style.opacity = '0';
+      userRow.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        userRow.remove();
+        // Update local state without full list redraw
+        state.unfollowers = state.unfollowers.filter(u => u.username !== username);
+        elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
+        updateUnfollowedUI();
+
+        if (state.unfollowers.length === 0) {
+          updateResultsUI(); // Redraw empty state if no users left
+        }
+        pushToCloud();
+      }, 150);
     }
   });
 
