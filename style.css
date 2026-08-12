@@ -620,9 +620,15 @@ h1, h2, h3, h4, .card-num {
     width: 100%;
   }
   .dropdown-menu {
-    width: 100%;
+    width: calc(200% + 8px) !important;
+  }
+  #list-unfollowed {
     left: 0;
+    right: auto;
+  }
+  #list-starred {
     right: 0;
+    left: auto;
   }
 }
 
