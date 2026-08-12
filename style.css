@@ -496,7 +496,7 @@ h1, h2, h3, h4, .card-num {
 [data-theme="dark"] .import-account-warning {
   background-color: rgba(245, 158, 11, 0.12);
   border-color: rgba(245, 158, 11, 0.25);
-  color: #fef08a;
+  color: #ffffff !important;
 }
 
 .import-account-warning.hidden-warning {
