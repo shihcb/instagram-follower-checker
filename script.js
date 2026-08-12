@@ -47,19 +47,21 @@ const elements = {
 
   // Following list elements
   inputFollowing: document.getElementById('input-following'),
+  fileFollowing: document.getElementById('file-following'),
   dropFollowing: document.getElementById('drop-following'),
   clearFollowing: document.getElementById('clear-following'),
   followingCount: document.getElementById('following-count'),
+  togglePreviewFollowing: document.getElementById('toggle-preview-following'),
+  listFollowing: document.getElementById('list-following'),
 
   // Followers list elements
   inputFollowers: document.getElementById('input-followers'),
+  fileFollowers: document.getElementById('file-followers'),
   dropFollowers: document.getElementById('drop-followers'),
   clearFollowers: document.getElementById('clear-followers'),
   followersCount: document.getElementById('followers-count'),
-
-  // Import files
-  importFiles: document.getElementById('import-files'),
-  importStatus: document.getElementById('import-status'),
+  togglePreviewFollowers: document.getElementById('toggle-preview-followers'),
+  listFollowers: document.getElementById('list-followers'),
 
   // Unfollowers (Results) elements
   unfollowersCount: document.getElementById('unfollowers-count'),
@@ -132,8 +134,18 @@ function setTheme(theme) {
 // -------------------------------------------------------------
 // Date Formatting Helpers
 // -------------------------------------------------------------
-function formatDate(date) {
-  if (!date) return '';
+function formatDate(dateVal) {
+  if (!dateVal) return '';
+  
+  let date = dateVal;
+  if (typeof dateVal === 'string' || typeof dateVal === 'number') {
+    date = new Date(dateVal);
+  }
+  
+  if (isNaN(date.getTime())) {
+    return '';
+  }
+
   const formatted = new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
@@ -502,24 +514,22 @@ function updateListUI(type) {
 
   countBadge.textContent = `${listData.length} loaded`;
   
-  if (listEl && toggleBtn) {
-    if (listData.length > 0) {
-      toggleBtn.removeAttribute('disabled');
-      
-      // Render preview elements
-      listEl.innerHTML = listData.map(user => `
-        <div class="parsed-item">
-          <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
-          <span>${user.fullName ? user.fullName : (user.timestamp ? formatDate(user.timestamp) : '')}</span>
-        </div>
-      `).join('');
-    } else {
-      toggleBtn.setAttribute('disabled', 'true');
-      listEl.innerHTML = '';
-      listEl.classList.add('hidden');
-      toggleBtn.classList.remove('active');
-      toggleBtn.querySelector('span').textContent = 'show loaded users';
-    }
+  if (listData.length > 0) {
+    toggleBtn.removeAttribute('disabled');
+    
+    // Render preview elements
+    listEl.innerHTML = listData.map(user => `
+      <div class="parsed-item">
+        <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
+        <span>${user.fullName ? user.fullName : (user.timestamp ? formatDate(user.timestamp) : '')}</span>
+      </div>
+    `).join('');
+  } else {
+    toggleBtn.setAttribute('disabled', 'true');
+    listEl.innerHTML = '';
+    listEl.classList.add('hidden');
+    toggleBtn.classList.remove('active');
+    toggleBtn.querySelector('span').textContent = 'show loaded users';
   }
 }
 
@@ -651,83 +661,8 @@ function handleFileSelect(file, type) {
   reader.readAsText(file);
 }
 
-// Extract @usernames from Instagram HTML export files
-function extractUsernamesFromHTML(html) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, 'text/html');
-  const links = doc.querySelectorAll('a[href*="instagram.com"]');
-  const usernames = [];
-  links.forEach(link => {
-    const href = link.getAttribute('href') || '';
-    const match = href.match(/instagram\.com\/([^/?#]+)/);
-    if (match && match[1] && match[1] !== 'explore') {
-      usernames.push('@' + match[1]);
-    }
-  });
-  // Fallback: also collect text content that looks like usernames
-  if (usernames.length === 0) {
-    const spans = doc.querySelectorAll('span');
-    spans.forEach(span => {
-      const text = span.textContent.trim();
-      if (text && !text.includes(' ') && text.length < 32) {
-        usernames.push('@' + text);
-      }
-    });
-  }
-  return [...new Set(usernames)].join('\n');
-}
-
-// Handle the import-files input from the account dropdown
-function handleImportFiles(files) {
-  const statusEl = elements.importStatus;
-  if (!statusEl) return;
-
-  const allowed = ['following.html', 'followers_1.html'];
-  const rejected = [];
-  const promises = [];
-
-  Array.from(files).forEach(file => {
-    if (!allowed.includes(file.name)) {
-      rejected.push(file.name);
-      return;
-    }
-    const p = new Promise(resolve => {
-      const reader = new FileReader();
-      reader.onload = e => resolve({ name: file.name, content: e.target.result });
-      reader.readAsText(file);
-    });
-    promises.push(p);
-  });
-
-  if (rejected.length > 0) {
-    statusEl.textContent = `❌ rejected: ${rejected.join(', ')} — only following.html and followers_1.html are accepted.`;
-    statusEl.style.color = 'var(--text-muted)';
-  }
-
-  Promise.all(promises).then(results => {
-    let loaded = [];
-    results.forEach(({ name, content }) => {
-      const usernames = extractUsernamesFromHTML(content);
-      if (name === 'following.html') {
-        elements.inputFollowing.value = usernames;
-        handleFollowingInput();
-        loaded.push('following');
-      } else if (name === 'followers_1.html') {
-        elements.inputFollowers.value = usernames;
-        handleFollowersInput();
-        loaded.push('followers');
-      }
-    });
-    if (loaded.length > 0) {
-      statusEl.textContent = `✓ loaded: ${loaded.join(' & ')}`;
-      statusEl.style.color = 'var(--success-color)';
-      setTimeout(() => { statusEl.textContent = ''; }, 4000);
-    }
-  });
-}
-
-// Set up drag and drop behaviors (drop-zone only, no file input needed)
-function setupDragAndDrop(dropZone, type) {
+// Set up drag and drop behaviors
+function setupDragAndDrop(dropZone, fileInput, type) {
   ['dragenter', 'dragover'].forEach(eventName => {
     dropZone.addEventListener(eventName, (e) => {
       e.preventDefault();
@@ -747,6 +682,12 @@ function setupDragAndDrop(dropZone, type) {
     const files = dt.files;
     if (files.length > 0) {
       handleFileSelect(files[0], type);
+    }
+  });
+
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      handleFileSelect(e.target.files[0], type);
     }
   });
 }
@@ -805,8 +746,18 @@ function setupEventListeners() {
     calculateUnfollowers();
   });
 
-  // Accordion toggles removed — show loaded users panels removed from list 1 & 2
+  // Accordion toggles for source previews
+  elements.togglePreviewFollowing.addEventListener('click', () => {
+    const isHidden = elements.listFollowing.classList.toggle('hidden');
+    elements.togglePreviewFollowing.classList.toggle('active', !isHidden);
+    elements.togglePreviewFollowing.querySelector('span').textContent = isHidden ? 'show loaded users' : 'hide loaded users';
+  });
 
+  elements.togglePreviewFollowers.addEventListener('click', () => {
+    const isHidden = elements.listFollowers.classList.toggle('hidden');
+    elements.togglePreviewFollowers.classList.toggle('active', !isHidden);
+    elements.togglePreviewFollowers.querySelector('span').textContent = isHidden ? 'show loaded users' : 'hide loaded users';
+  });
 
   // Handle click on username, action arrow, or star button
   elements.listUnfollowers.addEventListener('click', (e) => {
@@ -832,37 +783,15 @@ function setupEventListeners() {
     }
 
     if (userLink || actionArrow) {
-      // Prevent the anchor's default navigation so JS runs first
-      e.preventDefault();
-
       const userRow = e.target.closest('.user-row');
       if (userRow) {
         const username = userRow.getAttribute('data-username');
         const userObj = state.unfollowers.find(u => u.username === username);
         if (userObj) {
-          // Open profile in new tab manually
-          window.open(userObj.profileUrl, '_blank', 'noopener');
-
-          // Add to unfollowed if not already there
           if (!state.unfollowed.some(u => u.username === username)) {
             state.unfollowed.push(userObj);
           }
-
-          // Animate row out smoothly, then recalculate
-          userRow.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
-          userRow.style.opacity = '0';
-          userRow.style.transform = 'translateX(12px)';
-          setTimeout(() => {
-            calculateUnfollowers();
-
-            // Auto-expand the unfollowed accordion if it's collapsed
-            if (elements.listUnfollowed.classList.contains('hidden')) {
-              elements.listUnfollowed.classList.remove('hidden');
-              elements.togglePreviewUnfollowed.classList.add('active');
-              elements.togglePreviewUnfollowed.querySelector('span').textContent =
-                `hide unfollowed users (${state.unfollowed.length})`;
-            }
-          }, 220);
+          calculateUnfollowers();
         }
       }
     }
@@ -901,19 +830,9 @@ function setupEventListeners() {
   elements.inputFollowing.addEventListener('input', handleFollowingInput);
   elements.inputFollowers.addEventListener('input', handleFollowersInput);
 
-  // Setup drag and drop (drop zones only)
-  setupDragAndDrop(elements.dropFollowing, 'following');
-  setupDragAndDrop(elements.dropFollowers, 'followers');
-
-  // Import files from account dropdown
-  if (elements.importFiles) {
-    elements.importFiles.addEventListener('change', (e) => {
-      if (e.target.files.length > 0) {
-        handleImportFiles(e.target.files);
-        e.target.value = ''; // reset so same files can be re-selected
-      }
-    });
-  }
+  // Setup drag and drop
+  setupDragAndDrop(elements.dropFollowing, elements.fileFollowing, 'following');
+  setupDragAndDrop(elements.dropFollowers, elements.fileFollowers, 'followers');
 
   // Keyboard navigation shortcuts (Desktop only)
   document.addEventListener('keydown', (e) => {
