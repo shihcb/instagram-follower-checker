@@ -300,7 +300,7 @@ h1, h2, h3, h4, .card-num {
 }
 
 .btn-secondary {
-  background: var(--btn-secondary-bg);
+  background: #ffffff;
   color: var(--text-main);
   border: 1px solid var(--btn-secondary-border);
 }
@@ -928,12 +928,16 @@ h1, h2, h3, h4, .card-num {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--btn-secondary-bg);
+  background-color: #ffffff;
   border: 1px solid var(--card-border);
   color: var(--text-muted);
   transition: all 0.2s ease;
   cursor: pointer;
   padding: 0;
+}
+
+[data-theme="dark"] .action-star {
+  background-color: #18181b;
 }
 
 .action-star:hover {
@@ -952,12 +956,16 @@ h1, h2, h3, h4, .card-num {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--btn-secondary-bg);
+  background-color: #ffffff;
   border: 1px solid var(--card-border);
   color: var(--text-muted);
   transition: all 0.2s ease;
   cursor: pointer;
   padding: 0;
+}
+
+[data-theme="dark"] .action-delete {
+  background-color: #18181b;
 }
 
 .action-delete:hover {
@@ -970,7 +978,7 @@ h1, h2, h3, h4, .card-num {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--btn-secondary-bg);
+  background-color: #ffffff;
   border: 1px solid var(--card-border);
   color: var(--text-muted);
   transform: rotate(0deg);
@@ -979,6 +987,10 @@ h1, h2, h3, h4, .card-num {
               background-color 0.3s ease,
               color 0.3s ease,
               border-color 0.3s ease;
+}
+
+[data-theme="dark"] .action-arrow {
+  background-color: #18181b;
 }
 
 .action-arrow svg {
