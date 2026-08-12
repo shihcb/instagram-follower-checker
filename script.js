@@ -439,9 +439,17 @@ function updateUnfollowedUI() {
       </button>
       <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
-          <div class="parsed-item">
+          <div class="parsed-item" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
-            <span>${user.fullName ? user.fullName : ''}</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span>${user.fullName ? user.fullName : ''}</span>
+              <button class="remove-unfollowed-btn" data-username="${user.username}" aria-label="remove from unfollowed" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-main); padding: 4px;">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
           </div>
         `).join('')}
       </div>
@@ -777,7 +785,7 @@ function setupEventListeners() {
     }
   });
 
-  // Handle click on reset button inside unfollowed list
+  // Handle click on elements inside unfollowed list (reset or or individual remove)
   elements.listUnfollowed.addEventListener('click', async (e) => {
     const resetBtn = e.target.closest('#reset-unfollowed-btn');
     if (resetBtn) {
@@ -787,6 +795,16 @@ function setupEventListeners() {
         updateUnfollowedUI();
         await pushToCloud();
       }
+      return;
+    }
+
+    const removeBtn = e.target.closest('.remove-unfollowed-btn');
+    if (removeBtn) {
+      const username = removeBtn.getAttribute('data-username');
+      state.unfollowed = state.unfollowed.filter(u => u.username !== username);
+      calculateUnfollowers();
+      updateUnfollowedUI();
+      await pushToCloud();
     }
   });
 
