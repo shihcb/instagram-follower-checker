@@ -927,6 +927,64 @@ function setupEventListeners() {
     });
   }
 
+  // Sync Folder Feature using File System Access API
+  async function scanLocalDirectory() {
+    if (typeof window.showDirectoryPicker !== 'function') {
+      alert("Your browser does not support folder selection. Please use a modern desktop browser like Chrome, Edge, or Opera.");
+      return;
+    }
+
+    try {
+      const dirHandle = await window.showDirectoryPicker();
+      let followingFile = null;
+      let followersFile = null;
+
+      // Scan through all entries inside selected folder
+      for await (const entry of dirHandle.values()) {
+        if (entry.kind === 'file') {
+          const nameLower = entry.name.toLowerCase();
+          if (nameLower === 'following.html' || nameLower === 'following.txt') {
+            followingFile = await entry.getFile();
+          } else if (nameLower === 'followers_1.html' || nameLower === 'followers_1.txt' || nameLower === 'followers.html' || nameLower === 'followers.txt') {
+            followersFile = await entry.getFile();
+          }
+        }
+      }
+
+      if (!followingFile && !followersFile) {
+        alert("No files named 'following.html' or 'followers_1.html' were found in the selected folder.");
+        return;
+      }
+
+      const syncPromises = [];
+      if (followingFile) {
+        syncPromises.push(readAndProcessFile(followingFile, 'following'));
+      }
+      if (followersFile) {
+        syncPromises.push(readAndProcessFile(followersFile, 'followers'));
+      }
+
+      await Promise.all(syncPromises);
+      alert("Successfully synced files from your local folder!");
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error(err);
+        alert("Error reading directory: " + err.message);
+      }
+    }
+  }
+
+  // Bind double-click handler to Card 1 & Card 2 headers
+  const cardHeaders = document.querySelectorAll('.card-header');
+  cardHeaders.forEach(header => {
+    const card = header.closest('.card');
+    if (card && card.id !== 'card-unfollowers') {
+      header.style.cursor = 'pointer';
+      header.title = 'Double-click header to sync files automatically from a folder';
+      header.addEventListener('dblclick', scanLocalDirectory);
+    }
+  });
+
   // Setup inputs
   elements.inputFollowing.addEventListener('input', handleFollowingInput);
   elements.inputFollowers.addEventListener('input', handleFollowersInput);
