@@ -595,7 +595,21 @@ h1, h2, h3, h4, .card-num {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
+#toggle-preview-unfollowed {
+  width: 140px;
+  justify-content: space-between;
+}
+
+#toggle-preview-starred {
+  width: 115px;
+  justify-content: space-between;
+}
+
 @media (max-width: 1024px) {
+  #toggle-preview-unfollowed,
+  #toggle-preview-starred {
+    width: 100% !important;
+  }
   .results-dropdowns-group {
     width: 100%;
     margin-top: 4px;
