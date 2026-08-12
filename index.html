@@ -24,7 +24,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
   <!-- Decorative background elements -->
@@ -200,24 +200,26 @@
             <div class="results-list hidden" id="list-unfollowers"></div>
           </div>
 
-          <div class="parsed-preview-container">
-            <button class="preview-toggle" id="toggle-preview-unfollowed" disabled>
-              <span>show unfollowed users</span>
-              <svg class="chevron-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </button>
-            <div class="parsed-list hidden" id="list-unfollowed"></div>
-          </div>
+          <div class="card-previews-group">
+            <div class="parsed-preview-container">
+              <button class="preview-toggle" id="toggle-preview-unfollowed" disabled>
+                <span>show unfollowed users</span>
+                <svg class="chevron-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+              <div class="parsed-list hidden" id="list-unfollowed"></div>
+            </div>
 
-          <div class="parsed-preview-container" style="margin-top: 10px;">
-            <button class="preview-toggle" id="toggle-preview-starred" disabled>
-              <span>show starred users</span>
-              <svg class="chevron-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </button>
-            <div class="parsed-list hidden" id="list-starred"></div>
+            <div class="parsed-preview-container">
+              <button class="preview-toggle" id="toggle-preview-starred" disabled>
+                <span>show starred users</span>
+                <svg class="chevron-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+              <div class="parsed-list hidden" id="list-starred"></div>
+            </div>
           </div>
         </div>
       </section>
@@ -227,6 +229,6 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="script.js"></script>
+  <script src="script.js?v=3"></script>
 </body>
 </html>

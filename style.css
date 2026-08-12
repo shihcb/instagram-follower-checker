@@ -502,6 +502,13 @@ h1, h2, h3, h4, .card-num {
 /* -------------------------------------------------------------
  * Parsed User Preview List Accordion
  * ------------------------------------------------------------- */
+.card-previews-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
 .parsed-preview-container {
   display: flex;
   flex-direction: column;
@@ -792,8 +799,14 @@ h1, h2, h3, h4, .card-num {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 4px;
+  gap: 6px;
   flex-shrink: 0;
+}
+
+.user-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .follow-date {
