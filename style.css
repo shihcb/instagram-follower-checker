@@ -799,7 +799,6 @@ h1, h2, h3, h4, .card-num {
 
 .user-row:hover {
   border-color: var(--text-main);
-  transform: translateX(2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
@@ -807,7 +806,6 @@ h1, h2, h3, h4, .card-num {
   border-color: var(--text-main);
   background-color: var(--btn-secondary-bg);
   box-shadow: 0 0 0 2px var(--card-border);
-  transform: translateX(2px);
 }
 
 .user-info {

@@ -713,7 +713,7 @@ function setupEventListeners() {
     if (actionStar) {
       // Move user to Starred (favorite) list
       if (!state.starred.some(u => u.username === username)) {
-        state.starred.push(userObj);
+        state.starred.unshift(userObj);
         localStorage.setItem('starred_users', JSON.stringify(state.starred));
       }
 
@@ -738,7 +738,7 @@ function setupEventListeners() {
     if (userLink || actionArrow || actionDelete) {
       // Move user to Unfollowed list
       if (!state.unfollowed.some(u => u.username === username)) {
-        state.unfollowed.push(userObj);
+        state.unfollowed.unshift(userObj);
       }
 
       // Smoothly animate only this specific row out in the DOM
@@ -824,7 +824,7 @@ function setupEventListeners() {
       if (userObj) {
         state.unfollowed = state.unfollowed.filter(u => u.username !== username);
         if (!state.starred.some(u => u.username === username)) {
-          state.starred.push(userObj);
+          state.starred.unshift(userObj);
           localStorage.setItem('starred_users', JSON.stringify(state.starred));
         }
         calculateUnfollowers();
@@ -951,7 +951,7 @@ function setupEventListeners() {
           
           // Move user to Unfollowed list
           if (!state.unfollowed.some(u => u.username === username)) {
-            state.unfollowed.push(userObj);
+            state.unfollowed.unshift(userObj);
           }
           calculateUnfollowers();
           
