@@ -96,11 +96,12 @@ function setTheme(theme) {
 // -------------------------------------------------------------
 function formatDate(date) {
   if (!date) return '';
-  return new Intl.DateTimeFormat('en-US', {
+  const formatted = new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric'
   }).format(date);
+  return formatted.toLowerCase();
 }
 
 // -------------------------------------------------------------
@@ -373,8 +374,8 @@ function updateUnfollowedUI() {
   if (listData.length > 0) {
     toggleBtn.removeAttribute('disabled');
     toggleBtn.querySelector('span').textContent = toggleBtn.classList.contains('active') 
-      ? `Hide unfollowed users (${listData.length})` 
-      : `Show unfollowed users (${listData.length})`;
+      ? `hide unfollowed users (${listData.length})` 
+      : `show unfollowed users (${listData.length})`;
     
     // Render elements (same layout as parsed-list)
     listEl.innerHTML = listData.map(user => `
@@ -385,7 +386,7 @@ function updateUnfollowedUI() {
     `).join('');
   } else {
     toggleBtn.setAttribute('disabled', 'true');
-    toggleBtn.querySelector('span').textContent = 'Show unfollowed users';
+    toggleBtn.querySelector('span').textContent = 'show unfollowed users';
     listEl.innerHTML = '';
     listEl.classList.add('hidden');
     toggleBtn.classList.remove('active');
@@ -433,7 +434,7 @@ function updateListUI(type) {
     listEl.innerHTML = '';
     listEl.classList.add('hidden');
     toggleBtn.classList.remove('active');
-    toggleBtn.querySelector('span').textContent = 'Show loaded users';
+    toggleBtn.querySelector('span').textContent = 'show loaded users';
   }
 }
 
@@ -502,11 +503,11 @@ function updateResultsUI() {
     elements.emptyState.classList.remove('hidden');
     
     if (state.following.length === 0 && state.followers.length === 0) {
-      elements.emptyState.querySelector('.empty-title').textContent = 'Waiting for data';
-      elements.emptyState.querySelector('.empty-desc').textContent = 'Input your Following and Followers lists on the left to find who doesn\'t follow you back.';
+      elements.emptyState.querySelector('.empty-title').textContent = 'waiting for data';
+      elements.emptyState.querySelector('.empty-desc').textContent = 'input your following and followers lists on the left to find who doesn\'t follow you back.';
     } else {
-      elements.emptyState.querySelector('.empty-title').textContent = 'No results found';
-      elements.emptyState.querySelector('.empty-desc').textContent = query ? 'No matching usernames found in the filter.' : 'Wow! Everyone you follow follows you back.';
+      elements.emptyState.querySelector('.empty-title').textContent = 'no results found';
+      elements.emptyState.querySelector('.empty-desc').textContent = query ? 'no matching usernames found in the filter.' : 'wow! everyone you follow follows you back.';
     }
   }
 }
@@ -612,7 +613,7 @@ function setupEventListeners() {
         <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
-        <span>Copied!</span>
+        <span>copied!</span>
       `;
       
       setTimeout(() => {
@@ -647,13 +648,13 @@ function setupEventListeners() {
   elements.togglePreviewFollowing.addEventListener('click', () => {
     const isHidden = elements.listFollowing.classList.toggle('hidden');
     elements.togglePreviewFollowing.classList.toggle('active', !isHidden);
-    elements.togglePreviewFollowing.querySelector('span').textContent = isHidden ? 'Show loaded users' : 'Hide loaded users';
+    elements.togglePreviewFollowing.querySelector('span').textContent = isHidden ? 'show loaded users' : 'hide loaded users';
   });
 
   elements.togglePreviewFollowers.addEventListener('click', () => {
     const isHidden = elements.listFollowers.classList.toggle('hidden');
     elements.togglePreviewFollowers.classList.toggle('active', !isHidden);
-    elements.togglePreviewFollowers.querySelector('span').textContent = isHidden ? 'Show loaded users' : 'Hide loaded users';
+    elements.togglePreviewFollowers.querySelector('span').textContent = isHidden ? 'show loaded users' : 'hide loaded users';
   });
 
   // Handle click on username or action arrow to unfollow
@@ -681,8 +682,8 @@ function setupEventListeners() {
     const isHidden = elements.listUnfollowed.classList.toggle('hidden');
     elements.togglePreviewUnfollowed.classList.toggle('active', !isHidden);
     elements.togglePreviewUnfollowed.querySelector('span').textContent = isHidden 
-      ? `Show unfollowed users (${state.unfollowed.length})` 
-      : `Hide unfollowed users (${state.unfollowed.length})`;
+      ? `show unfollowed users (${state.unfollowed.length})` 
+      : `hide unfollowed users (${state.unfollowed.length})`;
   });
 
   // Setup inputs

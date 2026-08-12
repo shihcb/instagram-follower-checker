@@ -749,7 +749,7 @@ h1, h2, h3, h4, .card-num {
   color: #fff;
   background: var(--grad-instagram);
   flex-shrink: 0;
-  text-transform: uppercase;
+  text-transform: lowercase;
 }
 
 .user-details {
