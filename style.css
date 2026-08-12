@@ -1479,9 +1479,9 @@ h1, h2, h3, h4, .card-num {
   border-radius: 34px;
 }
 
-[data-theme="dark"] .slider {
-  background-color: #000000 !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
+[data-theme="dark"] .switch input:not(:checked) + .slider {
+  background-color: #000000;
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .slider:before {
