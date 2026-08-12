@@ -173,12 +173,16 @@ h1, h2, h3, h4, .card-num {
 }
 
 .logo-icon {
-  stroke: url(#insta-gradient); /* Handled programmatically or via direct color, we use native gradients */
-  color: var(--grad-2);
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: block;
 }
 
 .header-logo h1 {
   font-size: 2.25rem;
+  line-height: 1;
+  margin: 0;
   background: var(--grad-instagram);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
