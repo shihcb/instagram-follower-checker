@@ -594,7 +594,7 @@ function updateResultsUI() {
     
     if (state.following.length === 0 && state.followers.length === 0) {
       elements.emptyState.querySelector('.empty-title').textContent = 'waiting for data';
-      elements.emptyState.querySelector('.empty-desc').textContent = 'input your following and followers lists on the left to find who doesn\'t follow you back.';
+      elements.emptyState.querySelector('.empty-desc').textContent = '';
     } else {
       elements.emptyState.querySelector('.empty-title').textContent = 'no results found';
       elements.emptyState.querySelector('.empty-desc').textContent = query ? 'no matching usernames found in the filter.' : 'wow! everyone you follow follows you back.';
