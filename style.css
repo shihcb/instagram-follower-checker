@@ -492,7 +492,7 @@ h1, h2, h3, h4, .card-num {
 
 .card-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
 }
 
