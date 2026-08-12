@@ -630,6 +630,15 @@ h1, h2, h3, h4, .card-num {
     right: 0;
     left: auto;
   }
+  .star-unfollowed-btn,
+  .remove-unfollowed-btn {
+    padding: 6px !important;
+  }
+  .star-unfollowed-btn svg,
+  .remove-unfollowed-btn svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
 }
 
 .parsed-item {
