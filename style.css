@@ -749,7 +749,6 @@ h1, h2, h3, h4, .card-num {
 }
 
 .search-box input:disabled {
-  opacity: 0.5;
   cursor: not-allowed;
 }
 
