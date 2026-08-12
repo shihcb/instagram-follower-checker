@@ -567,7 +567,9 @@ function updateResultsUI() {
       return `
         <div class="user-row${isSelected ? ' selected' : ''}" data-username="${user.username}" data-index="${index}">
           <div class="user-info">
-            <div class="user-avatar">${initials}</div>
+            <a href="${user.profileUrl}" target="_blank" rel="noopener" class="user-avatar-link" title="Visit Instagram Profile">
+              <div class="user-avatar">${initials}</div>
+            </a>
             <div class="user-details">
               <a href="${user.profileUrl}" target="_blank" rel="noopener" class="user-link">
                 @${user.originalUsername}
@@ -718,6 +720,7 @@ function setupEventListeners() {
     const userObj = state.unfollowers.find(u => u.username === username);
     if (!userObj) return;
 
+    const userAvatar = e.target.closest('.user-avatar-link') || e.target.closest('.user-avatar');
     const userLink = e.target.closest('.user-link');
     const actionArrow = e.target.closest('.action-arrow');
     const actionStar = e.target.closest('.action-star');
@@ -768,7 +771,7 @@ function setupEventListeners() {
       return;
     }
 
-    if (userLink || actionArrow) {
+    if (userAvatar || userLink || actionArrow) {
       // Open Instagram profile
       const autoOpenToggle = document.getElementById('auto-open-toggle');
       if (autoOpenToggle && autoOpenToggle.checked) {
