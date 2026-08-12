@@ -637,13 +637,14 @@ h1, h2, h3, h4, .card-num {
   .star-unfollowed-btn,
   .remove-unfollowed-btn,
   .unstar-btn {
-    padding: 6px !important;
+    width: 28px !important;
+    height: 28px !important;
   }
   .star-unfollowed-btn svg,
   .remove-unfollowed-btn svg,
   .unstar-btn svg {
-    width: 18px !important;
-    height: 18px !important;
+    width: 14px !important;
+    height: 14px !important;
   }
 }
 
@@ -1495,5 +1496,39 @@ h1, h2, h3, h4, .card-num {
   cursor: pointer;
   text-transform: lowercase;
   white-space: nowrap;
+}
+
+/* Circular action buttons for unfollowed and starred dropdown lists */
+.star-unfollowed-btn,
+.remove-unfollowed-btn,
+.unstar-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: var(--btn-secondary-bg) !important;
+  border: 1px solid var(--card-border) !important;
+  color: var(--text-muted) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer;
+  padding: 0 !important;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.star-unfollowed-btn:hover,
+.remove-unfollowed-btn:hover,
+.unstar-btn:hover {
+  background-color: var(--btn-secondary-hover) !important;
+  color: var(--text-main) !important;
+  border-color: var(--text-muted) !important;
+}
+
+.star-unfollowed-btn svg,
+.remove-unfollowed-btn svg,
+.unstar-btn svg {
+  width: 12px !important;
+  height: 12px !important;
 }
 
