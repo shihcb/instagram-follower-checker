@@ -1281,3 +1281,145 @@ h1, h2, h3, h4, .card-num {
   font-weight: 600;
 }
 
+
+/* -------------------------------------------------------------
+ * Secret Romantic Easter Egg (Love Overlay)
+ * ------------------------------------------------------------- */
+.love-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.love-overlay:not(.hidden) {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.love-card {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 25px 50px -12px rgba(239, 68, 68, 0.25), 0 0 40px rgba(239, 68, 68, 0.1);
+  border-radius: 24px;
+  padding: 40px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 90%;
+  max-width: 420px;
+  position: relative;
+  overflow: hidden;
+  transform: scale(0.9);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="dark"] .love-card {
+  background: rgba(24, 24, 27, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 25px 50px -12px rgba(239, 68, 68, 0.4), 0 0 45px rgba(239, 68, 68, 0.15);
+}
+
+.love-overlay:not(.hidden) .love-card {
+  transform: scale(1);
+}
+
+.love-heart-main {
+  color: #ef4444;
+  filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.6));
+  animation: love-heart-beat 1.2s infinite alternate cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.love-text {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #ef4444;
+  text-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+  letter-spacing: -0.03em;
+  margin: 0;
+  animation: love-text-glow 1.5s infinite alternate;
+}
+
+[data-theme="light"] .love-text {
+  color: #dc2626;
+}
+
+.love-close-btn {
+  border: none;
+  background: var(--text-main);
+  color: var(--text-inverse);
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.love-close-btn:hover {
+  transform: scale(1.05);
+  background: var(--btn-secondary-hover);
+  color: var(--text-main);
+}
+
+@keyframes love-heart-beat {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.15);
+  }
+}
+
+@keyframes love-text-glow {
+  0% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 1;
+    text-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+  }
+}
+
+/* Floating tiny background hearts */
+.love-heart-float {
+  position: absolute;
+  color: rgba(239, 68, 68, 0.25);
+  pointer-events: none;
+  animation: love-heart-float-up 4s linear infinite;
+}
+
+@keyframes love-heart-float-up {
+  0% {
+    transform: translateY(120%) scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-120%) scale(1) rotate(360deg);
+    opacity: 0;
+  }
+}
+
