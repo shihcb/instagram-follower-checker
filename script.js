@@ -49,15 +49,11 @@ const elements = {
   inputFollowing: document.getElementById('input-following'),
   clearFollowing: document.getElementById('clear-following'),
   followingCount: document.getElementById('following-count'),
-  togglePreviewFollowing: document.getElementById('toggle-preview-following'),
-  listFollowing: document.getElementById('list-following'),
 
   // Followers list elements
   inputFollowers: document.getElementById('input-followers'),
   clearFollowers: document.getElementById('clear-followers'),
   followersCount: document.getElementById('followers-count'),
-  togglePreviewFollowers: document.getElementById('toggle-preview-followers'),
-  listFollowers: document.getElementById('list-followers'),
 
   // Unfollowers (Results) elements
   unfollowersCount: document.getElementById('unfollowers-count'),
@@ -502,28 +498,7 @@ function deduplicateEntries(entries) {
 function updateListUI(type) {
   const listData = state[type];
   const countBadge = elements[`${type}Count`];
-  const listEl = elements[`list${type.charAt(0).toUpperCase() + type.slice(1)}`];
-  const toggleBtn = elements[`togglePreview${type.charAt(0).toUpperCase() + type.slice(1)}`];
-
   countBadge.textContent = `${listData.length} loaded`;
-  
-  if (listData.length > 0) {
-    toggleBtn.removeAttribute('disabled');
-    
-    // Render preview elements
-    listEl.innerHTML = listData.map(user => `
-      <div class="parsed-item">
-        <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
-        <span>${user.fullName ? user.fullName : (user.timestamp ? formatDate(user.timestamp) : '')}</span>
-      </div>
-    `).join('');
-  } else {
-    toggleBtn.setAttribute('disabled', 'true');
-    listEl.innerHTML = '';
-    listEl.classList.add('hidden');
-    toggleBtn.classList.remove('active');
-    toggleBtn.querySelector('span').textContent = 'show loaded users';
-  }
 }
 
 function updateResultsUI() {
@@ -645,14 +620,21 @@ function readAndProcessFile(file, type) {
     const reader = new FileReader();
     reader.onload = function(e) {
       const content = e.target.result;
-      const inputEl = elements[`input${type.charAt(0).toUpperCase() + type.slice(1)}`];
-      inputEl.value = content;
+      const parsed = parseInput(content);
+      const deduplicated = deduplicateEntries(parsed);
       
-      if (type === 'following') {
-        handleFollowingInput();
-      } else {
-        handleFollowersInput();
-      }
+      // Store complete parsed data directly in state to preserve dates & full names
+      state[type] = deduplicated;
+      
+      // Format clean list of usernames for visual display inside the textarea
+      const usernamesText = deduplicated.map(user => `@${user.originalUsername}`).join('\n');
+      const inputEl = elements[`input${type.charAt(0).toUpperCase() + type.slice(1)}`];
+      inputEl.value = usernamesText;
+      
+      // Update UI and recalculate list
+      updateListUI(type);
+      calculateUnfollowers();
+      
       // Debounce delay buffer to ensure recalculation finishes before next file
       setTimeout(resolve, 300);
     };
@@ -715,17 +697,7 @@ function setupEventListeners() {
   });
 
   // Accordion toggles for source previews
-  elements.togglePreviewFollowing.addEventListener('click', () => {
-    const isHidden = elements.listFollowing.classList.toggle('hidden');
-    elements.togglePreviewFollowing.classList.toggle('active', !isHidden);
-    elements.togglePreviewFollowing.querySelector('span').textContent = isHidden ? 'show loaded users' : 'hide loaded users';
-  });
 
-  elements.togglePreviewFollowers.addEventListener('click', () => {
-    const isHidden = elements.listFollowers.classList.toggle('hidden');
-    elements.togglePreviewFollowers.classList.toggle('active', !isHidden);
-    elements.togglePreviewFollowers.querySelector('span').textContent = isHidden ? 'show loaded users' : 'hide loaded users';
-  });
 
   // Handle click on username, action arrow, or star button
   elements.listUnfollowers.addEventListener('click', (e) => {
