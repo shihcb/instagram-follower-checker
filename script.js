@@ -1315,14 +1315,14 @@ function initAuth() {
   // Toggle drop down menu on button click
   elements.authBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    elements.authDropdown.classList.toggle('hidden');
+    elements.authDropdown.classList.toggle('show');
   });
 
   // Close drop down on clicking outside
   document.addEventListener('click', (e) => {
-    if (!elements.authDropdown.classList.contains('hidden')) {
+    if (elements.authDropdown.classList.contains('show')) {
       if (!elements.authDropdown.contains(e.target) && !elements.authBtn.contains(e.target)) {
-        elements.authDropdown.classList.add('hidden');
+        elements.authDropdown.classList.remove('show');
         clearAuthAlerts();
       }
     }
