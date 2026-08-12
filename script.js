@@ -437,7 +437,7 @@ function updateUnfollowedUI() {
         </svg>
         reset list
       </button>
-      <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow-y: auto; width: 100%;">
+      <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
           <div class="parsed-item" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
@@ -617,6 +617,7 @@ const handleFollowingInput = debounce(function() {
   const rawText = elements.inputFollowing.value;
   const parsed = parseInput(rawText);
   state.following = deduplicateEntries(parsed);
+  localStorage.setItem('following_users', JSON.stringify(state.following));
   updateListUI('following');
   calculateUnfollowers();
 }, 250);
@@ -625,6 +626,7 @@ const handleFollowersInput = debounce(function() {
   const rawText = elements.inputFollowers.value;
   const parsed = parseInput(rawText);
   state.followers = deduplicateEntries(parsed);
+  localStorage.setItem('followers_users', JSON.stringify(state.followers));
   updateListUI('followers');
   calculateUnfollowers();
 }, 250);
@@ -643,6 +645,7 @@ function readAndProcessFile(file, type) {
       
       // Store complete parsed data directly in state to preserve dates & full names
       state[type] = deduplicated;
+      localStorage.setItem(`${type}_users`, JSON.stringify(deduplicated));
       
       // Format clean list of usernames for visual display inside the textarea
       const usernamesText = deduplicated.map(user => `@${user.originalUsername}`).join('\n');
@@ -676,6 +679,7 @@ function setupEventListeners() {
   elements.clearFollowing.addEventListener('click', () => {
     elements.inputFollowing.value = '';
     state.following = [];
+    localStorage.removeItem('following_users');
     state.selectedIndex = -1; // Reset selection index
     updateListUI('following');
     calculateUnfollowers();
@@ -684,6 +688,7 @@ function setupEventListeners() {
   elements.clearFollowers.addEventListener('click', () => {
     elements.inputFollowers.value = '';
     state.followers = [];
+    localStorage.removeItem('followers_users');
     state.selectedIndex = -1; // Reset selection index
     updateListUI('followers');
     calculateUnfollowers();
@@ -1010,6 +1015,22 @@ function initAuth() {
 
       // Fetch cloud data and merge/sync
       await pullFromCloud();
+
+      // Load saved Following/Followers lists if present in localStorage
+      const savedFollowing = localStorage.getItem('following_users');
+      const savedFollowers = localStorage.getItem('followers_users');
+      
+      if (savedFollowing) {
+        state.following = JSON.parse(savedFollowing);
+        elements.inputFollowing.value = state.following.map(user => `@${user.originalUsername}`).join('\n');
+        updateListUI('following');
+      }
+      if (savedFollowers) {
+        state.followers = JSON.parse(savedFollowers);
+        elements.inputFollowers.value = state.followers.map(user => `@${user.originalUsername}`).join('\n');
+        updateListUI('followers');
+      }
+      calculateUnfollowers();
     } else {
       currentUser = null;
       elements.userBadge.classList.add('hidden');
@@ -1027,6 +1048,8 @@ function initAuth() {
       state.selectedIndex = -1;
       
       localStorage.removeItem('starred_users');
+      localStorage.removeItem('following_users');
+      localStorage.removeItem('followers_users');
       
       elements.inputFollowing.value = '';
       elements.inputFollowers.value = '';

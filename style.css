@@ -574,7 +574,7 @@ h1, h2, h3, h4, .card-num {
   top: calc(100% + 6px);
   right: 0;
   width: 280px;
-  max-height: 240px;
+  max-height: 380px;
   margin-top: 0 !important;
   background-color: var(--input-bg) !important;
   border: 1px solid var(--card-border) !important;
