@@ -820,7 +820,12 @@ function setupEventListeners() {
 
     if (actionDelete) {
       // Move user to Unfollowed list without opening Instagram profile (unless pending request)
-      if (!userObj?.isPendingRequest && !state.unfollowed.some(u => u.username === username)) {
+      if (userObj?.isPendingRequest) {
+        state.following = state.following.filter(u => u.username !== username);
+        localStorage.setItem('following_users', JSON.stringify(state.following));
+        elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
+        updateListUI('following');
+      } else if (!state.unfollowed.some(u => u.username === username)) {
         state.unfollowed.unshift(userObj);
       }
 
@@ -848,7 +853,12 @@ function setupEventListeners() {
         state.autoOpenCount = 1;
       }
 
-      if (!userObj?.isPendingRequest && !state.unfollowed.some(u => u.username === username)) {
+      if (userObj?.isPendingRequest) {
+        state.following = state.following.filter(u => u.username !== username);
+        localStorage.setItem('following_users', JSON.stringify(state.following));
+        elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
+        updateListUI('following');
+      } else if (!state.unfollowed.some(u => u.username === username)) {
         state.unfollowed.unshift(userObj);
       }
 
@@ -1210,7 +1220,12 @@ function setupEventListeners() {
           }
           
           // Move user to Unfollowed list (unless pending request)
-          if (!userObj?.isPendingRequest && !state.unfollowed.some(u => u.username === username)) {
+          if (userObj?.isPendingRequest) {
+            state.following = state.following.filter(u => u.username !== username);
+            localStorage.setItem('following_users', JSON.stringify(state.following));
+            elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
+            updateListUI('following');
+          } else if (!state.unfollowed.some(u => u.username === username)) {
             state.unfollowed.unshift(userObj);
           }
           calculateUnfollowers();
@@ -1280,7 +1295,12 @@ function setupEventListeners() {
           state.autoOpenCount++;
 
           // Move user to Unfollowed list (unless pending request)
-          if (!nextUser?.isPendingRequest && !state.unfollowed.some(u => u.username === nextUser.username)) {
+          if (nextUser?.isPendingRequest) {
+            state.following = state.following.filter(u => u.username !== nextUser.username);
+            localStorage.setItem('following_users', JSON.stringify(state.following));
+            elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
+            updateListUI('following');
+          } else if (!state.unfollowed.some(u => u.username === nextUser.username)) {
             state.unfollowed.unshift(nextUser);
           }
 
