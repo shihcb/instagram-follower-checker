@@ -231,48 +231,93 @@ function parseJSON(text) {
  * Parses text content as HTML and extracts user elements.
  */
 function parseHTML(text) {
-  // Simple check to ensure we have HTML content
-  if (!text.includes('<a') && !text.includes('<div')) return null;
+  if (!text || (!text.includes('<a') && !text.includes('<div') && !text.includes('<table'))) return null;
   
   try {
     const parser = new DOMParser();
     const doc = parser.parseFromString(text, 'text/html');
-    const anchors = doc.querySelectorAll('a');
     const results = [];
-    
-    if (anchors.length === 0) return null;
+    const seenUsernames = new Set();
 
+    // 1. Try Meta HTML table format (like pending_follow_requests.html where usernames are in <td>)
+    const tables = doc.querySelectorAll('table');
+    tables.forEach(table => {
+      let username = '';
+      let fullName = '';
+      const rows = table.querySelectorAll('tr');
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 2) {
+          const labelText = cells[0].textContent.trim().toLowerCase();
+          const valText = cells[1].textContent.trim();
+          if (labelText === 'username' || labelText.includes('username')) {
+            username = valText;
+          } else if (labelText === 'name' || labelText.includes('name')) {
+            fullName = valText;
+          }
+        }
+      });
+
+      if (username && isValidUsername(username) && !EXCLUDE_KEYWORDS.has(username.toLowerCase())) {
+        const norm = normalizeUsername(username);
+        if (!seenUsernames.has(norm)) {
+          seenUsernames.add(norm);
+
+          let timestamp = null;
+          let parent = table.parentElement;
+          let searchCount = 0;
+          while (parent && searchCount < 4) {
+            const siblingText = parent.textContent || '';
+            const dateMatch = siblingText.match(/(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+\d{4}/i) || 
+                              siblingText.match(/\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}/i);
+            if (dateMatch && !timestamp) {
+              const parsedDate = Date.parse(dateMatch[0]);
+              if (!isNaN(parsedDate)) {
+                timestamp = new Date(parsedDate);
+              }
+            }
+            parent = parent.parentElement;
+            searchCount++;
+          }
+
+          results.push({
+            username: norm,
+            originalUsername: username,
+            fullName: fullName,
+            timestamp: timestamp,
+            profileUrl: `https://www.instagram.com/${username}`
+          });
+        }
+      }
+    });
+
+    // 2. Try anchor-based HTML format (traditional Instagram HTML exports)
+    const anchors = doc.querySelectorAll('a');
     anchors.forEach(a => {
       const href = a.getAttribute('href') || '';
-      // Check if URL points to Instagram profile
       if (href.includes('instagram.com/') || href.match(/^\/[a-zA-Z0-9._]+$/) || a.textContent.trim().match(/^[a-zA-Z0-9._]{1,30}$/)) {
         let username = a.textContent.trim();
         
-        // Extract from href if text content is blank or contains external label
         if (!username || username.includes(' ') || !isValidUsername(username)) {
           const parts = href.split('/').filter(Boolean);
           const possibleUser = parts[parts.length - 1]?.split('?')[0];
           if (possibleUser && isValidUsername(possibleUser)) {
             username = possibleUser;
           } else {
-            return; // Skip invalid
+            return;
           }
         }
         
-        // Skip common UI link endpoints
         if (EXCLUDE_KEYWORDS.has(username.toLowerCase())) return;
+        const norm = normalizeUsername(username);
+        if (seenUsernames.has(norm)) return;
+        seenUsernames.add(norm);
 
         let timestamp = null;
-        let fullName = '';
-        
-        // Find associated timestamp or full name in parent block
         let parent = a.parentElement;
         let searchCount = 0;
-        // Search up to 3 levels of parent containers
         while (parent && searchCount < 3) {
           const siblingText = parent.textContent || '';
-          
-          // Try to extract dates (e.g. Aug 11, 2026 or 2026-08-11 or 11 Aug 2026)
           const dateMatch = siblingText.match(/(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+\d{4}/i) || 
                             siblingText.match(/\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}/i);
           if (dateMatch && !timestamp) {
@@ -281,17 +326,16 @@ function parseHTML(text) {
               timestamp = new Date(parsedDate);
             }
           }
-          
           parent = parent.parentElement;
           searchCount++;
         }
 
         results.push({
-          username: normalizeUsername(username),
+          username: norm,
           originalUsername: username,
-          fullName: fullName,
+          fullName: '',
           timestamp: timestamp,
-          profileUrl: href.startsWith('/') ? `https://www.instagram.com${href}` : href
+          profileUrl: href.startsWith('/') ? `https://www.instagram.com${href}` : (href.includes('instagram.com') ? href : `https://www.instagram.com/${username}`)
         });
       }
     });
