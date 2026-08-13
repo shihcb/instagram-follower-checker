@@ -233,6 +233,8 @@ function parseJSON(text) {
 function parseHTML(text) {
   if (!text || (!text.includes('<a') && !text.includes('<div') && !text.includes('<table'))) return null;
   
+  const isPendingDoc = text.toLowerCase().includes('pending follow request') || text.toLowerCase().includes('pending_follow_requests');
+
   try {
     const parser = new DOMParser();
     const doc = parser.parseFromString(text, 'text/html');
@@ -285,7 +287,8 @@ function parseHTML(text) {
             originalUsername: username,
             fullName: fullName,
             timestamp: timestamp,
-            profileUrl: `https://www.instagram.com/${username}`
+            profileUrl: `https://www.instagram.com/${username}`,
+            isPendingRequest: isPendingDoc
           });
         }
       }
@@ -335,7 +338,8 @@ function parseHTML(text) {
           originalUsername: username,
           fullName: '',
           timestamp: timestamp,
-          profileUrl: href.startsWith('/') ? `https://www.instagram.com${href}` : (href.includes('instagram.com') ? href : `https://www.instagram.com/${username}`)
+          profileUrl: href.startsWith('/') ? `https://www.instagram.com${href}` : (href.includes('instagram.com') ? href : `https://www.instagram.com/${username}`),
+          isPendingRequest: isPendingDoc
         });
       }
     });
@@ -556,8 +560,16 @@ function deduplicateEntries(entries) {
   const seen = new Map();
   entries.forEach(entry => {
     const existing = seen.get(entry.username);
-    if (!existing || (!existing.timestamp && entry.timestamp) || (!existing.fullName && entry.fullName)) {
-      seen.set(entry.username, entry);
+    if (!existing) {
+      seen.set(entry.username, { ...entry });
+    } else {
+      seen.set(entry.username, {
+        ...existing,
+        ...entry,
+        timestamp: entry.timestamp || existing.timestamp,
+        fullName: entry.fullName || existing.fullName,
+        isPendingRequest: Boolean(existing.isPendingRequest || entry.isPendingRequest)
+      });
     }
   });
   return Array.from(seen.values());
@@ -673,7 +685,16 @@ function debounce(fn, delay) {
 
 const handleFollowingInput = debounce(function() {
   const rawText = elements.inputFollowing.value;
-  const parsed = parseInput(rawText);
+  const existingPendingMap = new Map();
+  state.following.forEach(user => {
+    if (user.isPendingRequest) existingPendingMap.set(user.username, true);
+  });
+  const parsed = parseInput(rawText).map(user => {
+    if (existingPendingMap.has(user.username)) {
+      return { ...user, isPendingRequest: true };
+    }
+    return user;
+  });
   state.following = deduplicateEntries(parsed);
   localStorage.setItem('following_users', JSON.stringify(state.following));
   updateListUI('following');
