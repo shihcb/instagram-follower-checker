@@ -448,8 +448,9 @@ function calculateUnfollowers() {
   const unfollowedSet = new Set(state.unfollowed.map(user => user.username));
   const starredSet = new Set(state.starred.map(user => user.username));
   
-  // Math difference: filter out any 'following' users that are in the 'followers' set, unfollowed list, or starred list
+  // Math difference: filter out any 'following' users that are in the 'followers' set, unfollowed list, starred list, or are pending requests
   state.unfollowers = state.following.filter(user => 
+    !user.isPendingRequest &&
     !followersSet.has(user.username) && 
     !unfollowedSet.has(user.username) &&
     !starredSet.has(user.username)
@@ -688,7 +689,7 @@ const handleFollowersInput = debounce(function() {
   calculateUnfollowers();
 }, 250);
 
-function readAndProcessFile(file, type, append = false) {
+function readAndProcessFile(file, type, append = false, isPending = false) {
   return new Promise((resolve) => {
     if (!file) {
       resolve();
@@ -697,7 +698,10 @@ function readAndProcessFile(file, type, append = false) {
     const reader = new FileReader();
     reader.onload = function(e) {
       const content = e.target.result;
-      const parsed = parseInput(content);
+      let parsed = parseInput(content);
+      if (isPending) {
+        parsed = parsed.map(user => ({ ...user, isPendingRequest: true }));
+      }
       const combined = append ? [...state[type], ...parsed] : parsed;
       const deduplicated = deduplicateEntries(combined);
       
@@ -1499,11 +1503,14 @@ function initAuth() {
       let invalidFiles = [];
 
       for (const file of files) {
-        if (file.name === 'following.html' || file.name === 'pending_follow_requests.html') {
-          await readAndProcessFile(file, 'following', importedFollowing);
+        if (file.name === 'following.html') {
+          await readAndProcessFile(file, 'following', importedFollowing, false);
+          importedFollowing = true;
+        } else if (file.name === 'pending_follow_requests.html') {
+          await readAndProcessFile(file, 'following', importedFollowing, true);
           importedFollowing = true;
         } else if (file.name === 'followers_1.html') {
-          await readAndProcessFile(file, 'followers', importedFollowers);
+          await readAndProcessFile(file, 'followers', importedFollowers, false);
           importedFollowers = true;
         } else {
           invalidFiles.push(file.name);
