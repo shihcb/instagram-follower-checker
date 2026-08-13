@@ -1,3 +1,11 @@
+/* Prevent CSS property transition animations on initial page load / reload */
+.preload *, .preload *::before, .preload *::after {
+  -webkit-transition: none !important;
+  -moz-transition: none !important;
+  -o-transition: none !important;
+  transition: none !important;
+}
+
 /* -------------------------------------------------------------
  * Theme Configuration & System Preferences
  * ------------------------------------------------------------- */

@@ -7,24 +7,31 @@
   <meta name="description" content="a modern, secure, and client-side IG checker to see who doesn't follow you back.">
   <meta name="color-scheme" content="light dark">
   
-  <!-- Inline theme check to prevent FOUC (Flash of Unstyled Content) -->
+  <!-- Inline theme check and preload setup to prevent FOUC and reload transition flashing -->
   <script>
     (function() {
+      document.documentElement.classList.add('preload');
       const savedTheme = localStorage.getItem('theme');
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       const theme = savedTheme || (prefersDark ? 'dark' : 'light');
       document.documentElement.setAttribute('data-theme', theme);
       document.querySelector('meta[name="color-scheme"]').setAttribute('content', theme === 'dark' ? 'dark' : 'light');
+      window.addEventListener('DOMContentLoaded', function() {
+        requestAnimationFrame(function() {
+          document.documentElement.classList.remove('preload');
+        });
+      });
     })();
   </script>
 
-  <!-- Google Fonts -->
+  <!-- Google Fonts Preload & Optimization -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=optional">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=optional" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=245">
+  <link rel="stylesheet" href="style.css?v=250">
   <!-- Supabase Client Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -329,6 +336,6 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="script.js?v=245"></script>
+  <script src="script.js?v=250"></script>
 </body>
 </html>
