@@ -24,7 +24,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=225">
+  <link rel="stylesheet" href="style.css?v=230">
   <!-- Supabase Client Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -147,6 +147,21 @@
         </svg>
         <span>to import lists you need to have an account</span>
       </div>
+      <script>
+        (function() {
+          try {
+            var hasAuth = Object.keys(localStorage).some(function(k) {
+              return (k.indexOf('auth-token') !== -1 || k.indexOf('supabase') !== -1) && localStorage.getItem(k);
+            });
+            if (hasAuth) {
+              var warningEl = document.getElementById('import-account-warning');
+              if (warningEl) warningEl.classList.add('hidden-warning');
+              var gridEl = document.querySelector('.app-grid');
+              if (gridEl) gridEl.style.marginTop = '0';
+            }
+          } catch(e) {}
+        })();
+      </script>
 
       <!-- List 1: Following -->
       <section class="card glass" id="card-following">
@@ -284,6 +299,6 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="script.js?v=225"></script>
+  <script src="script.js?v=230"></script>
 </body>
 </html>
