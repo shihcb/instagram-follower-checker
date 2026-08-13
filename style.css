@@ -511,6 +511,12 @@ h1, h2, h3, h4, .card-num {
     display: flex;
     flex-direction: column;
   }
+  .card-header {
+    padding: 14px 16px 0px 16px !important;
+  }
+  .card-body {
+    padding: 6px 16px 18px 16px !important;
+  }
   .import-account-warning {
     position: relative;
     top: 0;
