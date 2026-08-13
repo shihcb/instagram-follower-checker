@@ -24,7 +24,7 @@ const state = {
   following: [],  // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   followers: [],  // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   unfollowers: [], // Array of { username, originalUsername, fullName, timestamp, profileUrl }
-  unfollowed: [],  // Array of { username, originalUsername, fullName, timestamp, profileUrl }
+  unfollowed: JSON.parse(localStorage.getItem('unfollowed_users') || '[]'),  // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   starred: JSON.parse(localStorage.getItem('starred_users') || '[]'), // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   selectedIndex: -1, // Current keyboard selection index (0-indexed) in the filtered list
   pendingAutoOpen: false, // Flag to track when a return to the tab should trigger opening the next user
@@ -470,6 +470,7 @@ function calculateUnfollowers() {
 }
 
 function updateUnfollowedUI() {
+  localStorage.setItem('unfollowed_users', JSON.stringify(state.unfollowed));
   const listData = state.unfollowed;
   const listEl = elements.listUnfollowed;
   const toggleBtn = elements.togglePreviewUnfollowed;
@@ -1408,6 +1409,7 @@ function initAuth() {
         state.selectedIndex = -1;
         
         localStorage.removeItem('starred_users');
+        localStorage.removeItem('unfollowed_users');
         localStorage.removeItem('following_users');
         localStorage.removeItem('followers_users');
         

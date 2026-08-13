@@ -24,7 +24,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=240">
+  <link rel="stylesheet" href="style.css?v=245">
   <!-- Supabase Client Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -233,6 +233,21 @@
                     <polyline points="6 9 12 15 18 9"></polyline>
                   </svg>
                 </button>
+                <script>
+                  (function() {
+                    try {
+                      var unfollowed = JSON.parse(localStorage.getItem('unfollowed_users') || '[]');
+                      if (unfollowed.length > 0) {
+                        var btn = document.getElementById('toggle-preview-unfollowed');
+                        if (btn) {
+                          btn.removeAttribute('disabled');
+                          var span = btn.querySelector('span');
+                          if (span) span.textContent = 'unfollowed (' + unfollowed.length + ')';
+                        }
+                      }
+                    } catch(e) {}
+                  })();
+                </script>
                 <div class="parsed-list dropdown-menu" id="list-unfollowed"></div>
               </div>
 
@@ -243,6 +258,21 @@
                     <polyline points="6 9 12 15 18 9"></polyline>
                   </svg>
                 </button>
+                <script>
+                  (function() {
+                    try {
+                      var starred = JSON.parse(localStorage.getItem('starred_users') || '[]');
+                      if (starred.length > 0) {
+                        var btn = document.getElementById('toggle-preview-starred');
+                        if (btn) {
+                          btn.removeAttribute('disabled');
+                          var span = btn.querySelector('span');
+                          if (span) span.textContent = 'starred (' + starred.length + ')';
+                        }
+                      }
+                    } catch(e) {}
+                  })();
+                </script>
                 <div class="parsed-list dropdown-menu" id="list-starred"></div>
               </div>
 
@@ -299,6 +329,6 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="script.js?v=240"></script>
+  <script src="script.js?v=245"></script>
 </body>
 </html>
