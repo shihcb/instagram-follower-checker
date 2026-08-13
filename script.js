@@ -452,9 +452,8 @@ function calculateUnfollowers() {
   const unfollowedSet = new Set(state.unfollowed.map(user => user.username));
   const starredSet = new Set(state.starred.map(user => user.username));
   
-  // Math difference: filter out any 'following' users that are in the 'followers' set, unfollowed list, starred list, or are pending requests
+  // Math difference: filter out any 'following' users that are in the 'followers' set, unfollowed list, or starred list
   state.unfollowers = state.following.filter(user => 
-    !user.isPendingRequest &&
     !followersSet.has(user.username) && 
     !unfollowedSet.has(user.username) &&
     !starredSet.has(user.username)
@@ -820,8 +819,8 @@ function setupEventListeners() {
     }
 
     if (actionDelete) {
-      // Move user to Unfollowed list without opening Instagram profile
-      if (!state.unfollowed.some(u => u.username === username)) {
+      // Move user to Unfollowed list without opening Instagram profile (unless pending request)
+      if (!userObj?.isPendingRequest && !state.unfollowed.some(u => u.username === username)) {
         state.unfollowed.unshift(userObj);
       }
 
@@ -849,7 +848,7 @@ function setupEventListeners() {
         state.autoOpenCount = 1;
       }
 
-      if (!state.unfollowed.some(u => u.username === username)) {
+      if (!userObj?.isPendingRequest && !state.unfollowed.some(u => u.username === username)) {
         state.unfollowed.unshift(userObj);
       }
 
@@ -1210,8 +1209,8 @@ function setupEventListeners() {
             state.autoOpenCount = 1; // Start counting from 1
           }
           
-          // Move user to Unfollowed list
-          if (!state.unfollowed.some(u => u.username === username)) {
+          // Move user to Unfollowed list (unless pending request)
+          if (!userObj?.isPendingRequest && !state.unfollowed.some(u => u.username === username)) {
             state.unfollowed.unshift(userObj);
           }
           calculateUnfollowers();
@@ -1280,8 +1279,8 @@ function setupEventListeners() {
           state.pendingAutoOpen = true;
           state.autoOpenCount++;
 
-          // Move user to Unfollowed list
-          if (!state.unfollowed.some(u => u.username === nextUser.username)) {
+          // Move user to Unfollowed list (unless pending request)
+          if (!nextUser?.isPendingRequest && !state.unfollowed.some(u => u.username === nextUser.username)) {
             state.unfollowed.unshift(nextUser);
           }
 
