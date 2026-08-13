@@ -644,7 +644,7 @@ const handleFollowersInput = debounce(function() {
   calculateUnfollowers();
 }, 250);
 
-function readAndProcessFile(file, type) {
+function readAndProcessFile(file, type, append = false) {
   return new Promise((resolve) => {
     if (!file) {
       resolve();
@@ -654,7 +654,8 @@ function readAndProcessFile(file, type) {
     reader.onload = function(e) {
       const content = e.target.result;
       const parsed = parseInput(content);
-      const deduplicated = deduplicateEntries(parsed);
+      const combined = append ? [...state[type], ...parsed] : parsed;
+      const deduplicated = deduplicateEntries(combined);
       
       // Store complete parsed data directly in state to preserve dates & full names
       state[type] = deduplicated;
@@ -1454,11 +1455,11 @@ function initAuth() {
       let invalidFiles = [];
 
       for (const file of files) {
-        if (file.name === 'following.html') {
-          await readAndProcessFile(file, 'following');
+        if (file.name === 'following.html' || file.name === 'pending_follow_requests.html') {
+          await readAndProcessFile(file, 'following', importedFollowing);
           importedFollowing = true;
         } else if (file.name === 'followers_1.html') {
-          await readAndProcessFile(file, 'followers');
+          await readAndProcessFile(file, 'followers', importedFollowers);
           importedFollowers = true;
         } else {
           invalidFiles.push(file.name);
@@ -1466,7 +1467,7 @@ function initAuth() {
       }
 
       if (invalidFiles.length > 0) {
-        alert(`ignored files: ${invalidFiles.join(', ')}.\nonly 'followers_1.html' and 'following.html' are accepted.`);
+        alert(`ignored files: ${invalidFiles.join(', ')}.\nonly 'followers_1.html', 'following.html', and 'pending_follow_requests.html' are accepted.`);
       }
 
       if (importedFollowing || importedFollowers) {
