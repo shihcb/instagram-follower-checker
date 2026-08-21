@@ -651,6 +651,11 @@ h1, h2, h3, h4, .card-num {
   cursor: pointer;
   width: fit-content;
   box-sizing: border-box !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
   transition: background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
               box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
@@ -1053,6 +1058,11 @@ h1, h2, h3, h4, .card-num {
   text-align: center;
   color: var(--text-main);
   cursor: pointer;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
   transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease, box-shadow 0.5s ease, transform 0.25s ease !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
