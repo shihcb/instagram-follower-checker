@@ -905,6 +905,20 @@ h1, h2, h3, h4, .card-num {
   box-sizing: border-box;
 }
 
+.account-chip.active {
+  background: rgba(16, 185, 129, 0.15) !important;
+  border-color: #10b981 !important;
+  color: #10b981 !important;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.3) !important;
+}
+
+[data-theme="dark"] .account-chip.active {
+  background: rgba(16, 185, 129, 0.2) !important;
+  border-color: #34d399 !important;
+  color: #34d399 !important;
+  box-shadow: 0 0 16px rgba(52, 211, 153, 0.35) !important;
+}
+
 .account-chip:hover {
   transform: translateY(-1px);
   border-color: var(--text-main);
@@ -1076,6 +1090,18 @@ h1, h2, h3, h4, .card-num {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  width: 100%;
+}
+
+.account-modal-actions button {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-danger-soft {
