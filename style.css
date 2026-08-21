@@ -308,23 +308,9 @@ h1, h2, h3, h4, .card-num {
 }
 
 .btn-secondary {
-  background: #ffffff;
+  background-color: var(--btn-secondary-bg);
   color: var(--text-main);
   border: 1px solid var(--btn-secondary-border);
-}
-
-[data-theme="dark"] .btn-secondary {
-  background-color: #ffffff !important;
-  color: #000000 !important;
-  border-color: #ffffff !important;
-}
-
-[data-theme="dark"] .btn-secondary svg {
-  color: #000000 !important;
-  stroke: #000000 !important;
-}
-
-.btn-secondary:hover:not(:disabled) {
 }
 
 .btn-tertiary {
@@ -656,8 +642,8 @@ h1, h2, h3, h4, .card-num {
 }
 
 [data-theme="dark"] .preview-toggle .chevron-icon {
-  color: #ffffff !important;
-  stroke: #ffffff !important;
+  color: #000000 !important;
+  stroke: #000000 !important;
 }
 
 .preview-toggle.active .chevron-icon {
