@@ -1071,14 +1071,30 @@ function deleteAccountFromModal() {
     const deletedUser = state.instagramAccounts[state.editingAccountIndex];
     const acc = deletedUser.toLowerCase();
 
+    // 1. Remove account-specific local storage keys
     localStorage.removeItem(`following_users_${acc}`);
     localStorage.removeItem(`followers_users_${acc}`);
     localStorage.removeItem(`unfollowed_users_${acc}`);
     localStorage.removeItem(`starred_users_${acc}`);
 
+    // 2. Remove all unfollowed and starred entries belonging to this account from main storage
+    const mainStarred = JSON.parse(localStorage.getItem('starred_users') || '[]');
+    const filteredStarred = mainStarred.filter(u => !u.account || u.account.toLowerCase() !== acc);
+    localStorage.setItem('starred_users', JSON.stringify(filteredStarred));
+
+    const mainUnfollowed = JSON.parse(localStorage.getItem('unfollowed_users') || '[]');
+    const filteredUnfollowed = mainUnfollowed.filter(u => !u.account || u.account.toLowerCase() !== acc);
+    localStorage.setItem('unfollowed_users', JSON.stringify(filteredUnfollowed));
+
+    // 3. Remove from current state arrays
+    state.starred = (state.starred || []).filter(u => !u.account || u.account.toLowerCase() !== acc);
+    state.unfollowed = (state.unfollowed || []).filter(u => !u.account || u.account.toLowerCase() !== acc);
+
+    // 4. Remove account from accounts registry
     state.instagramAccounts.splice(state.editingAccountIndex, 1);
     localStorage.setItem('instagram_accounts', JSON.stringify(state.instagramAccounts));
 
+    // 5. Reset selection if the deleted account was selected
     if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === acc) {
       state.selectedAccountUsername = null;
       localStorage.removeItem('selected_instagram_account');
@@ -1087,6 +1103,7 @@ function deleteAccountFromModal() {
       renderAccountChips();
     }
 
+    pushToCloud();
     closeAccountModal();
   }
 }

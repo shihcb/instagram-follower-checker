@@ -107,8 +107,12 @@ a:active {
   -webkit-tap-highlight-color: transparent !important;
 }
 
+html, body, button, input, textarea, select {
+  font-family: var(--font-sans) !important;
+}
+
 body {
-  font-family: var(--font-sans);
+  font-family: var(--font-sans) !important;
   background-color: var(--bg-color);
   background-image: var(--bg-gradient);
   color: var(--text-main);
