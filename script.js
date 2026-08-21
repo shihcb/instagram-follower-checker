@@ -949,14 +949,12 @@ function saveCurrentAccountData() {
 }
 
 function loadAccountData(username) {
-  // Keep List 1 and List 2 cleared when loading account data or logging back in
-  state.following = [];
-  state.followers = [];
-  if (elements.inputFollowing) elements.inputFollowing.value = '';
-  if (elements.inputFollowers) elements.inputFollowers.value = '';
-
   if (username) {
     const acc = username.toLowerCase();
+
+    // Load account-specific following and followers lists
+    state.following = JSON.parse(localStorage.getItem(`following_users_${acc}`) || '[]');
+    state.followers = JSON.parse(localStorage.getItem(`followers_users_${acc}`) || '[]');
 
     const accUnfollowed = JSON.parse(localStorage.getItem(`unfollowed_users_${acc}`) || '[]');
     const mainUnfollowed = JSON.parse(localStorage.getItem('unfollowed_users') || '[]');
@@ -984,7 +982,17 @@ function loadAccountData(username) {
 
     state.unfollowed = Array.from(unfollowedMap.values());
     state.starred = Array.from(starredMap.values());
+
+    // Restore List 1 and List 2 input textareas for this active account
+    if (elements.inputFollowing) {
+      elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
+    }
+    if (elements.inputFollowers) {
+      elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername}`).join('\n');
+    }
   } else {
+    state.following = [];
+    state.followers = [];
     state.unfollowers = [];
     
     const mainUnfollowed = JSON.parse(localStorage.getItem('unfollowed_users') || '[]');
@@ -992,6 +1000,9 @@ function loadAccountData(username) {
 
     state.unfollowed = mainUnfollowed.filter(u => !u.account || u.account === '_global_');
     state.starred = mainStarred.filter(u => !u.account || u.account === '_global_');
+
+    if (elements.inputFollowing) elements.inputFollowing.value = '';
+    if (elements.inputFollowers) elements.inputFollowers.value = '';
   }
 
   updateListUI('following');
@@ -1871,10 +1882,13 @@ function initAuth() {
         state.selectedAccountUsername = null;
         state.selectedIndex = -1;
         
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('following_users') || key.startsWith('followers_users')) {
+            localStorage.removeItem(key);
+          }
+        });
         localStorage.removeItem('starred_users');
         localStorage.removeItem('unfollowed_users');
-        localStorage.removeItem('following_users');
-        localStorage.removeItem('followers_users');
         localStorage.removeItem('instagram_accounts');
         localStorage.removeItem('selected_instagram_account');
         
