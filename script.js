@@ -26,6 +26,8 @@ const state = {
   unfollowers: [], // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   unfollowed: JSON.parse(localStorage.getItem('unfollowed_users') || '[]'),  // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   starred: JSON.parse(localStorage.getItem('starred_users') || '[]'), // Array of { username, originalUsername, fullName, timestamp, profileUrl }
+  instagramAccounts: JSON.parse(localStorage.getItem('instagram_accounts') || '[]'), // Saved account usernames
+  editingAccountIndex: -1, // Current index of account being edited (-1 for new)
   selectedIndex: -1, // Current keyboard selection index (0-indexed) in the filtered list
   pendingAutoOpen: false, // Flag to track when a return to the tab should trigger opening the next user
   autoOpenCount: 0 // Counter of profiles opened in the current auto-open sequence
@@ -66,6 +68,17 @@ const elements = {
   listUnfollowed: document.getElementById('list-unfollowed'),
   togglePreviewStarred: document.getElementById('toggle-preview-starred'),
   listStarred: document.getElementById('list-starred'),
+
+  // Instagram Account Management elements
+  accountMgmtRow: document.getElementById('account-mgmt-row'),
+  accountChipsList: document.getElementById('account-chips-list'),
+  btnAddAccount: document.getElementById('btn-add-account'),
+  accountModalOverlay: document.getElementById('account-modal-overlay'),
+  accountModalTitle: document.getElementById('account-modal-title'),
+  accountUsernameInput: document.getElementById('account-username-input'),
+  btnModalDelete: document.getElementById('btn-modal-delete'),
+  btnModalSave: document.getElementById('btn-modal-save'),
+  btnModalClose: document.getElementById('btn-modal-close'),
 
   // Auth & Cloud Sync DOM elements
   authBtn: document.getElementById('auth-btn'),
@@ -844,10 +857,124 @@ async function processImportFiles(files) {
 
 
 // -------------------------------------------------------------
+// Instagram Accounts Management & Modal Logic
+// -------------------------------------------------------------
+
+function renderAccountChips() {
+  if (!elements.accountChipsList || !elements.btnAddAccount) return;
+
+  elements.accountChipsList.innerHTML = '';
+  const accounts = state.instagramAccounts || [];
+
+  accounts.forEach((username, index) => {
+    const chip = document.createElement('div');
+    chip.className = 'account-chip';
+    chip.setAttribute('data-index', index);
+    chip.textContent = `@${username}`;
+    chip.addEventListener('click', () => openAccountModal(index));
+    elements.accountChipsList.appendChild(chip);
+  });
+
+  if (accounts.length > 0) {
+    elements.btnAddAccount.classList.add('compact');
+  } else {
+    elements.btnAddAccount.classList.remove('compact');
+  }
+}
+
+function openAccountModal(index = -1) {
+  if (!elements.accountModalOverlay) return;
+
+  state.editingAccountIndex = index;
+  const accounts = state.instagramAccounts || [];
+
+  if (index >= 0 && index < accounts.length) {
+    if (elements.accountModalTitle) elements.accountModalTitle.textContent = 'edit instagram account';
+    if (elements.accountUsernameInput) elements.accountUsernameInput.value = accounts[index];
+    if (elements.btnModalDelete) elements.btnModalDelete.style.display = 'inline-block';
+  } else {
+    if (elements.accountModalTitle) elements.accountModalTitle.textContent = 'add instagram account';
+    if (elements.accountUsernameInput) elements.accountUsernameInput.value = '';
+    if (elements.btnModalDelete) elements.btnModalDelete.style.display = 'none';
+  }
+
+  elements.accountModalOverlay.classList.remove('hidden');
+  requestAnimationFrame(() => {
+    elements.accountModalOverlay.classList.add('show');
+    if (elements.accountUsernameInput) elements.accountUsernameInput.focus();
+  });
+}
+
+function closeAccountModal() {
+  if (!elements.accountModalOverlay) return;
+
+  elements.accountModalOverlay.classList.remove('show');
+  setTimeout(() => {
+    elements.accountModalOverlay.classList.add('hidden');
+    state.editingAccountIndex = -1;
+  }, 250);
+}
+
+function saveAccountFromModal() {
+  if (!elements.accountUsernameInput) return;
+
+  let username = elements.accountUsernameInput.value.trim().replace(/^@+/, '');
+  if (!username) return;
+
+  if (!state.instagramAccounts) state.instagramAccounts = [];
+
+  if (state.editingAccountIndex >= 0 && state.editingAccountIndex < state.instagramAccounts.length) {
+    state.instagramAccounts[state.editingAccountIndex] = username;
+  } else {
+    if (!state.instagramAccounts.includes(username)) {
+      state.instagramAccounts.push(username);
+    }
+  }
+
+  localStorage.setItem('instagram_accounts', JSON.stringify(state.instagramAccounts));
+  renderAccountChips();
+  closeAccountModal();
+}
+
+function deleteAccountFromModal() {
+  if (state.editingAccountIndex >= 0 && state.editingAccountIndex < (state.instagramAccounts || []).length) {
+    state.instagramAccounts.splice(state.editingAccountIndex, 1);
+    localStorage.setItem('instagram_accounts', JSON.stringify(state.instagramAccounts));
+    renderAccountChips();
+    closeAccountModal();
+  }
+}
+
+// -------------------------------------------------------------
 // Interactive Feature Event Listeners
 // -------------------------------------------------------------
 
 function setupEventListeners() {
+  // Instagram Account Management Event Listeners
+  if (elements.btnAddAccount) {
+    elements.btnAddAccount.addEventListener('click', () => openAccountModal(-1));
+  }
+  if (elements.btnModalSave) {
+    elements.btnModalSave.addEventListener('click', saveAccountFromModal);
+  }
+  if (elements.btnModalDelete) {
+    elements.btnModalDelete.addEventListener('click', deleteAccountFromModal);
+  }
+  if (elements.btnModalClose) {
+    elements.btnModalClose.addEventListener('click', closeAccountModal);
+  }
+  if (elements.accountModalOverlay) {
+    elements.accountModalOverlay.addEventListener('click', (e) => {
+      if (e.target === elements.accountModalOverlay) closeAccountModal();
+    });
+  }
+  if (elements.accountUsernameInput) {
+    elements.accountUsernameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') saveAccountFromModal();
+      else if (e.key === 'Escape') closeAccountModal();
+    });
+  }
+
   // Realtime search filtering
   elements.searchUnfollowers.addEventListener('input', () => {
     state.selectedIndex = -1; // Reset keyboard selection on search query change
@@ -1765,4 +1892,5 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   initAuth();
   updateStarredUI();
+  renderAccountChips();
 });

@@ -291,6 +291,18 @@
                 <span id="auto-open-label">auto</span>
               </div>
             </div>
+
+            <!-- Account Management Row (Under unfollowed & starred buttons) -->
+            <div class="account-mgmt-row" id="account-mgmt-row">
+              <div class="account-chips-list" id="account-chips-list"></div>
+              <button id="btn-add-account" class="btn btn-secondary btn-sm btn-add-account" title="add instagram account">
+                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" class="plus-icon">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span class="btn-add-text">add instagram account</span>
+              </button>
+            </div>
           </div>
 
           <div class="results-container">
@@ -315,7 +327,23 @@
 
   </div>
 
-
+  <!-- Add/Edit Instagram Account Modal Pop-up -->
+  <div id="account-modal-overlay" class="modal-overlay hidden">
+    <div class="account-modal-card glass">
+      <div class="account-modal-header">
+        <h3 id="account-modal-title">add instagram account</h3>
+        <button id="btn-modal-close" class="modal-close-btn" aria-label="close modal">&times;</button>
+      </div>
+      <div class="account-modal-input-group">
+        <label for="account-username-input">instagram username</label>
+        <input type="text" id="account-username-input" placeholder="e.g. @yourusername" autocomplete="off" />
+      </div>
+      <div class="account-modal-actions">
+        <button id="btn-modal-delete" class="btn btn-secondary btn-danger-soft">delete</button>
+        <button id="btn-modal-save" class="btn btn-primary">save</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Secret Romantic Easter Egg Overlay -->
   <div id="love-overlay" class="love-overlay">
