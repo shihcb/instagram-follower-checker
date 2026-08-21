@@ -630,10 +630,12 @@ h1, h2, h3, h4, .card-num {
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  padding: 8px 16px !important;
+  border-radius: 999px !important;
   cursor: pointer;
   width: fit-content;
-  transition: all 0.2s ease;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
   background-color: #ffffff !important;
   border: 1px solid var(--btn-secondary-border) !important;
   color: var(--text-main) !important;
@@ -723,19 +725,35 @@ h1, h2, h3, h4, .card-num {
   pointer-events: auto;
 }
 
-#reset-unfollowed-btn {
-  color: var(--text-main);
-}
-
+#reset-unfollowed-btn,
 [data-theme="dark"] #reset-unfollowed-btn {
-  background-color: #ffffff !important;
-  color: #000000 !important;
-  border-color: #ffffff !important;
+  background-color: rgba(239, 68, 68, 0.12) !important;
+  color: #ef4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
+#reset-unfollowed-btn svg,
 [data-theme="dark"] #reset-unfollowed-btn svg {
-  color: #000000 !important;
-  stroke: #000000 !important;
+  color: #ef4444 !important;
+  stroke: #ef4444 !important;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+#reset-unfollowed-btn:hover,
+[data-theme="dark"] #reset-unfollowed-btn:hover {
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+  border-color: #ef4444 !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35) !important;
+}
+
+#reset-unfollowed-btn:hover svg,
+[data-theme="dark"] #reset-unfollowed-btn:hover svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
 }
 
 #list-unfollowed,
@@ -914,6 +932,61 @@ h1, h2, h3, h4, .card-num {
   border-color: rgba(255, 255, 255, 0.7) !important;
   color: rgba(0, 0, 0, 0.6) !important;
   opacity: 0.75 !important;
+}
+
+/* Row & Dropdown Action Buttons: White in dark mode, clean in light mode */
+.action-star,
+.action-delete,
+.action-arrow,
+.star-unfollowed-btn,
+.remove-unfollowed-btn,
+.unstar-btn {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-main) !important;
+  cursor: pointer;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.action-star svg,
+.action-delete svg,
+.action-arrow svg,
+.star-unfollowed-btn svg,
+.remove-unfollowed-btn svg,
+.unstar-btn svg {
+  color: var(--text-main) !important;
+  stroke: var(--text-main) !important;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+[data-theme="dark"] .action-star,
+[data-theme="dark"] .action-delete,
+[data-theme="dark"] .action-arrow,
+[data-theme="dark"] .star-unfollowed-btn,
+[data-theme="dark"] .remove-unfollowed-btn,
+[data-theme="dark"] .unstar-btn {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .action-star svg,
+[data-theme="dark"] .action-delete svg,
+[data-theme="dark"] .action-arrow svg,
+[data-theme="dark"] .star-unfollowed-btn svg,
+[data-theme="dark"] .remove-unfollowed-btn svg,
+[data-theme="dark"] .unstar-btn svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+.action-star:hover,
+.action-delete:hover,
+.action-arrow:hover,
+.star-unfollowed-btn:hover,
+.remove-unfollowed-btn:hover,
+.unstar-btn:hover {
+  background: transparent !important;
+  opacity: 0.8;
+  transform: scale(1.15);
 }
 
 /* -------------------------------------------------------------

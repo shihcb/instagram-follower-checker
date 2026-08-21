@@ -884,11 +884,14 @@ function saveCurrentAccountData() {
 }
 
 function loadAccountData(username) {
+  // Keep List 1 and List 2 cleared when loading account data or logging back in
+  state.following = [];
+  state.followers = [];
+  if (elements.inputFollowing) elements.inputFollowing.value = '';
+  if (elements.inputFollowers) elements.inputFollowers.value = '';
+
   if (username) {
     const acc = username.toLowerCase();
-
-    state.following = JSON.parse(localStorage.getItem(`following_users_${acc}`) || '[]');
-    state.followers = JSON.parse(localStorage.getItem(`followers_users_${acc}`) || '[]');
 
     const accUnfollowed = JSON.parse(localStorage.getItem(`unfollowed_users_${acc}`) || '[]');
     const mainUnfollowed = JSON.parse(localStorage.getItem('unfollowed_users') || '[]');
@@ -916,12 +919,7 @@ function loadAccountData(username) {
 
     state.unfollowed = Array.from(unfollowedMap.values());
     state.starred = Array.from(starredMap.values());
-
-    elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
-    elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername}`).join('\n');
   } else {
-    state.following = [];
-    state.followers = [];
     state.unfollowers = [];
     
     const mainUnfollowed = JSON.parse(localStorage.getItem('unfollowed_users') || '[]');
@@ -929,9 +927,6 @@ function loadAccountData(username) {
 
     state.unfollowed = mainUnfollowed.filter(u => !u.account || u.account === '_global_');
     state.starred = mainStarred.filter(u => !u.account || u.account === '_global_');
-
-    elements.inputFollowing.value = '';
-    elements.inputFollowers.value = '';
   }
 
   updateListUI('following');
