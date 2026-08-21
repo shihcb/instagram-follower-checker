@@ -746,12 +746,50 @@ function readAndProcessFile(file, type, append = false, isPending = false) {
   });
 }
 
-function clearAllLists() {
-  elements.inputFollowing.value = '';
+function smoothClearTextarea(textareaEl, callback) {
+  if (!textareaEl) {
+    if (callback) callback();
+    return;
+  }
+
+  if (textareaEl.value.trim() !== '') {
+    textareaEl.classList.add('textarea-fade-out');
+    setTimeout(() => {
+      textareaEl.value = '';
+      textareaEl.classList.remove('textarea-fade-out');
+      if (callback) callback();
+    }, 280);
+  } else {
+    textareaEl.value = '';
+    if (callback) callback();
+  }
+}
+
+async function clearAllLists(animate = true) {
+  if (animate) {
+    const promises = [];
+    if (elements.inputFollowing && elements.inputFollowing.value.trim() !== '') {
+      promises.push(new Promise(res => smoothClearTextarea(elements.inputFollowing, res)));
+    } else if (elements.inputFollowing) {
+      elements.inputFollowing.value = '';
+    }
+
+    if (elements.inputFollowers && elements.inputFollowers.value.trim() !== '') {
+      promises.push(new Promise(res => smoothClearTextarea(elements.inputFollowers, res)));
+    } else if (elements.inputFollowers) {
+      elements.inputFollowers.value = '';
+    }
+
+    if (promises.length > 0) {
+      await Promise.all(promises);
+    }
+  } else {
+    if (elements.inputFollowing) elements.inputFollowing.value = '';
+    if (elements.inputFollowers) elements.inputFollowers.value = '';
+  }
+
   state.following = [];
   localStorage.removeItem('following_users');
-
-  elements.inputFollowers.value = '';
   state.followers = [];
   localStorage.removeItem('followers_users');
 
@@ -783,8 +821,8 @@ async function processImportFiles(files) {
   }
 
   if (validFilesToProcess.length > 0) {
-    // Automatically clear List 1 and List 2 before importing new files into their respective spaces
-    clearAllLists();
+    // Automatically clear List 1 and List 2 smoothly before importing new files into their respective spaces
+    await clearAllLists(true);
 
     for (const item of validFilesToProcess) {
       if (item.type === 'following') {
@@ -819,21 +857,23 @@ function setupEventListeners() {
 
   // Action buttons: Clear
   elements.clearFollowing.addEventListener('click', () => {
-    elements.inputFollowing.value = '';
-    state.following = [];
-    localStorage.removeItem('following_users');
-    state.selectedIndex = -1; // Reset selection index
-    updateListUI('following');
-    calculateUnfollowers();
+    smoothClearTextarea(elements.inputFollowing, () => {
+      state.following = [];
+      localStorage.removeItem('following_users');
+      state.selectedIndex = -1; // Reset selection index
+      updateListUI('following');
+      calculateUnfollowers();
+    });
   });
 
   elements.clearFollowers.addEventListener('click', () => {
-    elements.inputFollowers.value = '';
-    state.followers = [];
-    localStorage.removeItem('followers_users');
-    state.selectedIndex = -1; // Reset selection index
-    updateListUI('followers');
-    calculateUnfollowers();
+    smoothClearTextarea(elements.inputFollowers, () => {
+      state.followers = [];
+      localStorage.removeItem('followers_users');
+      state.selectedIndex = -1; // Reset selection index
+      updateListUI('followers');
+      calculateUnfollowers();
+    });
   });
 
   // Accordion toggles for source previews

@@ -568,7 +568,13 @@ h1, h2, h3, h4, .card-num {
   resize: none;
   outline: none;
   line-height: 1.6;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity;
+}
+
+.card-body textarea.textarea-fade-out {
+  opacity: 0 !important;
+  pointer-events: none;
 }
 
 .card-body textarea:focus {
