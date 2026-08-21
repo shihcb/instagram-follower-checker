@@ -886,19 +886,23 @@ h1, h2, h3, h4, .card-num {
 .account-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
+  justify-content: center;
+  height: 32px;
+  padding: 0 16px;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 20px;
   font-size: 0.85rem;
   font-weight: 500;
+  line-height: 1;
+  text-align: center;
   color: var(--text-main);
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
 }
 
 .account-chip:hover {
@@ -912,18 +916,28 @@ h1, h2, h3, h4, .card-num {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 6px 14px;
+  height: 32px;
+  padding: 0 14px;
   border-radius: 20px;
   font-size: 0.85rem;
   font-weight: 500;
+  line-height: 1;
   cursor: pointer;
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
   white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.btn-add-account svg {
+  display: block;
+  flex-shrink: 0;
+  margin: 0;
 }
 
 .btn-add-account .btn-add-text {
   display: inline-block;
+  line-height: 1;
   max-width: 220px;
   opacity: 1;
   transition: max-width 0.35s cubic-bezier(0.16, 1, 0.3, 1),
@@ -931,18 +945,28 @@ h1, h2, h3, h4, .card-num {
               margin 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.btn-add-account.compact .btn-add-text {
-  max-width: 0;
-  opacity: 0;
-  margin: 0;
+.btn-add-account.compact {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
-.btn-add-account.compact {
-  padding: 6px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  justify-content: center;
+.btn-add-account.compact .btn-add-text {
+  display: none !important;
+  max-width: 0 !important;
+  opacity: 0 !important;
+  margin: 0 !important;
+}
+
+.btn-add-account.compact svg {
+  margin: 0 !important;
 }
 
 /* -------------------------------------------------------------
