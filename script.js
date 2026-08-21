@@ -862,12 +862,17 @@ async function processImportFiles(files) {
 // -------------------------------------------------------------
 
 function saveCurrentAccountData() {
+  const currentAcc = state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '_global_';
+
+  // Tag entries with current account context
+  state.starred = (state.starred || []).map(u => ({ ...u, account: u.account || currentAcc }));
+  state.unfollowed = (state.unfollowed || []).map(u => ({ ...u, account: u.account || currentAcc }));
+
   if (state.selectedAccountUsername) {
-    const acc = state.selectedAccountUsername.toLowerCase();
-    localStorage.setItem(`following_users_${acc}`, JSON.stringify(state.following));
-    localStorage.setItem(`followers_users_${acc}`, JSON.stringify(state.followers));
-    localStorage.setItem(`unfollowed_users_${acc}`, JSON.stringify(state.unfollowed));
-    localStorage.setItem(`starred_users_${acc}`, JSON.stringify(state.starred));
+    localStorage.setItem(`following_users_${currentAcc}`, JSON.stringify(state.following));
+    localStorage.setItem(`followers_users_${currentAcc}`, JSON.stringify(state.followers));
+    localStorage.setItem(`unfollowed_users_${currentAcc}`, JSON.stringify(state.unfollowed));
+    localStorage.setItem(`starred_users_${currentAcc}`, JSON.stringify(state.starred));
   } else {
     localStorage.setItem('following_users', JSON.stringify(state.following));
     localStorage.setItem('followers_users', JSON.stringify(state.followers));
@@ -882,8 +887,13 @@ function loadAccountData(username) {
     const acc = username.toLowerCase();
     state.following = JSON.parse(localStorage.getItem(`following_users_${acc}`) || '[]');
     state.followers = JSON.parse(localStorage.getItem(`followers_users_${acc}`) || '[]');
-    state.unfollowed = JSON.parse(localStorage.getItem(`unfollowed_users_${acc}`) || '[]');
-    state.starred = JSON.parse(localStorage.getItem(`starred_users_${acc}`) || '[]');
+
+    const accUnfollowed = JSON.parse(localStorage.getItem(`unfollowed_users_${acc}`) || '[]');
+    const accStarred = JSON.parse(localStorage.getItem(`starred_users_${acc}`) || '[]');
+
+    // Only load unfollowed and starred accounts that belong to this specific Instagram account
+    state.unfollowed = accUnfollowed.filter(u => !u.account || u.account === acc);
+    state.starred = accStarred.filter(u => !u.account || u.account === acc);
 
     elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
     elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername}`).join('\n');
@@ -891,8 +901,12 @@ function loadAccountData(username) {
     state.following = [];
     state.followers = [];
     state.unfollowers = [];
-    state.unfollowed = [];
-    state.starred = [];
+    
+    const globalUnfollowed = JSON.parse(localStorage.getItem('unfollowed_users') || '[]');
+    const globalStarred = JSON.parse(localStorage.getItem('starred_users') || '[]');
+
+    state.unfollowed = globalUnfollowed.filter(u => !u.account || u.account === '_global_');
+    state.starred = globalStarred.filter(u => !u.account || u.account === '_global_');
 
     elements.inputFollowing.value = '';
     elements.inputFollowers.value = '';
@@ -1987,31 +2001,65 @@ async function pullFromCloud() {
     if (error) throw error;
 
     if (data) {
-      // Pull cloud data into local state
-      state.starred = data.starred || [];
-      state.unfollowed = data.unfollowed || [];
-      
-      // Update local storage
-      localStorage.setItem('starred_users', JSON.stringify(state.starred));
+      let rawStarred = data.starred || [];
+      const metaItem = rawStarred.find(item => item && item.__meta);
+
+      if (metaItem) {
+        state.instagramAccounts = metaItem.instagram_accounts || [];
+        state.selectedAccountUsername = metaItem.selected_account || null;
+
+        localStorage.setItem('instagram_accounts', JSON.stringify(state.instagramAccounts));
+        if (state.selectedAccountUsername) {
+          localStorage.setItem('selected_instagram_account', state.selectedAccountUsername);
+        } else {
+          localStorage.removeItem('selected_instagram_account');
+        }
+
+        if (metaItem.accounts_data) {
+          Object.keys(metaItem.accounts_data).forEach(key => {
+            const itemData = metaItem.accounts_data[key];
+            if (itemData.following) localStorage.setItem(`following_users_${key}`, JSON.stringify(itemData.following));
+            if (itemData.followers) localStorage.setItem(`followers_users_${key}`, JSON.stringify(itemData.followers));
+            if (itemData.unfollowed) localStorage.setItem(`unfollowed_users_${key}`, JSON.stringify(itemData.unfollowed));
+            if (itemData.starred) localStorage.setItem(`starred_users_${key}`, JSON.stringify(itemData.starred));
+          });
+        }
+
+        // Clean meta header from raw starred list
+        rawStarred = rawStarred.filter(item => !item.__meta);
+      }
+
+      // Save stripped starred list and unfollowed list to localStorage
+      localStorage.setItem('starred_users', JSON.stringify(rawStarred));
+      localStorage.setItem('unfollowed_users', JSON.stringify(data.unfollowed || []));
+
+      // Restore account dataset if an account is selected, or default view if none
+      if (state.selectedAccountUsername) {
+        loadAccountData(state.selectedAccountUsername);
+      } else {
+        loadAccountData(null);
+      }
     } else {
-      // Create cloud record with existing local data
       const initialStarred = JSON.parse(localStorage.getItem('starred_users') || '[]');
-      
+      const initialAccounts = JSON.parse(localStorage.getItem('instagram_accounts') || '[]');
+
+      const metaHeader = {
+        __meta: true,
+        instagram_accounts: initialAccounts,
+        selected_account: state.selectedAccountUsername || null,
+        accounts_data: {}
+      };
+
       const { error: insertError } = await supabaseClient
         .from('checker_data')
         .insert({
           user_id: currentUser.id,
-          starred: initialStarred,
+          starred: [metaHeader, ...initialStarred],
           unfollowed: []
         });
 
       if (insertError) throw insertError;
-      
-      state.starred = initialStarred;
-      state.unfollowed = [];
     }
-
-    calculateUnfollowers();
   } catch (err) {
     console.error('Error pulling user data from Supabase:', err);
   } finally {
@@ -2023,12 +2071,32 @@ async function pushToCloud() {
   if (!supabaseClient || !currentUser) return;
 
   try {
+    const accountDataMap = {};
+    (state.instagramAccounts || []).forEach(acc => {
+      const key = acc.toLowerCase();
+      accountDataMap[key] = {
+        following: JSON.parse(localStorage.getItem(`following_users_${key}`) || '[]'),
+        followers: JSON.parse(localStorage.getItem(`followers_users_${key}`) || '[]'),
+        unfollowed: JSON.parse(localStorage.getItem(`unfollowed_users_${key}`) || '[]'),
+        starred: JSON.parse(localStorage.getItem(`starred_users_${key}`) || '[]')
+      };
+    });
+
+    const metaHeader = {
+      __meta: true,
+      instagram_accounts: state.instagramAccounts || [],
+      selected_account: state.selectedAccountUsername || null,
+      accounts_data: accountDataMap
+    };
+
+    const cloudStarred = [metaHeader, ...(state.starred || []).filter(item => !item.__meta)];
+
     const { error } = await supabaseClient
       .from('checker_data')
       .upsert({
         user_id: currentUser.id,
-        starred: state.starred,
-        unfollowed: state.unfollowed,
+        starred: cloudStarred,
+        unfollowed: state.unfollowed || [],
         updated_at: new Date().toISOString()
       });
 
