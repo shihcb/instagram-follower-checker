@@ -1121,6 +1121,7 @@ function setupEventListeners() {
     try {
       const dirHandle = await window.showDirectoryPicker();
       let followingFile = null;
+      let pendingFile = null;
       let followersFile = null;
 
       // Scan through all entries inside selected folder
@@ -1129,26 +1130,33 @@ function setupEventListeners() {
           const nameLower = entry.name.toLowerCase();
           if (nameLower === 'following.html' || nameLower === 'following.txt') {
             followingFile = await entry.getFile();
+          } else if (nameLower.includes('pending_follow_requests') || nameLower.includes('pending_requests')) {
+            pendingFile = await entry.getFile();
           } else if (nameLower === 'followers_1.html' || nameLower === 'followers_1.txt' || nameLower === 'followers.html' || nameLower === 'followers.txt') {
             followersFile = await entry.getFile();
           }
         }
       }
 
-      if (!followingFile && !followersFile) {
-        alert("No files named 'following.html' or 'followers_1.html' were found in the selected folder.");
+      if (!followingFile && !pendingFile && !followersFile) {
+        alert("No valid Instagram export files ('following.html', 'pending_follow_requests.html', or 'followers_1.html') were found in the selected folder.");
         return;
       }
 
       // Automatically clear List 1 and List 2 before syncing new files
       clearAllLists();
 
+      let hasImportedFollowing = false;
       const syncPromises = [];
       if (followingFile) {
-        syncPromises.push(readAndProcessFile(followingFile, 'following'));
+        syncPromises.push(readAndProcessFile(followingFile, 'following', false, false));
+        hasImportedFollowing = true;
+      }
+      if (pendingFile) {
+        syncPromises.push(readAndProcessFile(pendingFile, 'following', hasImportedFollowing, true));
       }
       if (followersFile) {
-        syncPromises.push(readAndProcessFile(followersFile, 'followers'));
+        syncPromises.push(readAndProcessFile(followersFile, 'followers', false, false));
       }
 
       await Promise.all(syncPromises);
