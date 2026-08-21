@@ -1179,17 +1179,15 @@ function setupEventListeners() {
     const userObj = state.unfollowers.find(u => u.username === username);
     if (!userObj) return;
 
-    const userAvatar = e.target.closest('.user-avatar-link') || e.target.closest('.user-avatar');
-    const userLink = e.target.closest('.user-link');
-    const actionArrow = e.target.closest('.action-arrow');
     const actionStar = e.target.closest('.action-star');
-    const actionDelete = e.target.closest('.action-delete');
+    const currentAcc = (state.selectedAccountUsername || '_global_').toLowerCase();
+    const taggedObj = { ...userObj, account: currentAcc };
 
     if (actionStar) {
       // Move user to Starred (favorite) list
       if (!state.starred.some(u => u.username === username)) {
-        state.starred.unshift(userObj);
-        localStorage.setItem('starred_users', JSON.stringify(state.starred));
+        state.starred.unshift(taggedObj);
+        saveCurrentAccountData();
       }
 
       userRow.style.opacity = '0';
@@ -1203,76 +1201,39 @@ function setupEventListeners() {
         if (state.unfollowers.length === 0) {
           updateResultsUI();
         }
-        pushToCloud();
       }, 150);
       return;
     }
 
-    if (actionDelete) {
-      // Move user to Unfollowed list without opening Instagram profile (unless pending request)
-      if (userObj?.isPendingRequest) {
-        state.following = state.following.filter(u => u.username !== username);
-        localStorage.setItem('following_users', JSON.stringify(state.following));
-        elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
-        updateListUI('following');
-      } else if (!state.unfollowed.some(u => u.username === username)) {
-        state.unfollowed.unshift(userObj);
-      }
-
-      userRow.style.opacity = '0';
-      userRow.style.transform = 'scale(0.95)';
-      setTimeout(() => {
-        userRow.remove();
-        state.unfollowers = state.unfollowers.filter(u => u.username !== username);
-        elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
-        updateUnfollowedUI();
-
-        if (state.unfollowers.length === 0) {
-          updateResultsUI();
-        }
-        pushToCloud();
-      }, 150);
-      return;
+    // Clicking anywhere on the row (username, avatar, link, or delete button) automatically moves user to Unfollowed list!
+    const autoOpenToggle = document.getElementById('auto-open-toggle');
+    if (autoOpenToggle && autoOpenToggle.checked) {
+      state.pendingAutoOpen = true;
+      state.autoOpenCount = 1;
     }
 
-    if (userAvatar || userLink || actionArrow) {
-      // Open Instagram profile
-      const autoOpenToggle = document.getElementById('auto-open-toggle');
-      if (autoOpenToggle && autoOpenToggle.checked) {
-        state.pendingAutoOpen = true;
-        state.autoOpenCount = 1;
-      }
-
-      if (userObj?.isPendingRequest) {
-        state.following = state.following.filter(u => u.username !== username);
-        localStorage.setItem('following_users', JSON.stringify(state.following));
-        elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
-        updateListUI('following');
-      } else if (!state.unfollowed.some(u => u.username === username)) {
-        state.unfollowed.unshift(userObj);
-      }
-
-      userRow.style.opacity = '0';
-      userRow.style.transform = 'scale(0.95)';
-      setTimeout(() => {
-        userRow.remove();
-        state.unfollowers = state.unfollowers.filter(u => u.username !== username);
-        elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
-        updateUnfollowedUI();
-
-        if (state.unfollowers.length === 0) {
-          updateResultsUI();
-        }
-        pushToCloud();
-      }, 150);
-      return;
+    if (userObj?.isPendingRequest) {
+      state.following = state.following.filter(u => u.username !== username);
+      elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
+      updateListUI('following');
+    } else if (!state.unfollowed.some(u => u.username === username)) {
+      state.unfollowed.unshift(taggedObj);
     }
 
-    // Clicking anywhere else in the row selects the username row!
-    if (!isNaN(rowIndex)) {
-      state.selectedIndex = rowIndex;
-      highlightRow(state.selectedIndex);
-    }
+    saveCurrentAccountData();
+
+    userRow.style.opacity = '0';
+    userRow.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+      userRow.remove();
+      state.unfollowers = state.unfollowers.filter(u => u.username !== username);
+      elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
+      updateUnfollowedUI();
+
+      if (state.unfollowers.length === 0) {
+        updateResultsUI();
+      }
+    }, 150);
   });
 
   // Toggle preview unfollowed list dropdown

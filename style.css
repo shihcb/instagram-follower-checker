@@ -10,9 +10,8 @@
  * Theme Configuration & System Preferences
  * ------------------------------------------------------------- */
 :root {
-  /* Font Families */
-  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   /* Grayscale Theme Gradient Colors */
   --grad-1: #000000;
@@ -878,21 +877,33 @@ h1, h2, h3, h4, .card-num {
 [data-theme="dark"] .preview-toggle,
 [data-theme="dark"] .preview-toggle:hover,
 [data-theme="dark"] .preview-toggle:focus,
+[data-theme="dark"] .preview-toggle:focus-visible,
 [data-theme="dark"] .preview-toggle:active,
-[data-theme="dark"] .preview-toggle.active {
+[data-theme="dark"] .preview-toggle.active,
+[data-theme="dark"] #toggle-preview-unfollowed,
+[data-theme="dark"] #toggle-preview-starred,
+[data-theme="dark"] #toggle-preview-unfollowed:hover,
+[data-theme="dark"] #toggle-preview-starred:hover,
+[data-theme="dark"] #toggle-preview-unfollowed:focus,
+[data-theme="dark"] #toggle-preview-starred:focus,
+[data-theme="dark"] #toggle-preview-unfollowed:active,
+[data-theme="dark"] #toggle-preview-starred:active {
   background-color: #ffffff !important;
   border-color: #ffffff !important;
   color: #000000 !important;
   font-weight: 500;
   outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
   box-shadow: none !important;
 }
 
+.preview-toggle *,
 [data-theme="dark"] .preview-toggle * {
   color: #000000 !important;
   stroke: #000000 !important;
 }
 
+.preview-toggle .chevron-icon,
 [data-theme="dark"] .preview-toggle .chevron-icon {
   color: #000000 !important;
   stroke: #000000 !important;
