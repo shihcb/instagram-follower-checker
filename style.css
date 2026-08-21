@@ -638,21 +638,33 @@ h1, h2, h3, h4, .card-num {
 }
 
 .preview-toggle {
-  font-size: 0.8rem;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  height: 38px !important;
+  padding: 0 14px !important;
   border-radius: 10px !important;
   white-space: nowrap !important;
   cursor: pointer;
   width: fit-content;
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-sizing: border-box !important;
+  transition: background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
   background-color: #ffffff !important;
   border: 1px solid var(--btn-secondary-border) !important;
   color: var(--text-main) !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.preview-toggle span {
+  display: inline-block !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .preview-toggle:hover:not(:disabled) {
@@ -1456,7 +1468,7 @@ h1, h2, h3, h4, .card-num {
 .user-row-actions {
   display: flex;
   align-items: center;
-  gap: 3px !important;
+  gap: 4px !important;
 }
 
 .follow-date {
