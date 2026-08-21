@@ -1263,16 +1263,28 @@ h1, h2, h3, h4, .card-num {
   justify-content: center;
 }
 
-.btn-danger-soft {
+#btn-modal-delete,
+.btn-danger-soft,
+[data-theme="dark"] #btn-modal-delete,
+[data-theme="dark"] .btn-danger-soft {
+  background-color: rgba(239, 68, 68, 0.12) !important;
   background: rgba(239, 68, 68, 0.12) !important;
   color: #ef4444 !important;
   border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-.btn-danger-soft:hover {
+#btn-modal-delete:hover,
+.btn-danger-soft:hover,
+[data-theme="dark"] #btn-modal-delete:hover,
+[data-theme="dark"] .btn-danger-soft:hover {
+  background-color: #ef4444 !important;
   background: #ef4444 !important;
   color: #ffffff !important;
   border-color: #ef4444 !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35) !important;
 }
 
 @media (max-width: 1024px) {

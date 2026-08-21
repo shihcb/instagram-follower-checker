@@ -166,8 +166,10 @@ function showSiteConfirm(title, message, confirmText = 'confirm', cancelText = '
     }
 
     overlay.classList.remove('hidden');
+    overlay.classList.add('show');
 
     function cleanup() {
+      overlay.classList.remove('show');
       overlay.classList.add('hidden');
       okBtn.removeEventListener('click', onOk);
       if (cancelBtn) cancelBtn.removeEventListener('click', onCancel);
