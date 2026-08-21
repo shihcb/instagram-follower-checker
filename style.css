@@ -1053,7 +1053,7 @@ h1, h2, h3, h4, .card-num {
   text-align: center;
   color: var(--text-main);
   cursor: pointer;
-  transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease, box-shadow 0.5s ease, transform 0.25s ease !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
@@ -1065,6 +1065,7 @@ h1, h2, h3, h4, .card-num {
   border-color: #10b981 !important;
   color: #10b981 !important;
   box-shadow: 0 0 14px rgba(16, 185, 129, 0.3) !important;
+  transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease, box-shadow 0.5s ease !important;
 }
 
 [data-theme="dark"] .account-chip.active {
@@ -1072,6 +1073,7 @@ h1, h2, h3, h4, .card-num {
   border-color: #34d399 !important;
   color: #34d399 !important;
   box-shadow: 0 0 16px rgba(52, 211, 153, 0.35) !important;
+  transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease, box-shadow 0.5s ease !important;
 }
 
 .account-chip:hover {

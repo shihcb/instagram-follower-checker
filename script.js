@@ -1034,28 +1034,80 @@ let chipClickTimer = null;
 function renderAccountChips() {
   if (!elements.accountChipsList || !elements.btnAddAccount) return;
 
-  elements.accountChipsList.innerHTML = '';
   const accounts = state.instagramAccounts || [];
+  const existingChips = Array.from(elements.accountChipsList.querySelectorAll('.account-chip'));
+  
+  // Check if existing chips match current accounts list length and names
+  const existingUsernames = existingChips.map(c => c.getAttribute('data-account-name'));
+  const accountsMatch = existingUsernames.length === accounts.length && 
+    accounts.every((u, i) => existingUsernames[i] === u.toLowerCase());
 
-  accounts.forEach((username, index) => {
-    const chip = document.createElement('div');
-    chip.className = 'account-chip';
-    if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === username.toLowerCase()) {
-      chip.classList.add('active'); // GREEN ACTIVE HIGHLIGHT
-    }
-    chip.setAttribute('data-index', index);
-    chip.textContent = `@${username}`;
-    
-    let lastChipTapTime = 0;
+  if (accountsMatch) {
+    // Just update active class smoothly on existing DOM nodes so CSS transition executes!
+    existingChips.forEach((chip) => {
+      const username = chip.getAttribute('data-account-name');
+      const isSelected = state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === username;
+      chip.classList.toggle('active', isSelected);
+    });
+  } else {
+    // Full re-render when accounts are added or deleted
+    elements.accountChipsList.innerHTML = '';
 
-    function handleChipInteraction(e) {
-      e.stopPropagation();
-      const now = Date.now();
-      const timeDiff = now - lastChipTapTime;
+    accounts.forEach((username, index) => {
+      const chip = document.createElement('div');
+      chip.className = 'account-chip';
+      chip.setAttribute('data-account-name', username.toLowerCase());
+      chip.setAttribute('data-index', index);
+      chip.textContent = `@${username}`;
 
-      if (timeDiff > 0 && timeDiff < 350) {
-        // Double tap / double click detected!
-        if (e.cancelable) e.preventDefault();
+      if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === username.toLowerCase()) {
+        chip.classList.add('active');
+      }
+
+      let lastChipTapTime = 0;
+
+      function handleChipInteraction(e) {
+        e.stopPropagation();
+        const now = Date.now();
+        const timeDiff = now - lastChipTapTime;
+
+        if (timeDiff > 0 && timeDiff < 350) {
+          // Double tap / double click detected!
+          if (e.cancelable) e.preventDefault();
+          if (chipClickTimer) {
+            clearTimeout(chipClickTimer);
+            chipClickTimer = null;
+          }
+          if (!state.selectedAccountUsername || state.selectedAccountUsername.toLowerCase() !== username.toLowerCase()) {
+            selectAccount(username);
+          }
+          openAccountModal(index);
+          lastChipTapTime = 0;
+          return;
+        }
+
+        lastChipTapTime = now;
+
+        if (chipClickTimer) {
+          clearTimeout(chipClickTimer);
+          chipClickTimer = null;
+        }
+
+        chipClickTimer = setTimeout(() => {
+          selectAccount(username);
+          chipClickTimer = null;
+          lastChipTapTime = 0;
+        }, 240);
+      }
+
+      chip.addEventListener('touchend', (e) => handleChipInteraction(e));
+      chip.addEventListener('click', (e) => {
+        if (Date.now() - lastChipTapTime < 50) return;
+        handleChipInteraction(e);
+      });
+      chip.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
         if (chipClickTimer) {
           clearTimeout(chipClickTimer);
           chipClickTimer = null;
@@ -1064,49 +1116,11 @@ function renderAccountChips() {
           selectAccount(username);
         }
         openAccountModal(index);
-        lastChipTapTime = 0;
-        return;
-      }
+      });
 
-      lastChipTapTime = now;
-
-      if (chipClickTimer) {
-        clearTimeout(chipClickTimer);
-        chipClickTimer = null;
-      }
-
-      chipClickTimer = setTimeout(() => {
-        selectAccount(username);
-        chipClickTimer = null;
-        lastChipTapTime = 0;
-      }, 240);
-    }
-
-    chip.addEventListener('touchend', (e) => {
-      handleChipInteraction(e);
+      elements.accountChipsList.appendChild(chip);
     });
-
-    chip.addEventListener('click', (e) => {
-      // If event was triggered by touch event already, avoid double execution
-      if (Date.now() - lastChipTapTime < 50) return;
-      handleChipInteraction(e);
-    });
-
-    chip.addEventListener('dblclick', (e) => {
-      e.stopPropagation();
-      e.preventDefault();
-      if (chipClickTimer) {
-        clearTimeout(chipClickTimer);
-        chipClickTimer = null;
-      }
-      if (!state.selectedAccountUsername || state.selectedAccountUsername.toLowerCase() !== username.toLowerCase()) {
-        selectAccount(username);
-      }
-      openAccountModal(index);
-    });
-
-    elements.accountChipsList.appendChild(chip);
-  });
+  }
 
   if (accounts.length > 0) {
     elements.btnAddAccount.classList.add('compact');
