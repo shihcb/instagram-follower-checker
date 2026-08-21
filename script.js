@@ -1064,7 +1064,8 @@ function renderAccountChips() {
 
     accounts.forEach((username, index) => {
       const chip = document.createElement('div');
-      chip.className = 'account-chip';
+      chip.className = 'account-chip pop-in';
+      chip.style.animationDelay = `${index * 65}ms`;
       chip.setAttribute('data-account-name', username.toLowerCase());
       chip.setAttribute('data-index', index);
       chip.textContent = `@${username}`;

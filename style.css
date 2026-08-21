@@ -1595,30 +1595,48 @@ h1, h2, h3, h4, .card-num {
   transform: rotate(-45deg) !important;
 }
 
-.action-dismiss {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #ffffff;
-  border: 1px solid var(--card-border);
-  color: var(--text-muted);
-  transition: all 0.2s ease;
-  cursor: pointer;
-  padding: 0;
-}
-
+.action-dismiss,
 [data-theme="dark"] .action-dismiss {
-  background-color: #18181b;
-  color: #ffffff;
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--text-muted) !important;
+  transition: color 0.2s ease, transform 0.2s ease !important;
+  cursor: pointer;
+  padding: 0 !important;
 }
 
 .action-dismiss:hover {
-  background-color: rgba(239, 68, 68, 0.15) !important;
+  background-color: transparent !important;
   color: #ef4444 !important;
-  border-color: #ef4444 !important;
+  border: none !important;
+  transform: scale(1.15) !important;
+}
+
+@keyframes chip-pop-in {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.88);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.account-chip.pop-in {
+  animation: chip-pop-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .action-star svg {
