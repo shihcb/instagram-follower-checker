@@ -577,13 +577,12 @@ h1, h2, h3, h4, .card-num {
   resize: none;
   outline: none;
   line-height: 1.6;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: opacity;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  opacity: 1 !important;
 }
 
 .card-body textarea.textarea-fade-out {
-  opacity: 0 !important;
-  pointer-events: none;
+  opacity: 1 !important;
 }
 
 .card-body textarea:focus {
@@ -923,7 +922,11 @@ h1, h2, h3, h4, .card-num {
   background-color: #ffffff !important;
   border-color: #ffffff !important;
   color: #000000 !important;
-  font-weight: 500;
+  font-family: var(--font-sans) !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.2 !important;
   outline: none !important;
   -webkit-tap-highlight-color: transparent !important;
   box-shadow: none !important;
