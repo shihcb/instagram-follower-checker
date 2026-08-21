@@ -871,14 +871,26 @@ h1, h2, h3, h4, .card-num {
   background-color: #27272a !important;
 }
 
-[data-theme="dark"] .preview-toggle {
+[data-theme="dark"] .preview-toggle,
+[data-theme="dark"] .preview-toggle:hover,
+[data-theme="dark"] .preview-toggle:focus,
+[data-theme="dark"] .preview-toggle:active,
+[data-theme="dark"] .preview-toggle.active {
   background-color: #ffffff !important;
   border-color: #ffffff !important;
   color: #000000 !important;
   font-weight: 500;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"] .preview-toggle * {
+  color: #000000 !important;
+  stroke: #000000 !important;
 }
 
 [data-theme="dark"] .preview-toggle .chevron-icon {
+  color: #000000 !important;
   stroke: #000000 !important;
 }
 
