@@ -746,6 +746,65 @@ function readAndProcessFile(file, type, append = false, isPending = false) {
   });
 }
 
+function clearAllLists() {
+  elements.inputFollowing.value = '';
+  state.following = [];
+  localStorage.removeItem('following_users');
+
+  elements.inputFollowers.value = '';
+  state.followers = [];
+  localStorage.removeItem('followers_users');
+
+  state.selectedIndex = -1;
+  updateListUI('following');
+  updateListUI('followers');
+  calculateUnfollowers();
+}
+
+async function processImportFiles(files) {
+  if (!files || files.length === 0) return false;
+
+  let importedFollowing = false;
+  let importedFollowers = false;
+  let invalidFiles = [];
+  let validFilesToProcess = [];
+
+  for (const file of files) {
+    const nameLower = file.name.toLowerCase();
+    if (nameLower === 'following.html' || nameLower === 'following.txt' || nameLower.startsWith('following_')) {
+      validFilesToProcess.push({ file, type: 'following', isPending: false });
+    } else if (nameLower === 'pending_follow_requests.html' || nameLower === 'pending_follow_requests.txt' || nameLower.startsWith('pending_follow_requests')) {
+      validFilesToProcess.push({ file, type: 'following', isPending: true });
+    } else if (nameLower === 'followers_1.html' || nameLower === 'followers.html' || nameLower === 'followers_1.txt' || nameLower === 'followers.txt' || nameLower.startsWith('followers_') || nameLower.startsWith('followers')) {
+      validFilesToProcess.push({ file, type: 'followers', isPending: false });
+    } else {
+      invalidFiles.push(file.name);
+    }
+  }
+
+  if (validFilesToProcess.length > 0) {
+    // Automatically clear List 1 and List 2 before importing new files into their respective spaces
+    clearAllLists();
+
+    for (const item of validFilesToProcess) {
+      if (item.type === 'following') {
+        await readAndProcessFile(item.file, 'following', importedFollowing, item.isPending);
+        importedFollowing = true;
+      } else if (item.type === 'followers') {
+        await readAndProcessFile(item.file, 'followers', importedFollowers, item.isPending);
+        importedFollowers = true;
+      }
+    }
+  }
+
+  if (invalidFiles.length > 0) {
+    alert(`ignored files: ${invalidFiles.join(', ')}.\nonly follower and following HTML/TXT export files are accepted.`);
+  }
+
+  return importedFollowing || importedFollowers;
+}
+
+
 // -------------------------------------------------------------
 // Interactive Feature Event Listeners
 // -------------------------------------------------------------
@@ -1080,6 +1139,9 @@ function setupEventListeners() {
         alert("No files named 'following.html' or 'followers_1.html' were found in the selected folder.");
         return;
       }
+
+      // Automatically clear List 1 and List 2 before syncing new files
+      clearAllLists();
 
       const syncPromises = [];
       if (followingFile) {
@@ -1538,32 +1600,9 @@ function initAuth() {
   if (elements.importFilesInput) {
     elements.importFilesInput.addEventListener('change', async (e) => {
       const files = Array.from(e.target.files);
-      if (files.length === 0) return;
+      const importedAny = await processImportFiles(files);
 
-      let importedFollowing = false;
-      let importedFollowers = false;
-      let invalidFiles = [];
-
-      for (const file of files) {
-        if (file.name === 'following.html') {
-          await readAndProcessFile(file, 'following', importedFollowing, false);
-          importedFollowing = true;
-        } else if (file.name === 'pending_follow_requests.html') {
-          await readAndProcessFile(file, 'following', importedFollowing, true);
-          importedFollowing = true;
-        } else if (file.name === 'followers_1.html') {
-          await readAndProcessFile(file, 'followers', importedFollowers, false);
-          importedFollowers = true;
-        } else {
-          invalidFiles.push(file.name);
-        }
-      }
-
-      if (invalidFiles.length > 0) {
-        alert(`ignored files: ${invalidFiles.join(', ')}.\nonly 'followers_1.html', 'following.html', and 'pending_follow_requests.html' are accepted.`);
-      }
-
-      if (importedFollowing || importedFollowers) {
+      if (importedAny) {
         // Close dropdown after successful import
         elements.authDropdown.classList.remove('show');
         clearAuthAlerts();
@@ -1573,6 +1612,18 @@ function initAuth() {
       elements.importFilesInput.value = '';
     });
   }
+
+  // Handle Drag & Drop files anywhere on document
+  document.addEventListener('dragover', (e) => {
+    e.preventDefault();
+  });
+  document.addEventListener('drop', async (e) => {
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      e.preventDefault();
+      const files = Array.from(e.dataTransfer.files);
+      await processImportFiles(files);
+    }
+  });
 }
 
 function clearAuthAlerts() {
