@@ -166,11 +166,14 @@ function showSiteConfirm(title, message, confirmText = 'confirm', cancelText = '
     }
 
     overlay.classList.remove('hidden');
+    void overlay.offsetWidth;
     overlay.classList.add('show');
 
     function cleanup() {
       overlay.classList.remove('show');
-      overlay.classList.add('hidden');
+      setTimeout(() => {
+        overlay.classList.add('hidden');
+      }, 350);
       okBtn.removeEventListener('click', onOk);
       if (cancelBtn) cancelBtn.removeEventListener('click', onCancel);
       if (closeBtn) closeBtn.removeEventListener('click', onCancel);
@@ -1159,7 +1162,7 @@ function closeAccountModal() {
   setTimeout(() => {
     elements.accountModalOverlay.classList.add('hidden');
     state.editingAccountIndex = -1;
-  }, 250);
+  }, 350);
 }
 
 function saveAccountFromModal() {
