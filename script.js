@@ -719,7 +719,7 @@ function updateResultsUI() {
           <div class="user-meta">
             <div class="user-row-actions">
               <button class="action-star" aria-label="star user" title="star/favorite user to separate them from results">
-                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <svg viewBox="0 0 24 24" width="14" height="14" stroke="#f59e0b" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                 </svg>
               </button>
@@ -735,6 +735,12 @@ function updateResultsUI() {
                   <polyline points="12 5 19 12 12 19"></polyline>
                 </svg>
               </a>
+              <button class="action-dismiss" aria-label="remove user from list" title="remove from list without adding to unfollowed or starred">
+                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
             </div>
           </div>
         </div>
@@ -1348,6 +1354,22 @@ function setupEventListeners() {
       return;
     }
 
+    const actionDismiss = e.target.closest('.action-dismiss');
+    if (actionDismiss) {
+      userRow.style.opacity = '0';
+      userRow.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        userRow.remove();
+        state.unfollowers = state.unfollowers.filter(u => u.username !== username);
+        elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
+        
+        if (state.unfollowers.length === 0) {
+          updateResultsUI();
+        }
+      }, 150);
+      return;
+    }
+
     // Clicking anywhere on the row (username, avatar, link, or delete button) automatically moves user to Unfollowed list!
     const autoOpenToggle = document.getElementById('auto-open-toggle');
     if (autoOpenToggle && autoOpenToggle.checked) {
@@ -1897,7 +1919,6 @@ function initAuth() {
         // Load saved Following/Followers lists if present in localStorage
         const savedFollowing = localStorage.getItem('following_users');
         const savedFollowers = localStorage.getItem('followers_users');
-        
         if (savedFollowing) {
           state.following = JSON.parse(savedFollowing);
           elements.inputFollowing.value = state.following.map(user => `@${user.originalUsername}`).join('\n');
@@ -1909,6 +1930,26 @@ function initAuth() {
           updateListUI('followers');
         }
         calculateUnfollowers();
+
+        // Smooth fade-in animation on login
+        if (elements.accountChipsList) {
+          elements.accountChipsList.style.transition = 'opacity 0.45s ease, transform 0.45s ease';
+          elements.accountChipsList.style.opacity = '0';
+          elements.accountChipsList.style.transform = 'translateY(6px)';
+          requestAnimationFrame(() => {
+            elements.accountChipsList.style.opacity = '1';
+            elements.accountChipsList.style.transform = 'translateY(0)';
+          });
+        }
+        if (elements.listUnfollowers) {
+          elements.listUnfollowers.style.transition = 'opacity 0.45s ease, transform 0.45s ease';
+          elements.listUnfollowers.style.opacity = '0';
+          elements.listUnfollowers.style.transform = 'translateY(6px)';
+          requestAnimationFrame(() => {
+            elements.listUnfollowers.style.opacity = '1';
+            elements.listUnfollowers.style.transform = 'translateY(0)';
+          });
+        }
       } else {
         currentUser = null;
         elements.userBadge.classList.add('hidden');
@@ -1921,35 +1962,58 @@ function initAuth() {
         // Update UI panels in modal
         elements.authProfileView.classList.add('hidden');
         elements.authFormView.classList.remove('hidden');
+
+        // Smoothly fade out account chips and results list before clearing
+        if (elements.accountChipsList) {
+          elements.accountChipsList.style.transition = 'opacity 0.45s ease, transform 0.45s ease';
+          elements.accountChipsList.style.opacity = '0';
+          elements.accountChipsList.style.transform = 'translateY(6px)';
+        }
+        if (elements.listUnfollowers) {
+          elements.listUnfollowers.style.transition = 'opacity 0.45s ease, transform 0.45s ease';
+          elements.listUnfollowers.style.opacity = '0';
+          elements.listUnfollowers.style.transform = 'translateY(6px)';
+        }
         
-        // Clear all loaded information, Instagram accounts, and input textareas
-        state.following = [];
-        state.followers = [];
-        state.unfollowers = [];
-        state.unfollowed = [];
-        state.starred = [];
-        state.instagramAccounts = [];
-        state.selectedAccountUsername = null;
-        state.selectedIndex = -1;
-        
-        Object.keys(localStorage).forEach(key => {
-          if (key.startsWith('following_users') || key.startsWith('followers_users')) {
-            localStorage.removeItem(key);
+        setTimeout(() => {
+          // Clear all loaded information, Instagram accounts, and input textareas
+          state.following = [];
+          state.followers = [];
+          state.unfollowers = [];
+          state.unfollowed = [];
+          state.starred = [];
+          state.instagramAccounts = [];
+          state.selectedAccountUsername = null;
+          state.selectedIndex = -1;
+          
+          Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('following_users') || key.startsWith('followers_users')) {
+              localStorage.removeItem(key);
+            }
+          });
+          localStorage.removeItem('starred_users');
+          localStorage.removeItem('unfollowed_users');
+          localStorage.removeItem('instagram_accounts');
+          localStorage.removeItem('selected_instagram_account');
+          
+          elements.inputFollowing.value = '';
+          elements.inputFollowers.value = '';
+          elements.searchUnfollowers.value = '';
+          
+          updateListUI('following');
+          updateListUI('followers');
+          calculateUnfollowers();
+          renderAccountChips();
+
+          if (elements.accountChipsList) {
+            elements.accountChipsList.style.opacity = '1';
+            elements.accountChipsList.style.transform = 'translateY(0)';
           }
-        });
-        localStorage.removeItem('starred_users');
-        localStorage.removeItem('unfollowed_users');
-        localStorage.removeItem('instagram_accounts');
-        localStorage.removeItem('selected_instagram_account');
-        
-        elements.inputFollowing.value = '';
-        elements.inputFollowers.value = '';
-        elements.searchUnfollowers.value = '';
-        
-        updateListUI('following');
-        updateListUI('followers');
-        calculateUnfollowers();
-        renderAccountChips();
+          if (elements.listUnfollowers) {
+            elements.listUnfollowers.style.opacity = '1';
+            elements.listUnfollowers.style.transform = 'translateY(0)';
+          }
+        }, 400);
       }
     } catch (err) {
       console.error('Error in onAuthStateChange handler:', err);

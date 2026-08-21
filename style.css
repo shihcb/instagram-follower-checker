@@ -1595,6 +1595,52 @@ h1, h2, h3, h4, .card-num {
   transform: rotate(-45deg) !important;
 }
 
+.action-dismiss {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  border: 1px solid var(--card-border);
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  padding: 0;
+}
+
+[data-theme="dark"] .action-dismiss {
+  background-color: #18181b;
+  color: #ffffff;
+}
+
+.action-dismiss:hover {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+  border-color: #ef4444 !important;
+}
+
+.action-star svg {
+  stroke: #f59e0b !important;
+  fill: none !important;
+}
+
+[data-theme="dark"] .action-star svg {
+  stroke: #fbbf24 !important;
+  fill: none !important;
+}
+
+.unstar-btn svg {
+  fill: #f59e0b !important;
+  stroke: #f59e0b !important;
+}
+
+[data-theme="dark"] .unstar-btn svg {
+  fill: #fbbf24 !important;
+  stroke: #fbbf24 !important;
+}
+
 @keyframes row-fade-in {
   from {
     opacity: 0;
