@@ -308,9 +308,16 @@ h1, h2, h3, h4, .card-num {
 }
 
 .btn-secondary {
-  background-color: var(--btn-secondary-bg);
+  background-color: #ffffff !important;
   color: var(--text-main);
   border: 1px solid var(--btn-secondary-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #ffffff !important;
+  border-color: var(--text-main);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .btn-tertiary {
@@ -660,17 +667,14 @@ h1, h2, h3, h4, .card-num {
   transform: rotate(180deg);
 }
 
-.parsed-list {
-  margin-top: 8px;
-  max-height: 120px;
-  overflow-y: auto;
-  border: 1px solid var(--card-border);
-  background-color: var(--input-bg);
-  border-radius: 8px;
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.parsed-item {
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.parsed-item.removing {
+  opacity: 0 !important;
+  transform: translateX(-12px) scale(0.95) !important;
 }
 
 /* Dropdown layouts for unfollowed and starred popovers */
@@ -855,6 +859,16 @@ h1, h2, h3, h4, .card-num {
   background-color: #18181b !important;
   border-color: rgba(255, 255, 255, 0.15) !important;
   color: #f4f4f5 !important;
+}
+
+[data-theme="dark"] .btn-secondary {
+  background-color: #18181b !important;
+  color: #f4f4f5 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+[data-theme="dark"] .btn-secondary:hover:not(:disabled) {
+  background-color: #27272a !important;
 }
 
 [data-theme="dark"] .preview-toggle {

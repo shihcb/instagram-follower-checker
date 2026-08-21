@@ -1284,9 +1284,14 @@ function setupEventListeners() {
     const unstarBtn = e.target.closest('.unstar-btn');
     if (unstarBtn) {
       const username = unstarBtn.getAttribute('data-username');
-      state.starred = state.starred.filter(u => u.username !== username);
-      localStorage.setItem('starred_users', JSON.stringify(state.starred));
-      calculateUnfollowers();
+      const itemEl = unstarBtn.closest('.parsed-item');
+      if (itemEl) itemEl.classList.add('removing');
+
+      setTimeout(() => {
+        state.starred = state.starred.filter(u => u.username !== username);
+        saveCurrentAccountData();
+        calculateUnfollowers();
+      }, 220);
     }
   });
 
@@ -1297,6 +1302,7 @@ function setupEventListeners() {
     if (resetBtn) {
       if (confirm('Are you sure you want to reset your unfollowed list history?')) {
         state.unfollowed = [];
+        saveCurrentAccountData();
         calculateUnfollowers();
         updateUnfollowedUI();
         await pushToCloud();
@@ -1308,27 +1314,38 @@ function setupEventListeners() {
     if (starBtn) {
       const username = starBtn.getAttribute('data-username');
       const userObj = state.unfollowed.find(u => u.username === username);
-      if (userObj) {
-        state.unfollowed = state.unfollowed.filter(u => u.username !== username);
-        if (!state.starred.some(u => u.username === username)) {
-          state.starred.unshift(userObj);
-          localStorage.setItem('starred_users', JSON.stringify(state.starred));
+      const itemEl = starBtn.closest('.parsed-item');
+      if (itemEl) itemEl.classList.add('removing');
+
+      setTimeout(async () => {
+        if (userObj) {
+          state.unfollowed = state.unfollowed.filter(u => u.username !== username);
+          if (!state.starred.some(u => u.username === username)) {
+            state.starred.unshift(userObj);
+          }
+          saveCurrentAccountData();
+          calculateUnfollowers();
+          updateUnfollowedUI();
+          updateStarredUI();
+          await pushToCloud();
         }
-        calculateUnfollowers();
-        updateUnfollowedUI();
-        updateStarredUI();
-        await pushToCloud();
-      }
+      }, 220);
       return;
     }
 
     const removeBtn = e.target.closest('.remove-unfollowed-btn');
     if (removeBtn) {
       const username = removeBtn.getAttribute('data-username');
-      state.unfollowed = state.unfollowed.filter(u => u.username !== username);
-      calculateUnfollowers();
-      updateUnfollowedUI();
-      await pushToCloud();
+      const itemEl = removeBtn.closest('.parsed-item');
+      if (itemEl) itemEl.classList.add('removing');
+
+      setTimeout(async () => {
+        state.unfollowed = state.unfollowed.filter(u => u.username !== username);
+        saveCurrentAccountData();
+        calculateUnfollowers();
+        updateUnfollowedUI();
+        await pushToCloud();
+      }, 220);
     }
   });
 
