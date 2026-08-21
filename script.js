@@ -1138,7 +1138,7 @@ function renderAccountChips(animate = false) {
       chip.className = 'account-chip';
       if (animate) {
         chip.classList.add('fade-in');
-        chip.style.animationDelay = `${index * 60}ms`;
+        chip.style.animationDelay = `${index * 80}ms`;
       }
       chip.setAttribute('data-account-name', username.toLowerCase());
       chip.setAttribute('data-index', index);
@@ -2022,7 +2022,7 @@ function initAuth() {
         elements.authFormView.classList.remove('hidden');
 
         // Smoothly fade out account chips and results list before clearing
-        const fadeDuration = 400;
+        const fadeDuration = 700;
         const chipsList = elements.accountChipsList;
         const resultsList = elements.listUnfollowers;
 
