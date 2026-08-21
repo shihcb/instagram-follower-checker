@@ -654,10 +654,11 @@ h1, h2, h3, h4, .card-num {
   transition: background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
               box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  background-color: #ffffff !important;
+  background-color: transparent !important;
+  background: transparent !important;
   border: 1px solid var(--btn-secondary-border) !important;
   color: var(--text-main) !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: none !important;
 }
 
 .preview-toggle span {
@@ -668,7 +669,7 @@ h1, h2, h3, h4, .card-num {
 }
 
 .preview-toggle:hover:not(:disabled) {
-  background-color: #ffffff !important;
+  background-color: transparent !important;
   border-color: var(--text-main) !important;
 }
 
@@ -931,9 +932,10 @@ h1, h2, h3, h4, .card-num {
 [data-theme="dark"] #toggle-preview-starred:focus,
 [data-theme="dark"] #toggle-preview-unfollowed:active,
 [data-theme="dark"] #toggle-preview-starred:active {
-  background-color: #ffffff !important;
-  border-color: #ffffff !important;
-  color: #000000 !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  border-color: var(--btn-secondary-border) !important;
+  color: var(--text-main) !important;
   font-family: var(--font-sans) !important;
   font-size: 0.8rem !important;
   font-weight: 600 !important;
@@ -946,14 +948,14 @@ h1, h2, h3, h4, .card-num {
 
 .preview-toggle *,
 [data-theme="dark"] .preview-toggle * {
-  color: #000000 !important;
-  stroke: #000000 !important;
+  color: var(--text-main) !important;
+  stroke: var(--text-main) !important;
 }
 
 .preview-toggle .chevron-icon,
 [data-theme="dark"] .preview-toggle .chevron-icon {
-  color: #000000 !important;
-  stroke: #000000 !important;
+  color: var(--text-main) !important;
+  stroke: var(--text-main) !important;
 }
 
 [data-theme="dark"] .preview-toggle:disabled {

@@ -139,6 +139,69 @@ function setTheme(theme) {
   }
 }
 
+// Custom Site Pop-up Confirm & Alert Modal Helpers
+function showSiteConfirm(title, message, confirmText = 'confirm', cancelText = 'cancel') {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('confirm-modal-overlay');
+    const titleEl = document.getElementById('confirm-modal-title');
+    const msgEl = document.getElementById('confirm-modal-msg');
+    const cancelBtn = document.getElementById('btn-confirm-cancel');
+    const okBtn = document.getElementById('btn-confirm-ok');
+    const closeBtn = document.getElementById('btn-confirm-close');
+
+    if (!overlay || !titleEl || !msgEl || !okBtn) {
+      resolve(window.confirm(message));
+      return;
+    }
+
+    titleEl.textContent = title.toLowerCase();
+    msgEl.textContent = message.toLowerCase();
+    okBtn.textContent = confirmText.toLowerCase();
+
+    if (cancelText) {
+      cancelBtn.style.display = 'inline-flex';
+      cancelBtn.textContent = cancelText.toLowerCase();
+    } else {
+      cancelBtn.style.display = 'none';
+    }
+
+    overlay.classList.remove('hidden');
+
+    function cleanup() {
+      overlay.classList.add('hidden');
+      okBtn.removeEventListener('click', onOk);
+      if (cancelBtn) cancelBtn.removeEventListener('click', onCancel);
+      if (closeBtn) closeBtn.removeEventListener('click', onCancel);
+      overlay.removeEventListener('click', onOverlayClick);
+    }
+
+    function onOk() {
+      cleanup();
+      resolve(true);
+    }
+
+    function onCancel() {
+      cleanup();
+      resolve(false);
+    }
+
+    function onOverlayClick(e) {
+      if (e.target === overlay) {
+        onCancel();
+      }
+    }
+
+    okBtn.addEventListener('click', onOk);
+    if (cancelBtn) cancelBtn.addEventListener('click', onCancel);
+    if (closeBtn) closeBtn.addEventListener('click', onCancel);
+    overlay.addEventListener('click', onOverlayClick);
+  });
+}
+
+function showSiteAlert(title, message) {
+  return showSiteConfirm(title, message, 'ok', null);
+}
+
 // -------------------------------------------------------------
 // Date Formatting Helpers
 // -------------------------------------------------------------
@@ -850,7 +913,7 @@ async function processImportFiles(files) {
   }
 
   if (invalidFiles.length > 0) {
-    alert(`ignored files: ${invalidFiles.join(', ')}.\nonly follower and following HTML/TXT export files are accepted.`);
+    await showSiteAlert('ignored files', `ignored files: ${invalidFiles.join(', ')}.\nonly follower and following HTML/TXT export files are accepted.`);
   }
 
   return importedFollowing || importedFollowers;
@@ -1309,7 +1372,8 @@ function setupEventListeners() {
     e.stopPropagation();
     const resetBtn = e.target.closest('#reset-unfollowed-btn');
     if (resetBtn) {
-      if (confirm('Are you sure you want to reset your unfollowed list history?')) {
+      const confirmed = await showSiteConfirm('reset list', 'are you sure you want to reset your unfollowed list history?', 'reset', 'cancel');
+      if (confirmed) {
         state.unfollowed = [];
         saveCurrentAccountData();
         calculateUnfollowers();
@@ -1439,7 +1503,7 @@ function setupEventListeners() {
   // Sync Folder Feature using File System Access API
   async function scanLocalDirectory() {
     if (typeof window.showDirectoryPicker !== 'function') {
-      alert("Your browser does not support folder selection. Please use a modern desktop browser like Chrome, Edge, or Opera.");
+      await showSiteAlert("warning", "your browser does not support folder selection. please use a modern desktop browser like chrome, edge, or opera.");
       return;
     }
 
@@ -1464,7 +1528,7 @@ function setupEventListeners() {
       }
 
       if (!followingFile && !pendingFile && !followersFile) {
-        alert("No valid Instagram export files ('following.html', 'pending_follow_requests.html', or 'followers_1.html') were found in the selected folder.");
+        await showSiteAlert("no files found", "no valid instagram export files ('following.html', 'pending_follow_requests.html', or 'followers_1.html') were found in the selected folder.");
         return;
       }
 
@@ -1485,11 +1549,11 @@ function setupEventListeners() {
       }
 
       await Promise.all(syncPromises);
-      alert("Successfully synced files from your local folder!");
+      await showSiteAlert("synced", "successfully synced files from your local folder!");
     } catch (err) {
       if (err.name !== 'AbortError') {
         console.error(err);
-        alert("Error reading directory: " + err.message);
+        await showSiteAlert("error", "error reading directory: " + err.message);
       }
     }
   }
@@ -1659,14 +1723,14 @@ function setupEventListeners() {
   }
 
   // Handle tab focus for auto-opening the next user
-  window.addEventListener('focus', () => {
+  window.addEventListener('focus', async () => {
     const autoOpenToggle = document.getElementById('auto-open-toggle');
     if (autoOpenToggle && autoOpenToggle.checked && state.pendingAutoOpen) {
       state.pendingAutoOpen = false; // Reset to avoid double execution
 
       // Check if we've already automatically opened 5 profiles
       if (state.autoOpenCount >= 5) {
-        const proceed = confirm("you have automatically opened 5 profiles. do you want to continue auto-opening the next 5 profiles?");
+        const proceed = await showSiteConfirm('auto open', 'you have automatically opened 5 profiles. do you want to continue auto-opening the next 5 profiles?', 'continue', 'stop');
         if (!proceed) {
           autoOpenToggle.checked = false;
           state.pendingAutoOpen = false;

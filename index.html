@@ -346,6 +346,23 @@
     </div>
   </div>
 
+  <!-- Custom Site Warning / Confirmation Modal Pop-up -->
+  <div id="confirm-modal-overlay" class="modal-overlay hidden">
+    <div class="account-modal-card glass">
+      <div class="account-modal-header">
+        <h3 id="confirm-modal-title">warning</h3>
+        <button id="btn-confirm-close" class="modal-close-btn" aria-label="close modal">&times;</button>
+      </div>
+      <div class="account-modal-input-group" style="margin-bottom: 20px;">
+        <p id="confirm-modal-msg" style="font-size: 0.9rem; line-height: 1.5; color: var(--text-main); margin: 0;"></p>
+      </div>
+      <div class="account-modal-actions" id="confirm-modal-actions">
+        <button id="btn-confirm-cancel" class="btn btn-secondary">cancel</button>
+        <button id="btn-confirm-ok" class="btn btn-primary">confirm</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Secret Romantic Easter Egg Overlay -->
   <div id="love-overlay" class="love-overlay">
     <div class="love-card">
