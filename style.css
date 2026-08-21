@@ -624,11 +624,21 @@ h1, h2, h3, h4, .card-num {
   cursor: pointer;
   width: fit-content;
   transition: all 0.2s ease;
+  background-color: #ffffff !important;
+  border: 1px solid var(--btn-secondary-border) !important;
+  color: var(--text-main) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.preview-toggle:hover:not(:disabled) {
+  background-color: #ffffff !important;
+  border-color: var(--text-main) !important;
 }
 
 .preview-toggle:disabled {
-  opacity: 0.45;
+  opacity: 0.55;
   cursor: not-allowed;
+  background-color: #ffffff !important;
 }
 
 .preview-toggle .chevron-icon {
@@ -898,7 +908,11 @@ h1, h2, h3, h4, .card-num {
   text-align: center;
   color: var(--text-main);
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);

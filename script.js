@@ -922,6 +922,8 @@ function selectAccount(username) {
   }
 }
 
+let chipClickTimer = null;
+
 function renderAccountChips() {
   if (!elements.accountChipsList || !elements.btnAddAccount) return;
 
@@ -937,15 +939,29 @@ function renderAccountChips() {
     chip.setAttribute('data-index', index);
     chip.textContent = `@${username}`;
     
-    // Single click toggles selection (turns green & loads data / unselects & clears view)
+    // Single click toggles selection with a short delay to distinguish from double click
     chip.addEventListener('click', (e) => {
       e.stopPropagation();
-      selectAccount(username);
+      if (chipClickTimer) {
+        clearTimeout(chipClickTimer);
+        chipClickTimer = null;
+      }
+      chipClickTimer = setTimeout(() => {
+        selectAccount(username);
+        chipClickTimer = null;
+      }, 230);
     });
 
-    // Double click opens Edit/Delete Modal
+    // Double click opens Edit/Delete Modal and keeps username green!
     chip.addEventListener('dblclick', (e) => {
       e.stopPropagation();
+      if (chipClickTimer) {
+        clearTimeout(chipClickTimer);
+        chipClickTimer = null;
+      }
+      if (!state.selectedAccountUsername || state.selectedAccountUsername.toLowerCase() !== username.toLowerCase()) {
+        selectAccount(username);
+      }
       openAccountModal(index);
     });
 
@@ -1753,18 +1769,22 @@ function initAuth() {
         elements.authProfileView.classList.add('hidden');
         elements.authFormView.classList.remove('hidden');
         
-        // Clear all loaded information and input textareas
+        // Clear all loaded information, Instagram accounts, and input textareas
         state.following = [];
         state.followers = [];
         state.unfollowers = [];
         state.unfollowed = [];
         state.starred = [];
+        state.instagramAccounts = [];
+        state.selectedAccountUsername = null;
         state.selectedIndex = -1;
         
         localStorage.removeItem('starred_users');
         localStorage.removeItem('unfollowed_users');
         localStorage.removeItem('following_users');
         localStorage.removeItem('followers_users');
+        localStorage.removeItem('instagram_accounts');
+        localStorage.removeItem('selected_instagram_account');
         
         elements.inputFollowing.value = '';
         elements.inputFollowers.value = '';
@@ -1773,6 +1793,7 @@ function initAuth() {
         updateListUI('following');
         updateListUI('followers');
         calculateUnfollowers();
+        renderAccountChips();
       }
     } catch (err) {
       console.error('Error in onAuthStateChange handler:', err);
