@@ -1046,22 +1046,55 @@ function renderAccountChips() {
     chip.setAttribute('data-index', index);
     chip.textContent = `@${username}`;
     
-    // Single click toggles selection with a short delay to distinguish from double click
-    chip.addEventListener('click', (e) => {
+    let lastChipTapTime = 0;
+
+    function handleChipInteraction(e) {
       e.stopPropagation();
+      const now = Date.now();
+      const timeDiff = now - lastChipTapTime;
+
+      if (timeDiff > 0 && timeDiff < 350) {
+        // Double tap / double click detected!
+        if (e.cancelable) e.preventDefault();
+        if (chipClickTimer) {
+          clearTimeout(chipClickTimer);
+          chipClickTimer = null;
+        }
+        if (!state.selectedAccountUsername || state.selectedAccountUsername.toLowerCase() !== username.toLowerCase()) {
+          selectAccount(username);
+        }
+        openAccountModal(index);
+        lastChipTapTime = 0;
+        return;
+      }
+
+      lastChipTapTime = now;
+
       if (chipClickTimer) {
         clearTimeout(chipClickTimer);
         chipClickTimer = null;
       }
+
       chipClickTimer = setTimeout(() => {
         selectAccount(username);
         chipClickTimer = null;
-      }, 230);
+        lastChipTapTime = 0;
+      }, 240);
+    }
+
+    chip.addEventListener('touchend', (e) => {
+      handleChipInteraction(e);
     });
 
-    // Double click opens Edit/Delete Modal and keeps username green!
+    chip.addEventListener('click', (e) => {
+      // If event was triggered by touch event already, avoid double execution
+      if (Date.now() - lastChipTapTime < 50) return;
+      handleChipInteraction(e);
+    });
+
     chip.addEventListener('dblclick', (e) => {
       e.stopPropagation();
+      e.preventDefault();
       if (chipClickTimer) {
         clearTimeout(chipClickTimer);
         chipClickTimer = null;
