@@ -1064,8 +1064,8 @@ function renderAccountChips() {
 
     accounts.forEach((username, index) => {
       const chip = document.createElement('div');
-      chip.className = 'account-chip pop-in';
-      chip.style.animationDelay = `${index * 65}ms`;
+      chip.className = 'account-chip fade-in';
+      chip.style.animationDelay = `${index * 60}ms`;
       chip.setAttribute('data-account-name', username.toLowerCase());
       chip.setAttribute('data-index', index);
       chip.textContent = `@${username}`;
@@ -1932,23 +1932,13 @@ function initAuth() {
         }
         calculateUnfollowers();
 
-        // Smooth fade-in animation on login
-        if (elements.accountChipsList) {
-          elements.accountChipsList.style.transition = 'opacity 0.45s ease, transform 0.45s ease';
-          elements.accountChipsList.style.opacity = '0';
-          elements.accountChipsList.style.transform = 'translateY(6px)';
-          requestAnimationFrame(() => {
-            elements.accountChipsList.style.opacity = '1';
-            elements.accountChipsList.style.transform = 'translateY(0)';
-          });
-        }
+        // Fade-in is handled by renderAccountChips .fade-in class with staggered delays.
+        // Also fade in the results list consistently.
         if (elements.listUnfollowers) {
-          elements.listUnfollowers.style.transition = 'opacity 0.45s ease, transform 0.45s ease';
+          elements.listUnfollowers.style.transition = 'opacity 0.4s ease';
           elements.listUnfollowers.style.opacity = '0';
-          elements.listUnfollowers.style.transform = 'translateY(6px)';
           requestAnimationFrame(() => {
             elements.listUnfollowers.style.opacity = '1';
-            elements.listUnfollowers.style.transform = 'translateY(0)';
           });
         }
       } else {
@@ -1965,15 +1955,14 @@ function initAuth() {
         elements.authFormView.classList.remove('hidden');
 
         // Smoothly fade out account chips and results list before clearing
+        const fadeDuration = 400;
         if (elements.accountChipsList) {
-          elements.accountChipsList.style.transition = 'opacity 0.45s ease, transform 0.45s ease';
+          elements.accountChipsList.style.transition = `opacity ${fadeDuration}ms ease`;
           elements.accountChipsList.style.opacity = '0';
-          elements.accountChipsList.style.transform = 'translateY(6px)';
         }
         if (elements.listUnfollowers) {
-          elements.listUnfollowers.style.transition = 'opacity 0.45s ease, transform 0.45s ease';
+          elements.listUnfollowers.style.transition = `opacity ${fadeDuration}ms ease`;
           elements.listUnfollowers.style.opacity = '0';
-          elements.listUnfollowers.style.transform = 'translateY(6px)';
         }
         
         setTimeout(() => {
@@ -2006,15 +1995,16 @@ function initAuth() {
           calculateUnfollowers();
           renderAccountChips();
 
+          // Reset opacity after clearing so fresh content is visible
           if (elements.accountChipsList) {
+            elements.accountChipsList.style.transition = 'none';
             elements.accountChipsList.style.opacity = '1';
-            elements.accountChipsList.style.transform = 'translateY(0)';
           }
           if (elements.listUnfollowers) {
+            elements.listUnfollowers.style.transition = 'none';
             elements.listUnfollowers.style.opacity = '1';
-            elements.listUnfollowers.style.transform = 'translateY(0)';
           }
-        }, 400);
+        }, fadeDuration + 50);
       }
     } catch (err) {
       console.error('Error in onAuthStateChange handler:', err);
