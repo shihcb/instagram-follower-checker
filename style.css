@@ -2800,7 +2800,7 @@ body.auth-logged-out #auth-form-view.smooth-exit {
   color: #ffffff !important;
 }
 
-.card-body .search-box {
+.card-body > .search-box {
   flex: 0 0 auto !important;
   width: 100% !important;
 }
