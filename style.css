@@ -1118,7 +1118,17 @@ h1, h2, h3, h4, .card-num {
 .unstar-btn:hover {
   background: transparent !important;
   opacity: 0.8;
-  transform: scale(1.15);
+}
+
+@media (hover: hover) {
+  .action-star:hover,
+  .action-delete:hover,
+  .action-arrow:hover,
+  .star-unfollowed-btn:hover,
+  .remove-unfollowed-btn:hover,
+  .unstar-btn:hover {
+    transform: scale(1.15);
+  }
 }
 
 /* -------------------------------------------------------------
@@ -1231,16 +1241,18 @@ h1, h2, h3, h4, .card-num {
   pointer-events: auto;
 }
 
-.account-chip:hover,
-#btn-add-account:hover {
-  transform: translateY(-1.5px) !important;
-  border-color: var(--text-main) !important;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08) !important;
-}
+@media (hover: hover) {
+  .account-chip:hover,
+  #btn-add-account:hover {
+    transform: translateY(-1.5px) !important;
+    border-color: var(--text-main) !important;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08) !important;
+  }
 
-[data-theme="dark"] .account-chip:hover,
-[data-theme="dark"] #btn-add-account:hover {
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35) !important;
+  [data-theme="dark"] .account-chip:hover,
+  [data-theme="dark"] #btn-add-account:hover {
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35) !important;
+  }
 }
 
 .account-chip:active,
@@ -1924,6 +1936,15 @@ h1, h2, h3, h4, .card-num {
   .account-chip:active,
   #btn-add-account:active {
     transform: none !important;
+  }
+
+  .auth-dropdown {
+    transform: scale(0.95) translateY(-24px) !important;
+    transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+  .auth-dropdown.show {
+    transform: scale(1) translateY(0) !important;
   }
   .help-grid {
     grid-template-columns: 1fr;
