@@ -1114,12 +1114,6 @@ let chipClickTimer = null;
 function renderAccountChips(animate = false) {
   if (!elements.accountChipsList || !elements.btnAddAccount) return;
 
-  if (animate) {
-    elements.btnAddAccount.classList.remove('bounce');
-    void elements.btnAddAccount.offsetWidth; // Force reflow to restart animation
-    elements.btnAddAccount.classList.add('bounce');
-  }
-
   const accounts = state.instagramAccounts || [];
   const existingChips = Array.from(elements.accountChipsList.querySelectorAll('.account-chip'));
   
@@ -1136,7 +1130,13 @@ function renderAccountChips(animate = false) {
       chip.classList.toggle('active', isSelected);
     });
   } else {
-    // Full re-render when accounts are added or deleted
+    // Full re-render when accounts are added or deleted -> Layout shifts!
+    if (!isInitialAuthCheck && elements.btnAddAccount) {
+      elements.btnAddAccount.classList.remove('bounce');
+      void elements.btnAddAccount.offsetWidth; // Force reflow to restart animation
+      elements.btnAddAccount.classList.add('bounce');
+    }
+
     elements.accountChipsList.innerHTML = '';
 
     accounts.forEach((username, index) => {
@@ -2043,11 +2043,17 @@ function initAuth() {
             if (elements.authDropdown) {
               elements.authDropdown.classList.add('fade-out-bounce');
             }
+            if (elements.authFormView) {
+              elements.authFormView.classList.add('swoop-exit');
+            }
             setTimeout(() => {
               document.body.classList.remove('auth-logged-out');
               if (elements.authDropdown) {
                 elements.authDropdown.classList.remove('show');
                 elements.authDropdown.classList.remove('fade-out-bounce');
+              }
+              if (elements.authFormView) {
+                elements.authFormView.classList.remove('swoop-exit');
               }
               showProfileView();
             }, 600);

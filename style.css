@@ -2472,22 +2472,37 @@ textarea {
   color: var(--text-muted);
 }
 
-/* Fading bouncy exit animation for login page */
-@keyframes auth-card-exit {
+/* Overlay simple fade out */
+@keyframes auth-overlay-fade-out {
   0% {
     opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-  30% {
-    opacity: 1;
-    transform: scale(1.02) translateY(-10px);
   }
   100% {
     opacity: 0;
-    transform: scale(0.9) translateY(30px);
   }
 }
 
 body.auth-logged-out .auth-dropdown.fade-out-bounce {
-  animation: auth-card-exit 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+  animation: auth-overlay-fade-out 0.6s ease forwards !important;
+}
+
+/* Card swoop exit to top-right corner */
+@keyframes auth-card-swoop {
+  0% {
+    opacity: 1;
+    transform: scale(1) translate(0, 0);
+  }
+  15% {
+    opacity: 1;
+    transform: scale(1.05) translate(-15px, 15px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.05) translate(45vw, -45vh);
+    filter: blur(4px);
+  }
+}
+
+body.auth-logged-out #auth-form-view.swoop-exit {
+  animation: auth-card-swoop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
 }
