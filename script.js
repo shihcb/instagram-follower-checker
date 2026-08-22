@@ -99,10 +99,6 @@ const elements = {
   authUserEmail: document.getElementById('auth-user-email'),
   btnLogout: document.getElementById('btn-logout'),
   importFilesInput: document.getElementById('import-files-input'),
-  settingsBtn: document.getElementById('settings-btn'),
-  settingsOverlay: document.getElementById('settings-overlay'),
-  settingsCard: document.getElementById('settings-card'),
-  settingsCloseBtn: document.getElementById('btn-settings-close'),
   toggleShowList1: document.getElementById('toggle-show-list-1'),
   toggleShowList2: document.getElementById('toggle-show-list-2')
 };
@@ -2040,28 +2036,11 @@ function initAuth() {
         const finalizeLogin = () => {
           const hasAccounts = (state.instagramAccounts || []).length > 0;
           if (hasAccounts && !isInitialAuthCheck) {
-            if (elements.authFormView && elements.authBtn) {
-              const btnRect = elements.authBtn.getBoundingClientRect();
-              const cardRect = elements.authFormView.getBoundingClientRect();
-              
-              // Calculate centers of both elements
-              const btnCenterX = btnRect.left + btnRect.width / 2;
-              const btnCenterY = btnRect.top + btnRect.height / 2;
-              const cardCenterX = cardRect.left + cardRect.width / 2;
-              const cardCenterY = cardRect.top + cardRect.height / 2;
-              
-              const deltaX = btnCenterX - cardCenterX;
-              const deltaY = btnCenterY - cardCenterY;
-              
-              elements.authFormView.style.setProperty('--swoop-x', `${deltaX}px`);
-              elements.authFormView.style.setProperty('--swoop-y', `${deltaY}px`);
-            }
-
             if (elements.authDropdown) {
               elements.authDropdown.classList.add('fade-out-bounce');
             }
             if (elements.authFormView) {
-              elements.authFormView.classList.add('swoop-exit');
+              elements.authFormView.classList.add('smooth-exit');
             }
             setTimeout(() => {
               document.body.classList.remove('auth-logged-out');
@@ -2070,12 +2049,10 @@ function initAuth() {
                 elements.authDropdown.classList.remove('fade-out-bounce');
               }
               if (elements.authFormView) {
-                elements.authFormView.classList.remove('swoop-exit');
-                elements.authFormView.style.removeProperty('--swoop-x');
-                elements.authFormView.style.removeProperty('--swoop-y');
+                elements.authFormView.classList.remove('smooth-exit');
               }
               showProfileView();
-            }, 600);
+            }, 500);
           } else {
             document.body.classList.remove('auth-logged-out');
             if (elements.authDropdown) {
@@ -2549,7 +2526,7 @@ function updateStorageProgressBar() {
 }
 
 // -------------------------------------------------------------
-// Settings Management (Apple-style Full-screen Toggles)
+// Settings Management (Inline in Auth Dropdown)
 // -------------------------------------------------------------
 function initSettings() {
   if (localStorage.getItem('show_list_1') === null || localStorage.getItem('show_list_2') === null) {
@@ -2581,18 +2558,6 @@ function initSettings() {
     elements.toggleShowList2.addEventListener('change', (e) => {
       localStorage.setItem('show_list_2', e.target.checked ? 'true' : 'false');
       applySettings();
-    });
-  }
-
-  if (elements.settingsBtn) {
-    elements.settingsBtn.addEventListener('click', openSettings);
-  }
-  if (elements.settingsCloseBtn) {
-    elements.settingsCloseBtn.addEventListener('click', closeSettings);
-  }
-  if (elements.settingsOverlay) {
-    elements.settingsOverlay.addEventListener('click', (e) => {
-      if (e.target === elements.settingsOverlay) closeSettings();
     });
   }
 }
@@ -2630,47 +2595,6 @@ function updateGridColumns() {
   } else {
     appGrid.classList.add('show-1-col');
   }
-}
-
-function openSettings() {
-  if (elements.settingsOverlay) {
-    elements.settingsOverlay.classList.remove('hidden');
-    elements.settingsOverlay.classList.add('show');
-  }
-}
-
-function closeSettings() {
-  if (elements.settingsBtn && elements.settingsCard) {
-    const btnRect = elements.settingsBtn.getBoundingClientRect();
-    const cardRect = elements.settingsCard.getBoundingClientRect();
-    
-    const btnCenterX = btnRect.left + btnRect.width / 2;
-    const btnCenterY = btnRect.top + btnRect.height / 2;
-    const cardCenterX = cardRect.left + cardRect.width / 2;
-    const cardCenterY = cardRect.top + cardRect.height / 2;
-    
-    const deltaX = btnCenterX - cardCenterX;
-    const deltaY = btnCenterY - cardCenterY;
-    
-    elements.settingsCard.style.setProperty('--settings-swoop-x', `${deltaX}px`);
-    elements.settingsCard.style.setProperty('--settings-swoop-y', `${deltaY}px`);
-  }
-  
-  if (elements.settingsCard) {
-    elements.settingsCard.classList.add('swoop-out');
-  }
-  
-  setTimeout(() => {
-    if (elements.settingsOverlay) {
-      elements.settingsOverlay.classList.add('hidden');
-      elements.settingsOverlay.classList.remove('show');
-    }
-    if (elements.settingsCard) {
-      elements.settingsCard.classList.remove('swoop-out');
-      elements.settingsCard.style.removeProperty('--settings-swoop-x');
-      elements.settingsCard.style.removeProperty('--settings-swoop-y');
-    }
-  }, 600);
 }
 
 // -------------------------------------------------------------

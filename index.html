@@ -50,12 +50,7 @@
         
         <div class="header-actions">
           <div class="auth-container">
-            <button id="settings-btn" class="icon-btn" aria-label="settings" title="settings" style="margin-right: 8px;">
-              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-              </svg>
-            </button>
+
             <button id="auth-btn" class="icon-btn" aria-label="profile options" title="login & sync options">
               <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -141,6 +136,33 @@
 
                   <button type="submit" id="btn-auth-submit" class="btn btn-primary btn-block">log in</button>
                 </form>
+              </div>
+
+              <!-- Settings Toggles -->
+              <div class="auth-settings-section">
+                <div class="dropdown-header" style="margin-top: 4px;">
+                  <h3>settings</h3>
+                </div>
+                <div class="setting-item-row">
+                  <div class="setting-label-group">
+                    <span class="setting-label">show following (list 1)</span>
+                    <span class="setting-desc">display the list of accounts you follow</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="toggle-show-list-1" checked>
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <div class="setting-item-row">
+                  <div class="setting-label-group">
+                    <span class="setting-label">show followers (list 2)</span>
+                    <span class="setting-desc">display the list of accounts that follow you</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="toggle-show-list-2" checked>
+                    <span class="slider"></span>
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -390,41 +412,7 @@
     </div>
   </div>
 
-  <!-- Settings Modal Overlay (Full screen with same animations as login page) -->
-  <div id="settings-overlay" class="modal-overlay hidden">
-    <div class="account-modal-card glass" id="settings-card">
-      <div class="account-modal-header">
-        <h3 id="settings-modal-title">settings</h3>
-        <button id="btn-settings-close" class="modal-close-btn" aria-label="close settings">&times;</button>
-      </div>
-      
-      <div class="account-modal-input-group" style="display: flex; flex-direction: column; gap: 18px; margin-top: 10px;">
-        <!-- Toggle List 1 (Following) -->
-        <div class="setting-item-row" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;">
-          <div style="display: flex; flex-direction: column; gap: 2px;">
-            <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-main); text-transform: lowercase;">show following (list 1)</span>
-            <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: lowercase;">display the list of accounts you follow</span>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="toggle-show-list-1" checked>
-            <span class="slider"></span>
-          </label>
-        </div>
-        
-        <!-- Toggle List 2 (Followers) -->
-        <div class="setting-item-row" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;">
-          <div style="display: flex; flex-direction: column; gap: 2px;">
-            <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-main); text-transform: lowercase;">show followers (list 2)</span>
-            <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: lowercase;">display the list of accounts that follow you</span>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="toggle-show-list-2" checked>
-            <span class="slider"></span>
-          </label>
-        </div>
-      </div>
-    </div>
-  </div>
+
 
   <!-- Secret Romantic Easter Egg Overlay -->
   <div id="love-overlay" class="love-overlay">
