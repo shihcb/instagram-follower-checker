@@ -2542,11 +2542,15 @@ function updateStorageProgressBar() {
   
   const accounts = JSON.parse(localStorage.getItem('instagram_accounts') || '[]');
   accounts.forEach(acc => {
-    const key = acc.toLowerCase();
-    keysToMeasure.push(`following_users_${key}`);
-    keysToMeasure.push(`followers_users_${key}`);
-    keysToMeasure.push(`unfollowed_users_${key}`);
-    keysToMeasure.push(`starred_users_${key}`);
+    // If acc is an object (new schema), get originalUsername. Otherwise fallback to acc as string.
+    const username = typeof acc === 'object' && acc !== null ? acc.originalUsername : acc;
+    if (username) {
+      const key = username.toLowerCase();
+      keysToMeasure.push(`following_users_${key}`);
+      keysToMeasure.push(`followers_users_${key}`);
+      keysToMeasure.push(`unfollowed_users_${key}`);
+      keysToMeasure.push(`starred_users_${key}`);
+    }
   });
 
   let totalBytes = 0;
