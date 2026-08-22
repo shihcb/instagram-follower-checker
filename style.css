@@ -1084,7 +1084,6 @@ h1, h2, h3, h4, .card-num {
 .action-delete svg,
 .action-arrow svg,
 .star-unfollowed-btn svg,
-.remove-unfollowed-btn svg,
 .unstar-btn svg {
   color: var(--text-main) !important;
   stroke: var(--text-main) !important;
@@ -1104,7 +1103,6 @@ h1, h2, h3, h4, .card-num {
 [data-theme="dark"] .action-delete svg,
 [data-theme="dark"] .action-arrow svg,
 [data-theme="dark"] .star-unfollowed-btn svg,
-[data-theme="dark"] .remove-unfollowed-btn svg,
 [data-theme="dark"] .unstar-btn svg {
   color: #ffffff !important;
   stroke: #ffffff !important;
