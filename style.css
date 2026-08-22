@@ -824,14 +824,26 @@ h1, h2, h3, h4, .card-num {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
+.dropdown-wrapper {
+  transition: flex 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
 #toggle-preview-unfollowed {
   width: 140px;
   justify-content: space-between;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 #toggle-preview-starred {
   width: 115px;
   justify-content: space-between;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 /* When any list is hidden, make all action buttons size evenly (desktop/tablet only) */
@@ -1234,7 +1246,12 @@ h1, h2, h3, h4, .card-num {
 }
 
 #btn-add-account {
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease !important;
+  transition: flex 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.25s ease,
+              border-color 0.25s ease,
+              color 0.25s ease,
+              box-shadow 0.25s ease,
+              transform 0.25s ease !important;
 }
 
 /* Pseudo-element hover hitbox shield to prevent mouse cursor flickering on edges */
