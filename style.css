@@ -812,7 +812,8 @@ h1, h2, h3, h4, .card-num {
 
 @media (max-width: 1024px) {
   #toggle-preview-unfollowed,
-  #toggle-preview-starred {
+  #toggle-preview-starred,
+  #btn-add-account {
     width: 100% !important;
     min-width: 0 !important;
   }
@@ -821,7 +822,8 @@ h1, h2, h3, h4, .card-num {
     margin-top: 4px;
     position: static;
   }
-  .results-dropdowns-group .dropdown-wrapper {
+  .results-dropdowns-group .dropdown-wrapper,
+  .results-dropdowns-group #btn-add-account {
     flex: 1 1 0px !important;
     min-width: 0 !important;
     position: relative !important;
@@ -1345,6 +1347,12 @@ h1, h2, h3, h4, .card-num {
 .results-controls {
   display: flex;
   flex-direction: column;
+  gap: 12px;
+}
+
+.search-row {
+  display: flex;
+  align-items: center;
   gap: 12px;
 }
 
