@@ -93,6 +93,7 @@ const elements = {
   btnModalDelete: document.getElementById('btn-modal-delete'),
   btnModalSave: document.getElementById('btn-modal-save'),
   btnModalClose: document.getElementById('btn-modal-close'),
+  accountModalOriginalCaption: document.getElementById('account-modal-original-caption'),
 
   // Auth & Cloud Sync DOM elements
   authBtn: document.getElementById('auth-btn'),
@@ -1247,13 +1248,29 @@ function openAccountModal(index = -1) {
   const accounts = state.instagramAccounts || [];
 
   if (index >= 0 && index < accounts.length) {
+    const acc = accounts[index];
     if (elements.accountModalTitle) elements.accountModalTitle.textContent = 'edit instagram account';
-    if (elements.accountUsernameInput) elements.accountUsernameInput.value = accounts[index].username;
+    if (elements.accountUsernameInput) elements.accountUsernameInput.value = acc.username;
     if (elements.btnModalDelete) elements.btnModalDelete.style.display = 'inline-block';
+
+    // Show original username caption if it has been edited
+    if (elements.accountModalOriginalCaption) {
+      if (acc.username.toLowerCase() !== acc.originalUsername.toLowerCase()) {
+        elements.accountModalOriginalCaption.textContent = `original: @${acc.originalUsername.toLowerCase()}`;
+        elements.accountModalOriginalCaption.classList.remove('hidden');
+      } else {
+        elements.accountModalOriginalCaption.classList.add('hidden');
+        elements.accountModalOriginalCaption.textContent = '';
+      }
+    }
   } else {
     if (elements.accountModalTitle) elements.accountModalTitle.textContent = 'add instagram account';
     if (elements.accountUsernameInput) elements.accountUsernameInput.value = '';
     if (elements.btnModalDelete) elements.btnModalDelete.style.display = 'none';
+    if (elements.accountModalOriginalCaption) {
+      elements.accountModalOriginalCaption.classList.add('hidden');
+      elements.accountModalOriginalCaption.textContent = '';
+    }
   }
 
   elements.accountModalOverlay.classList.remove('hidden');
@@ -1269,6 +1286,10 @@ function closeAccountModal() {
   elements.accountModalOverlay.classList.remove('show');
   setTimeout(() => {
     elements.accountModalOverlay.classList.add('hidden');
+    if (elements.accountModalOriginalCaption) {
+      elements.accountModalOriginalCaption.classList.add('hidden');
+      elements.accountModalOriginalCaption.textContent = '';
+    }
     state.editingAccountIndex = -1;
   }, 350);
 }
