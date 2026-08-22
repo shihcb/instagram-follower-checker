@@ -1027,7 +1027,7 @@ function saveCurrentAccountData() {
   pushToCloud();
 }
 
-function loadAccountData(username) {
+function loadAccountData(username, animate = false) {
   if (username) {
     const acc = username.toLowerCase();
 
@@ -1087,7 +1087,7 @@ function loadAccountData(username) {
   updateListUI('following');
   updateListUI('followers');
   calculateUnfollowers();
-  renderAccountChips();
+  renderAccountChips(animate);
   updateStorageProgressBar();
 }
 
@@ -2040,6 +2040,23 @@ function initAuth() {
         const finalizeLogin = () => {
           const hasAccounts = (state.instagramAccounts || []).length > 0;
           if (hasAccounts && !isInitialAuthCheck) {
+            if (elements.authFormView && elements.authBtn) {
+              const btnRect = elements.authBtn.getBoundingClientRect();
+              const cardRect = elements.authFormView.getBoundingClientRect();
+              
+              // Calculate centers of both elements
+              const btnCenterX = btnRect.left + btnRect.width / 2;
+              const btnCenterY = btnRect.top + btnRect.height / 2;
+              const cardCenterX = cardRect.left + cardRect.width / 2;
+              const cardCenterY = cardRect.top + cardRect.height / 2;
+              
+              const deltaX = btnCenterX - cardCenterX;
+              const deltaY = btnCenterY - cardCenterY;
+              
+              elements.authFormView.style.setProperty('--swoop-x', `${deltaX}px`);
+              elements.authFormView.style.setProperty('--swoop-y', `${deltaY}px`);
+            }
+
             if (elements.authDropdown) {
               elements.authDropdown.classList.add('fade-out-bounce');
             }
@@ -2054,6 +2071,8 @@ function initAuth() {
               }
               if (elements.authFormView) {
                 elements.authFormView.classList.remove('swoop-exit');
+                elements.authFormView.style.removeProperty('--swoop-x');
+                elements.authFormView.style.removeProperty('--swoop-y');
               }
               showProfileView();
             }, 600);

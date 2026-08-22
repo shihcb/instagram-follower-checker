@@ -1033,14 +1033,22 @@ h1, h2, h3, h4, .card-num {
   align-items: center;
   gap: 8px;
   margin-top: 10px;
-  flex-wrap: wrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex-wrap: nowrap;
+}
+
+.account-mgmt-row::-webkit-scrollbar {
+  display: none;
 }
 
 .account-chips-list {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
 }
 
 .account-chip {
@@ -1108,6 +1116,7 @@ h1, h2, h3, h4, .card-num {
   overflow: hidden;
   white-space: nowrap;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 @keyframes add-btn-bounce {
@@ -1645,38 +1654,40 @@ h1, h2, h3, h4, .card-num {
 @keyframes chip-bounce-in {
   0% {
     opacity: 0;
-    transform: translateY(12px) scale(0.88);
+    transform: scale(0.3);
   }
-  60% {
-    opacity: 1;
-    transform: translateY(-3px) scale(1.03);
+  50% {
+    transform: scale(1.15);
   }
-  85% {
-    transform: translateY(1px) scale(0.99);
+  80% {
+    transform: scale(0.95);
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: scale(1);
   }
 }
 
 .account-chip.fade-in {
-  animation: chip-bounce-in 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: chip-bounce-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 @keyframes chip-bounce-out {
   0% {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.12);
   }
   100% {
     opacity: 0;
-    transform: scale(0.85) translateY(12px);
+    transform: scale(0.2);
   }
 }
 
 .account-chip.bounce-out {
-  animation: chip-bounce-out 0.45s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards !important;
+  animation: chip-bounce-out 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
 }
 
 .action-star svg {
@@ -2494,11 +2505,11 @@ body.auth-logged-out .auth-dropdown.fade-out-bounce {
   }
   15% {
     opacity: 1;
-    transform: scale(1.05) translate(-15px, 15px);
+    transform: scale(1.05) translate(calc(var(--swoop-x, 45vw) * -0.02), calc(var(--swoop-y, -45vh) * -0.02));
   }
   100% {
     opacity: 0;
-    transform: scale(0.05) translate(45vw, -45vh);
+    transform: scale(0.01) translate(var(--swoop-x, 45vw), var(--swoop-y, -45vh));
     filter: blur(4px);
   }
 }
