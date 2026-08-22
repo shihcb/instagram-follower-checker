@@ -383,6 +383,18 @@ h1, h2, h3, h4, .card-num {
   display: flex;
   flex-direction: column;
   height: 580px;
+  max-width: 600px;
+  width: 100%;
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              max-width 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              width 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              margin 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              padding 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .card:hover {
@@ -475,7 +487,9 @@ h1, h2, h3, h4, .card-num {
   align-items: stretch;
   position: relative;
   margin-top: 48px;
-  transition: margin-top 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: margin-top 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              grid-template-columns 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              gap 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .import-account-warning {
@@ -663,6 +677,11 @@ h1, h2, h3, h4, .card-num {
   border: 1px solid var(--btn-secondary-border) !important;
   color: var(--text-main) !important;
   box-shadow: none !important;
+  outline: none !important;
+}
+
+.preview-toggle.active {
+  border-color: var(--text-main) !important;
 }
 
 .preview-toggle span {
@@ -1022,7 +1041,6 @@ h1, h2, h3, h4, .card-num {
 [data-theme="dark"] .preview-toggle:focus,
 [data-theme="dark"] .preview-toggle:focus-visible,
 [data-theme="dark"] .preview-toggle:active,
-[data-theme="dark"] .preview-toggle.active,
 [data-theme="dark"] #toggle-preview-unfollowed,
 [data-theme="dark"] #toggle-preview-starred,
 [data-theme="dark"] #toggle-preview-unfollowed:hover,
@@ -1043,6 +1061,10 @@ h1, h2, h3, h4, .card-num {
   outline: none !important;
   -webkit-tap-highlight-color: transparent !important;
   box-shadow: none !important;
+}
+
+[data-theme="dark"] .preview-toggle.active {
+  border-color: rgba(255, 255, 255, 0.45) !important;
 }
 
 .preview-toggle *,
@@ -1482,6 +1504,9 @@ h1, h2, h3, h4, .card-num {
 
 @media (max-width: 1024px) {
   .keyboard-hints {
+    display: none !important;
+  }
+  .desktop-only {
     display: none !important;
   }
 }
@@ -2712,9 +2737,19 @@ body.auth-logged-out #auth-form-view.smooth-exit {
   text-transform: lowercase;
 }
 
-/* Hidden Card States */
+/* Hidden Card States - Slow nice sliding transition */
 .hidden-card {
-  display: none !important;
+  max-width: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  opacity: 0 !important;
+  transform: scale(0.92) translateY(12px) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-width: 0 !important;
+  border-color: transparent !important;
+  pointer-events: none !important;
+  overflow: hidden !important;
 }
 
 /* App Grid responsive layout overrides */
