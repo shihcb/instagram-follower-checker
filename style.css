@@ -1039,7 +1039,9 @@ h1, h2, h3, h4, .card-num {
   scrollbar-width: none;
   -ms-overflow-style: none;
   flex-wrap: nowrap;
-  padding: 4px 2px;
+  padding: 8px 16px;
+  margin-left: -16px;
+  margin-right: -16px;
 }
 
 .account-mgmt-row::-webkit-scrollbar {
@@ -1098,9 +1100,13 @@ h1, h2, h3, h4, .card-num {
 }
 
 .account-chip:hover {
-  transform: translateY(-1px);
+  transform: translateY(-1.5px);
   border-color: var(--text-main);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="dark"] .account-chip:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
 }
 
 .btn-add-account {
@@ -2094,7 +2100,8 @@ body.auth-logged-out #theme-toggle {
   font-size: 0.9rem;
   color: var(--text-main);
   text-transform: lowercase;
-  margin: 0 0 6px 0;
+  margin: 0 0 10px 0;
+  text-align: center;
 }
 
 .auth-desc {
