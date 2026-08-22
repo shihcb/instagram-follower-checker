@@ -1034,14 +1034,15 @@ h1, h2, h3, h4, .card-num {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 10px;
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
   flex-wrap: nowrap;
-  padding: 8px 16px;
+  padding: 20px 16px;
   margin-left: -16px;
   margin-right: -16px;
+  margin-top: -10px;
+  margin-bottom: -16px;
 }
 
 .account-mgmt-row::-webkit-scrollbar {
