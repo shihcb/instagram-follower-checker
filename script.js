@@ -1959,6 +1959,7 @@ function setupEventListeners() {
 // -------------------------------------------------------------
 let currentUser = null;
 let isSigningUp = false;
+let isInitialAuthCheck = true;
 
 function initAuth() {
   if (!supabaseClient) {
@@ -2006,8 +2007,23 @@ function initAuth() {
         }
         calculateUnfollowers();
 
-        // Animate account chips fade-in on login
-        renderAccountChips(true);
+        if (!isInitialAuthCheck) {
+          // Clear existing chips so renderAccountChips forces a full animated re-render
+          if (elements.accountChipsList) elements.accountChipsList.innerHTML = '';
+          renderAccountChips(true);
+
+          // Slowly fade in the results list consistently
+          if (elements.listUnfollowers) {
+            elements.listUnfollowers.style.transition = 'none';
+            elements.listUnfollowers.style.opacity = '0';
+            requestAnimationFrame(() => {
+              elements.listUnfollowers.style.transition = 'opacity 700ms ease';
+              elements.listUnfollowers.style.opacity = '1';
+            });
+          }
+        } else {
+          renderAccountChips(false);
+        }
       } else {
         currentUser = null;
         elements.userBadge.classList.add('hidden');
@@ -2021,21 +2037,7 @@ function initAuth() {
         elements.authProfileView.classList.add('hidden');
         elements.authFormView.classList.remove('hidden');
 
-        // Smoothly fade out account chips and results list before clearing
-        const fadeDuration = 700;
-        const chipsList = elements.accountChipsList;
-        const resultsList = elements.listUnfollowers;
-
-        if (chipsList) {
-          chipsList.style.transition = `opacity ${fadeDuration}ms ease`;
-          chipsList.style.opacity = '0';
-        }
-        if (resultsList) {
-          resultsList.style.transition = `opacity ${fadeDuration}ms ease`;
-          resultsList.style.opacity = '0';
-        }
-        
-        setTimeout(() => {
+        const clearData = () => {
           // Clear all loaded information, Instagram accounts, and input textareas
           state.following = [];
           state.followers = [];
@@ -2063,15 +2065,38 @@ function initAuth() {
           updateListUI('following');
           updateListUI('followers');
           calculateUnfollowers();
-          renderAccountChips();
+          renderAccountChips(false);
+        };
 
-          // Reset inline styles so they don't interfere on next login
-          if (chipsList) chipsList.removeAttribute('style');
-          if (resultsList) resultsList.removeAttribute('style');
-        }, fadeDuration + 50);
+        if (!isInitialAuthCheck) {
+          // Smoothly fade out account chips and results list before clearing
+          const fadeDuration = 700;
+          const chipsList = elements.accountChipsList;
+          const resultsList = elements.listUnfollowers;
+
+          if (chipsList) {
+            chipsList.style.transition = `opacity ${fadeDuration}ms ease`;
+            chipsList.style.opacity = '0';
+          }
+          if (resultsList) {
+            resultsList.style.transition = `opacity ${fadeDuration}ms ease`;
+            resultsList.style.opacity = '0';
+          }
+          
+          setTimeout(() => {
+            clearData();
+            // Reset inline styles so they don't interfere on next login
+            if (chipsList) chipsList.removeAttribute('style');
+            if (resultsList) resultsList.removeAttribute('style');
+          }, fadeDuration + 50);
+        } else {
+          clearData();
+        }
       }
     } catch (err) {
       console.error('Error in onAuthStateChange handler:', err);
+    } finally {
+      isInitialAuthCheck = false;
     }
   });
 
