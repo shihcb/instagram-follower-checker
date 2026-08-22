@@ -1459,6 +1459,12 @@ function setupEventListeners() {
     const userObj = state.unfollowers.find(u => u.username === username);
     if (!userObj) return;
 
+    const actionArrow = e.target.closest('.action-arrow');
+    if (actionArrow) {
+      // Bypasses the unfollow/move logic entirely; let the browser naturally open the profileUrl anchor link.
+      return;
+    }
+
     const actionStar = e.target.closest('.action-star');
     const currentAcc = (state.selectedAccountUsername || '_global_').toLowerCase();
     const taggedObj = { ...userObj, account: currentAcc };

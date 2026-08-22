@@ -1133,6 +1133,14 @@ h1, h2, h3, h4, .card-num {
   stroke: #ef4444 !important;
 }
 
+.action-arrow {
+  color: #10b981 !important;
+}
+.action-arrow svg {
+  color: #10b981 !important;
+  stroke: #10b981 !important;
+}
+
 /* Mac/Desktop Hover States (Starts neutral, colors change only when hovered over) */
 @media (hover: hover) {
   .action-star,
@@ -1178,6 +1186,18 @@ h1, h2, h3, h4, .card-num {
     stroke: #ffffff !important;
   }
 
+  .action-arrow {
+    color: var(--text-muted) !important;
+  }
+  .action-arrow svg {
+    color: var(--text-main) !important;
+    stroke: var(--text-main) !important;
+  }
+  [data-theme="dark"] .action-arrow svg {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+  }
+
   /* Hover color triggers */
   .action-star:hover,
   .star-unfollowed-btn:hover,
@@ -1204,6 +1224,15 @@ h1, h2, h3, h4, .card-num {
   .action-dismiss:hover svg {
     color: #ef4444 !important;
     stroke: #ef4444 !important;
+  }
+
+  .action-arrow:hover {
+    color: #10b981 !important;
+    transform: scale(1.15) !important;
+  }
+  .action-arrow:hover svg {
+    color: #10b981 !important;
+    stroke: #10b981 !important;
   }
 }
 
@@ -1800,25 +1829,9 @@ h1, h2, h3, h4, .card-num {
 
 
 .action-arrow {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #ffffff;
-  border: 1px solid var(--card-border);
-  color: var(--text-muted);
   transform: rotate(0deg);
   will-change: transform;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-              background-color 0.3s ease,
-              color 0.3s ease,
-              border-color 0.3s ease;
-}
-
-[data-theme="dark"] .action-arrow {
-  background-color: #18181b;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s ease !important;
 }
 
 .action-arrow svg {
@@ -1827,9 +1840,6 @@ h1, h2, h3, h4, .card-num {
 }
 
 .user-row.selected .action-arrow {
-  background: var(--text-main) !important;
-  color: var(--text-inverse) !important;
-  border-color: transparent !important;
   transform: rotate(-45deg) !important;
 }
 
