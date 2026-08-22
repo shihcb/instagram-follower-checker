@@ -2023,6 +2023,17 @@ function setupEventListeners() {
         elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
       }
     });
+
+    elements.inputFollowing.addEventListener('blur', () => {
+      const lines = elements.inputFollowing.value.split('\n');
+      const formatted = lines.map(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return '';
+        return trimmed.startsWith('@') ? trimmed : `@${trimmed}`;
+      });
+      elements.inputFollowing.value = formatted.filter(l => l !== '').join('\n');
+      elements.inputFollowing.dispatchEvent(new Event('input'));
+    });
   }
 
   if (elements.inputFollowers) {
@@ -2031,6 +2042,17 @@ function setupEventListeners() {
         searchFollowersInput.value = '';
         elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername}`).join('\n');
       }
+    });
+
+    elements.inputFollowers.addEventListener('blur', () => {
+      const lines = elements.inputFollowers.value.split('\n');
+      const formatted = lines.map(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return '';
+        return trimmed.startsWith('@') ? trimmed : `@${trimmed}`;
+      });
+      elements.inputFollowers.value = formatted.filter(l => l !== '').join('\n');
+      elements.inputFollowers.dispatchEvent(new Event('input'));
     });
   }
 
