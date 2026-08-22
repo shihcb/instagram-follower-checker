@@ -2589,9 +2589,8 @@ function applySettings() {
     keyboardHints.classList.toggle('hidden-hints', !showKeyboard);
   }
 
-  if (isInitialSettingsLoad) {
-    updateGridColumns();
-  }
+  // Update layout columns instantly to sync button transition durations
+  updateGridColumns();
 
   // Clean up temporary early settings styles block
   const earlyStyle = document.getElementById('early-settings-style');
@@ -2610,7 +2609,6 @@ function toggleCardWithAnimation(card, show) {
   if (show) {
     card.classList.remove('hidden-card');
     card.offsetHeight; // Force reflow
-    updateGridColumns();
     requestAnimationFrame(() => {
       card.classList.remove('card-fade-out');
     });
@@ -2622,24 +2620,21 @@ function toggleCardWithAnimation(card, show) {
         : localStorage.getItem('show_list_2') !== 'false';
       if (!currentShow) {
         card.classList.add('hidden-card');
-        updateGridColumns();
       }
     }, 600); // Matches the 0.6s CSS transition
   }
 }
 
 function updateGridColumns() {
-  const card1 = document.getElementById('card-following');
-  const card2 = document.getElementById('card-followers');
   const appGrid = document.querySelector('.app-grid');
   if (!appGrid) return;
 
-  const card1Hidden = card1 ? card1.classList.contains('hidden-card') : false;
-  const card2Hidden = card2 ? card2.classList.contains('hidden-card') : false;
+  const show1 = localStorage.getItem('show_list_1') !== 'false';
+  const show2 = localStorage.getItem('show_list_2') !== 'false';
 
   let visibleCount = 3;
-  if (card1Hidden) visibleCount--;
-  if (card2Hidden) visibleCount--;
+  if (!show1) visibleCount--;
+  if (!show2) visibleCount--;
 
   appGrid.classList.remove('show-3-cols', 'show-2-cols', 'show-1-col');
   if (visibleCount === 3) {
@@ -2655,7 +2650,7 @@ function updateGridColumns() {
   if (unfollowersCard) {
     const badge = unfollowersCard.querySelector('.card-num');
     if (badge) {
-      badge.textContent = (card1Hidden && card2Hidden) ? '1' : '3';
+      badge.textContent = (!show1 && !show2) ? '1' : '3';
     }
   }
 }
