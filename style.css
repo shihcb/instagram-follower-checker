@@ -1172,6 +1172,10 @@ h1, h2, h3, h4, .card-num {
   position: relative !important;
 }
 
+#btn-add-account {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease !important;
+}
+
 /* Pseudo-element hover hitbox shield to prevent mouse cursor flickering on edges */
 .account-chip::after,
 #btn-add-account::after {
