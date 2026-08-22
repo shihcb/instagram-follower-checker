@@ -842,38 +842,40 @@ h1, h2, h3, h4, .card-num {
 }
 
 #toggle-preview-unfollowed {
-  width: 140px;
+  width: 100% !important;
   justify-content: space-between;
-  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+  transition: background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
               box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 #toggle-preview-starred {
-  width: 115px;
+  width: 100% !important;
   justify-content: space-between;
-  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+  transition: background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
               box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 /* When any list is hidden, make all action buttons size evenly (desktop/tablet only) */
 @media (min-width: 601px) {
+  /* Base state (show-3-cols) explicit flex sizing to enable smooth transitions */
+  .app-grid.show-3-cols .results-dropdowns-group .dropdown-wrapper:nth-child(1) {
+    flex: 0 0 140px !important;
+  }
+  .app-grid.show-3-cols .results-dropdowns-group .dropdown-wrapper:nth-child(2) {
+    flex: 0 0 115px !important;
+  }
+  .app-grid.show-3-cols .results-dropdowns-group #btn-add-account {
+    flex: 1 1 0px !important;
+  }
+
   .app-grid.show-2-cols .results-dropdowns-group .dropdown-wrapper,
   .app-grid.show-2-cols .results-dropdowns-group #btn-add-account,
   .app-grid.show-1-col .results-dropdowns-group .dropdown-wrapper,
   .app-grid.show-1-col .results-dropdowns-group #btn-add-account {
     flex: 1 1 0px !important;
     min-width: 0 !important;
-  }
-
-  .app-grid.show-2-cols .results-dropdowns-group #toggle-preview-unfollowed,
-  .app-grid.show-2-cols .results-dropdowns-group #toggle-preview-starred,
-  .app-grid.show-1-col .results-dropdowns-group #toggle-preview-unfollowed,
-  .app-grid.show-1-col .results-dropdowns-group #toggle-preview-starred {
-    width: 100% !important;
   }
 
   /* Match dropdown menus to their parent button's width when dynamically sized (only when both lists are hidden) */
