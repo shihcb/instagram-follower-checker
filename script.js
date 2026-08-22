@@ -1017,8 +1017,8 @@ async function processImportFiles(files) {
     }
   }
 
-  if (invalidFiles.length > 0) {
-    await showSiteAlert('ignored files', `ignored files: ${invalidFiles.join(', ')}.\nonly follower and following HTML/TXT export files are accepted.`);
+  if (validFilesToProcess.length === 0 && invalidFiles.length > 0) {
+    await showSiteAlert('no valid files found', 'no valid follower or following HTML/TXT export files were found in the uploaded selection.');
   }
 
   return importedFollowing || importedFollowers;
@@ -2475,13 +2475,43 @@ function initAuth() {
     });
   }
 
+  // Helper to recursively traverse entries and extract files
+  async function getFilesFromEntry(entry) {
+    let files = [];
+    if (entry.isFile) {
+      const file = await new Promise((resolve) => entry.file(resolve));
+      files.push(file);
+    } else if (entry.isDirectory) {
+      const dirReader = entry.createReader();
+      const entries = await new Promise((resolve) => {
+        dirReader.readEntries(resolve);
+      });
+      for (const subEntry of entries) {
+        const subFiles = await getFilesFromEntry(subEntry);
+        files = files.concat(subFiles);
+      }
+    }
+    return files;
+  }
+
   // Handle Drag & Drop files anywhere on document
   document.addEventListener('dragover', (e) => {
     e.preventDefault();
   });
   document.addEventListener('drop', async (e) => {
-    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      e.preventDefault();
+    e.preventDefault();
+    if (e.dataTransfer && e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      const items = Array.from(e.dataTransfer.items);
+      let files = [];
+      for (const item of items) {
+        const entry = item.webkitGetAsEntry();
+        if (entry) {
+          const entryFiles = await getFilesFromEntry(entry);
+          files = files.concat(entryFiles);
+        }
+      }
+      await processImportFiles(files);
+    } else if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const files = Array.from(e.dataTransfer.files);
       await processImportFiles(files);
     }
