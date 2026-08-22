@@ -2591,6 +2591,15 @@ function updateGridColumns() {
   } else {
     appGrid.classList.add('show-1-col');
   }
+
+  // Update card sequence badge for unfollowers dynamically when both lists are hidden
+  const unfollowersCard = document.getElementById('card-unfollowers');
+  if (unfollowersCard) {
+    const badge = unfollowersCard.querySelector('.card-num');
+    if (badge) {
+      badge.textContent = (card1Hidden && card2Hidden) ? '1' : '3';
+    }
+  }
 }
 
 // -------------------------------------------------------------
