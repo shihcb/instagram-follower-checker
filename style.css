@@ -1626,7 +1626,7 @@ h1, h2, h3, h4, .card-num {
 .results-controls {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .search-row {
