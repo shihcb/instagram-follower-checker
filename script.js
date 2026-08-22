@@ -1323,6 +1323,7 @@ function saveAccountFromModal() {
 
   localStorage.setItem('instagram_accounts', JSON.stringify(state.instagramAccounts));
   renderAccountChips(true);
+  pushToCloud();
   closeAccountModal();
 }
 
