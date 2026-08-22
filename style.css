@@ -409,7 +409,6 @@ h1, h2, h3, h4, .card-num {
   min-width: 0 !important;
   max-width: 0 !important;
   opacity: 0 !important;
-  transform: scale(0.94) translateY(20px) !important;
   pointer-events: none !important;
   overflow: hidden !important;
   border-width: 0 !important;
@@ -1984,7 +1983,7 @@ h1, h2, h3, h4, .card-num {
     min-height: 0 !important;
     max-height: 0 !important;
     opacity: 0 !important;
-    transform: scale(0.94) translateY(20px) !important;
+    transform: scale(0.96) translateY(32px) !important;
     pointer-events: none !important;
     overflow: hidden !important;
     border-width: 0 !important;
@@ -2058,6 +2057,14 @@ h1, h2, h3, h4, .card-num {
   .card {
     height: 100%;
     min-height: 0;
+  }
+
+  #card-following.card-fade-out {
+    transform: scale(0.96) translateX(-32px) !important;
+  }
+
+  #card-followers.card-fade-out {
+    transform: scale(0.96) translateX(32px) !important;
   }
 
   .card-body {
