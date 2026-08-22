@@ -826,6 +826,21 @@ h1, h2, h3, h4, .card-num {
   .app-grid.show-1-col .results-dropdowns-group #toggle-preview-starred {
     width: 100% !important;
   }
+
+  /* Match dropdown menus to their parent button's width when dynamically sized */
+  .app-grid.show-2-cols .results-dropdowns-group .dropdown-wrapper,
+  .app-grid.show-1-col .results-dropdowns-group .dropdown-wrapper {
+    position: relative !important;
+  }
+
+  .app-grid.show-2-cols .results-dropdowns-group .dropdown-menu,
+  .app-grid.show-1-col .results-dropdowns-group .dropdown-menu {
+    width: 100% !important;
+    min-width: 100% !important;
+    box-sizing: border-box !important;
+    left: 0 !important;
+    right: 0 !important;
+  }
 }
 
 @media (max-width: 1024px) {
