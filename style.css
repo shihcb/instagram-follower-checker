@@ -1079,26 +1079,15 @@ h1, h2, h3, h4, .card-num {
 .unstar-btn {
   width: 28px !important;
   height: 28px !important;
-  border-radius: 50% !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  background-color: #ffffff !important;
-  border: 1px solid var(--card-border) !important;
+  background: transparent !important;
+  border: none !important;
   padding: 0 !important;
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease !important;
+  transition: color 0.25s ease, transform 0.25s ease !important;
   cursor: pointer !important;
   box-sizing: border-box !important;
-}
-
-[data-theme="dark"] .action-star,
-[data-theme="dark"] .action-delete,
-[data-theme="dark"] .action-arrow,
-[data-theme="dark"] .action-dismiss,
-[data-theme="dark"] .star-unfollowed-btn,
-[data-theme="dark"] .remove-unfollowed-btn,
-[data-theme="dark"] .unstar-btn {
-  background-color: #18181b !important;
 }
 
 .action-star svg,
@@ -1119,7 +1108,6 @@ h1, h2, h3, h4, .card-num {
 .star-unfollowed-btn,
 .unstar-btn {
   color: #f59e0b !important;
-  border-color: rgba(245, 158, 11, 0.3) !important;
 }
 .action-star svg,
 .star-unfollowed-btn svg,
@@ -1137,7 +1125,6 @@ h1, h2, h3, h4, .card-num {
 .remove-unfollowed-btn,
 .action-dismiss {
   color: #ef4444 !important;
-  border-color: rgba(239, 68, 68, 0.3) !important;
 }
 .action-delete svg,
 .remove-unfollowed-btn svg,
@@ -1152,7 +1139,6 @@ h1, h2, h3, h4, .card-num {
   .star-unfollowed-btn,
   .unstar-btn {
     color: var(--text-muted) !important;
-    border-color: var(--card-border) !important;
   }
   .action-star svg,
   .star-unfollowed-btn svg,
@@ -1178,7 +1164,6 @@ h1, h2, h3, h4, .card-num {
   .remove-unfollowed-btn,
   .action-dismiss {
     color: var(--text-muted) !important;
-    border-color: var(--card-border) !important;
   }
   .action-delete svg,
   .remove-unfollowed-btn svg,
@@ -1198,7 +1183,6 @@ h1, h2, h3, h4, .card-num {
   .star-unfollowed-btn:hover,
   .unstar-btn:hover {
     color: #f59e0b !important;
-    border-color: #f59e0b !important;
     transform: scale(1.15) !important;
   }
   .action-star:hover svg,
@@ -1213,7 +1197,6 @@ h1, h2, h3, h4, .card-num {
   .remove-unfollowed-btn:hover,
   .action-dismiss:hover {
     color: #ef4444 !important;
-    border-color: #ef4444 !important;
     transform: scale(1.15) !important;
   }
   .action-delete:hover svg,
