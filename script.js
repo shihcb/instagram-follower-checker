@@ -1929,9 +1929,20 @@ function setupEventListeners() {
   if (settingsResetUnfollowedBtn) {
     settingsResetUnfollowedBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      const confirmed = await showSiteConfirm('reset list', 'are you sure you want to reset your unfollowed list history?', 'reset', 'cancel');
+      const currentAcc = state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '';
+      const listName = currentAcc ? `@${currentAcc}'s unfollowed list` : 'your global unfollowed list';
+      const confirmed = await showSiteConfirm('reset list', `are you sure you want to reset ${listName}?`, 'reset', 'cancel');
       if (confirmed) {
         state.unfollowed = [];
+        if (currentAcc) {
+          localStorage.setItem(`unfollowed_users_${currentAcc}`, JSON.stringify([]));
+          // Clean global shared list matching this account
+          const globalList = JSON.parse(localStorage.getItem('unfollowed_users') || '[]');
+          const filtered = globalList.filter(u => !u.account || u.account.toLowerCase() !== currentAcc);
+          localStorage.setItem('unfollowed_users', JSON.stringify(filtered));
+        } else {
+          localStorage.setItem('unfollowed_users', JSON.stringify([]));
+        }
         saveCurrentAccountData();
         calculateUnfollowers();
         updateUnfollowedUI();
@@ -1944,9 +1955,20 @@ function setupEventListeners() {
   if (settingsResetStarredBtn) {
     settingsResetStarredBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      const confirmed = await showSiteConfirm('reset list', 'are you sure you want to reset your starred list?', 'reset', 'cancel');
+      const currentAcc = state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '';
+      const listName = currentAcc ? `@${currentAcc}'s starred list` : 'your global starred list';
+      const confirmed = await showSiteConfirm('reset list', `are you sure you want to reset ${listName}?`, 'reset', 'cancel');
       if (confirmed) {
         state.starred = [];
+        if (currentAcc) {
+          localStorage.setItem(`starred_users_${currentAcc}`, JSON.stringify([]));
+          // Clean global shared list matching this account
+          const globalList = JSON.parse(localStorage.getItem('starred_users') || '[]');
+          const filtered = globalList.filter(u => !u.account || u.account.toLowerCase() !== currentAcc);
+          localStorage.setItem('starred_users', JSON.stringify(filtered));
+        } else {
+          localStorage.setItem('starred_users', JSON.stringify([]));
+        }
         saveCurrentAccountData();
         calculateUnfollowers();
         updateStarredUI();

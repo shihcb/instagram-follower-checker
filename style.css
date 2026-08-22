@@ -2800,6 +2800,11 @@ body.auth-logged-out #auth-form-view.smooth-exit {
   color: #ffffff !important;
 }
 
+.card-body .search-box {
+  flex: 0 0 auto !important;
+  width: 100% !important;
+}
+
 /* Remove browser default focus outline highlights to maintain consistency with design language */
 button:focus,
 button:focus-visible,
