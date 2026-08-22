@@ -289,7 +289,7 @@ h1, h2, h3, h4, .card-num {
   gap: 8px;
   font-family: var(--font-sans);
   font-weight: 600;
-  border-radius: 20px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border: none;
@@ -567,7 +567,7 @@ h1, h2, h3, h4, .card-num {
   width: 100%;
   flex: 1;
   border: 1px solid var(--input-border);
-  border-radius: 20px;
+  border-radius: 12px;
   background-color: var(--input-bg);
   padding: 14px;
   color: var(--text-main);
@@ -645,7 +645,7 @@ h1, h2, h3, h4, .card-num {
   gap: 6px !important;
   height: 38px !important;
   padding: 0 14px !important;
-  border-radius: 20px !important;
+  border-radius: 12px !important;
   white-space: nowrap !important;
   cursor: pointer;
   width: fit-content;
@@ -732,7 +732,7 @@ h1, h2, h3, h4, .card-num {
   margin-top: 0 !important;
   background-color: var(--input-bg) !important;
   border: 1px solid var(--card-border) !important;
-  border-radius: 20px !important;
+  border-radius: 12px !important;
   box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.08);
   padding: 10px;
   z-index: 100;
@@ -762,7 +762,7 @@ h1, h2, h3, h4, .card-num {
   color: #ef4444 !important;
   border: 1px solid rgba(239, 68, 68, 0.3) !important;
   font-weight: 600 !important;
-  border-radius: 20px !important;
+  border-radius: 12px !important;
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
@@ -810,20 +810,22 @@ h1, h2, h3, h4, .card-num {
   justify-content: space-between;
 }
 
-/* When any list is hidden, make all action buttons size evenly */
-.app-grid.show-2-cols .results-dropdowns-group .dropdown-wrapper,
-.app-grid.show-2-cols .results-dropdowns-group #btn-add-account,
-.app-grid.show-1-col .results-dropdowns-group .dropdown-wrapper,
-.app-grid.show-1-col .results-dropdowns-group #btn-add-account {
-  flex: 1 1 0px !important;
-  min-width: 0 !important;
-}
+/* When any list is hidden, make all action buttons size evenly (desktop/tablet only) */
+@media (min-width: 601px) {
+  .app-grid.show-2-cols .results-dropdowns-group .dropdown-wrapper,
+  .app-grid.show-2-cols .results-dropdowns-group #btn-add-account,
+  .app-grid.show-1-col .results-dropdowns-group .dropdown-wrapper,
+  .app-grid.show-1-col .results-dropdowns-group #btn-add-account {
+    flex: 1 1 0px !important;
+    min-width: 0 !important;
+  }
 
-.app-grid.show-2-cols .results-dropdowns-group #toggle-preview-unfollowed,
-.app-grid.show-2-cols .results-dropdowns-group #toggle-preview-starred,
-.app-grid.show-1-col .results-dropdowns-group #toggle-preview-unfollowed,
-.app-grid.show-1-col .results-dropdowns-group #toggle-preview-starred {
-  width: 100% !important;
+  .app-grid.show-2-cols .results-dropdowns-group #toggle-preview-unfollowed,
+  .app-grid.show-2-cols .results-dropdowns-group #toggle-preview-starred,
+  .app-grid.show-1-col .results-dropdowns-group #toggle-preview-unfollowed,
+  .app-grid.show-1-col .results-dropdowns-group #toggle-preview-starred {
+    width: 100% !important;
+  }
 }
 
 @media (max-width: 1024px) {
@@ -1117,7 +1119,7 @@ h1, h2, h3, h4, .card-num {
   padding: 0 16px;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  border-radius: 20px;
+  border-radius: 12px;
   font-size: 0.85rem;
   font-weight: 500;
   line-height: 1;
@@ -1177,7 +1179,7 @@ h1, h2, h3, h4, .card-num {
   gap: 6px;
   height: 32px;
   padding: 0 14px;
-  border-radius: 20px;
+  border-radius: 12px;
   font-size: 0.85rem;
   font-weight: 500;
   line-height: 1;
@@ -1279,7 +1281,7 @@ h1, h2, h3, h4, .card-num {
 .account-modal-card {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  border-radius: 20px;
+  border-radius: 12px;
   padding: 24px;
   width: 90%;
   max-width: 380px;
@@ -1386,7 +1388,7 @@ h1, h2, h3, h4, .card-num {
   color: #ef4444 !important;
   border: 1px solid rgba(239, 68, 68, 0.3) !important;
   font-weight: 600 !important;
-  border-radius: 20px !important;
+  border-radius: 12px !important;
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
@@ -1443,7 +1445,7 @@ h1, h2, h3, h4, .card-num {
   padding: 10px 16px 10px 38px;
   background-color: var(--input-bg);
   border: 1px solid var(--input-border);
-  border-radius: 20px;
+  border-radius: 12px;
   color: var(--text-main);
   font-family: var(--font-sans);
   font-size: 0.9rem;
@@ -1663,6 +1665,15 @@ h1, h2, h3, h4, .card-num {
 }
 
 .action-delete:hover {
+  background-color: transparent !important;
+  color: #ef4444 !important;
+  border: none !important;
+  transform: scale(1.15) !important;
+}
+
+.action-delete:hover svg {
+  color: #ef4444 !important;
+  stroke: #ef4444 !important;
 }
 
 .action-arrow {
@@ -1924,7 +1935,7 @@ h1, h2, h3, h4, .card-num {
   top: calc(100% + 10px);
   right: 0;
   width: 320px;
-  border-radius: 20px;
+  border-radius: 12px;
   padding: 22px;
   display: flex;
   flex-direction: column;
@@ -2009,7 +2020,7 @@ body.auth-logged-out .dropdown-header {
 body.auth-logged-out #auth-form-view {
   background: var(--card-bg) !important;
   border: 1px solid var(--card-border) !important;
-  border-radius: 20px !important;
+  border-radius: 12px !important;
   padding: 24px 28px 20px 28px !important;
   width: 90% !important;
   max-width: 420px !important;
@@ -2173,12 +2184,11 @@ body.auth-logged-out #theme-toggle {
   text-transform: lowercase;
 }
 
-/* iOS Segmented Control Tabs */
 .auth-tabs {
   display: flex;
   background-color: var(--btn-secondary-bg);
   border: 1px solid var(--card-border);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 3px;
   gap: 4px;
   margin-bottom: 8px;
@@ -2239,7 +2249,7 @@ body.auth-logged-out #theme-toggle {
 .form-group input {
   background-color: var(--input-bg);
   border: 1px solid var(--input-border);
-  border-radius: 20px;
+  border-radius: 12px;
   padding: 10px 12px;
   color: var(--text-main);
   font-family: inherit;

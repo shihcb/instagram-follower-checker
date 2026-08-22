@@ -108,6 +108,33 @@
                   import files
                 </label>
 
+                <!-- Settings Toggles -->
+                <div class="auth-settings-section" style="margin-bottom: 12px;">
+                  <div class="dropdown-header" style="margin-top: 4px;">
+                    <h3>settings</h3>
+                  </div>
+                  <div class="setting-item-row">
+                    <div class="setting-label-group">
+                      <span class="setting-label">show following</span>
+                      <span class="setting-desc">display the list of accounts you follow</span>
+                    </div>
+                    <label class="switch">
+                      <input type="checkbox" id="toggle-show-list-1" checked>
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                  <div class="setting-item-row">
+                    <div class="setting-label-group">
+                      <span class="setting-label">show followers</span>
+                      <span class="setting-desc">display the list of accounts that follow you</span>
+                    </div>
+                    <label class="switch">
+                      <input type="checkbox" id="toggle-show-list-2" checked>
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                </div>
+
                 <button id="btn-logout" class="btn btn-primary btn-block">log out</button>
               </div>
 
@@ -136,33 +163,6 @@
 
                   <button type="submit" id="btn-auth-submit" class="btn btn-primary btn-block">log in</button>
                 </form>
-              </div>
-
-              <!-- Settings Toggles -->
-              <div class="auth-settings-section">
-                <div class="dropdown-header" style="margin-top: 4px;">
-                  <h3>settings</h3>
-                </div>
-                <div class="setting-item-row">
-                  <div class="setting-label-group">
-                    <span class="setting-label">show following (list 1)</span>
-                    <span class="setting-desc">display the list of accounts you follow</span>
-                  </div>
-                  <label class="switch">
-                    <input type="checkbox" id="toggle-show-list-1" checked>
-                    <span class="slider"></span>
-                  </label>
-                </div>
-                <div class="setting-item-row">
-                  <div class="setting-label-group">
-                    <span class="setting-label">show followers (list 2)</span>
-                    <span class="setting-desc">display the list of accounts that follow you</span>
-                  </div>
-                  <label class="switch">
-                    <input type="checkbox" id="toggle-show-list-2" checked>
-                    <span class="slider"></span>
-                  </label>
-                </div>
               </div>
             </div>
           </div>
@@ -215,48 +215,12 @@
         })();
       </script>
 
-      <!-- List 1: Following -->
-      <section class="card glass" id="card-following">
-        <div class="card-header">
-          <div class="card-title-group">
-            <span class="card-num">1</span>
-            <h2>following</h2>
-          </div>
-          <span class="badge count-badge" id="following-count">0 loaded</span>
-        </div>
-        <div class="card-body">
-          <textarea id="input-following" placeholder="enter usernames"></textarea>
-          
-          <div class="card-actions" id="actions-following">
-            <button id="clear-following" class="btn btn-secondary btn-sm">clear</button>
-          </div>
-        </div>
-      </section>
-
-      <!-- List 2: Followers -->
-      <section class="card glass" id="card-followers">
-        <div class="card-header">
-          <div class="card-title-group">
-            <span class="card-num">2</span>
-            <h2>followers</h2>
-          </div>
-          <span class="badge count-badge" id="followers-count">0 loaded</span>
-        </div>
-        <div class="card-body">
-          <textarea id="input-followers" placeholder="enter usernames"></textarea>
-
-          <div class="card-actions" id="actions-followers">
-            <button id="clear-followers" class="btn btn-secondary btn-sm">clear</button>
-          </div>
-        </div>
-      </section>
-
-      <!-- List 3: People who don't follow you back -->
+      <!-- List 3: Unfollowers (Results) -->
       <section class="card glass results-card highlighted-card" id="card-unfollowers">
         <div class="card-header">
           <div class="card-title-group">
-            <span class="card-num">3</span>
-            <h2>not following back</h2>
+            <span class="card-num">1</span>
+            <h2>unfollowers</h2>
           </div>
           <span class="badge result-badge" id="unfollowers-count">0 found</span>
         </div>
@@ -275,7 +239,7 @@
                   <circle cx="11" cy="11" r="8"></circle>
                   <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
-                <input type="text" id="search-unfollowers" placeholder="search" disabled>
+                <input type="text" id="search-unfollowers" placeholder="search">
               </div>
               
               <div class="auto-open-wrapper" title="auto-open next username when returning to this page">
@@ -368,8 +332,42 @@
             </div>
             <div class="results-list hidden" id="list-unfollowers"></div>
           </div>
+        </div>
+      </section>
 
+      <!-- List 2: Followers -->
+      <section class="card glass" id="card-followers">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-num">2</span>
+            <h2>followers</h2>
+          </div>
+          <span class="badge count-badge" id="followers-count">0 loaded</span>
+        </div>
+        <div class="card-body">
+          <textarea id="input-followers" placeholder="enter usernames"></textarea>
 
+          <div class="card-actions" id="actions-followers">
+            <button id="clear-followers" class="btn btn-secondary btn-sm">clear</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- List 1: Following -->
+      <section class="card glass" id="card-following">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-num">3</span>
+            <h2>following</h2>
+          </div>
+          <span class="badge count-badge" id="following-count">0 loaded</span>
+        </div>
+        <div class="card-body">
+          <textarea id="input-following" placeholder="enter usernames"></textarea>
+          
+          <div class="card-actions" id="actions-following">
+            <button id="clear-following" class="btn btn-secondary btn-sm">clear</button>
+          </div>
         </div>
       </section>
 

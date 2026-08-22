@@ -684,10 +684,6 @@ function updateResultsUI() {
   const count = state.unfollowers.length;
   elements.unfollowersCount.textContent = `${count} found`;
   
-  const shouldDisable = (state.following.length === 0 && state.followers.length === 0);
-  if (elements.searchUnfollowers.disabled !== shouldDisable) {
-    elements.searchUnfollowers.disabled = shouldDisable;
-  }
 
   const query = elements.searchUnfollowers.value.toLowerCase().trim();
   const filtered = state.unfollowers.filter(user => 
