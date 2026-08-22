@@ -1087,9 +1087,7 @@ function loadAccountData(username) {
   updateListUI('following');
   updateListUI('followers');
   calculateUnfollowers();
-  if (!state.isLoggingIn) {
-    renderAccountChips();
-  }
+  renderAccountChips();
   updateStorageProgressBar();
 }
 
@@ -2008,16 +2006,8 @@ function initAuth() {
         elements.authProfileView.classList.remove('hidden');
         elements.authFormView.classList.add('hidden');
 
-        if (!isInitialAuthCheck) {
-          state.isLoggingIn = true;
-        }
-
-        try {
-          // Fetch cloud data and merge/sync
-          await pullFromCloud();
-        } finally {
-          state.isLoggingIn = false;
-        }
+        // Fetch cloud data and merge/sync
+        await pullFromCloud();
 
         // Load saved Following/Followers lists if present in localStorage
         const savedFollowing = localStorage.getItem('following_users');
@@ -2034,11 +2024,10 @@ function initAuth() {
         }
         calculateUnfollowers();
 
-        if (!isInitialAuthCheck) {
-          // Clear existing chips so renderAccountChips forces a full animated re-render
-          if (elements.accountChipsList) elements.accountChipsList.innerHTML = '';
-          renderAccountChips(true);
+        // Always render chips instantly under the login screen before it fades out
+        renderAccountChips(false);
 
+        if (!isInitialAuthCheck) {
           // Slowly fade in the results list consistently
           if (elements.listUnfollowers) {
             elements.listUnfollowers.style.transition = 'none';
@@ -2048,8 +2037,6 @@ function initAuth() {
               elements.listUnfollowers.style.opacity = '1';
             });
           }
-        } else {
-          renderAccountChips(false);
         }
       } else {
         currentUser = null;
