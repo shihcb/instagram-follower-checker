@@ -748,7 +748,7 @@ function updateResultsUI() {
       elements.emptyState.classList.add('hidden');
     } else {
       elements.emptyState.classList.remove('hidden');
-      elements.emptyState.querySelector('.empty-title').textContent = 'no results found';
+      elements.emptyState.querySelector('.empty-title').textContent = 'no results';
       elements.emptyState.querySelector('.empty-desc').textContent = query ? 'no matching usernames found in the filter.' : '';
     }
   }
