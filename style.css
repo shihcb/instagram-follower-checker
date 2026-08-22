@@ -1067,65 +1067,160 @@ h1, h2, h3, h4, .card-num {
 }
 
 /* Row & Dropdown Action Buttons: White in dark mode, clean in light mode */
+/* -------------------------------------------------------------
+ * Unified Row Actions & Dropdown Icons Sizing and Styling
+ * ------------------------------------------------------------- */
 .action-star,
 .action-delete,
 .action-arrow,
+.action-dismiss,
 .star-unfollowed-btn,
 .remove-unfollowed-btn,
 .unstar-btn {
-  background: transparent !important;
-  border: none !important;
-  color: var(--text-main) !important;
-  cursor: pointer;
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-.action-star svg,
-.action-delete svg,
-.action-arrow svg,
-.star-unfollowed-btn svg,
-.unstar-btn svg {
-  color: var(--text-main) !important;
-  stroke: var(--text-main) !important;
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background-color: #ffffff !important;
+  border: 1px solid var(--card-border) !important;
+  padding: 0 !important;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
 }
 
 [data-theme="dark"] .action-star,
 [data-theme="dark"] .action-delete,
 [data-theme="dark"] .action-arrow,
+[data-theme="dark"] .action-dismiss,
 [data-theme="dark"] .star-unfollowed-btn,
 [data-theme="dark"] .remove-unfollowed-btn,
 [data-theme="dark"] .unstar-btn {
-  color: #ffffff !important;
+  background-color: #18181b !important;
 }
 
-[data-theme="dark"] .action-star svg,
-[data-theme="dark"] .action-delete svg,
-[data-theme="dark"] .action-arrow svg,
-[data-theme="dark"] .star-unfollowed-btn svg,
-[data-theme="dark"] .unstar-btn svg {
-  color: #ffffff !important;
-  stroke: #ffffff !important;
+.action-star svg,
+.action-delete svg,
+.action-arrow svg,
+.action-dismiss svg,
+.star-unfollowed-btn svg,
+.remove-unfollowed-btn svg,
+.unstar-btn svg {
+  width: 14px !important;
+  height: 14px !important;
+  display: block !important;
+  margin: 0 !important;
 }
 
-.action-star:hover,
-.action-delete:hover,
-.action-arrow:hover,
-.star-unfollowed-btn:hover,
-.remove-unfollowed-btn:hover,
-.unstar-btn:hover {
-  background: transparent !important;
-  opacity: 0.8;
+/* Default / Mobile states (Colors are permanently visible without hover) */
+.action-star,
+.star-unfollowed-btn,
+.unstar-btn {
+  color: #f59e0b !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+.action-star svg,
+.star-unfollowed-btn svg,
+.unstar-btn svg {
+  color: #f59e0b !important;
+  stroke: #f59e0b !important;
+}
+.action-star.starred svg,
+.star-unfollowed-btn svg,
+.unstar-btn svg {
+  fill: #f59e0b !important;
 }
 
+.action-delete,
+.remove-unfollowed-btn,
+.action-dismiss {
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+.action-delete svg,
+.remove-unfollowed-btn svg,
+.action-dismiss svg {
+  color: #ef4444 !important;
+  stroke: #ef4444 !important;
+}
+
+/* Mac/Desktop Hover States (Starts neutral, colors change only when hovered over) */
 @media (hover: hover) {
+  .action-star,
+  .star-unfollowed-btn,
+  .unstar-btn {
+    color: var(--text-muted) !important;
+    border-color: var(--card-border) !important;
+  }
+  .action-star svg,
+  .star-unfollowed-btn svg,
+  .unstar-btn svg {
+    color: var(--text-main) !important;
+    stroke: var(--text-main) !important;
+    fill: none !important;
+  }
+  [data-theme="dark"] .action-star svg,
+  [data-theme="dark"] .star-unfollowed-btn svg,
+  [data-theme="dark"] .unstar-btn svg {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+  }
+  .action-star.starred svg {
+    fill: var(--text-main) !important;
+  }
+  [data-theme="dark"] .action-star.starred svg {
+    fill: #ffffff !important;
+  }
+
+  .action-delete,
+  .remove-unfollowed-btn,
+  .action-dismiss {
+    color: var(--text-muted) !important;
+    border-color: var(--card-border) !important;
+  }
+  .action-delete svg,
+  .remove-unfollowed-btn svg,
+  .action-dismiss svg {
+    color: var(--text-main) !important;
+    stroke: var(--text-main) !important;
+  }
+  [data-theme="dark"] .action-delete svg,
+  [data-theme="dark"] .remove-unfollowed-btn svg,
+  [data-theme="dark"] .action-dismiss svg {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+  }
+
+  /* Hover color triggers */
   .action-star:hover,
-  .action-delete:hover,
-  .action-arrow:hover,
   .star-unfollowed-btn:hover,
-  .remove-unfollowed-btn:hover,
   .unstar-btn:hover {
-    transform: scale(1.15);
+    color: #f59e0b !important;
+    border-color: #f59e0b !important;
+    transform: scale(1.15) !important;
+  }
+  .action-star:hover svg,
+  .star-unfollowed-btn:hover svg,
+  .unstar-btn:hover svg {
+    color: #f59e0b !important;
+    stroke: #f59e0b !important;
+    fill: #f59e0b !important;
+  }
+
+  .action-delete:hover,
+  .remove-unfollowed-btn:hover,
+  .action-dismiss:hover {
+    color: #ef4444 !important;
+    border-color: #ef4444 !important;
+    transform: scale(1.15) !important;
+  }
+  .action-delete:hover svg,
+  .remove-unfollowed-btn:hover svg,
+  .action-dismiss:hover svg {
+    color: #ef4444 !important;
+    stroke: #ef4444 !important;
   }
 }
 
@@ -1719,73 +1814,7 @@ h1, h2, h3, h4, .card-num {
   gap: 4px;
 }
 
-.action-star {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #ffffff;
-  border: 1px solid var(--card-border);
-  color: var(--text-muted);
-  transition: all 0.2s ease;
-  cursor: pointer;
-  padding: 0;
-}
 
-[data-theme="dark"] .action-star {
-  background-color: #18181b;
-}
-
-@media (hover: hover) {
-  .action-star:hover {
-    color: #f59e0b !important;
-  }
-  .action-star:hover svg {
-    color: #f59e0b !important;
-    stroke: #f59e0b !important;
-  }
-}
-
-.action-star.starred {
-  background-color: var(--text-main);
-  color: var(--text-inverse);
-  border-color: transparent;
-}
-
-.action-delete {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #ffffff;
-  border: 1px solid var(--card-border);
-  color: var(--text-muted);
-  transition: all 0.2s ease;
-  cursor: pointer;
-  padding: 0;
-}
-
-[data-theme="dark"] .action-delete {
-  background-color: #18181b;
-}
-
-@media (hover: hover) {
-  .action-delete:hover {
-    background-color: transparent !important;
-    color: #ef4444 !important;
-    border: none !important;
-    transform: scale(1.15) !important;
-  }
-
-  .action-delete:hover svg {
-    color: #ef4444 !important;
-    stroke: #ef4444 !important;
-  }
-}
 
 .action-arrow {
   width: 28px;
@@ -1821,51 +1850,7 @@ h1, h2, h3, h4, .card-num {
   transform: rotate(-45deg) !important;
 }
 
-.action-dismiss {
-  width: 26px !important;
-  height: 26px !important;
-  border-radius: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  background-color: transparent !important;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  color: #1a1a1a !important;
-  transition: color 0.2s ease, transform 0.2s ease !important;
-  cursor: pointer;
-  padding: 0 !important;
-}
 
-[data-theme="dark"] .action-dismiss {
-  color: #ffffff !important;
-}
-
-@media (hover: hover) {
-  .action-dismiss:hover {
-    background-color: transparent !important;
-    color: #ef4444 !important;
-    border: none !important;
-    transform: scale(1.15) !important;
-  }
-
-  .star-unfollowed-btn:hover {
-    color: #f59e0b !important;
-  }
-  .star-unfollowed-btn:hover svg {
-    color: #f59e0b !important;
-    stroke: #f59e0b !important;
-  }
-
-  .remove-unfollowed-btn:hover {
-    color: #ef4444 !important;
-  }
-  .remove-unfollowed-btn:hover svg {
-    color: #ef4444 !important;
-    stroke: #ef4444 !important;
-  }
-}
 
 @keyframes chip-bounce-in {
   0% {
