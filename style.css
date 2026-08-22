@@ -933,6 +933,18 @@ h1, h2, h3, h4, .card-num {
   text-decoration: underline;
 }
 
+.dropdown-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 1024px) {
+  .dropdown-actions-group {
+    gap: 2px !important;
+  }
+}
+
 /* -------------------------------------------------------------
  * Keyboard Shortcut Hints
  * ------------------------------------------------------------- */

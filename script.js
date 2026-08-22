@@ -584,7 +584,7 @@ function updateUnfollowedUI() {
             <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
             <div style="display: flex; align-items: center; gap: 6px;">
               <span>${user.fullName ? user.fullName : ''}</span>
-              <div style="display: flex; align-items: center; gap: 6px;">
+              <div class="dropdown-actions-group">
                 <button class="star-unfollowed-btn" data-username="${user.username}" aria-label="star user" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-main); padding: 2px;" title="move to starred list">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
@@ -628,11 +628,19 @@ function updateStarredUI() {
             <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
             <div style="display: flex; align-items: center; gap: 6px;">
               <span>${user.fullName ? user.fullName : ''}</span>
-              <button class="unstar-btn" data-username="${user.username}" aria-label="unstar user" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px;" title="unstar user">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
-              </button>
+              <div class="dropdown-actions-group">
+                <button class="unstar-btn" data-username="${user.username}" aria-label="unstar user" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px;" title="unstar user">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                </button>
+                <button class="remove-unfollowed-btn" data-username="${user.username}" aria-label="remove from starred" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px;" title="remove from history">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         `).join('')}
@@ -1580,19 +1588,24 @@ function setupEventListeners() {
     }
   });
 
-  // Handle click on unstar inside starred list
+  // Handle click on unstar or remove inside starred list
   elements.listStarred.addEventListener('click', (e) => {
     e.stopPropagation();
     const unstarBtn = e.target.closest('.unstar-btn');
-    if (unstarBtn) {
-      const username = unstarBtn.getAttribute('data-username');
-      const itemEl = unstarBtn.closest('.parsed-item');
+    const removeBtn = e.target.closest('.remove-unfollowed-btn');
+    
+    if (unstarBtn || removeBtn) {
+      const targetBtn = unstarBtn || removeBtn;
+      const username = targetBtn.getAttribute('data-username');
+      const itemEl = targetBtn.closest('.parsed-item');
       if (itemEl) itemEl.classList.add('removing');
 
-      setTimeout(() => {
+      setTimeout(async () => {
         state.starred = state.starred.filter(u => u.username !== username);
         saveCurrentAccountData();
         calculateUnfollowers();
+        updateStarredUI();
+        await pushToCloud();
       }, 220);
     }
   });
