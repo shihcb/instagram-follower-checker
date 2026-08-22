@@ -2525,6 +2525,8 @@ function updateStorageProgressBar() {
 // -------------------------------------------------------------
 // Settings Management (Inline in Auth Dropdown)
 // -------------------------------------------------------------
+let isInitialSettingsLoad = true;
+
 function initSettings() {
   if (localStorage.getItem('show_list_1') === null || localStorage.getItem('show_list_2') === null || localStorage.getItem('show_keyboard') === null) {
     const isMobile = window.innerWidth <= 768;
@@ -2550,6 +2552,7 @@ function initSettings() {
   }
 
   applySettings();
+  isInitialSettingsLoad = false;
 
   if (elements.toggleShowList1) {
     elements.toggleShowList1.addEventListener('change', (e) => {
@@ -2577,8 +2580,8 @@ function applySettings() {
   const show1 = localStorage.getItem('show_list_1') !== 'false';
   const show2 = localStorage.getItem('show_list_2') !== 'false';
 
-  if (card1) card1.classList.toggle('hidden-card', !show1);
-  if (card2) card2.classList.toggle('hidden-card', !show2);
+  toggleCardWithAnimation(card1, show1);
+  toggleCardWithAnimation(card2, show2);
 
   const keyboardHints = document.getElementById('keyboard-hints');
   const showKeyboard = localStorage.getItem('show_keyboard') !== 'false';
@@ -2586,11 +2589,43 @@ function applySettings() {
     keyboardHints.classList.toggle('hidden-hints', !showKeyboard);
   }
 
-  updateGridColumns();
+  if (isInitialSettingsLoad) {
+    updateGridColumns();
+  }
 
   // Clean up temporary early settings styles block
   const earlyStyle = document.getElementById('early-settings-style');
   if (earlyStyle) earlyStyle.remove();
+}
+
+function toggleCardWithAnimation(card, show) {
+  if (!card) return;
+  
+  if (isInitialSettingsLoad) {
+    card.classList.toggle('hidden-card', !show);
+    card.classList.toggle('card-fade-out', !show);
+    return;
+  }
+  
+  if (show) {
+    card.classList.remove('hidden-card');
+    card.offsetHeight; // Force reflow
+    updateGridColumns();
+    requestAnimationFrame(() => {
+      card.classList.remove('card-fade-out');
+    });
+  } else {
+    card.classList.add('card-fade-out');
+    setTimeout(() => {
+      const currentShow = card.id === 'card-following' 
+        ? localStorage.getItem('show_list_1') !== 'false'
+        : localStorage.getItem('show_list_2') !== 'false';
+      if (!currentShow) {
+        card.classList.add('hidden-card');
+        updateGridColumns();
+      }
+    }, 600); // Matches the 0.6s CSS transition
+  }
 }
 
 function updateGridColumns() {

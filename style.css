@@ -390,6 +390,12 @@ h1, h2, h3, h4, .card-num {
               border-color 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
+.card.card-fade-out {
+  opacity: 0 !important;
+  transform: scale(0.94) translateY(20px) !important;
+  pointer-events: none !important;
+}
+
 .card:hover {
 }
 
@@ -1912,26 +1918,6 @@ h1, h2, h3, h4, .card-num {
   }
   .card {
     height: 500px;
-    transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                max-height 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                height 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                margin 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                padding 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                border-color 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  }
-
-  .hidden-card {
-    max-height: 0 !important;
-    height: 0 !important;
-    opacity: 0 !important;
-    transform: scale(0.92) translateY(12px) !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    border-width: 0 !important;
-    border-color: transparent !important;
-    pointer-events: none !important;
-    overflow: hidden !important;
   }
   #card-unfollowers {
     height: 700px;
@@ -1993,26 +1979,6 @@ h1, h2, h3, h4, .card-num {
   .card {
     height: 100%;
     min-height: 0;
-    transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                max-width 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                width 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                margin 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                padding 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                border-color 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  }
-
-  .hidden-card {
-    max-width: 0 !important;
-    width: 0 !important;
-    opacity: 0 !important;
-    transform: scale(0.92) translateX(-20px) !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    border-width: 0 !important;
-    border-color: transparent !important;
-    pointer-events: none !important;
-    overflow: hidden !important;
   }
 
   .card-body {
