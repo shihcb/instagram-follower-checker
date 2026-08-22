@@ -1734,7 +1734,14 @@ h1, h2, h3, h4, .card-num {
   background-color: #18181b;
 }
 
-.action-star:hover {
+@media (hover: hover) {
+  .action-star:hover {
+    color: #f59e0b !important;
+  }
+  .action-star:hover svg {
+    color: #f59e0b !important;
+    stroke: #f59e0b !important;
+  }
 }
 
 .action-star.starred {
@@ -1762,16 +1769,18 @@ h1, h2, h3, h4, .card-num {
   background-color: #18181b;
 }
 
-.action-delete:hover {
-  background-color: transparent !important;
-  color: #ef4444 !important;
-  border: none !important;
-  transform: scale(1.15) !important;
-}
+@media (hover: hover) {
+  .action-delete:hover {
+    background-color: transparent !important;
+    color: #ef4444 !important;
+    border: none !important;
+    transform: scale(1.15) !important;
+  }
 
-.action-delete:hover svg {
-  color: #ef4444 !important;
-  stroke: #ef4444 !important;
+  .action-delete:hover svg {
+    color: #ef4444 !important;
+    stroke: #ef4444 !important;
+  }
 }
 
 .action-arrow {
@@ -1829,11 +1838,29 @@ h1, h2, h3, h4, .card-num {
   color: #ffffff !important;
 }
 
-.action-dismiss:hover {
-  background-color: transparent !important;
-  color: #ef4444 !important;
-  border: none !important;
-  transform: scale(1.15) !important;
+@media (hover: hover) {
+  .action-dismiss:hover {
+    background-color: transparent !important;
+    color: #ef4444 !important;
+    border: none !important;
+    transform: scale(1.15) !important;
+  }
+
+  .star-unfollowed-btn:hover {
+    color: #f59e0b !important;
+  }
+  .star-unfollowed-btn:hover svg {
+    color: #f59e0b !important;
+    stroke: #f59e0b !important;
+  }
+
+  .remove-unfollowed-btn:hover {
+    color: #ef4444 !important;
+  }
+  .remove-unfollowed-btn:hover svg {
+    color: #ef4444 !important;
+    stroke: #ef4444 !important;
+  }
 }
 
 @keyframes chip-bounce-in {
