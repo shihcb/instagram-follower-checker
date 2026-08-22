@@ -682,10 +682,9 @@ function updateResultsUI() {
   const count = state.unfollowers.length;
   elements.unfollowersCount.textContent = `${count} found`;
   
-  if (state.following.length > 0 || state.followers.length > 0) {
-    elements.searchUnfollowers.removeAttribute('disabled');
-  } else {
-    elements.searchUnfollowers.setAttribute('disabled', 'true');
+  const shouldDisable = (state.following.length === 0 && state.followers.length === 0);
+  if (elements.searchUnfollowers.disabled !== shouldDisable) {
+    elements.searchUnfollowers.disabled = shouldDisable;
   }
 
   const query = elements.searchUnfollowers.value.toLowerCase().trim();
@@ -1088,7 +1087,10 @@ function loadAccountData(username) {
   updateListUI('following');
   updateListUI('followers');
   calculateUnfollowers();
-  renderAccountChips();
+  if (!state.isLoggingIn) {
+    renderAccountChips();
+  }
+  updateStorageProgressBar();
 }
 
 function selectAccount(username) {
@@ -2006,8 +2008,16 @@ function initAuth() {
         elements.authProfileView.classList.remove('hidden');
         elements.authFormView.classList.add('hidden');
 
-        // Fetch cloud data and merge/sync
-        await pullFromCloud();
+        if (!isInitialAuthCheck) {
+          state.isLoggingIn = true;
+        }
+
+        try {
+          // Fetch cloud data and merge/sync
+          await pullFromCloud();
+        } finally {
+          state.isLoggingIn = false;
+        }
 
         // Load saved Following/Followers lists if present in localStorage
         const savedFollowing = localStorage.getItem('following_users');
@@ -2302,7 +2312,12 @@ async function pullFromCloud() {
 
       if (metaItem) {
         state.instagramAccounts = metaItem.instagram_accounts || [];
-        state.selectedAccountUsername = metaItem.selected_account || null;
+        const localSelected = localStorage.getItem('selected_instagram_account');
+        if (localSelected && state.instagramAccounts.some(acc => acc.toLowerCase() === localSelected.toLowerCase())) {
+          state.selectedAccountUsername = localSelected;
+        } else {
+          state.selectedAccountUsername = metaItem.selected_account || null;
+        }
 
         localStorage.setItem('instagram_accounts', JSON.stringify(state.instagramAccounts));
         if (state.selectedAccountUsername) {
@@ -2356,10 +2371,9 @@ async function pullFromCloud() {
 
       if (insertError) throw insertError;
     }
-  } catch (err) {
-    console.error('Error pulling user data from Supabase:', err);
   } finally {
     isSyncingFromCloud = false;
+    updateStorageProgressBar();
   }
 }
 
@@ -2440,7 +2454,51 @@ async function pushToCloud() {
     if (error) throw error;
   } catch (err) {
     console.error('Error syncing data to Supabase:', err);
+  } finally {
+    updateStorageProgressBar();
   }
+}
+
+function updateStorageProgressBar() {
+  const keysToMeasure = [
+    'instagram_accounts',
+    'selected_instagram_account',
+    'unfollowed_users',
+    'starred_users',
+    'following_users',
+    'followers_users'
+  ];
+  
+  const accounts = JSON.parse(localStorage.getItem('instagram_accounts') || '[]');
+  accounts.forEach(acc => {
+    const key = acc.toLowerCase();
+    keysToMeasure.push(`following_users_${key}`);
+    keysToMeasure.push(`followers_users_${key}`);
+    keysToMeasure.push(`unfollowed_users_${key}`);
+    keysToMeasure.push(`starred_users_${key}`);
+  });
+
+  let totalBytes = 0;
+  keysToMeasure.forEach(key => {
+    const val = localStorage.getItem(key);
+    if (val) {
+      totalBytes += key.length + val.length;
+    }
+  });
+
+  const quotaBytes = 5 * 1024 * 1024; // 5 MB LocalStorage / DB safe limit
+  const percentage = (totalBytes / quotaBytes) * 100;
+  
+  const percentageText = `${percentage.toFixed(2)}%`;
+  const usedText = totalBytes > 1024 ? `${(totalBytes / 1024).toFixed(1)} KB` : `${totalBytes} B`;
+
+  const percentageEl = document.getElementById('storage-percentage');
+  const fillEl = document.getElementById('storage-progress-fill');
+  const usedEl = document.getElementById('storage-used-bytes');
+
+  if (percentageEl) percentageEl.textContent = percentageText;
+  if (fillEl) fillEl.style.width = `${Math.min(percentage, 100)}%`;
+  if (usedEl) usedEl.textContent = `${usedText} used`;
 }
 
 // -------------------------------------------------------------
@@ -2456,4 +2514,5 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     renderAccountChips();
   }
+  updateStorageProgressBar();
 });

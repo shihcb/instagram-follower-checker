@@ -83,6 +83,21 @@
                 <p class="auth-status-text">logged in as <strong id="auth-user-email">email@domain.com</strong></p>
                 <p class="auth-desc">your unfollowed and starred lists are automatically synced with the cloud in real-time.</p>
                 
+                <!-- Supabase Cloud Storage Progress -->
+                <div class="supabase-storage-box">
+                  <div class="storage-info">
+                    <span class="storage-label">cloud database storage</span>
+                    <span class="storage-value" id="storage-percentage">0.0%</span>
+                  </div>
+                  <div class="storage-progress-bar">
+                    <div class="storage-progress-fill" id="storage-progress-fill" style="width: 0%;"></div>
+                  </div>
+                  <div class="storage-details">
+                    <span id="storage-used-bytes">0 KB used</span>
+                    <span>of 5.0 MB quota</span>
+                  </div>
+                </div>
+
                 <label for="import-files-input" class="btn btn-secondary btn-block" style="margin-bottom: 8px; cursor: pointer;">
                   <input type="file" id="import-files-input" multiple accept=".html" class="hidden">
                   <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 4px; transform: translateY(-1px);">
