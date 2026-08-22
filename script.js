@@ -98,7 +98,13 @@ const elements = {
   authSuccessMsg: document.getElementById('auth-success-msg'),
   authUserEmail: document.getElementById('auth-user-email'),
   btnLogout: document.getElementById('btn-logout'),
-  importFilesInput: document.getElementById('import-files-input')
+  importFilesInput: document.getElementById('import-files-input'),
+  settingsBtn: document.getElementById('settings-btn'),
+  settingsOverlay: document.getElementById('settings-overlay'),
+  settingsCard: document.getElementById('settings-card'),
+  settingsCloseBtn: document.getElementById('btn-settings-close'),
+  toggleShowList1: document.getElementById('toggle-show-list-1'),
+  toggleShowList2: document.getElementById('toggle-show-list-2')
 };
 
 // -------------------------------------------------------------
@@ -1131,12 +1137,6 @@ function renderAccountChips(animate = false) {
     });
   } else {
     // Full re-render when accounts are added or deleted -> Layout shifts!
-    if (elements.btnAddAccount) {
-      elements.btnAddAccount.classList.remove('fade-in');
-      void elements.btnAddAccount.offsetWidth; // Force reflow to restart animation
-      elements.btnAddAccount.classList.add('fade-in');
-    }
-
     elements.accountChipsList.innerHTML = '';
 
     accounts.forEach((username, index) => {
@@ -2549,10 +2549,136 @@ function updateStorageProgressBar() {
 }
 
 // -------------------------------------------------------------
+// Settings Management (Apple-style Full-screen Toggles)
+// -------------------------------------------------------------
+function initSettings() {
+  if (localStorage.getItem('show_list_1') === null || localStorage.getItem('show_list_2') === null) {
+    const isMobile = window.innerWidth <= 768;
+    if (localStorage.getItem('show_list_1') === null) {
+      localStorage.setItem('show_list_1', isMobile ? 'false' : 'true');
+    }
+    if (localStorage.getItem('show_list_2') === null) {
+      localStorage.setItem('show_list_2', isMobile ? 'false' : 'true');
+    }
+  }
+
+  if (elements.toggleShowList1) {
+    elements.toggleShowList1.checked = localStorage.getItem('show_list_1') !== 'false';
+  }
+  if (elements.toggleShowList2) {
+    elements.toggleShowList2.checked = localStorage.getItem('show_list_2') !== 'false';
+  }
+
+  applySettings();
+
+  if (elements.toggleShowList1) {
+    elements.toggleShowList1.addEventListener('change', (e) => {
+      localStorage.setItem('show_list_1', e.target.checked ? 'true' : 'false');
+      applySettings();
+    });
+  }
+  if (elements.toggleShowList2) {
+    elements.toggleShowList2.addEventListener('change', (e) => {
+      localStorage.setItem('show_list_2', e.target.checked ? 'true' : 'false');
+      applySettings();
+    });
+  }
+
+  if (elements.settingsBtn) {
+    elements.settingsBtn.addEventListener('click', openSettings);
+  }
+  if (elements.settingsCloseBtn) {
+    elements.settingsCloseBtn.addEventListener('click', closeSettings);
+  }
+  if (elements.settingsOverlay) {
+    elements.settingsOverlay.addEventListener('click', (e) => {
+      if (e.target === elements.settingsOverlay) closeSettings();
+    });
+  }
+}
+
+function applySettings() {
+  const card1 = document.getElementById('card-following');
+  const card2 = document.getElementById('card-followers');
+  const show1 = localStorage.getItem('show_list_1') !== 'false';
+  const show2 = localStorage.getItem('show_list_2') !== 'false';
+
+  if (card1) card1.classList.toggle('hidden-card', !show1);
+  if (card2) card2.classList.toggle('hidden-card', !show2);
+
+  updateGridColumns();
+}
+
+function updateGridColumns() {
+  const card1 = document.getElementById('card-following');
+  const card2 = document.getElementById('card-followers');
+  const appGrid = document.querySelector('.app-grid');
+  if (!appGrid) return;
+
+  const card1Hidden = card1 ? card1.classList.contains('hidden-card') : false;
+  const card2Hidden = card2 ? card2.classList.contains('hidden-card') : false;
+
+  let visibleCount = 3;
+  if (card1Hidden) visibleCount--;
+  if (card2Hidden) visibleCount--;
+
+  appGrid.classList.remove('show-3-cols', 'show-2-cols', 'show-1-col');
+  if (visibleCount === 3) {
+    appGrid.classList.add('show-3-cols');
+  } else if (visibleCount === 2) {
+    appGrid.classList.add('show-2-cols');
+  } else {
+    appGrid.classList.add('show-1-col');
+  }
+}
+
+function openSettings() {
+  if (elements.settingsOverlay) {
+    elements.settingsOverlay.classList.remove('hidden');
+    elements.settingsOverlay.classList.add('show');
+  }
+}
+
+function closeSettings() {
+  if (elements.settingsBtn && elements.settingsCard) {
+    const btnRect = elements.settingsBtn.getBoundingClientRect();
+    const cardRect = elements.settingsCard.getBoundingClientRect();
+    
+    const btnCenterX = btnRect.left + btnRect.width / 2;
+    const btnCenterY = btnRect.top + btnRect.height / 2;
+    const cardCenterX = cardRect.left + cardRect.width / 2;
+    const cardCenterY = cardRect.top + cardRect.height / 2;
+    
+    const deltaX = btnCenterX - cardCenterX;
+    const deltaY = btnCenterY - cardCenterY;
+    
+    elements.settingsCard.style.setProperty('--settings-swoop-x', `${deltaX}px`);
+    elements.settingsCard.style.setProperty('--settings-swoop-y', `${deltaY}px`);
+  }
+  
+  if (elements.settingsCard) {
+    elements.settingsCard.classList.add('swoop-out');
+  }
+  
+  setTimeout(() => {
+    if (elements.settingsOverlay) {
+      elements.settingsOverlay.classList.add('hidden');
+      elements.settingsOverlay.classList.remove('show');
+    }
+    if (elements.settingsCard) {
+      elements.settingsCard.classList.remove('swoop-out');
+      elements.settingsCard.style.removeProperty('--settings-swoop-x');
+      elements.settingsCard.style.removeProperty('--settings-swoop-y');
+    }
+  }, 600);
+}
+
+// -------------------------------------------------------------
 // App Initialization
 // -------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
+  initSettings();
   setupEventListeners();
   initAuth();
   updateStarredUI();
