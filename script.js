@@ -100,7 +100,8 @@ const elements = {
   btnLogout: document.getElementById('btn-logout'),
   importFilesInput: document.getElementById('import-files-input'),
   toggleShowList1: document.getElementById('toggle-show-list-1'),
-  toggleShowList2: document.getElementById('toggle-show-list-2')
+  toggleShowList2: document.getElementById('toggle-show-list-2'),
+  toggleShowKeyboard: document.getElementById('toggle-show-keyboard')
 };
 
 // -------------------------------------------------------------
@@ -2525,13 +2526,16 @@ function updateStorageProgressBar() {
 // Settings Management (Inline in Auth Dropdown)
 // -------------------------------------------------------------
 function initSettings() {
-  if (localStorage.getItem('show_list_1') === null || localStorage.getItem('show_list_2') === null) {
+  if (localStorage.getItem('show_list_1') === null || localStorage.getItem('show_list_2') === null || localStorage.getItem('show_keyboard') === null) {
     const isMobile = window.innerWidth <= 768;
     if (localStorage.getItem('show_list_1') === null) {
       localStorage.setItem('show_list_1', isMobile ? 'false' : 'true');
     }
     if (localStorage.getItem('show_list_2') === null) {
       localStorage.setItem('show_list_2', isMobile ? 'false' : 'true');
+    }
+    if (localStorage.getItem('show_keyboard') === null) {
+      localStorage.setItem('show_keyboard', 'true');
     }
   }
 
@@ -2540,6 +2544,9 @@ function initSettings() {
   }
   if (elements.toggleShowList2) {
     elements.toggleShowList2.checked = localStorage.getItem('show_list_2') !== 'false';
+  }
+  if (elements.toggleShowKeyboard) {
+    elements.toggleShowKeyboard.checked = localStorage.getItem('show_keyboard') !== 'false';
   }
 
   applySettings();
@@ -2556,6 +2563,12 @@ function initSettings() {
       applySettings();
     });
   }
+  if (elements.toggleShowKeyboard) {
+    elements.toggleShowKeyboard.addEventListener('change', (e) => {
+      localStorage.setItem('show_keyboard', e.target.checked ? 'true' : 'false');
+      applySettings();
+    });
+  }
 }
 
 function applySettings() {
@@ -2566,6 +2579,12 @@ function applySettings() {
 
   if (card1) card1.classList.toggle('hidden-card', !show1);
   if (card2) card2.classList.toggle('hidden-card', !show2);
+
+  const keyboardHints = document.getElementById('keyboard-hints');
+  const showKeyboard = localStorage.getItem('show_keyboard') !== 'false';
+  if (keyboardHints) {
+    keyboardHints.classList.toggle('hidden-hints', !showKeyboard);
+  }
 
   updateGridColumns();
 }
