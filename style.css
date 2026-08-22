@@ -1039,6 +1039,7 @@ h1, h2, h3, h4, .card-num {
   scrollbar-width: none;
   -ms-overflow-style: none;
   flex-wrap: nowrap;
+  padding: 4px 2px;
 }
 
 .account-mgmt-row::-webkit-scrollbar {
