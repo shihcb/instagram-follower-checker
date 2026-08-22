@@ -1154,6 +1154,30 @@ h1, h2, h3, h4, .card-num {
   transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease, box-shadow 0.5s ease !important;
 }
 
+.account-chip,
+#btn-add-account {
+  position: relative !important;
+}
+
+/* Pseudo-element hover hitbox shield to prevent mouse cursor flickering on edges */
+.account-chip::after,
+#btn-add-account::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.account-chip:hover::after,
+#btn-add-account:hover::after {
+  bottom: -6px;
+  pointer-events: auto;
+}
+
 .account-chip:hover,
 #btn-add-account:hover {
   transform: translateY(-1.5px) !important;
@@ -1454,8 +1478,8 @@ h1, h2, h3, h4, .card-num {
 }
 
 .search-box input:focus:not(:disabled) {
-  border-color: var(--grad-3);
-  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15);
+  border-color: var(--text-main);
+  box-shadow: none;
 }
 
 .search-box input:disabled {
