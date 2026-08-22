@@ -2037,6 +2037,8 @@ function initAuth() {
       if (document.activeElement && typeof document.activeElement.blur === 'function') {
         document.activeElement.blur();
       }
+      const isSameUser = session && currentUser && session.user.id === currentUser.id;
+
       if (session) {
         currentUser = session.user;
         elements.userBadge.classList.remove('hidden');
@@ -2054,6 +2056,11 @@ function initAuth() {
 
         if (isInitialAuthCheck) {
           showProfileView();
+        }
+
+        // Avoid list and layout flickering on focus/token refresh by skipping re-renders for the same user
+        if (isSameUser && !isInitialAuthCheck) {
+          return;
         }
 
         // Fetch cloud data and merge/sync
