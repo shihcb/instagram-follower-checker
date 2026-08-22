@@ -17,35 +17,6 @@
       document.documentElement.setAttribute('data-theme', theme);
       document.querySelector('meta[name="color-scheme"]').setAttribute('content', theme === 'dark' ? 'dark' : 'light');
       
-      // Early settings checks to prevent flashing lists on reload
-      try {
-        var show1 = localStorage.getItem('show_list_1') !== 'false';
-        var show2 = localStorage.getItem('show_list_2') !== 'false';
-        var isMobile = window.innerWidth <= 768;
-        if (localStorage.getItem('show_list_1') === null) show1 = !isMobile;
-        if (localStorage.getItem('show_list_2') === null) show2 = !isMobile;
-        
-        var css = '';
-        if (!show1) css += '#card-following { display: none !important; } ';
-        if (!show2) css += '#card-followers { display: none !important; } ';
-        
-        var visibleCount = 3;
-        if (!show1) visibleCount--;
-        if (!show2) visibleCount--;
-        
-        if (visibleCount === 2) {
-          css += '.app-grid { grid-template-columns: repeat(2, 1fr) !important; } ';
-        } else if (visibleCount === 1) {
-          css += '.app-grid { grid-template-columns: 1fr !important; } ';
-        }
-        
-        if (css) {
-          var style = document.createElement('style');
-          style.id = 'early-settings-style';
-          style.appendChild(document.createTextNode(css));
-          document.head.appendChild(style);
-        }
-      } catch(e) {}
 
       window.addEventListener('DOMContentLoaded', function() {
         requestAnimationFrame(function() {
@@ -143,26 +114,6 @@
                 <div class="auth-settings-section" style="margin-bottom: 12px;">
                   <div class="dropdown-header" style="margin-top: 4px;">
                     <h3>settings</h3>
-                  </div>
-                  <div class="setting-item-row">
-                    <div class="setting-label-group">
-                      <span class="setting-label">show following</span>
-                      <span class="setting-desc">display the list of accounts you follow</span>
-                    </div>
-                    <label class="switch">
-                      <input type="checkbox" id="toggle-show-list-1" checked>
-                      <span class="slider"></span>
-                    </label>
-                  </div>
-                  <div class="setting-item-row">
-                    <div class="setting-label-group">
-                      <span class="setting-label">show followers</span>
-                      <span class="setting-desc">display the list of accounts that follow you</span>
-                    </div>
-                    <label class="switch">
-                      <input type="checkbox" id="toggle-show-list-2" checked>
-                      <span class="slider"></span>
-                    </label>
                   </div>
                   <div class="setting-item-row desktop-only">
                     <div class="setting-label-group">

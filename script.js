@@ -99,8 +99,6 @@ const elements = {
   authUserEmail: document.getElementById('auth-user-email'),
   btnLogout: document.getElementById('btn-logout'),
   importFilesInput: document.getElementById('import-files-input'),
-  toggleShowList1: document.getElementById('toggle-show-list-1'),
-  toggleShowList2: document.getElementById('toggle-show-list-2'),
   toggleShowKeyboard: document.getElementById('toggle-show-keyboard')
 };
 
@@ -2525,47 +2523,17 @@ function updateStorageProgressBar() {
 // -------------------------------------------------------------
 // Settings Management (Inline in Auth Dropdown)
 // -------------------------------------------------------------
-let isInitialSettingsLoad = true;
-
 function initSettings() {
-  if (localStorage.getItem('show_list_1') === null || localStorage.getItem('show_list_2') === null || localStorage.getItem('show_keyboard') === null) {
-    const isMobile = window.innerWidth <= 768;
-    if (localStorage.getItem('show_list_1') === null) {
-      localStorage.setItem('show_list_1', isMobile ? 'false' : 'true');
-    }
-    if (localStorage.getItem('show_list_2') === null) {
-      localStorage.setItem('show_list_2', isMobile ? 'false' : 'true');
-    }
-    if (localStorage.getItem('show_keyboard') === null) {
-      localStorage.setItem('show_keyboard', 'true');
-    }
+  if (localStorage.getItem('show_keyboard') === null) {
+    localStorage.setItem('show_keyboard', 'true');
   }
 
-  if (elements.toggleShowList1) {
-    elements.toggleShowList1.checked = localStorage.getItem('show_list_1') !== 'false';
-  }
-  if (elements.toggleShowList2) {
-    elements.toggleShowList2.checked = localStorage.getItem('show_list_2') !== 'false';
-  }
   if (elements.toggleShowKeyboard) {
     elements.toggleShowKeyboard.checked = localStorage.getItem('show_keyboard') !== 'false';
   }
 
   applySettings();
-  isInitialSettingsLoad = false;
 
-  if (elements.toggleShowList1) {
-    elements.toggleShowList1.addEventListener('change', (e) => {
-      localStorage.setItem('show_list_1', e.target.checked ? 'true' : 'false');
-      applySettings();
-    });
-  }
-  if (elements.toggleShowList2) {
-    elements.toggleShowList2.addEventListener('change', (e) => {
-      localStorage.setItem('show_list_2', e.target.checked ? 'true' : 'false');
-      applySettings();
-    });
-  }
   if (elements.toggleShowKeyboard) {
     elements.toggleShowKeyboard.addEventListener('change', (e) => {
       localStorage.setItem('show_keyboard', e.target.checked ? 'true' : 'false');
@@ -2575,84 +2543,15 @@ function initSettings() {
 }
 
 function applySettings() {
-  const card1 = document.getElementById('card-following');
-  const card2 = document.getElementById('card-followers');
-  const show1 = localStorage.getItem('show_list_1') !== 'false';
-  const show2 = localStorage.getItem('show_list_2') !== 'false';
-
-  toggleCardWithAnimation(card1, show1);
-  toggleCardWithAnimation(card2, show2);
-
   const keyboardHints = document.getElementById('keyboard-hints');
   const showKeyboard = localStorage.getItem('show_keyboard') !== 'false';
   if (keyboardHints) {
     keyboardHints.classList.toggle('hidden-hints', !showKeyboard);
   }
 
-  // Update layout columns instantly to sync button transition durations
-  updateGridColumns();
-
   // Clean up temporary early settings styles block
   const earlyStyle = document.getElementById('early-settings-style');
   if (earlyStyle) earlyStyle.remove();
-}
-
-function toggleCardWithAnimation(card, show) {
-  if (!card) return;
-  
-  if (isInitialSettingsLoad) {
-    card.classList.toggle('hidden-card', !show);
-    card.classList.toggle('card-fade-out', !show);
-    return;
-  }
-  
-  if (show) {
-    card.classList.remove('hidden-card');
-    card.offsetHeight; // Force reflow
-    requestAnimationFrame(() => {
-      card.classList.remove('card-fade-out');
-    });
-  } else {
-    card.classList.add('card-fade-out');
-    setTimeout(() => {
-      const currentShow = card.id === 'card-following' 
-        ? localStorage.getItem('show_list_1') !== 'false'
-        : localStorage.getItem('show_list_2') !== 'false';
-      if (!currentShow) {
-        card.classList.add('hidden-card');
-      }
-    }, 600); // Matches the 0.6s CSS transition
-  }
-}
-
-function updateGridColumns() {
-  const appGrid = document.querySelector('.app-grid');
-  if (!appGrid) return;
-
-  const show1 = localStorage.getItem('show_list_1') !== 'false';
-  const show2 = localStorage.getItem('show_list_2') !== 'false';
-
-  let visibleCount = 3;
-  if (!show1) visibleCount--;
-  if (!show2) visibleCount--;
-
-  appGrid.classList.remove('show-3-cols', 'show-2-cols', 'show-1-col');
-  if (visibleCount === 3) {
-    appGrid.classList.add('show-3-cols');
-  } else if (visibleCount === 2) {
-    appGrid.classList.add('show-2-cols');
-  } else {
-    appGrid.classList.add('show-1-col');
-  }
-
-  // Update card sequence badge for unfollowers dynamically when both lists are hidden
-  const unfollowersCard = document.getElementById('card-unfollowers');
-  if (unfollowersCard) {
-    const badge = unfollowersCard.querySelector('.card-num');
-    if (badge) {
-      badge.textContent = (!show1 && !show2) ? '1' : '3';
-    }
-  }
 }
 
 // -------------------------------------------------------------
