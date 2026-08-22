@@ -1136,14 +1136,22 @@ h1, h2, h3, h4, .card-num {
   transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease, box-shadow 0.5s ease !important;
 }
 
-.account-chip:hover {
-  transform: translateY(-1.5px);
-  border-color: var(--text-main);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+.account-chip:hover,
+#btn-add-account:hover {
+  transform: translateY(-1.5px) !important;
+  border-color: var(--text-main) !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08) !important;
 }
 
-[data-theme="dark"] .account-chip:hover {
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+[data-theme="dark"] .account-chip:hover,
+[data-theme="dark"] #btn-add-account:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35) !important;
+}
+
+.account-chip:active,
+#btn-add-account:active {
+  transform: translateY(0) scale(0.96) !important;
+  transition: transform 0.1s ease !important;
 }
 
 .btn-add-account {
