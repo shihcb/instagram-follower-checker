@@ -1038,10 +1038,10 @@ h1, h2, h3, h4, .card-num {
   scrollbar-width: none;
   -ms-overflow-style: none;
   flex-wrap: nowrap;
-  padding: 20px 16px;
+  padding: 24px 16px 20px 16px;
   margin-left: -16px;
   margin-right: -16px;
-  margin-top: -10px;
+  margin-top: -24px;
   margin-bottom: -16px;
 }
 
@@ -1055,6 +1055,7 @@ h1, h2, h3, h4, .card-num {
   gap: 8px;
   flex-wrap: nowrap;
   flex-shrink: 0;
+  overflow: visible;
 }
 
 .account-chip {
