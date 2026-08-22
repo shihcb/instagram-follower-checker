@@ -728,6 +728,7 @@ h1, h2, h3, h4, .card-num {
   top: calc(100% + 8px);
   width: 280px;
   max-height: 380px;
+  overflow-y: auto;
   margin-top: 0 !important;
   background-color: var(--input-bg) !important;
   border: 1px solid var(--card-border) !important;
