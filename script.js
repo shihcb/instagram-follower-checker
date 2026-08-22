@@ -2006,9 +2006,14 @@ function initAuth() {
         const importAccountWarning = document.getElementById('import-account-warning');
         if (importAccountWarning) importAccountWarning.classList.add('hidden-warning');
         
-        // Update UI panels in modal
-        elements.authProfileView.classList.remove('hidden');
-        elements.authFormView.classList.add('hidden');
+        const showProfileView = () => {
+          elements.authProfileView.classList.remove('hidden');
+          elements.authFormView.classList.add('hidden');
+        };
+
+        if (isInitialAuthCheck) {
+          showProfileView();
+        }
 
         // Fetch cloud data and merge/sync
         await pullFromCloud();
@@ -2036,22 +2041,22 @@ function initAuth() {
           const hasAccounts = (state.instagramAccounts || []).length > 0;
           if (hasAccounts && !isInitialAuthCheck) {
             if (elements.authDropdown) {
-              elements.authDropdown.style.transition = 'opacity 500ms ease, transform 500ms ease';
-              elements.authDropdown.style.opacity = '0';
-              elements.authDropdown.style.transform = 'scale(1.02)';
+              elements.authDropdown.classList.add('fade-out-bounce');
             }
             setTimeout(() => {
               document.body.classList.remove('auth-logged-out');
               if (elements.authDropdown) {
                 elements.authDropdown.classList.remove('show');
-                elements.authDropdown.removeAttribute('style');
+                elements.authDropdown.classList.remove('fade-out-bounce');
               }
-            }, 550);
+              showProfileView();
+            }, 600);
           } else {
             document.body.classList.remove('auth-logged-out');
             if (elements.authDropdown) {
               elements.authDropdown.classList.remove('show');
             }
+            showProfileView();
           }
         };
 
