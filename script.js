@@ -1286,7 +1286,7 @@ function saveAccountFromModal() {
   }
 
   localStorage.setItem('instagram_accounts', JSON.stringify(state.instagramAccounts));
-  renderAccountChips();
+  renderAccountChips(true);
   closeAccountModal();
 }
 
@@ -1295,40 +1295,55 @@ function deleteAccountFromModal() {
     const deletedUser = state.instagramAccounts[state.editingAccountIndex];
     const acc = deletedUser.toLowerCase();
 
-    // 1. Remove account-specific local storage keys
-    localStorage.removeItem(`following_users_${acc}`);
-    localStorage.removeItem(`followers_users_${acc}`);
-    localStorage.removeItem(`unfollowed_users_${acc}`);
-    localStorage.removeItem(`starred_users_${acc}`);
-
-    // 2. Remove all unfollowed and starred entries belonging to this account from main storage
-    const mainStarred = JSON.parse(localStorage.getItem('starred_users') || '[]');
-    const filteredStarred = mainStarred.filter(u => !u.account || u.account.toLowerCase() !== acc);
-    localStorage.setItem('starred_users', JSON.stringify(filteredStarred));
-
-    const mainUnfollowed = JSON.parse(localStorage.getItem('unfollowed_users') || '[]');
-    const filteredUnfollowed = mainUnfollowed.filter(u => !u.account || u.account.toLowerCase() !== acc);
-    localStorage.setItem('unfollowed_users', JSON.stringify(filteredUnfollowed));
-
-    // 3. Remove from current state arrays
-    state.starred = (state.starred || []).filter(u => !u.account || u.account.toLowerCase() !== acc);
-    state.unfollowed = (state.unfollowed || []).filter(u => !u.account || u.account.toLowerCase() !== acc);
-
-    // 4. Remove account from accounts registry
-    state.instagramAccounts.splice(state.editingAccountIndex, 1);
-    localStorage.setItem('instagram_accounts', JSON.stringify(state.instagramAccounts));
-
-    // 5. Reset selection if the deleted account was selected
-    if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === acc) {
-      state.selectedAccountUsername = null;
-      localStorage.removeItem('selected_instagram_account');
-      loadAccountData(null);
-    } else {
-      renderAccountChips();
+    // Try to find the chip element in the DOM to animate it
+    let chipEl = null;
+    if (elements.accountChipsList) {
+      chipEl = elements.accountChipsList.querySelector(`.account-chip[data-account-name="${acc}"]`);
     }
 
-    pushToCloud();
-    closeAccountModal();
+    const performDelete = () => {
+      // 1. Remove account-specific local storage keys
+      localStorage.removeItem(`following_users_${acc}`);
+      localStorage.removeItem(`followers_users_${acc}`);
+      localStorage.removeItem(`unfollowed_users_${acc}`);
+      localStorage.removeItem(`starred_users_${acc}`);
+
+      // 2. Remove all unfollowed and starred entries belonging to this account from main storage
+      const mainStarred = JSON.parse(localStorage.getItem('starred_users') || '[]');
+      const filteredStarred = mainStarred.filter(u => !u.account || u.account.toLowerCase() !== acc);
+      localStorage.setItem('starred_users', JSON.stringify(filteredStarred));
+
+      const mainUnfollowed = JSON.parse(localStorage.getItem('unfollowed_users') || '[]');
+      const filteredUnfollowed = mainUnfollowed.filter(u => !u.account || u.account.toLowerCase() !== acc);
+      localStorage.setItem('unfollowed_users', JSON.stringify(filteredUnfollowed));
+
+      // 3. Remove from current state arrays
+      state.starred = (state.starred || []).filter(u => !u.account || u.account.toLowerCase() !== acc);
+      state.unfollowed = (state.unfollowed || []).filter(u => !u.account || u.account.toLowerCase() !== acc);
+
+      // 4. Remove account from accounts registry
+      state.instagramAccounts.splice(state.editingAccountIndex, 1);
+      localStorage.setItem('instagram_accounts', JSON.stringify(state.instagramAccounts));
+
+      // 5. Reset selection if the deleted account was selected
+      if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === acc) {
+        state.selectedAccountUsername = null;
+        localStorage.removeItem('selected_instagram_account');
+        loadAccountData(null);
+      } else {
+        renderAccountChips(true);
+      }
+
+      pushToCloud();
+      closeAccountModal();
+    };
+
+    if (chipEl) {
+      chipEl.classList.add('bounce-out');
+      setTimeout(performDelete, 400);
+    } else {
+      performDelete();
+    }
   }
 }
 
@@ -1977,6 +1992,8 @@ function initAuth() {
       }
       if (session) {
         currentUser = session.user;
+        document.body.classList.remove('auth-logged-out');
+        elements.authDropdown.classList.remove('show');
         elements.userBadge.classList.remove('hidden');
         elements.authUserEmail.textContent = currentUser.email;
 
@@ -2026,6 +2043,8 @@ function initAuth() {
         }
       } else {
         currentUser = null;
+        document.body.classList.add('auth-logged-out');
+        elements.authDropdown.classList.add('show');
         elements.userBadge.classList.add('hidden');
 
         const appGrid = document.querySelector('.app-grid');
@@ -2075,6 +2094,13 @@ function initAuth() {
           const resultsList = elements.listUnfollowers;
 
           if (chipsList) {
+            // Apply bounce-out to all active chips with staggered delay
+            const chips = Array.from(chipsList.querySelectorAll('.account-chip'));
+            chips.forEach((chip, idx) => {
+              chip.style.animationDelay = `${idx * 40}ms`;
+              chip.classList.add('bounce-out');
+            });
+
             chipsList.style.transition = `opacity ${fadeDuration}ms ease`;
             chipsList.style.opacity = '0';
           }
@@ -2133,6 +2159,7 @@ function initAuth() {
   // Toggle drop down menu on button click
   elements.authBtn.addEventListener('click', (e) => {
     e.stopPropagation();
+    if (!currentUser) return; // Disable drop down toggle if logged out (always full-screen)
     if (document.activeElement && typeof document.activeElement.blur === 'function') {
       document.activeElement.blur();
     }
@@ -2141,7 +2168,7 @@ function initAuth() {
 
   // Close drop down on clicking outside
   document.addEventListener('click', (e) => {
-    if (elements.authDropdown.classList.contains('show')) {
+    if (currentUser && elements.authDropdown.classList.contains('show')) {
       if (!e.target.closest('#auth-dropdown') && !e.target.closest('#auth-btn')) {
         elements.authDropdown.classList.remove('show');
         clearAuthAlerts();
