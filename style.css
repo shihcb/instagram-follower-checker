@@ -1413,14 +1413,20 @@ h1, h2, h3, h4, .card-num {
   border: none;
   font-size: 1.5rem;
   line-height: 1;
-  color: var(--text-muted);
+  color: #1a1a1a !important;
   cursor: pointer;
   padding: 0 4px;
   transition: color 0.2s ease;
 }
 
-.modal-close-btn:hover {
-  color: var(--text-main);
+@media (hover: hover) {
+  .modal-close-btn:hover {
+    color: #ef4444 !important;
+  }
+}
+
+[data-theme="dark"] .modal-close-btn {
+  color: #ffffff !important;
 }
 
 .account-modal-input-group {
@@ -2807,5 +2813,14 @@ body.auth-logged-out #auth-form-view.smooth-exit {
 /* Fallback Hidden Card State */
 .hidden-card {
   display: none !important;
+}
+
+/* History dropdown clear close button matches list dismiss close button color */
+.remove-unfollowed-btn {
+  color: #1a1a1a !important;
+}
+
+[data-theme="dark"] .remove-unfollowed-btn {
+  color: #ffffff !important;
 }
 
