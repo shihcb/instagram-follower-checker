@@ -827,13 +827,11 @@ h1, h2, h3, h4, .card-num {
     width: 100% !important;
   }
 
-  /* Match dropdown menus to their parent button's width when dynamically sized */
-  .app-grid.show-2-cols .results-dropdowns-group .dropdown-wrapper,
+  /* Match dropdown menus to their parent button's width when dynamically sized (only when both lists are hidden) */
   .app-grid.show-1-col .results-dropdowns-group .dropdown-wrapper {
     position: relative !important;
   }
 
-  .app-grid.show-2-cols .results-dropdowns-group .dropdown-menu,
   .app-grid.show-1-col .results-dropdowns-group .dropdown-menu {
     width: 100% !important;
     min-width: 100% !important;
