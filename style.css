@@ -383,17 +383,25 @@ h1, h2, h3, h4, .card-num {
   display: flex;
   flex-direction: column;
   height: 580px;
+  flex: 1 1 0px;
+  min-width: 0;
   opacity: 1;
   transform: scale(1) translateY(0);
-  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+  transition: flex 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
               transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
               border-color 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .card.card-fade-out {
+  flex: 0 0 0px !important;
   opacity: 0 !important;
   transform: scale(0.94) translateY(20px) !important;
   pointer-events: none !important;
+  overflow: hidden !important;
+  border-width: 0 !important;
+  border-color: transparent !important;
+  margin-right: -24px !important;
 }
 
 .card:hover {
@@ -480,15 +488,13 @@ h1, h2, h3, h4, .card-num {
  * 3-Column Layout Grid
  * ------------------------------------------------------------- */
 .app-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-direction: row;
   gap: 24px;
   align-items: stretch;
   position: relative;
   margin-top: 48px;
-  transition: margin-top 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-              grid-template-columns 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              gap 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: margin-top 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .import-account-warning {
@@ -1914,10 +1920,27 @@ h1, h2, h3, h4, .card-num {
  * ------------------------------------------------------------- */
 @media (max-width: 1024px) {
   .app-grid {
-    grid-template-columns: 1fr; /* Stack columns on smaller screens */
+    flex-direction: column !important;
   }
   .card {
     height: 500px;
+    flex: none !important;
+    transition: height 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  .card.card-fade-out {
+    height: 0 !important;
+    opacity: 0 !important;
+    transform: scale(0.94) translateY(20px) !important;
+    pointer-events: none !important;
+    overflow: hidden !important;
+    border-width: 0 !important;
+    border-color: transparent !important;
+    margin-bottom: -24px !important;
+    margin-right: 0 !important;
   }
   #card-unfollowers {
     height: 700px;
