@@ -732,7 +732,7 @@ h1, h2, h3, h4, .card-num {
   margin-top: 0 !important;
   background-color: var(--input-bg) !important;
   border: 1px solid var(--card-border) !important;
-  border-radius: 14px !important;
+  border-radius: 20px !important;
   box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.08);
   padding: 10px;
   z-index: 100;
@@ -1255,7 +1255,7 @@ h1, h2, h3, h4, .card-num {
 .account-modal-card {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  border-radius: 18px;
+  border-radius: 20px;
   padding: 24px;
   width: 90%;
   max-width: 380px;
@@ -1901,7 +1901,7 @@ h1, h2, h3, h4, .card-num {
   top: calc(100% + 10px);
   right: 0;
   width: 320px;
-  border-radius: 14px;
+  border-radius: 20px;
   padding: 22px;
   display: flex;
   flex-direction: column;
