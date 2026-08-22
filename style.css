@@ -2800,3 +2800,14 @@ body.auth-logged-out #auth-form-view.smooth-exit {
   color: #ffffff !important;
 }
 
+/* Remove browser default focus outline highlights to maintain consistency with design language */
+button:focus,
+button:focus-visible,
+.btn:focus,
+.btn:focus-visible,
+.btn-danger-soft:focus,
+.btn-danger-soft:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
