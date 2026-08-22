@@ -1114,6 +1114,12 @@ let chipClickTimer = null;
 function renderAccountChips(animate = false) {
   if (!elements.accountChipsList || !elements.btnAddAccount) return;
 
+  if (animate) {
+    elements.btnAddAccount.classList.remove('bounce');
+    void elements.btnAddAccount.offsetWidth; // Force reflow to restart animation
+    elements.btnAddAccount.classList.add('bounce');
+  }
+
   const accounts = state.instagramAccounts || [];
   const existingChips = Array.from(elements.accountChipsList.querySelectorAll('.account-chip'));
   
@@ -1992,8 +1998,6 @@ function initAuth() {
       }
       if (session) {
         currentUser = session.user;
-        document.body.classList.remove('auth-logged-out');
-        elements.authDropdown.classList.remove('show');
         elements.userBadge.classList.remove('hidden');
         elements.authUserEmail.textContent = currentUser.email;
 
@@ -2026,6 +2030,32 @@ function initAuth() {
 
         // Always render chips instantly under the login screen before it fades out
         renderAccountChips(false);
+
+        // Smoothly fade out login page if there are accounts, otherwise hide instantly
+        const finalizeLogin = () => {
+          const hasAccounts = (state.instagramAccounts || []).length > 0;
+          if (hasAccounts && !isInitialAuthCheck) {
+            if (elements.authDropdown) {
+              elements.authDropdown.style.transition = 'opacity 500ms ease, transform 500ms ease';
+              elements.authDropdown.style.opacity = '0';
+              elements.authDropdown.style.transform = 'scale(1.02)';
+            }
+            setTimeout(() => {
+              document.body.classList.remove('auth-logged-out');
+              if (elements.authDropdown) {
+                elements.authDropdown.classList.remove('show');
+                elements.authDropdown.removeAttribute('style');
+              }
+            }, 550);
+          } else {
+            document.body.classList.remove('auth-logged-out');
+            if (elements.authDropdown) {
+              elements.authDropdown.classList.remove('show');
+            }
+          }
+        };
+
+        finalizeLogin();
 
         if (!isInitialAuthCheck) {
           // Slowly fade in the results list consistently
