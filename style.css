@@ -1044,10 +1044,10 @@ h1, h2, h3, h4, .card-num {
   scrollbar-width: none;
   -ms-overflow-style: none;
   flex-wrap: nowrap;
-  padding: 24px 16px 20px 16px;
+  padding: 20px 16px;
   margin-left: -16px;
   margin-right: -16px;
-  margin-top: -24px;
+  margin-top: -16px;
   margin-bottom: -16px;
 }
 
