@@ -1132,9 +1132,9 @@ function renderAccountChips(animate = false) {
   } else {
     // Full re-render when accounts are added or deleted -> Layout shifts!
     if (!isInitialAuthCheck && elements.btnAddAccount) {
-      elements.btnAddAccount.classList.remove('bounce');
+      elements.btnAddAccount.classList.remove('fade-in');
       void elements.btnAddAccount.offsetWidth; // Force reflow to restart animation
-      elements.btnAddAccount.classList.add('bounce');
+      elements.btnAddAccount.classList.add('fade-in');
     }
 
     elements.accountChipsList.innerHTML = '';
