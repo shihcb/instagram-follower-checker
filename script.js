@@ -576,15 +576,8 @@ function updateUnfollowedUI() {
     toggleBtn.removeAttribute('disabled');
     toggleBtn.querySelector('span').textContent = `unfollowed (${listData.length})`;
     
-    // Render elements with a reset button at the top and a scroll container below
+    // Render elements with a scroll container below
     listEl.innerHTML = `
-      <button class="btn btn-secondary btn-sm" id="reset-unfollowed-btn" style="width: 100%; margin-bottom: 6px; font-size: 0.75rem; padding: 6px; display: flex; align-items: center; justify-content: center; gap: 4px;">
-        <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-        </svg>
-        reset list
-      </button>
       <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
           <div class="parsed-item" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
@@ -1427,6 +1420,8 @@ function setupEventListeners() {
 
   // Action buttons: Clear
   elements.clearFollowing.addEventListener('click', () => {
+    const searchFollowingInput = document.getElementById('search-following');
+    if (searchFollowingInput) searchFollowingInput.value = '';
     smoothClearTextarea(elements.inputFollowing, () => {
       state.following = [];
       localStorage.removeItem('following_users');
@@ -1437,6 +1432,8 @@ function setupEventListeners() {
   });
 
   elements.clearFollowers.addEventListener('click', () => {
+    const searchFollowersInput = document.getElementById('search-followers');
+    if (searchFollowersInput) searchFollowersInput.value = '';
     smoothClearTextarea(elements.inputFollowers, () => {
       state.followers = [];
       localStorage.removeItem('followers_users');
@@ -1596,21 +1593,9 @@ function setupEventListeners() {
     }
   });
 
-  // Handle click on elements inside unfollowed list (reset, remove, or star)
+  // Handle click on elements inside unfollowed list (remove or star)
   elements.listUnfollowed.addEventListener('click', async (e) => {
     e.stopPropagation();
-    const resetBtn = e.target.closest('#reset-unfollowed-btn');
-    if (resetBtn) {
-      const confirmed = await showSiteConfirm('reset list', 'are you sure you want to reset your unfollowed list history?', 'reset', 'cancel');
-      if (confirmed) {
-        state.unfollowed = [];
-        saveCurrentAccountData();
-        calculateUnfollowers();
-        updateUnfollowedUI();
-        await pushToCloud();
-      }
-      return;
-    }
 
     const starBtn = e.target.closest('.star-unfollowed-btn');
     if (starBtn) {
@@ -1938,6 +1923,90 @@ function setupEventListeners() {
       e.preventDefault();
     }
   });
+
+  // Settings: Reset Unfollowed and Reset Starred Lists
+  const settingsResetUnfollowedBtn = document.getElementById('settings-reset-unfollowed-btn');
+  if (settingsResetUnfollowedBtn) {
+    settingsResetUnfollowedBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const confirmed = await showSiteConfirm('reset list', 'are you sure you want to reset your unfollowed list history?', 'reset', 'cancel');
+      if (confirmed) {
+        state.unfollowed = [];
+        saveCurrentAccountData();
+        calculateUnfollowers();
+        updateUnfollowedUI();
+        await pushToCloud();
+      }
+    });
+  }
+
+  const settingsResetStarredBtn = document.getElementById('settings-reset-starred-btn');
+  if (settingsResetStarredBtn) {
+    settingsResetStarredBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const confirmed = await showSiteConfirm('reset list', 'are you sure you want to reset your starred list?', 'reset', 'cancel');
+      if (confirmed) {
+        state.starred = [];
+        saveCurrentAccountData();
+        calculateUnfollowers();
+        updateStarredUI();
+        await pushToCloud();
+      }
+    });
+  }
+
+  // Realtime search filtering for List 1 (Following)
+  const searchFollowingInput = document.getElementById('search-following');
+  if (searchFollowingInput) {
+    searchFollowingInput.addEventListener('input', () => {
+      const searchTerm = searchFollowingInput.value.trim().toLowerCase();
+      if (!searchTerm) {
+        elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
+      } else {
+        const filtered = state.following.filter(u => 
+          u.originalUsername.toLowerCase().includes(searchTerm) ||
+          (u.fullName && u.fullName.toLowerCase().includes(searchTerm))
+        );
+        elements.inputFollowing.value = filtered.map(u => `@${u.originalUsername}`).join('\n');
+      }
+    });
+  }
+
+  // Realtime search filtering for List 2 (Followers)
+  const searchFollowersInput = document.getElementById('search-followers');
+  if (searchFollowersInput) {
+    searchFollowersInput.addEventListener('input', () => {
+      const searchTerm = searchFollowersInput.value.trim().toLowerCase();
+      if (!searchTerm) {
+        elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername}`).join('\n');
+      } else {
+        const filtered = state.followers.filter(u => 
+          u.originalUsername.toLowerCase().includes(searchTerm) ||
+          (u.fullName && u.fullName.toLowerCase().includes(searchTerm))
+        );
+        elements.inputFollowers.value = filtered.map(u => `@${u.originalUsername}`).join('\n');
+      }
+    });
+  }
+
+  // Restore full lists on textarea focus to prevent data loss when editing
+  if (elements.inputFollowing) {
+    elements.inputFollowing.addEventListener('focus', () => {
+      if (searchFollowingInput && searchFollowingInput.value) {
+        searchFollowingInput.value = '';
+        elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
+      }
+    });
+  }
+
+  if (elements.inputFollowers) {
+    elements.inputFollowers.addEventListener('focus', () => {
+      if (searchFollowersInput && searchFollowersInput.value) {
+        searchFollowersInput.value = '';
+        elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername}`).join('\n');
+      }
+    });
+  }
 
   function highlightRow(index) {
     const rows = elements.listUnfollowers.querySelectorAll('.user-row');

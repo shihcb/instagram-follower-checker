@@ -117,6 +117,20 @@
                       <span class="slider"></span>
                     </label>
                   </div>
+                  <div class="setting-item-row" style="margin-top: 8px;">
+                    <div class="setting-label-group">
+                      <span class="setting-label">reset unfollowed list</span>
+                      <span class="setting-desc">clear your unfollowed account history</span>
+                    </div>
+                    <button class="btn btn-secondary btn-sm btn-danger-soft" id="settings-reset-unfollowed-btn" style="padding: 4px 8px; font-size: 0.72rem; text-transform: lowercase;">reset</button>
+                  </div>
+                  <div class="setting-item-row" style="margin-top: 8px;">
+                    <div class="setting-label-group">
+                      <span class="setting-label">reset starred list</span>
+                      <span class="setting-desc">clear your starred / favorite accounts</span>
+                    </div>
+                    <button class="btn btn-secondary btn-sm btn-danger-soft" id="settings-reset-starred-btn" style="padding: 4px 8px; font-size: 0.72rem; text-transform: lowercase;">reset</button>
+                  </div>
                 </div>
 
                 <button id="btn-logout" class="btn btn-primary btn-block">log out</button>
@@ -330,6 +344,13 @@
           <span class="badge count-badge" id="following-count">0 loaded</span>
         </div>
         <div class="card-body">
+          <div class="search-box" style="margin-bottom: 10px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="search-following" placeholder="search following" style="font-size: 0.78rem; padding: 6px 6px 6px 28px;">
+          </div>
           <textarea id="input-following" placeholder="enter usernames"></textarea>
           
           <div class="card-actions" id="actions-following">
@@ -348,6 +369,13 @@
           <span class="badge count-badge" id="followers-count">0 loaded</span>
         </div>
         <div class="card-body">
+          <div class="search-box" style="margin-bottom: 10px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="search-followers" placeholder="search followers" style="font-size: 0.78rem; padding: 6px 6px 6px 28px;">
+          </div>
           <textarea id="input-followers" placeholder="enter usernames"></textarea>
 
           <div class="card-actions" id="actions-followers">
