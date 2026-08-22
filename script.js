@@ -2587,6 +2587,10 @@ function applySettings() {
   }
 
   updateGridColumns();
+
+  // Clean up temporary early settings styles block
+  const earlyStyle = document.getElementById('early-settings-style');
+  if (earlyStyle) earlyStyle.remove();
 }
 
 function updateGridColumns() {
