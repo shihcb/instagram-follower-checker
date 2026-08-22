@@ -1186,6 +1186,7 @@ function renderAccountChips(animate = false) {
         const timeDiff = now - lastChipTapTime;
 
         if (timeDiff > 0 && timeDiff < 350) {
+          chip.classList.add('no-active');
           if (chipClickTimer) {
             clearTimeout(chipClickTimer);
             chipClickTimer = null;
@@ -1218,6 +1219,7 @@ function renderAccountChips(animate = false) {
         handleChipInteraction(e);
       });
       chip.addEventListener('dblclick', (e) => {
+        chip.classList.add('no-active');
         e.stopPropagation();
         e.preventDefault();
         if (chipClickTimer) {
@@ -1290,6 +1292,8 @@ function closeAccountModal() {
       elements.accountModalOriginalCaption.classList.add('hidden');
       elements.accountModalOriginalCaption.textContent = '';
     }
+    // Clean up double-click active suppression state
+    document.querySelectorAll('.account-chip').forEach(c => c.classList.remove('no-active'));
     state.editingAccountIndex = -1;
   }, 350);
 }
