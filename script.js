@@ -34,6 +34,19 @@ const state = {
   autoOpenCount: 0 // Counter of profiles opened in the current auto-open sequence
 };
 
+function normalizeInstagramAccounts() {
+  if (!state.instagramAccounts) {
+    state.instagramAccounts = [];
+    return;
+  }
+  state.instagramAccounts = state.instagramAccounts.map(acc => {
+    if (typeof acc === 'string') {
+      return { username: acc, originalUsername: acc };
+    }
+    return acc;
+  });
+}
+
 // Action / Noise keywords to filter out of raw text lists
 const EXCLUDE_KEYWORDS = new Set([
   'following', 'follow', 'followers', 'message', 'remove', 'requested', 
@@ -916,20 +929,21 @@ function ensureAccountSelected(username) {
 
   const usernameLower = username.toLowerCase();
 
-  if (!state.instagramAccounts) state.instagramAccounts = [];
+  normalizeInstagramAccounts();
 
-  // Check if account already exists (case-insensitive)
+  // Check if account already exists by matching originalUsername (case-insensitive)
   const existingIndex = state.instagramAccounts.findIndex(
-    acc => acc.toLowerCase() === usernameLower
+    acc => acc.originalUsername.toLowerCase() === usernameLower
   );
 
   if (existingIndex >= 0) {
     // Account exists — select it if it's not already selected
+    const originalName = state.instagramAccounts[existingIndex].originalUsername;
     if (!state.selectedAccountUsername || state.selectedAccountUsername.toLowerCase() !== usernameLower) {
       if (state.selectedAccountUsername) {
         saveCurrentAccountData();
       }
-      state.selectedAccountUsername = state.instagramAccounts[existingIndex];
+      state.selectedAccountUsername = originalName;
       localStorage.setItem('selected_instagram_account', state.selectedAccountUsername);
       loadAccountData(state.selectedAccountUsername);
     }
@@ -938,7 +952,8 @@ function ensureAccountSelected(username) {
     if (state.selectedAccountUsername) {
       saveCurrentAccountData();
     }
-    state.instagramAccounts.push(username);
+    const newAcc = { username: username, originalUsername: username };
+    state.instagramAccounts.push(newAcc);
     localStorage.setItem('instagram_accounts', JSON.stringify(state.instagramAccounts));
     state.selectedAccountUsername = username;
     localStorage.setItem('selected_instagram_account', username);
@@ -1117,13 +1132,20 @@ let chipClickTimer = null;
 function renderAccountChips(animate = false) {
   if (!elements.accountChipsList || !elements.btnAddAccount) return;
 
+  normalizeInstagramAccounts();
+
   const accounts = state.instagramAccounts || [];
   const existingChips = Array.from(elements.accountChipsList.querySelectorAll('.account-chip'));
   
   // Check if existing chips match current accounts list length and names
   const existingUsernames = existingChips.map(c => c.getAttribute('data-account-name'));
+  const existingDisplayNames = existingChips.map(c => c.querySelector('.chip-text')?.textContent || c.textContent);
+  
   const accountsMatch = existingUsernames.length === accounts.length && 
-    accounts.every((u, i) => existingUsernames[i] === u.toLowerCase());
+    accounts.every((acc, i) => 
+      existingUsernames[i] === acc.originalUsername.toLowerCase() &&
+      existingDisplayNames[i] === `@${acc.username}`
+    );
 
   if (accountsMatch) {
     // Just update active class smoothly on existing DOM nodes so CSS transition executes!
@@ -1136,18 +1158,22 @@ function renderAccountChips(animate = false) {
     // Full re-render when accounts are added or deleted -> Layout shifts!
     elements.accountChipsList.innerHTML = '';
 
-    accounts.forEach((username, index) => {
+    accounts.forEach((acc, index) => {
       const chip = document.createElement('div');
       chip.className = 'account-chip';
       if (animate) {
         chip.classList.add('fade-in');
         chip.style.animationDelay = `${index * 80}ms`;
       }
-      chip.setAttribute('data-account-name', username.toLowerCase());
+      chip.setAttribute('data-account-name', acc.originalUsername.toLowerCase());
       chip.setAttribute('data-index', index);
-      chip.textContent = `@${username}`;
+      
+      const textSpan = document.createElement('span');
+      textSpan.className = 'chip-text';
+      textSpan.textContent = `@${acc.username}`;
+      chip.appendChild(textSpan);
 
-      if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === username.toLowerCase()) {
+      if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === acc.originalUsername.toLowerCase()) {
         chip.classList.add('active');
       }
 
@@ -1159,14 +1185,12 @@ function renderAccountChips(animate = false) {
         const timeDiff = now - lastChipTapTime;
 
         if (timeDiff > 0 && timeDiff < 350) {
-          // Double tap / double click detected!
-          if (e.cancelable) e.preventDefault();
           if (chipClickTimer) {
             clearTimeout(chipClickTimer);
             chipClickTimer = null;
           }
-          if (!state.selectedAccountUsername || state.selectedAccountUsername.toLowerCase() !== username.toLowerCase()) {
-            selectAccount(username);
+          if (!state.selectedAccountUsername || state.selectedAccountUsername.toLowerCase() !== acc.originalUsername.toLowerCase()) {
+            selectAccount(acc.originalUsername);
           }
           openAccountModal(index);
           lastChipTapTime = 0;
@@ -1181,7 +1205,7 @@ function renderAccountChips(animate = false) {
         }
 
         chipClickTimer = setTimeout(() => {
-          selectAccount(username);
+          selectAccount(acc.originalUsername);
           chipClickTimer = null;
           lastChipTapTime = 0;
         }, 240);
@@ -1199,8 +1223,8 @@ function renderAccountChips(animate = false) {
           clearTimeout(chipClickTimer);
           chipClickTimer = null;
         }
-        if (!state.selectedAccountUsername || state.selectedAccountUsername.toLowerCase() !== username.toLowerCase()) {
-          selectAccount(username);
+        if (!state.selectedAccountUsername || state.selectedAccountUsername.toLowerCase() !== acc.originalUsername.toLowerCase()) {
+          selectAccount(acc.originalUsername);
         }
         openAccountModal(index);
       });
@@ -1224,7 +1248,7 @@ function openAccountModal(index = -1) {
 
   if (index >= 0 && index < accounts.length) {
     if (elements.accountModalTitle) elements.accountModalTitle.textContent = 'edit instagram account';
-    if (elements.accountUsernameInput) elements.accountUsernameInput.value = accounts[index];
+    if (elements.accountUsernameInput) elements.accountUsernameInput.value = accounts[index].username;
     if (elements.btnModalDelete) elements.btnModalDelete.style.display = 'inline-block';
   } else {
     if (elements.accountModalTitle) elements.accountModalTitle.textContent = 'add instagram account';
@@ -1255,32 +1279,16 @@ function saveAccountFromModal() {
   let username = elements.accountUsernameInput.value.trim().replace(/^@+/, '');
   if (!username) return;
 
-  if (!state.instagramAccounts) state.instagramAccounts = [];
-
-  const oldUsername = state.editingAccountIndex >= 0 ? state.instagramAccounts[state.editingAccountIndex] : null;
+  normalizeInstagramAccounts();
 
   if (state.editingAccountIndex >= 0 && state.editingAccountIndex < state.instagramAccounts.length) {
-    if (oldUsername && oldUsername.toLowerCase() !== username.toLowerCase()) {
-      const oldAcc = oldUsername.toLowerCase();
-      const newAcc = username.toLowerCase();
-
-      ['following_users', 'followers_users', 'unfollowed_users', 'starred_users'].forEach(key => {
-        const val = localStorage.getItem(`${key}_${oldAcc}`);
-        if (val) {
-          localStorage.setItem(`${key}_${newAcc}`, val);
-          localStorage.removeItem(`${key}_${oldAcc}`);
-        }
-      });
-
-      if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === oldAcc) {
-        state.selectedAccountUsername = username;
-        localStorage.setItem('selected_instagram_account', username);
-      }
-    }
-    state.instagramAccounts[state.editingAccountIndex] = username;
+    // Only update the display username, leaving the originalUsername untouched!
+    state.instagramAccounts[state.editingAccountIndex].username = username;
   } else {
-    if (!state.instagramAccounts.includes(username)) {
-      state.instagramAccounts.push(username);
+    // Adding manually: create an object with identical username and originalUsername
+    const newAcc = { username: username, originalUsername: username };
+    if (!state.instagramAccounts.some(acc => acc.originalUsername.toLowerCase() === username.toLowerCase())) {
+      state.instagramAccounts.push(newAcc);
     }
     // Auto-select newly added account!
     state.selectedAccountUsername = username;
@@ -1295,8 +1303,8 @@ function saveAccountFromModal() {
 
 function deleteAccountFromModal() {
   if (state.editingAccountIndex >= 0 && state.editingAccountIndex < (state.instagramAccounts || []).length) {
-    const deletedUser = state.instagramAccounts[state.editingAccountIndex];
-    const acc = deletedUser.toLowerCase();
+    const deletedAccount = state.instagramAccounts[state.editingAccountIndex];
+    const acc = deletedAccount.originalUsername.toLowerCase();
 
     // Try to find the chip element in the DOM to animate it
     let chipEl = null;
@@ -2349,8 +2357,9 @@ async function pullFromCloud() {
 
       if (metaItem) {
         state.instagramAccounts = metaItem.instagram_accounts || [];
+        normalizeInstagramAccounts();
         const localSelected = localStorage.getItem('selected_instagram_account');
-        if (localSelected && state.instagramAccounts.some(acc => acc.toLowerCase() === localSelected.toLowerCase())) {
+        if (localSelected && state.instagramAccounts.some(acc => acc.originalUsername.toLowerCase() === localSelected.toLowerCase())) {
           state.selectedAccountUsername = localSelected;
         } else {
           state.selectedAccountUsername = metaItem.selected_account || null;
@@ -2422,7 +2431,7 @@ async function pushToCloud() {
     const allStarredMap = new Map();
     const allUnfollowedMap = new Map();
 
-    const accounts = [...(state.instagramAccounts || []).map(a => a.toLowerCase()), '_global_'];
+    const accounts = [...(state.instagramAccounts || []).map(a => a.originalUsername.toLowerCase()), '_global_'];
 
     // Include current active state in accountDataMap
     if (state.selectedAccountUsername) {
@@ -2576,6 +2585,7 @@ function applySettings() {
 // App Initialization
 // -------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
+  normalizeInstagramAccounts();
   initTheme();
   initSettings();
   setupEventListeners();
