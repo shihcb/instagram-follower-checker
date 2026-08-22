@@ -860,19 +860,21 @@ h1, h2, h3, h4, .card-num {
 
 /* When any list is hidden, make all action buttons size evenly (desktop/tablet only) */
 @media (min-width: 601px) {
-  /* Base state (show-3-cols) explicit flex sizing to enable smooth transitions */
+  /* Under 3-column layout, use slightly tighter padding/fonts to prevent text wrapping in small headers */
   .app-grid.show-3-cols .results-dropdowns-group {
-    flex: 0 0 auto !important;
-    margin-left: 0 !important;
+    flex: 1 1 0px !important;
+    margin-left: 24px !important;
+    min-width: 0 !important;
   }
-  .app-grid.show-3-cols .results-dropdowns-group .dropdown-wrapper:nth-child(1) {
-    flex: 0 0 140px !important;
-  }
-  .app-grid.show-3-cols .results-dropdowns-group .dropdown-wrapper:nth-child(2) {
-    flex: 0 0 115px !important;
-  }
+  .app-grid.show-3-cols .results-dropdowns-group .dropdown-wrapper,
   .app-grid.show-3-cols .results-dropdowns-group #btn-add-account {
     flex: 1 1 0px !important;
+    min-width: 0 !important;
+  }
+  .app-grid.show-3-cols .results-dropdowns-group .preview-toggle {
+    font-size: 0.74rem !important;
+    padding: 0 6px !important;
+    gap: 4px !important;
   }
 
   .app-grid.show-2-cols .results-dropdowns-group,
