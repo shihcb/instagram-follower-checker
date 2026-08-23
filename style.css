@@ -691,6 +691,12 @@ h1, h2, h3, h4, .card-num {
   outline: none !important;
 }
 
+.preview-toggle.btn-sm {
+  font-size: 0.74rem !important;
+  padding: 0 8px !important;
+  gap: 4px !important;
+}
+
 .preview-toggle.active {
   border-color: var(--text-main) !important;
 }
