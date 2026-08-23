@@ -37,7 +37,19 @@
   <!-- Supabase Client Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body>
+<body class="auth-logged-out">
+  <script>
+    (function() {
+      try {
+        var hasAuth = Object.keys(localStorage).some(function(k) {
+          return (k.indexOf('auth-token') !== -1 || k.indexOf('supabase') !== -1) && localStorage.getItem(k);
+        });
+        if (hasAuth) {
+          document.body.classList.remove('auth-logged-out');
+        }
+      } catch(e) {}
+    })();
+  </script>
   <!-- Decorative background elements -->
   <div class="bg-glow bg-glow-1"></div>
   <div class="bg-glow bg-glow-2"></div>
