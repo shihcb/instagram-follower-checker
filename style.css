@@ -2948,8 +2948,8 @@ body.auth-logged-out #auth-form-view.smooth-exit {
   content: '';
   position: absolute;
   bottom: 0;
-  left: 12px;
-  right: 12px;
+  left: 10px;
+  right: 10px;
   height: 1px;
   background-color: var(--card-border);
 }
