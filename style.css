@@ -213,6 +213,32 @@ h1, h2, h3, h4, .card-num {
   gap: 24px;
 }
 
+/* Prevent text selection / highlighting when double-clicking buttons throughout the website */
+button,
+.btn,
+.icon-btn,
+.preview-toggle,
+.modal-close-btn,
+.account-chip,
+.account-chip *,
+.action-btn,
+.star-btn,
+.star-unfollowed-btn,
+.remove-unfollowed-btn,
+.unstar-btn,
+.clear-btn,
+.switch,
+.switch *,
+.slider,
+.badge,
+[role="button"] {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
 /* Header Styles */
 .app-header {
   display: flex;
