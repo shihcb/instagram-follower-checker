@@ -327,24 +327,26 @@
             </div>
           </div>
 
-          <div class="results-container">
-            <div class="empty-state hidden" id="unfollowers-empty-state">
-              <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" class="empty-icon">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="8.5" cy="7" r="4"></circle>
-                <line x1="18" y1="8" x2="23" y2="13"></line>
-                <line x1="23" y1="8" x2="18" y2="13"></line>
-              </svg>
-              <p class="empty-title">waiting for data</p>
-              <p class="empty-desc"></p>
+          <div class="results-layout-wrapper">
+            <div class="results-container">
+              <div class="empty-state hidden" id="unfollowers-empty-state">
+                <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" class="empty-icon">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="8.5" cy="7" r="4"></circle>
+                  <line x1="18" y1="8" x2="23" y2="13"></line>
+                  <line x1="23" y1="8" x2="18" y2="13"></line>
+                </svg>
+                <p class="empty-title">waiting for data</p>
+                <p class="empty-desc"></p>
+              </div>
+              <div class="results-list hidden" id="list-unfollowers"></div>
             </div>
-            <div class="results-list hidden" id="list-unfollowers"></div>
-          </div>
 
-          <div class="keyboard-hints" id="keyboard-hints" style="margin-top: 12px; margin-bottom: 0;">
-            <span><kbd>↑</kbd> <kbd>↓</kbd> select</span>
-            <span><kbd>enter</kbd> open</span>
-            <span><kbd>/</kbd> search</span>
+            <div class="keyboard-hints" id="keyboard-hints" style="margin-top: 12px; margin-bottom: 0;">
+              <span><kbd>↑</kbd> <kbd>↓</kbd> select</span>
+              <span><kbd>enter</kbd> open</span>
+              <span><kbd>/</kbd> search</span>
+            </div>
           </div>
         </div>
       </section>
