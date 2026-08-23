@@ -705,8 +705,10 @@ h1, h2, h3, h4, .card-num {
   border-color: var(--text-main) !important;
 }
 
-.preview-toggle span {
-  display: inline-block !important;
+.preview-toggle > span,
+.preview-toggle .btn-label-content {
+  display: inline-flex !important;
+  align-items: center !important;
   line-height: 1 !important;
   margin: 0 !important;
   padding: 0 !important;
@@ -864,24 +866,24 @@ h1, h2, h3, h4, .card-num {
   container-name: card-unfollowers;
 }
 
-.btn-text-full {
-  display: inline;
+.preview-toggle span.btn-text-full {
+  display: inline !important;
 }
-.btn-text-short {
-  display: none;
+.preview-toggle span.btn-text-short {
+  display: none !important;
 }
-.btn-text-compact {
-  display: none;
+.preview-toggle span.btn-text-compact {
+  display: none !important;
 }
 
 @container card-unfollowers (max-width: 350px) {
-  .btn-text-full {
+  .preview-toggle span.btn-text-full {
     display: none !important;
   }
-  .btn-text-short {
+  .preview-toggle span.btn-text-short {
     display: inline !important;
   }
-  .btn-text-compact {
+  .preview-toggle span.btn-text-compact {
     display: none !important;
   }
   #toggle-preview-unfollowed,
@@ -893,13 +895,13 @@ h1, h2, h3, h4, .card-num {
 }
 
 @container card-unfollowers (max-width: 290px) {
-  .btn-text-full {
+  .preview-toggle span.btn-text-full {
     display: none !important;
   }
-  .btn-text-short {
+  .preview-toggle span.btn-text-short {
     display: none !important;
   }
-  .btn-text-compact {
+  .preview-toggle span.btn-text-compact {
     display: inline !important;
   }
   #toggle-preview-unfollowed,
@@ -912,11 +914,14 @@ h1, h2, h3, h4, .card-num {
 }
 
 @media (max-width: 1350px) {
-  .btn-text-full {
+  .preview-toggle span.btn-text-full {
     display: none !important;
   }
-  .btn-text-short {
+  .preview-toggle span.btn-text-short {
     display: inline !important;
+  }
+  .preview-toggle span.btn-text-compact {
+    display: none !important;
   }
   #toggle-preview-unfollowed,
   #toggle-preview-starred {
@@ -927,13 +932,13 @@ h1, h2, h3, h4, .card-num {
 }
 
 @media (max-width: 1100px) {
-  .btn-text-full {
+  .preview-toggle span.btn-text-full {
     display: none !important;
   }
-  .btn-text-short {
+  .preview-toggle span.btn-text-short {
     display: none !important;
   }
-  .btn-text-compact {
+  .preview-toggle span.btn-text-compact {
     display: inline !important;
   }
   #toggle-preview-unfollowed,
