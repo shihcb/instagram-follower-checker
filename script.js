@@ -596,10 +596,13 @@ function updateUnfollowedUI() {
   const labelEl = toggleBtn.querySelector('.btn-label-content');
   if (listData.length > 0) {
     toggleBtn.removeAttribute('disabled');
-    if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span> <span class="btn-count">(${listData.length})</span>`;
+    if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span>`;
     
     // Render elements with a scroll container below
     listEl.innerHTML = `
+      <div class="dropdown-header-bar" style="padding: 6px 10px 8px 10px; font-size: 0.76rem; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--card-border); margin-bottom: 4px; text-transform: lowercase;">
+        ${listData.length} ${listData.length === 1 ? 'unfollowed account' : 'unfollowed accounts'}
+      </div>
       <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
           <div class="parsed-item" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
@@ -626,7 +629,7 @@ function updateUnfollowedUI() {
     `;
   } else {
     toggleBtn.setAttribute('disabled', 'true');
-    if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span> <span class="btn-count">(0)</span>`;
+    if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span>`;
     listEl.innerHTML = '';
     listEl.classList.remove('show');
     toggleBtn.classList.remove('active');
@@ -650,10 +653,13 @@ function updateStarredUI() {
   const labelEl = toggleBtn.querySelector('.btn-label-content');
   if (listData.length > 0) {
     toggleBtn.removeAttribute('disabled');
-    if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span> <span class="btn-count">(${listData.length})</span>`;
+    if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span>`;
     
     // Render elements (same layout as parsed-list)
     listEl.innerHTML = `
+      <div class="dropdown-header-bar" style="padding: 6px 10px 8px 10px; font-size: 0.76rem; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--card-border); margin-bottom: 4px; text-transform: lowercase;">
+        ${listData.length} ${listData.length === 1 ? 'starred account' : 'starred accounts'}
+      </div>
       <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
           <div class="parsed-item" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
@@ -680,7 +686,7 @@ function updateStarredUI() {
     `;
   } else {
     toggleBtn.setAttribute('disabled', 'true');
-    if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span> <span class="btn-count">(0)</span>`;
+    if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span>`;
     listEl.innerHTML = '';
     listEl.classList.remove('show');
     toggleBtn.classList.remove('active');

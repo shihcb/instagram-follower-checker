@@ -262,7 +262,7 @@
             <div class="results-dropdowns-group">
               <div class="dropdown-wrapper">
                 <button class="preview-toggle btn-sm" id="toggle-preview-unfollowed" disabled>
-                  <span class="btn-label-content"><span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span> <span class="btn-count">(0)</span></span>
+                  <span class="btn-label-content"><span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span></span>
                   <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="6 9 12 15 18 9"></polyline>
                   </svg>
@@ -276,7 +276,7 @@
                         if (btn) {
                           btn.removeAttribute('disabled');
                           var span = btn.querySelector('.btn-label-content');
-                          if (span) span.innerHTML = '<span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span> <span class="btn-count">(' + unfollowed.length + ')</span>';
+                          if (span) span.innerHTML = '<span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span>';
                         }
                       }
                     } catch(e) {}
@@ -287,7 +287,7 @@
 
               <div class="dropdown-wrapper">
                 <button class="preview-toggle btn-sm" id="toggle-preview-starred" disabled>
-                  <span class="btn-label-content"><span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span> <span class="btn-count">(0)</span></span>
+                  <span class="btn-label-content"><span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span></span>
                   <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="6 9 12 15 18 9"></polyline>
                   </svg>
@@ -301,7 +301,7 @@
                         if (btn) {
                           btn.removeAttribute('disabled');
                           var span = btn.querySelector('.btn-label-content');
-                          if (span) span.innerHTML = '<span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span> <span class="btn-count">(' + starred.length + ')</span>';
+                          if (span) span.innerHTML = '<span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span>';
                         }
                       }
                     } catch(e) {}
