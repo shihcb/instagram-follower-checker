@@ -1,5 +1,3 @@
-
-
 // -------------------------------------------------------------
 // App State Configuration
 // -------------------------------------------------------------
@@ -14,7 +12,7 @@ const SUPABASE_URL = 'https://umwgulwrmdlleqzkfumm.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtd2d1bHdybWRsbGVxemtmdW1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0OTI2ODYsImV4cCI6MjEwMjA2ODY4Nn0.qVROwKLelVOW2-Si_nXl0UAK5Fd1x2HHC9W0QKeogJQ'; 
 
 let supabaseClient = null;
-if (typeof supabase !== 'undefined' && supabase && typeof supabase.createClient === 'function' && SUPABASE_URL && SUPABASE_ANON_KEY) {
+if (SUPABASE_URL && SUPABASE_ANON_KEY) {
   try {
     supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   } catch (err) {
@@ -127,17 +125,23 @@ const elements = {
 // -------------------------------------------------------------
 function initTheme() {
   const savedTheme = localStorage.getItem('theme');
-  const activeTheme = savedTheme || 'light';
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const activeTheme = savedTheme || (prefersDark ? 'dark' : 'light');
   
   setTheme(activeTheme);
+  
+  // Listen to system changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    if (!localStorage.getItem('theme')) {
+      setTheme(e.matches ? 'dark' : 'light');
+    }
+  });
 
-  document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const currentTheme = elements.html.getAttribute('data-theme');
-      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-      localStorage.setItem('theme', newTheme);
-      setTheme(newTheme);
-    });
+  elements.themeToggle.addEventListener('click', () => {
+    const currentTheme = elements.html.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('theme', newTheme);
+    setTheme(newTheme);
   });
 }
 
@@ -145,15 +149,12 @@ function setTheme(theme) {
   elements.html.setAttribute('data-theme', theme);
   document.querySelector('meta[name="color-scheme"]').setAttribute('content', theme);
   
-  const sunIcons = document.querySelectorAll('.sun-icon');
-  const moonIcons = document.querySelectorAll('.moon-icon');
-  
   if (theme === 'dark') {
-    sunIcons.forEach(icon => icon.classList.remove('hidden'));
-    moonIcons.forEach(icon => icon.classList.add('hidden'));
+    elements.sunIcon.classList.remove('hidden');
+    elements.moonIcon.classList.add('hidden');
   } else {
-    sunIcons.forEach(icon => icon.classList.add('hidden'));
-    moonIcons.forEach(icon => icon.classList.remove('hidden'));
+    elements.sunIcon.classList.add('hidden');
+    elements.moonIcon.classList.remove('hidden');
   }
 }
 
@@ -2205,12 +2206,6 @@ let isSigningUp = false;
 let isInitialAuthCheck = true;
 
 function initAuth() {
-  if (!supabaseClient && typeof supabase !== 'undefined' && supabase && typeof supabase.createClient === 'function' && SUPABASE_URL && SUPABASE_ANON_KEY) {
-    try {
-      supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } catch (e) {}
-  }
-
   if (!supabaseClient) {
     // Show configuration warning if URL/Anon key are empty
     elements.authConfigWarning.classList.remove('hidden');
@@ -2228,7 +2223,6 @@ function initAuth() {
 
       if (session) {
         currentUser = session.user;
-        document.body.classList.remove('auth-logged-out');
         elements.userBadge.classList.remove('hidden');
         elements.authUserEmail.textContent = currentUser.email;
 
@@ -2241,60 +2235,85 @@ function initAuth() {
           elements.authProfileView.classList.remove('hidden');
           elements.authFormView.classList.add('hidden');
         };
-        showProfileView();
+
+        if (isInitialAuthCheck) {
+          showProfileView();
+        }
 
         // Avoid list and layout flickering on focus/token refresh by skipping re-renders for the same user
         if (isSameUser && !isInitialAuthCheck) {
           return;
         }
 
-        // Safely fetch cloud data and merge/sync
-        try {
-          await pullFromCloud();
-        } catch (cloudErr) {
-          console.error('Error fetching cloud data on login:', cloudErr);
-        }
+        // Fetch cloud data and merge/sync
+        await pullFromCloud();
 
-        // Safely load saved Following/Followers lists if present in localStorage
-        try {
-          const savedFollowing = localStorage.getItem('following_users');
-          const savedFollowers = localStorage.getItem('followers_users');
-          if (savedFollowing && elements.inputFollowing) {
-            state.following = JSON.parse(savedFollowing);
-            elements.inputFollowing.value = (state.following || []).map(user => `@${user && (user.originalUsername || user.username || user)}`).join('\n');
-            updateListUI('following');
+        // Load saved Following/Followers lists if present in localStorage
+        const savedFollowing = localStorage.getItem('following_users');
+        const savedFollowers = localStorage.getItem('followers_users');
+        if (savedFollowing) {
+          state.following = JSON.parse(savedFollowing);
+          elements.inputFollowing.value = state.following.map(user => `@${user.originalUsername}`).join('\n');
+          updateListUI('following');
+        }
+        if (savedFollowers) {
+          state.followers = JSON.parse(savedFollowers);
+          elements.inputFollowers.value = state.followers.map(user => `@${user.originalUsername}`).join('\n');
+          updateListUI('followers');
+        }
+        calculateUnfollowers();
+
+        // Always render chips instantly under the login screen before it fades out
+        renderAccountChips(false);
+
+        // Smoothly fade out login page if there are accounts, otherwise hide instantly
+        const finalizeLogin = () => {
+          const hasAccounts = (state.instagramAccounts || []).length > 0;
+          if (hasAccounts && !isInitialAuthCheck) {
+            if (elements.authDropdown) {
+              elements.authDropdown.classList.add('fade-out-bounce');
+            }
+            if (elements.authFormView) {
+              elements.authFormView.classList.add('smooth-exit');
+            }
+            setTimeout(() => {
+              document.body.classList.remove('auth-logged-out');
+              if (elements.authDropdown) {
+                elements.authDropdown.classList.remove('show');
+                elements.authDropdown.classList.remove('fade-out-bounce');
+              }
+              if (elements.authFormView) {
+                elements.authFormView.classList.remove('smooth-exit');
+              }
+              showProfileView();
+            }, 500);
+          } else {
+            document.body.classList.remove('auth-logged-out');
+            if (elements.authDropdown) {
+              elements.authDropdown.classList.remove('show');
+            }
+            showProfileView();
           }
-          if (savedFollowers && elements.inputFollowers) {
-            state.followers = JSON.parse(savedFollowers);
-            elements.inputFollowers.value = (state.followers || []).map(user => `@${user && (user.originalUsername || user.username || user)}`).join('\n');
-            updateListUI('followers');
+        };
+
+        finalizeLogin();
+
+        if (!isInitialAuthCheck) {
+          // Slowly fade in the results list consistently
+          if (elements.listUnfollowers) {
+            elements.listUnfollowers.style.transition = 'none';
+            elements.listUnfollowers.style.opacity = '0';
+            requestAnimationFrame(() => {
+              elements.listUnfollowers.style.transition = 'opacity 700ms ease';
+              elements.listUnfollowers.style.opacity = '1';
+            });
           }
-          calculateUnfollowers();
-          renderAccountChips(false);
-        } catch (localErr) {
-          console.error('Error parsing local lists on login:', localErr);
-        }
-
-        if (elements.authDropdown) {
-          elements.authDropdown.classList.remove('show');
-        }
-
-        if (!isInitialAuthCheck && elements.listUnfollowers) {
-          elements.listUnfollowers.style.transition = 'none';
-          elements.listUnfollowers.style.opacity = '0';
-          requestAnimationFrame(() => {
-            elements.listUnfollowers.style.transition = 'opacity 700ms ease';
-            elements.listUnfollowers.style.opacity = '1';
-          });
         }
       } else {
         currentUser = null;
         document.body.classList.add('auth-logged-out');
         elements.authDropdown.classList.add('show');
         elements.userBadge.classList.add('hidden');
-        elements.authProfileView.classList.add('hidden');
-        elements.authFormView.classList.remove('hidden');
-        elements.authDropdown.classList.add('show');
 
         const appGrid = document.querySelector('.app-grid');
         if (appGrid && window.innerWidth > 1024) appGrid.style.marginTop = '48px';
@@ -2408,6 +2427,7 @@ function initAuth() {
   // Toggle drop down menu on button click
   elements.authBtn.addEventListener('click', (e) => {
     e.stopPropagation();
+    if (!currentUser) return; // Disable drop down toggle if logged out (always full-screen)
     if (document.activeElement && typeof document.activeElement.blur === 'function') {
       document.activeElement.blur();
     }
@@ -2416,7 +2436,7 @@ function initAuth() {
 
   // Close drop down on clicking outside
   document.addEventListener('click', (e) => {
-    if (elements.authDropdown.classList.contains('show')) {
+    if (currentUser && elements.authDropdown.classList.contains('show')) {
       if (!e.target.closest('#auth-dropdown') && !e.target.closest('#auth-btn')) {
         elements.authDropdown.classList.remove('show');
         clearAuthAlerts();
@@ -2428,11 +2448,6 @@ function initAuth() {
   elements.authForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearAuthAlerts();
-
-    if (!supabaseClient) {
-      showAuthError('cloud authentication service is currently unavailable. please refresh the page.');
-      return;
-    }
     
     const email = elements.authEmail.value.trim();
     const password = elements.authPassword.value;
@@ -2683,8 +2698,6 @@ async function pullFromCloud() {
 
       if (insertError) throw insertError;
     }
-  } catch (err) {
-    console.error('Failed to sync from cloud:', err);
   } finally {
     isSyncingFromCloud = false;
     updateStorageProgressBar();
