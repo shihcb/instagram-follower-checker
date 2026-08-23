@@ -137,11 +137,13 @@ function initTheme() {
     }
   });
 
-  elements.themeToggle.addEventListener('click', () => {
-    const currentTheme = elements.html.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    localStorage.setItem('theme', newTheme);
-    setTheme(newTheme);
+  document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const currentTheme = elements.html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('theme', newTheme);
+      setTheme(newTheme);
+    });
   });
 }
 
@@ -149,12 +151,15 @@ function setTheme(theme) {
   elements.html.setAttribute('data-theme', theme);
   document.querySelector('meta[name="color-scheme"]').setAttribute('content', theme);
   
+  const sunIcons = document.querySelectorAll('.sun-icon');
+  const moonIcons = document.querySelectorAll('.moon-icon');
+  
   if (theme === 'dark') {
-    elements.sunIcon.classList.remove('hidden');
-    elements.moonIcon.classList.add('hidden');
+    sunIcons.forEach(icon => icon.classList.remove('hidden'));
+    moonIcons.forEach(icon => icon.classList.add('hidden'));
   } else {
-    elements.sunIcon.classList.add('hidden');
-    elements.moonIcon.classList.remove('hidden');
+    sunIcons.forEach(icon => icon.classList.add('hidden'));
+    moonIcons.forEach(icon => icon.classList.remove('hidden'));
   }
 }
 
