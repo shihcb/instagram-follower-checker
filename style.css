@@ -2025,26 +2025,6 @@ h1, h2, h3, h4, .card-num {
   .auth-dropdown.show {
     transform: translate(-50%, -50%) scale(1) !important;
   }
-  .app-header {
-    padding-top: 60px !important;
-  }
-  .header-logo-row {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    height: 60px !important;
-    background: rgba(10, 10, 12, 0.8) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    border-bottom: 1px solid var(--card-border) !important;
-    padding: 0 24px !important;
-    z-index: 1000 !important;
-    box-sizing: border-box !important;
-  }
-  [data-theme="light"] .header-logo-row {
-    background: rgba(255, 255, 255, 0.8) !important;
-  }
   .help-grid {
     grid-template-columns: 1fr;
     gap: 20px;
@@ -2055,9 +2035,6 @@ h1, h2, h3, h4, .card-num {
 }
 
 @media (max-width: 640px) {
-  .header-logo-row {
-    padding: 0 16px !important;
-  }
   .app-container {
     padding: 20px 16px;
     gap: 20px;
