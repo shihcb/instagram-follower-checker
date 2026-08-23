@@ -969,7 +969,7 @@ function ensureAccountSelected(username) {
   renderAccountChips();
 }
 
-async function processImportFiles(files) {
+async function processImportFiles(files, isFolderUpload = false) {
   if (!files || files.length === 0) return false;
 
   let importedFollowing = false;
@@ -979,14 +979,25 @@ async function processImportFiles(files) {
 
   for (const file of files) {
     const nameLower = file.name.toLowerCase();
-    if (nameLower === 'following.html' || nameLower === 'following.txt' || nameLower.startsWith('following_')) {
-      validFilesToProcess.push({ file, type: 'following', isPending: false });
-    } else if (nameLower === 'pending_follow_requests.html' || nameLower === 'pending_follow_requests.txt' || nameLower.startsWith('pending_follow_requests')) {
-      validFilesToProcess.push({ file, type: 'following', isPending: true });
-    } else if (nameLower === 'followers_1.html' || nameLower === 'followers.html' || nameLower === 'followers_1.txt' || nameLower === 'followers.txt' || nameLower.startsWith('followers_') || nameLower.startsWith('followers')) {
-      validFilesToProcess.push({ file, type: 'followers', isPending: false });
+    
+    if (isFolderUpload) {
+      // Folder upload: ONLY load exactly "following.html" and "followers_1.html"
+      if (nameLower === 'following.html') {
+        validFilesToProcess.push({ file, type: 'following', isPending: false });
+      } else if (nameLower === 'followers_1.html') {
+        validFilesToProcess.push({ file, type: 'followers', isPending: false });
+      }
     } else {
-      invalidFiles.push(file.name);
+      // Individual upload: keep the old matching logic
+      if (nameLower === 'following.html' || nameLower === 'following.txt' || nameLower.startsWith('following_')) {
+        validFilesToProcess.push({ file, type: 'following', isPending: false });
+      } else if (nameLower === 'pending_follow_requests.html' || nameLower === 'pending_follow_requests.txt' || nameLower.startsWith('pending_follow_requests')) {
+        validFilesToProcess.push({ file, type: 'following', isPending: true });
+      } else if (nameLower === 'followers_1.html' || nameLower === 'followers.html' || nameLower === 'followers_1.txt' || nameLower === 'followers.txt' || nameLower.startsWith('followers_') || nameLower.startsWith('followers')) {
+        validFilesToProcess.push({ file, type: 'followers', isPending: false });
+      } else {
+        invalidFiles.push(file.name);
+      }
     }
   }
 
@@ -2462,7 +2473,8 @@ function initAuth() {
   if (elements.importFilesInput) {
     elements.importFilesInput.addEventListener('change', async (e) => {
       const files = Array.from(e.target.files);
-      const importedAny = await processImportFiles(files);
+      const isFolder = files.some(f => f.webkitRelativePath && f.webkitRelativePath.includes('/'));
+      const importedAny = await processImportFiles(files, isFolder);
 
       if (importedAny) {
         // Close dropdown after successful import
