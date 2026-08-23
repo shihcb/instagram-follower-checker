@@ -900,6 +900,8 @@ h1, h2, h3, h4, .card-num {
     left: 0 !important;
     right: 0 !important;
     transform-origin: top center !important;
+    gap: 12px !important;
+    padding: 8px 0 !important;
   }
 }
 
