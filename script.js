@@ -2228,6 +2228,7 @@ function initAuth() {
 
       if (session) {
         currentUser = session.user;
+        document.body.classList.remove('auth-logged-out');
         elements.userBadge.classList.remove('hidden');
         elements.authUserEmail.textContent = currentUser.email;
 
@@ -2240,79 +2241,51 @@ function initAuth() {
           elements.authProfileView.classList.remove('hidden');
           elements.authFormView.classList.add('hidden');
         };
-
-        if (isInitialAuthCheck) {
-          showProfileView();
-        }
+        showProfileView();
 
         // Avoid list and layout flickering on focus/token refresh by skipping re-renders for the same user
         if (isSameUser && !isInitialAuthCheck) {
           return;
         }
 
-        // Fetch cloud data and merge/sync
-        await pullFromCloud();
-
-        // Load saved Following/Followers lists if present in localStorage
-        const savedFollowing = localStorage.getItem('following_users');
-        const savedFollowers = localStorage.getItem('followers_users');
-        if (savedFollowing) {
-          state.following = JSON.parse(savedFollowing);
-          elements.inputFollowing.value = state.following.map(user => `@${user.originalUsername}`).join('\n');
-          updateListUI('following');
+        // Safely fetch cloud data and merge/sync
+        try {
+          await pullFromCloud();
+        } catch (cloudErr) {
+          console.error('Error fetching cloud data on login:', cloudErr);
         }
-        if (savedFollowers) {
-          state.followers = JSON.parse(savedFollowers);
-          elements.inputFollowers.value = state.followers.map(user => `@${user.originalUsername}`).join('\n');
-          updateListUI('followers');
+
+        // Safely load saved Following/Followers lists if present in localStorage
+        try {
+          const savedFollowing = localStorage.getItem('following_users');
+          const savedFollowers = localStorage.getItem('followers_users');
+          if (savedFollowing && elements.inputFollowing) {
+            state.following = JSON.parse(savedFollowing);
+            elements.inputFollowing.value = (state.following || []).map(user => `@${user && (user.originalUsername || user.username || user)}`).join('\n');
+            updateListUI('following');
+          }
+          if (savedFollowers && elements.inputFollowers) {
+            state.followers = JSON.parse(savedFollowers);
+            elements.inputFollowers.value = (state.followers || []).map(user => `@${user && (user.originalUsername || user.username || user)}`).join('\n');
+            updateListUI('followers');
+          }
+          calculateUnfollowers();
+          renderAccountChips(false);
+        } catch (localErr) {
+          console.error('Error parsing local lists on login:', localErr);
         }
-        calculateUnfollowers();
 
-        // Always render chips instantly under the login screen before it fades out
-        renderAccountChips(false);
+        if (elements.authDropdown) {
+          elements.authDropdown.classList.remove('show');
+        }
 
-        // Smoothly fade out login page if there are accounts, otherwise hide instantly
-        const finalizeLogin = () => {
-          const hasAccounts = (state.instagramAccounts || []).length > 0;
-          if (hasAccounts && !isInitialAuthCheck) {
-            if (elements.authDropdown) {
-              elements.authDropdown.classList.add('fade-out-bounce');
-            }
-            if (elements.authFormView) {
-              elements.authFormView.classList.add('smooth-exit');
-            }
-            setTimeout(() => {
-              document.body.classList.remove('auth-logged-out');
-              if (elements.authDropdown) {
-                elements.authDropdown.classList.remove('show');
-                elements.authDropdown.classList.remove('fade-out-bounce');
-              }
-              if (elements.authFormView) {
-                elements.authFormView.classList.remove('smooth-exit');
-              }
-              showProfileView();
-            }, 500);
-          } else {
-            document.body.classList.remove('auth-logged-out');
-            if (elements.authDropdown) {
-              elements.authDropdown.classList.remove('show');
-            }
-            showProfileView();
-          }
-        };
-
-        finalizeLogin();
-
-        if (!isInitialAuthCheck) {
-          // Slowly fade in the results list consistently
-          if (elements.listUnfollowers) {
-            elements.listUnfollowers.style.transition = 'none';
-            elements.listUnfollowers.style.opacity = '0';
-            requestAnimationFrame(() => {
-              elements.listUnfollowers.style.transition = 'opacity 700ms ease';
-              elements.listUnfollowers.style.opacity = '1';
-            });
-          }
+        if (!isInitialAuthCheck && elements.listUnfollowers) {
+          elements.listUnfollowers.style.transition = 'none';
+          elements.listUnfollowers.style.opacity = '0';
+          requestAnimationFrame(() => {
+            elements.listUnfollowers.style.transition = 'opacity 700ms ease';
+            elements.listUnfollowers.style.opacity = '1';
+          });
         }
       } else {
         currentUser = null;
