@@ -791,6 +791,10 @@ function debounce(fn, delay) {
 }
 
 const handleFollowingInput = debounce(function() {
+  const searchFollowingInput = document.getElementById('search-following');
+  if (searchFollowingInput && searchFollowingInput.value.trim() !== '') {
+    return;
+  }
   const rawText = elements.inputFollowing.value;
   const existingPendingMap = new Map();
   state.following.forEach(user => {
@@ -809,6 +813,10 @@ const handleFollowingInput = debounce(function() {
 }, 250);
 
 const handleFollowersInput = debounce(function() {
+  const searchFollowersInput = document.getElementById('search-followers');
+  if (searchFollowersInput && searchFollowersInput.value.trim() !== '') {
+    return;
+  }
   const rawText = elements.inputFollowers.value;
   const parsed = parseInput(rawText);
   state.followers = deduplicateEntries(parsed);
@@ -2045,13 +2053,20 @@ function setupEventListeners() {
     searchFollowingInput.addEventListener('input', () => {
       const searchTerm = searchFollowingInput.value.trim().toLowerCase();
       if (!searchTerm) {
+        elements.inputFollowing.placeholder = 'enter usernames';
         elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
       } else {
         const filtered = state.following.filter(u => 
           u.originalUsername.toLowerCase().includes(searchTerm) ||
           (u.fullName && u.fullName.toLowerCase().includes(searchTerm))
         );
-        elements.inputFollowing.value = filtered.map(u => `@${u.originalUsername}`).join('\n');
+        if (filtered.length === 0) {
+          elements.inputFollowing.value = '';
+          elements.inputFollowing.placeholder = state.following.length > 0 ? 'no matching usernames' : 'enter usernames';
+        } else {
+          elements.inputFollowing.placeholder = 'enter usernames';
+          elements.inputFollowing.value = filtered.map(u => `@${u.originalUsername}`).join('\n');
+        }
       }
     });
   }
@@ -2062,13 +2077,20 @@ function setupEventListeners() {
     searchFollowersInput.addEventListener('input', () => {
       const searchTerm = searchFollowersInput.value.trim().toLowerCase();
       if (!searchTerm) {
+        elements.inputFollowers.placeholder = 'enter usernames';
         elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername}`).join('\n');
       } else {
         const filtered = state.followers.filter(u => 
           u.originalUsername.toLowerCase().includes(searchTerm) ||
           (u.fullName && u.fullName.toLowerCase().includes(searchTerm))
         );
-        elements.inputFollowers.value = filtered.map(u => `@${u.originalUsername}`).join('\n');
+        if (filtered.length === 0) {
+          elements.inputFollowers.value = '';
+          elements.inputFollowers.placeholder = state.followers.length > 0 ? 'no matching usernames' : 'enter usernames';
+        } else {
+          elements.inputFollowers.placeholder = 'enter usernames';
+          elements.inputFollowers.value = filtered.map(u => `@${u.originalUsername}`).join('\n');
+        }
       }
     });
   }
@@ -2078,11 +2100,15 @@ function setupEventListeners() {
     elements.inputFollowing.addEventListener('focus', () => {
       if (searchFollowingInput && searchFollowingInput.value) {
         searchFollowingInput.value = '';
+        elements.inputFollowing.placeholder = 'enter usernames';
         elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
       }
     });
 
     elements.inputFollowing.addEventListener('blur', () => {
+      if (searchFollowingInput && searchFollowingInput.value.trim() !== '') {
+        return;
+      }
       const lines = elements.inputFollowing.value.split('\n');
       const formatted = lines.map(line => {
         const trimmed = line.trim();
@@ -2098,11 +2124,15 @@ function setupEventListeners() {
     elements.inputFollowers.addEventListener('focus', () => {
       if (searchFollowersInput && searchFollowersInput.value) {
         searchFollowersInput.value = '';
+        elements.inputFollowers.placeholder = 'enter usernames';
         elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername}`).join('\n');
       }
     });
 
     elements.inputFollowers.addEventListener('blur', () => {
+      if (searchFollowersInput && searchFollowersInput.value.trim() !== '') {
+        return;
+      }
       const lines = elements.inputFollowers.value.split('\n');
       const formatted = lines.map(line => {
         const trimmed = line.trim();
