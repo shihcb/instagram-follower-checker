@@ -14,7 +14,7 @@ const SUPABASE_URL = 'https://umwgulwrmdlleqzkfumm.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtd2d1bHdybWRsbGVxemtmdW1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0OTI2ODYsImV4cCI6MjEwMjA2ODY4Nn0.qVROwKLelVOW2-Si_nXl0UAK5Fd1x2HHC9W0QKeogJQ'; 
 
 let supabaseClient = null;
-if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+if (typeof supabase !== 'undefined' && supabase && typeof supabase.createClient === 'function' && SUPABASE_URL && SUPABASE_ANON_KEY) {
   try {
     supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   } catch (err) {
@@ -2213,6 +2213,12 @@ let isSigningUp = false;
 let isInitialAuthCheck = true;
 
 function initAuth() {
+  if (!supabaseClient && typeof supabase !== 'undefined' && supabase && typeof supabase.createClient === 'function' && SUPABASE_URL && SUPABASE_ANON_KEY) {
+    try {
+      supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } catch (e) {}
+  }
+
   if (!supabaseClient) {
     // Show configuration warning if URL/Anon key are empty
     elements.authConfigWarning.classList.remove('hidden');
@@ -2455,6 +2461,11 @@ function initAuth() {
   elements.authForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearAuthAlerts();
+
+    if (!supabaseClient) {
+      showAuthError('cloud authentication service is currently unavailable. please refresh the page.');
+      return;
+    }
     
     const email = elements.authEmail.value.trim();
     const password = elements.authPassword.value;
