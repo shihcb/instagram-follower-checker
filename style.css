@@ -1649,15 +1649,29 @@ h1, h2, h3, h4, .card-num {
 
 #btn-confirm-ok:hover,
 #btn-modal-delete:hover,
-.btn-danger-soft:hover,
+.btn-danger-soft:hover:not(:disabled),
 [data-theme="dark"] #btn-confirm-ok:hover,
 [data-theme="dark"] #btn-modal-delete:hover,
-[data-theme="dark"] .btn-danger-soft:hover {
+[data-theme="dark"] .btn-danger-soft:hover:not(:disabled) {
   background-color: #ef4444 !important;
   background: #ef4444 !important;
   color: #ffffff !important;
   border-color: #ef4444 !important;
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35) !important;
+}
+
+.btn-danger-soft:disabled,
+.btn-danger-soft[disabled],
+[data-theme="dark"] .btn-danger-soft:disabled,
+[data-theme="dark"] .btn-danger-soft[disabled] {
+  background-color: var(--input-bg) !important;
+  background: var(--input-bg) !important;
+  color: var(--text-muted) !important;
+  border-color: var(--card-border) !important;
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  box-shadow: none !important;
 }
 
 @media (max-width: 1024px) {

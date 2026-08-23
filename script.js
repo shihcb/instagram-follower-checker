@@ -630,6 +630,15 @@ function updateUnfollowedUI() {
     listEl.classList.remove('show');
     toggleBtn.classList.remove('active');
   }
+
+  const resetUnfollowedBtn = document.getElementById('settings-reset-unfollowed-btn');
+  if (resetUnfollowedBtn) {
+    if (state.unfollowed.length > 0) {
+      resetUnfollowedBtn.removeAttribute('disabled');
+    } else {
+      resetUnfollowedBtn.setAttribute('disabled', 'true');
+    }
+  }
 }
 
 function updateStarredUI() {
@@ -673,6 +682,15 @@ function updateStarredUI() {
     listEl.innerHTML = '';
     listEl.classList.remove('show');
     toggleBtn.classList.remove('active');
+  }
+
+  const resetStarredBtn = document.getElementById('settings-reset-starred-btn');
+  if (resetStarredBtn) {
+    if (state.starred.length > 0) {
+      resetStarredBtn.removeAttribute('disabled');
+    } else {
+      resetStarredBtn.setAttribute('disabled', 'true');
+    }
   }
 }
 
@@ -2016,6 +2034,7 @@ function setupEventListeners() {
   if (settingsResetUnfollowedBtn) {
     settingsResetUnfollowedBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
+      if (settingsResetUnfollowedBtn.disabled || state.unfollowed.length === 0) return;
       const currentAcc = state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '';
       const listName = currentAcc ? `@${currentAcc}'s unfollowed list` : 'your global unfollowed list';
       const confirmed = await showSiteConfirm('reset list', `are you sure you want to reset ${listName}?`, 'reset', 'cancel');
@@ -2042,6 +2061,7 @@ function setupEventListeners() {
   if (settingsResetStarredBtn) {
     settingsResetStarredBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
+      if (settingsResetStarredBtn.disabled || state.starred.length === 0) return;
       const currentAcc = state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '';
       const listName = currentAcc ? `@${currentAcc}'s starred list` : 'your global starred list';
       const confirmed = await showSiteConfirm('reset list', `are you sure you want to reset ${listName}?`, 'reset', 'cancel');
