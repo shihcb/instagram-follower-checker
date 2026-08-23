@@ -376,8 +376,6 @@ h1, h2, h3, h4, .card-num {
  * ------------------------------------------------------------- */
 .glass {
   background: var(--card-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--card-border);
   box-shadow: var(--card-shadow);
   border-radius: 20px;
@@ -520,8 +518,6 @@ h1, h2, h3, h4, .card-num {
   color: var(--text-main);
   font-size: 0.85rem;
   font-weight: 500;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   opacity: 1;
   transform: translateY(0) scale(1);
   will-change: opacity, transform;
@@ -839,8 +835,6 @@ h1, h2, h3, h4, .card-num {
 
 [data-theme="dark"] .dropdown-menu {
   background-color: rgba(24, 24, 27, 0.95) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
@@ -1333,8 +1327,6 @@ h1, h2, h3, h4, .card-num {
   user-select: none !important;
   -webkit-touch-callout: none !important;
   transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
   box-sizing: border-box;
 }
@@ -1505,8 +1497,6 @@ h1, h2, h3, h4, .card-num {
   width: 100vw;
   height: 100vh;
   background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2195,8 +2185,6 @@ body.auth-logged-out .auth-dropdown {
   justify-content: center !important;
   z-index: 99999 !important;
   background: rgba(10, 10, 12, 0.45) !important;
-  backdrop-filter: blur(20px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
   box-shadow: none !important;
   opacity: 0;
   pointer-events: none;
@@ -2474,8 +2462,6 @@ body.auth-logged-out #auth-form-view {
   width: 100vw;
   height: 100vh;
   background-color: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2860,9 +2846,4 @@ button:focus-visible,
   box-shadow: none !important;
 }
 
-/* Disable backdrop-filter blurs globally to prevent rendering artifacts and text-blur issues on all viewports */
-* {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
 
