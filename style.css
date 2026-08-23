@@ -474,7 +474,7 @@ h1, h2, h3, h4, .card-num {
 }
 
 .card-body {
-  padding: 12px 24px 24px 24px;
+  padding: 12px 24px 16px 24px;
   display: flex;
   flex-direction: column;
   flex: 1;
