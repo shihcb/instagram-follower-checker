@@ -2327,6 +2327,9 @@ function initAuth() {
         document.body.classList.add('auth-logged-out');
         elements.authDropdown.classList.add('show');
         elements.userBadge.classList.add('hidden');
+        elements.authProfileView.classList.add('hidden');
+        elements.authFormView.classList.remove('hidden');
+        elements.authDropdown.classList.add('show');
 
         const appGrid = document.querySelector('.app-grid');
         if (appGrid && window.innerWidth > 1024) appGrid.style.marginTop = '48px';
@@ -2440,7 +2443,6 @@ function initAuth() {
   // Toggle drop down menu on button click
   elements.authBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (!currentUser) return; // Disable drop down toggle if logged out (always full-screen)
     if (document.activeElement && typeof document.activeElement.blur === 'function') {
       document.activeElement.blur();
     }
@@ -2449,7 +2451,7 @@ function initAuth() {
 
   // Close drop down on clicking outside
   document.addEventListener('click', (e) => {
-    if (currentUser && elements.authDropdown.classList.contains('show')) {
+    if (elements.authDropdown.classList.contains('show')) {
       if (!e.target.closest('#auth-dropdown') && !e.target.closest('#auth-btn')) {
         elements.authDropdown.classList.remove('show');
         clearAuthAlerts();
