@@ -2052,22 +2052,18 @@ h1, h2, h3, h4, .card-num {
 @media (min-width: 1025px) {
   html, body {
     height: 100vh;
-    height: 100dvh;
     overflow: hidden;
   }
 
   .app-container {
     height: 100vh;
-    height: 100dvh;
     max-height: 100vh;
-    max-height: 100dvh;
     padding-bottom: 24px;
   }
 
   .app-grid {
     flex: 1;
     height: calc(100vh - 130px) !important;
-    height: calc(100dvh - 130px) !important;
     min-height: 0;
   }
 
