@@ -127,17 +127,9 @@ const elements = {
 // -------------------------------------------------------------
 function initTheme() {
   const savedTheme = localStorage.getItem('theme');
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const activeTheme = savedTheme || (prefersDark ? 'dark' : 'light');
+  const activeTheme = savedTheme || 'light';
   
   setTheme(activeTheme);
-  
-  // Listen to system changes
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-    if (!localStorage.getItem('theme')) {
-      setTheme(e.matches ? 'dark' : 'light');
-    }
-  });
 
   document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
     btn.addEventListener('click', () => {
