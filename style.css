@@ -2934,13 +2934,40 @@ body.auth-logged-out #auth-form-view.smooth-exit {
   }
 }
 
-/* -------------------------------------------------------------
- * Settings Toggles inside Auth Dropdown
- * ------------------------------------------------------------- */
+.dropdown-header-bar {
+  padding: 6px 10px 8px 10px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: lowercase;
+  position: relative;
+  margin-bottom: 6px;
+}
+
+.dropdown-header-bar::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background-color: var(--card-border);
+}
+
 .auth-settings-section {
-  border-top: 1px solid var(--card-border);
+  position: relative;
   padding-top: 12px;
-  margin-top: 4px;
+  margin-top: 8px;
+}
+
+.auth-settings-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background-color: var(--card-border);
 }
 
 .setting-item-row {

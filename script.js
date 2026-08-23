@@ -600,7 +600,7 @@ function updateUnfollowedUI() {
     
     // Render elements with a scroll container below
     listEl.innerHTML = `
-      <div class="dropdown-header-bar" style="padding: 6px 10px 8px 10px; font-size: 0.76rem; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--card-border); margin-bottom: 4px; text-transform: lowercase;">
+      <div class="dropdown-header-bar">
         ${listData.length} ${listData.length === 1 ? 'unfollowed account' : 'unfollowed accounts'}
       </div>
       <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; width: 100%;">
@@ -657,7 +657,7 @@ function updateStarredUI() {
     
     // Render elements (same layout as parsed-list)
     listEl.innerHTML = `
-      <div class="dropdown-header-bar" style="padding: 6px 10px 8px 10px; font-size: 0.76rem; font-weight: 600; color: var(--text-muted); border-bottom: 1px solid var(--card-border); margin-bottom: 4px; text-transform: lowercase;">
+      <div class="dropdown-header-bar">
         ${listData.length} ${listData.length === 1 ? 'starred account' : 'starred accounts'}
       </div>
       <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; width: 100%;">
