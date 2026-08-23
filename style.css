@@ -2010,20 +2010,20 @@ h1, h2, h3, h4, .card-num {
   }
 
   .auth-dropdown {
-    position: fixed !important;
-    top: 50% !important;
+    position: absolute !important;
+    top: 60px !important;
     left: 50% !important;
     right: auto !important;
     bottom: auto !important;
     width: 320px !important;
     max-width: calc(100vw - 32px) !important;
-    transform: translate(-50%, -50%) scale(0.95) !important;
-    transform-origin: center center !important;
+    transform: translateX(-50%) scale(0.95) !important;
+    transform-origin: top center !important;
     transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
                 transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
   }
   .auth-dropdown.show {
-    transform: translate(-50%, -50%) scale(1) !important;
+    transform: translateX(-50%) scale(1) !important;
   }
   .help-grid {
     grid-template-columns: 1fr;
