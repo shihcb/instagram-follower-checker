@@ -2703,6 +2703,8 @@ async function pullFromCloud() {
 
       if (insertError) throw insertError;
     }
+  } catch (err) {
+    console.error('Failed to sync from cloud:', err);
   } finally {
     isSyncingFromCloud = false;
     updateStorageProgressBar();
