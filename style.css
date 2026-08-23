@@ -757,6 +757,7 @@ h1, h2, h3, h4, .card-num {
   display: flex;
   gap: 8px;
   position: relative;
+  width: 100%;
 }
 
 .dropdown-menu {
@@ -844,12 +845,12 @@ h1, h2, h3, h4, .card-num {
 }
 
 #toggle-preview-unfollowed {
-  width: 140px;
+  width: 125px;
   justify-content: space-between;
 }
 
 #toggle-preview-starred {
-  width: 115px;
+  width: 100px;
   justify-content: space-between;
 }
 
