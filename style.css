@@ -2860,3 +2860,9 @@ button:focus-visible,
   box-shadow: none !important;
 }
 
+/* Disable backdrop-filter blurs globally to prevent rendering artifacts and text-blur issues on all viewports */
+* {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
