@@ -593,9 +593,10 @@ function updateUnfollowedUI() {
   const listEl = elements.listUnfollowed;
   const toggleBtn = elements.togglePreviewUnfollowed;
 
+  const labelEl = toggleBtn.querySelector('.btn-label-content');
   if (listData.length > 0) {
     toggleBtn.removeAttribute('disabled');
-    toggleBtn.querySelector('span').textContent = `unfollowed (${listData.length})`;
+    if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span> <span class="btn-count">(${listData.length})</span>`;
     
     // Render elements with a scroll container below
     listEl.innerHTML = `
@@ -625,7 +626,7 @@ function updateUnfollowedUI() {
     `;
   } else {
     toggleBtn.setAttribute('disabled', 'true');
-    toggleBtn.querySelector('span').textContent = 'unfollowed (0)';
+    if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span> <span class="btn-count">(0)</span>`;
     listEl.innerHTML = '';
     listEl.classList.remove('show');
     toggleBtn.classList.remove('active');
@@ -646,9 +647,10 @@ function updateStarredUI() {
   const listEl = elements.listStarred;
   const toggleBtn = elements.togglePreviewStarred;
 
+  const labelEl = toggleBtn.querySelector('.btn-label-content');
   if (listData.length > 0) {
     toggleBtn.removeAttribute('disabled');
-    toggleBtn.querySelector('span').textContent = `starred (${listData.length})`;
+    if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span> <span class="btn-count">(${listData.length})</span>`;
     
     // Render elements (same layout as parsed-list)
     listEl.innerHTML = `
@@ -678,7 +680,7 @@ function updateStarredUI() {
     `;
   } else {
     toggleBtn.setAttribute('disabled', 'true');
-    toggleBtn.querySelector('span').textContent = 'starred (0)';
+    if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span> <span class="btn-count">(0)</span>`;
     listEl.innerHTML = '';
     listEl.classList.remove('show');
     toggleBtn.classList.remove('active');
