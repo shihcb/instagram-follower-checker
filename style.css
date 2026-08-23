@@ -474,7 +474,7 @@ h1, h2, h3, h4, .card-num {
 }
 
 .card-body {
-  padding: 12px 24px 16px 24px;
+  padding: 12px 24px 24px 24px;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -998,6 +998,7 @@ h1, h2, h3, h4, .card-num {
 }
 
 .keyboard-hints.hidden-hints {
+  display: none !important;
   max-height: 0 !important;
   opacity: 0 !important;
   transform: translateY(-8px) scale(0.95) !important;
