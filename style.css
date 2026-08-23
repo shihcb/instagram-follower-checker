@@ -2066,6 +2066,8 @@ h1, h2, h3, h4, .card-num {
 
   .app-grid {
     flex: 1;
+    height: calc(100vh - 130px) !important;
+    height: calc(100dvh - 130px) !important;
     min-height: 0;
   }
 
