@@ -294,15 +294,31 @@
               </div>
 
               <!-- Add Instagram Account Button (Static next to starred button) -->
-              <input type="file" id="import-files-input" webkitdirectory directory multiple class="hidden">
-              <button id="btn-add-account" class="preview-toggle btn-sm" title="add instagram account" style="flex: 1; justify-content: center; gap: 6px;">
-                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" class="instagram-icon" style="margin: 0;">
-                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-                </svg>
-                <span>add account</span>
-              </button>
+              <div class="dropdown-wrapper" style="flex: 1;">
+                <input type="file" id="import-files-input" multiple accept=".html,.txt" class="hidden">
+                <input type="file" id="import-folder-input" webkitdirectory directory multiple class="hidden">
+                <button id="btn-add-account" class="preview-toggle btn-sm" title="add instagram account" style="width: 100%; justify-content: center; gap: 6px;">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" class="instagram-icon" style="margin: 0;">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                  </svg>
+                  <span>add account</span>
+                  <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+                <div class="dropdown-menu" id="add-account-dropdown-menu" style="min-width: 150px; padding: 4px 0;">
+                  <button id="btn-upload-files" class="dropdown-item-btn" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; font-size: 0.8rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                    <span>upload files</span>
+                  </button>
+                  <button id="btn-upload-folder" class="dropdown-item-btn" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; font-size: 0.8rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                    <span>upload folder</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
             <!-- Account Management Row (Under unfollowed & starred buttons) -->

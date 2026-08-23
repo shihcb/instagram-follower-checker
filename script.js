@@ -113,6 +113,10 @@ const elements = {
   authUserEmail: document.getElementById('auth-user-email'),
   btnLogout: document.getElementById('btn-logout'),
   importFilesInput: document.getElementById('import-files-input'),
+  importFolderInput: document.getElementById('import-folder-input'),
+  addAccountDropdownMenu: document.getElementById('add-account-dropdown-menu'),
+  btnUploadFiles: document.getElementById('btn-upload-files'),
+  btnUploadFolder: document.getElementById('btn-upload-folder'),
   toggleShowKeyboard: document.getElementById('toggle-show-keyboard')
 };
 
@@ -1407,9 +1411,31 @@ function deleteAccountFromModal() {
 function setupEventListeners() {
   // Instagram Account Management Event Listeners
   if (elements.btnAddAccount) {
-    elements.btnAddAccount.addEventListener('click', () => {
+    elements.btnAddAccount.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isShown = elements.addAccountDropdownMenu.classList.toggle('show');
+      elements.btnAddAccount.classList.toggle('active', isShown);
+
+      // Close other dropdowns
+      elements.listUnfollowed.classList.remove('show');
+      elements.togglePreviewUnfollowed.classList.remove('active');
+      elements.listStarred.classList.remove('show');
+      elements.togglePreviewStarred.classList.remove('active');
+    });
+  }
+
+  if (elements.btnUploadFiles) {
+    elements.btnUploadFiles.addEventListener('click', () => {
       if (elements.importFilesInput) {
         elements.importFilesInput.click();
+      }
+    });
+  }
+
+  if (elements.btnUploadFolder) {
+    elements.btnUploadFolder.addEventListener('click', () => {
+      if (elements.importFolderInput) {
+        elements.importFolderInput.click();
       }
     });
   }
@@ -1596,6 +1622,14 @@ function setupEventListeners() {
     if (!e.target.closest('#toggle-preview-starred') && !e.target.closest('#list-starred')) {
       elements.listStarred.classList.remove('show');
       elements.togglePreviewStarred.classList.remove('active');
+    }
+    if (!e.target.closest('#btn-add-account') && !e.target.closest('#add-account-dropdown-menu')) {
+      if (elements.addAccountDropdownMenu) {
+        elements.addAccountDropdownMenu.classList.remove('show');
+      }
+      if (elements.btnAddAccount) {
+        elements.btnAddAccount.classList.remove('active');
+      }
     }
   });
 
@@ -2478,12 +2512,41 @@ function initAuth() {
 
       if (importedAny) {
         // Close dropdown after successful import
+        if (elements.addAccountDropdownMenu) {
+          elements.addAccountDropdownMenu.classList.remove('show');
+        }
+        if (elements.btnAddAccount) {
+          elements.btnAddAccount.classList.remove('active');
+        }
         elements.authDropdown.classList.remove('show');
         clearAuthAlerts();
       }
 
       // Reset input value
       elements.importFilesInput.value = '';
+    });
+  }
+
+  // Handle Import Folder Selection
+  if (elements.importFolderInput) {
+    elements.importFolderInput.addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files);
+      const importedAny = await processImportFiles(files, true);
+
+      if (importedAny) {
+        // Close dropdown after successful import
+        if (elements.addAccountDropdownMenu) {
+          elements.addAccountDropdownMenu.classList.remove('show');
+        }
+        if (elements.btnAddAccount) {
+          elements.btnAddAccount.classList.remove('active');
+        }
+        elements.authDropdown.classList.remove('show');
+        clearAuthAlerts();
+      }
+
+      // Reset input value
+      elements.importFolderInput.value = '';
     });
   }
 
