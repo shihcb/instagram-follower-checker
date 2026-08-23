@@ -62,6 +62,10 @@ const elements = {
   themeToggle: document.getElementById('theme-toggle'),
   sunIcon: document.getElementById('sun-icon'),
   moonIcon: document.getElementById('moon-icon'),
+  themeToggleInMenu: document.getElementById('theme-toggle-in-menu'),
+  menuSunIcon: document.getElementById('menu-sun-icon'),
+  menuMoonIcon: document.getElementById('menu-moon-icon'),
+  menuThemeText: document.getElementById('menu-theme-text'),
 
   // Following list elements
   inputFollowing: document.getElementById('input-following'),
@@ -137,12 +141,19 @@ function initTheme() {
     }
   });
 
-  elements.themeToggle.addEventListener('click', () => {
+  const toggleTheme = () => {
     const currentTheme = elements.html.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     localStorage.setItem('theme', newTheme);
     setTheme(newTheme);
-  });
+  };
+
+  if (elements.themeToggle) {
+    elements.themeToggle.addEventListener('click', toggleTheme);
+  }
+  if (elements.themeToggleInMenu) {
+    elements.themeToggleInMenu.addEventListener('click', toggleTheme);
+  }
 }
 
 function setTheme(theme) {
@@ -150,11 +161,17 @@ function setTheme(theme) {
   document.querySelector('meta[name="color-scheme"]').setAttribute('content', theme);
   
   if (theme === 'dark') {
-    elements.sunIcon.classList.remove('hidden');
-    elements.moonIcon.classList.add('hidden');
+    if (elements.sunIcon) elements.sunIcon.classList.remove('hidden');
+    if (elements.moonIcon) elements.moonIcon.classList.add('hidden');
+    if (elements.menuSunIcon) elements.menuSunIcon.classList.remove('hidden');
+    if (elements.menuMoonIcon) elements.menuMoonIcon.classList.add('hidden');
+    if (elements.menuThemeText) elements.menuThemeText.textContent = 'light';
   } else {
-    elements.sunIcon.classList.add('hidden');
-    elements.moonIcon.classList.remove('hidden');
+    if (elements.sunIcon) elements.sunIcon.classList.add('hidden');
+    if (elements.moonIcon) elements.moonIcon.classList.remove('hidden');
+    if (elements.menuSunIcon) elements.menuSunIcon.classList.add('hidden');
+    if (elements.menuMoonIcon) elements.menuMoonIcon.classList.remove('hidden');
+    if (elements.menuThemeText) elements.menuThemeText.textContent = 'dark';
   }
 }
 

@@ -2287,6 +2287,10 @@ body.auth-logged-out #theme-toggle {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
 }
 
+body:not(.auth-logged-out) #theme-toggle {
+  display: none !important;
+}
+
 .card-header h2 {
   font-size: 1.05rem;
   font-weight: 700;
