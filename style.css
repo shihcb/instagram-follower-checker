@@ -1307,17 +1307,16 @@ button,
 .star-unfollowed-btn,
 .unstar-btn {
   color: #f59e0b !important;
-.action-star svg,
-.star-unfollowed-btn svg {
-  color: #f59e0b !important;
-  stroke: #f59e0b !important;
-  fill: none !important;
 }
-
-.action-star.starred svg,
+.action-star svg,
+.star-unfollowed-btn svg,
 .unstar-btn svg {
   color: #f59e0b !important;
   stroke: #f59e0b !important;
+}
+.action-star.starred svg,
+.star-unfollowed-btn svg,
+.unstar-btn svg {
   fill: #f59e0b !important;
 }
 
@@ -1349,34 +1348,23 @@ button,
     color: var(--text-muted) !important;
   }
   .action-star svg,
-  .star-unfollowed-btn svg {
-    color: var(--text-main) !important;
-    stroke: var(--text-main) !important;
-    fill: none !important;
-  }
+  .star-unfollowed-btn svg,
   .unstar-btn svg {
     color: var(--text-main) !important;
     stroke: var(--text-main) !important;
-    fill: var(--text-main) !important;
-  }
-  [data-theme="dark"] .action-star svg,
-  [data-theme="dark"] .star-unfollowed-btn svg {
-    color: #ffffff !important;
-    stroke: #ffffff !important;
     fill: none !important;
   }
+  [data-theme="dark"] .action-star svg,
+  [data-theme="dark"] .star-unfollowed-btn svg,
   [data-theme="dark"] .unstar-btn svg {
     color: #ffffff !important;
     stroke: #ffffff !important;
-    fill: #ffffff !important;
   }
   .action-star.starred svg {
     fill: var(--text-main) !important;
-    stroke: var(--text-main) !important;
   }
   [data-theme="dark"] .action-star.starred svg {
     fill: #ffffff !important;
-    stroke: #ffffff !important;
   }
 
   .action-delete,
@@ -1409,6 +1397,7 @@ button,
     stroke: #ffffff !important;
   }
 
+  /* Hover color triggers */
   .action-star:hover,
   .star-unfollowed-btn:hover,
   .unstar-btn:hover {
@@ -1416,11 +1405,7 @@ button,
     transform: scale(1.15) !important;
   }
   .action-star:hover svg,
-  .star-unfollowed-btn:hover svg {
-    color: #f59e0b !important;
-    stroke: #f59e0b !important;
-    fill: none !important;
-  }
+  .star-unfollowed-btn:hover svg,
   .unstar-btn:hover svg {
     color: #f59e0b !important;
     stroke: #f59e0b !important;
@@ -2123,28 +2108,19 @@ button,
   animation: chip-bounce-out 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
 }
 
-.action-star svg,
-.star-unfollowed-btn svg {
+.action-star svg {
   stroke: #f59e0b !important;
   fill: none !important;
 }
 
-[data-theme="dark"] .action-star svg,
-[data-theme="dark"] .star-unfollowed-btn svg {
+[data-theme="dark"] .action-star svg {
   stroke: #fbbf24 !important;
   fill: none !important;
 }
 
-.unstar-btn svg,
-.action-star.starred svg {
+.unstar-btn svg {
   fill: #f59e0b !important;
   stroke: #f59e0b !important;
-}
-
-[data-theme="dark"] .unstar-btn svg,
-[data-theme="dark"] .action-star.starred svg {
-  fill: #fbbf24 !important;
-  stroke: #fbbf24 !important;
 }
 
 [data-theme="dark"] .unstar-btn svg {
