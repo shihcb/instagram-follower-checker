@@ -160,6 +160,15 @@ function setTheme(theme) {
   elements.html.setAttribute('data-theme', theme);
   document.querySelector('meta[name="color-scheme"]').setAttribute('content', theme);
   
+  let themeColorMeta = document.getElementById('theme-color-meta');
+  if (!themeColorMeta) {
+    themeColorMeta = document.createElement('meta');
+    themeColorMeta.name = 'theme-color';
+    themeColorMeta.id = 'theme-color-meta';
+    document.head.appendChild(themeColorMeta);
+  }
+  themeColorMeta.setAttribute('content', theme === 'dark' ? '#09090b' : '#fafafa');
+  
   if (theme === 'dark') {
     if (elements.sunIcon) elements.sunIcon.classList.remove('hidden');
     if (elements.moonIcon) elements.moonIcon.classList.add('hidden');

@@ -21,6 +21,7 @@ html, body {
   -ms-text-size-adjust: 100% !important;
   text-size-adjust: 100% !important;
   touch-action: manipulation;
+  background-color: var(--bg-color) !important;
 }
 
 :root {
@@ -139,8 +140,9 @@ html {
 body {
   font-size: 1rem !important;
   font-family: var(--font-sans) !important;
-  background-color: var(--bg-color);
+  background-color: var(--bg-color) !important;
   background-image: var(--bg-gradient);
+  background-attachment: fixed;
   color: var(--text-main);
   min-height: 100vh;
   position: relative;
@@ -2193,6 +2195,11 @@ button,
 }
 
 @media (max-width: 1024px) {
+  html, body {
+    background-color: var(--bg-color) !important;
+    background-image: none !important;
+  }
+
   .app-container {
     padding-top: 14px !important;
     padding-left: 16px !important;
