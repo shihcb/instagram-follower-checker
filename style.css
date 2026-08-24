@@ -213,7 +213,7 @@ h1, h2, h3, h4, .card-num {
 .app-container {
   max-width: 1440px;
   margin: 0 auto;
-  padding: calc(40px + env(safe-area-inset-top, 0px)) calc(24px + env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) calc(24px + env(safe-area-inset-left, 0px));
+  padding: max(40px, calc(16px + env(safe-area-inset-top, 0px))) max(24px, calc(16px + env(safe-area-inset-right, 0px))) max(24px, calc(16px + env(safe-area-inset-bottom, 0px))) max(24px, calc(16px + env(safe-area-inset-left, 0px)));
   position: relative;
   z-index: 1;
   display: flex;
@@ -2192,7 +2192,10 @@ button,
 
 @media (max-width: 640px) {
   .app-container {
-    padding: 20px 16px;
+    padding-top: max(68px, calc(24px + env(safe-area-inset-top, 0px))) !important;
+    padding-left: max(16px, calc(12px + env(safe-area-inset-left, 0px))) !important;
+    padding-right: max(16px, calc(12px + env(safe-area-inset-right, 0px))) !important;
+    padding-bottom: max(24px, calc(16px + env(safe-area-inset-bottom, 0px))) !important;
     gap: 20px;
   }
   .header-logo h1 {
@@ -2439,8 +2442,8 @@ body.auth-logged-out #auth-form-view {
 
 body.auth-logged-out #theme-toggle {
   position: fixed !important;
-  top: 24px !important;
-  right: 24px !important;
+  top: max(24px, calc(16px + env(safe-area-inset-top, 0px))) !important;
+  right: max(24px, calc(16px + env(safe-area-inset-right, 0px))) !important;
   z-index: 100000 !important;
   background: var(--card-bg) !important;
   border: 1px solid var(--card-border) !important;
