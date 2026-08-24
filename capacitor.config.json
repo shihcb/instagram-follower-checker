@@ -1,0 +1,8 @@
+{
+  "appId": "com.shihab.igchecker",
+  "appName": "IG Checker",
+  "webDir": "public",
+  "server": {
+    "androidScheme": "https"
+  }
+}
