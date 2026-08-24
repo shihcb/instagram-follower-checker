@@ -2215,7 +2215,8 @@ button,
     height: 100% !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
-    overscroll-behavior-y: auto !important;
+    overscroll-behavior-y: bounce !important;
+    overscroll-behavior-x: none !important;
   }
 
   body {
@@ -2224,7 +2225,8 @@ button,
     min-height: 100% !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
-    overscroll-behavior-y: auto !important;
+    overscroll-behavior-y: bounce !important;
+    overscroll-behavior-x: none !important;
   }
 
   .app-container,
@@ -2234,6 +2236,7 @@ button,
   .parsed-list,
   textarea {
     -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: bounce !important;
   }
 
   .app-container {
