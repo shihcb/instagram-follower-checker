@@ -910,6 +910,18 @@ button,
   display: none !important;
 }
 
+.occupied-dot {
+  display: inline-block !important;
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background-color: #10b981 !important;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.5) !important;
+  margin-left: 5px !important;
+  vertical-align: middle !important;
+  flex-shrink: 0 !important;
+}
+
 @container card-unfollowers (max-width: 350px) {
   .preview-toggle span.btn-text-full {
     display: none !important;

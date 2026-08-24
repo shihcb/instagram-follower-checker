@@ -596,7 +596,7 @@ function updateUnfollowedUI() {
   const labelEl = toggleBtn.querySelector('.btn-label-content');
   if (listData.length > 0) {
     toggleBtn.removeAttribute('disabled');
-    if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span>`;
+    if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span><span class="occupied-dot"></span>`;
     
     // Render elements with a scroll container below
     listEl.innerHTML = `
@@ -653,7 +653,7 @@ function updateStarredUI() {
   const labelEl = toggleBtn.querySelector('.btn-label-content');
   if (listData.length > 0) {
     toggleBtn.removeAttribute('disabled');
-    if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span>`;
+    if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span><span class="occupied-dot"></span>`;
     
     // Render elements (same layout as parsed-list)
     listEl.innerHTML = `
