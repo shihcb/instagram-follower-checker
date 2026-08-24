@@ -1455,9 +1455,51 @@ function deleteAccountFromModal() {
   }
 }
 
-// -------------------------------------------------------------
-// Interactive Feature Event Listeners
-// -------------------------------------------------------------
+function closeAllSubMenusAndPopups() {
+  let closedSomething = false;
+
+  // 1. Close Auth Dropdown (Account Menu)
+  if (elements.authDropdown && elements.authDropdown.classList.contains('show')) {
+    elements.authDropdown.classList.remove('show');
+    closedSomething = true;
+  }
+
+  // 2. Close Add Account Submenu Dropdown
+  if (elements.addAccountDropdownMenu && elements.addAccountDropdownMenu.classList.contains('show')) {
+    elements.addAccountDropdownMenu.classList.remove('show');
+    if (elements.btnAddAccount) elements.btnAddAccount.classList.remove('active');
+    closedSomething = true;
+  }
+
+  // 3. Close List 3 Unfollowed Preview Dropdown
+  if (elements.listUnfollowed && elements.listUnfollowed.classList.contains('show')) {
+    elements.listUnfollowed.classList.remove('show');
+    if (elements.togglePreviewUnfollowed) elements.togglePreviewUnfollowed.classList.remove('active');
+    closedSomething = true;
+  }
+
+  // 4. Close List 3 Starred Preview Dropdown
+  if (elements.listStarred && elements.listStarred.classList.contains('show')) {
+    elements.listStarred.classList.remove('show');
+    if (elements.togglePreviewStarred) elements.togglePreviewStarred.classList.remove('active');
+    closedSomething = true;
+  }
+
+  // 5. Close Account Select Modal
+  const modalAccount = document.getElementById('account-select-modal');
+  if (modalAccount && !modalAccount.classList.contains('hidden')) {
+    if (typeof closeAccountModal === 'function') closeAccountModal();
+    closedSomething = true;
+  }
+
+  // 6. Blur active focused element (button or input)
+  if (document.activeElement && document.activeElement !== document.body) {
+    document.activeElement.blur();
+    closedSomething = true;
+  }
+
+  return closedSomething;
+}
 
 function setupEventListeners() {
   // Instagram Account Management Event Listeners
@@ -1932,6 +1974,17 @@ function setupEventListeners() {
   
   bindDblClickInstagram(elements.inputFollowing);
   bindDblClickInstagram(elements.inputFollowers);
+
+  // Global Escape key shortcut to close sub-menus, dropdowns, popups, modals, and button focus
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' || e.key === 'Esc') {
+      const closed = closeAllSubMenusAndPopups();
+      if (closed) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }
+  });
 
   // Keyboard navigation shortcuts (Desktop only)
   document.addEventListener('keydown', (e) => {
