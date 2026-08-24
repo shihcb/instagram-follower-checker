@@ -27,7 +27,7 @@ const state = {
   unfollowed: JSON.parse(localStorage.getItem('unfollowed_users') || '[]'),  // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   starred: JSON.parse(localStorage.getItem('starred_users') || '[]'), // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   instagramAccounts: JSON.parse(localStorage.getItem('instagram_accounts') || '[]'), // Saved account usernames
-  selectedAccountUsername: localStorage.getItem('selected_instagram_account') || null, // Currently active Instagram account
+  selectedAccountUsername: localStorage.getItem('last_active_instagram_account') || localStorage.getItem('selected_instagram_account') || null, // Currently active Instagram account
   editingAccountIndex: -1, // Current index of account being edited (-1 for new)
   selectedIndex: -1, // Current keyboard selection index (0-indexed) in the filtered list
   pendingAutoOpen: false, // Flag to track when a return to the tab should trigger opening the next user
@@ -1128,6 +1128,9 @@ function saveCurrentAccountData() {
 
 function loadAccountData(username, animate = false) {
   if (username) {
+    state.selectedAccountUsername = username;
+    localStorage.setItem('selected_instagram_account', username);
+    localStorage.setItem('last_active_instagram_account', username);
     const acc = username.toLowerCase();
 
     // Load account-specific following and followers lists
@@ -2775,11 +2778,14 @@ async function pullFromCloud() {
       if (metaItem) {
         state.instagramAccounts = metaItem.instagram_accounts || [];
         normalizeInstagramAccounts();
-        const localSelected = localStorage.getItem('selected_instagram_account');
+        const localSelected = localStorage.getItem('last_active_instagram_account') || localStorage.getItem('selected_instagram_account');
         if (localSelected && state.instagramAccounts.some(acc => acc.originalUsername.toLowerCase() === localSelected.toLowerCase())) {
-          state.selectedAccountUsername = localSelected;
-        } else {
-          state.selectedAccountUsername = metaItem.selected_account || null;
+          const match = state.instagramAccounts.find(acc => acc.originalUsername.toLowerCase() === localSelected.toLowerCase());
+          state.selectedAccountUsername = match ? match.originalUsername : localSelected;
+        } else if (metaItem.selected_account && state.instagramAccounts.some(acc => acc.originalUsername.toLowerCase() === metaItem.selected_account.toLowerCase())) {
+          state.selectedAccountUsername = metaItem.selected_account;
+        } else if (state.instagramAccounts.length > 0) {
+          state.selectedAccountUsername = state.instagramAccounts[0].originalUsername;
         }
 
         localStorage.setItem('instagram_accounts', JSON.stringify(state.instagramAccounts));
@@ -2808,6 +2814,16 @@ async function pullFromCloud() {
       localStorage.setItem('unfollowed_users', JSON.stringify(data.unfollowed || []));
 
       // Restore account dataset if an account is selected, or default view if none
+      if (!state.selectedAccountUsername) {
+        const lastSaved = localStorage.getItem('last_active_instagram_account') || localStorage.getItem('selected_instagram_account');
+        if (lastSaved && state.instagramAccounts.some(acc => acc.originalUsername.toLowerCase() === lastSaved.toLowerCase())) {
+          const match = state.instagramAccounts.find(acc => acc.originalUsername.toLowerCase() === lastSaved.toLowerCase());
+          state.selectedAccountUsername = match ? match.originalUsername : lastSaved;
+        } else if (state.instagramAccounts.length > 0) {
+          state.selectedAccountUsername = state.instagramAccounts[0].originalUsername;
+        }
+      }
+
       if (state.selectedAccountUsername) {
         loadAccountData(state.selectedAccountUsername);
       } else {
