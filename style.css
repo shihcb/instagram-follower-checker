@@ -2804,9 +2804,9 @@ body:not(.auth-logged-out) #theme-toggle {
 
 .love-close-btn {
   border: none;
-  background: var(--text-main);
-  color: var(--text-inverse);
-  padding: 10px 20px;
+  background: var(--text-main) !important;
+  color: var(--text-inverse) !important;
+  padding: 10px 22px;
   border-radius: 12px;
   font-size: 0.9rem;
   font-weight: 700;
@@ -2814,13 +2814,28 @@ body:not(.auth-logged-out) #theme-toggle {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: transform 0.2s ease, background-color 0.2s ease;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
 }
 
-.love-close-btn:hover {
-  transform: scale(1.05);
-  background: var(--btn-secondary-hover);
-  color: var(--text-main);
+@media (hover: hover) {
+  .love-close-btn:hover {
+    transform: scale(1.04);
+    opacity: 0.92;
+    background: var(--text-main) !important;
+    color: var(--text-inverse) !important;
+  }
+}
+
+.love-close-btn:focus,
+.love-close-btn:active,
+.love-close-btn:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  background: var(--text-main) !important;
+  color: var(--text-inverse) !important;
 }
 
 @keyframes love-heart-beat {
