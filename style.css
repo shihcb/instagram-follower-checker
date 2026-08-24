@@ -2192,13 +2192,26 @@ button,
   }
 }
 
+@media (max-width: 1024px) {
+  .app-container {
+    padding-top: 14px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    padding-bottom: 20px !important;
+    gap: 12px !important;
+  }
+}
+
 @media (max-width: 640px) {
   .app-container {
-    padding-top: max(68px, calc(24px + env(safe-area-inset-top, 0px))) !important;
-    padding-left: max(16px, calc(12px + env(safe-area-inset-left, 0px))) !important;
-    padding-right: max(16px, calc(12px + env(safe-area-inset-right, 0px))) !important;
-    padding-bottom: max(24px, calc(16px + env(safe-area-inset-bottom, 0px))) !important;
-    gap: 20px;
+    padding-top: 12px !important;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+    padding-bottom: 16px !important;
+    gap: 10px !important;
+  }
+  .app-header {
+    gap: 0 !important;
   }
   .header-logo h1 {
     font-size: 1.75rem;
@@ -2215,6 +2228,18 @@ button,
   .results-controls {
     flex-direction: column;
   }
+}
+
+/* Native Capacitor / Standalone iOS App safe area overrides */
+body.is-capacitor .app-container {
+  padding-top: max(64px, calc(20px + env(safe-area-inset-top, 0px))) !important;
+  padding-left: max(16px, calc(12px + env(safe-area-inset-left, 0px))) !important;
+  padding-right: max(16px, calc(12px + env(safe-area-inset-right, 0px))) !important;
+  padding-bottom: max(24px, calc(16px + env(safe-area-inset-bottom, 0px))) !important;
+}
+
+body.is-capacitor.auth-logged-out #theme-toggle {
+  top: max(24px, calc(16px + env(safe-area-inset-top, 0px))) !important;
 }
 
 /* -------------------------------------------------------------

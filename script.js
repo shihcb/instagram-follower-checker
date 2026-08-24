@@ -2997,6 +2997,9 @@ function applySettings() {
 // App Initialization
 // -------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
+  if ((window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) || window.matchMedia('(display-mode: standalone)').matches) {
+    document.body.classList.add('is-capacitor');
+  }
   normalizeInstagramAccounts();
   initTheme();
   initSettings();
