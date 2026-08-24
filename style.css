@@ -155,20 +155,22 @@ a {
   text-decoration: none;
 }
 
-/* Custom Scrollbars */
+/* Custom Scrollbars - Hidden globally while preserving scroll functionality */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
 }
-::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
-}
+::-webkit-scrollbar-track,
 ::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 99px;
+  background: transparent !important;
+  border: none !important;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+
+html, body, div, textarea, section, main, article, aside, ul, li {
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;  /* Firefox */
 }
 
 /* -------------------------------------------------------------
@@ -2936,33 +2938,41 @@ textarea {
   color: var(--text-muted);
 }
 
-/* Overlay simple fade out */
+/* Overlay simple slow fade out & blur exit */
 @keyframes auth-overlay-fade-out {
   0% {
     opacity: 1;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
   }
   100% {
     opacity: 0;
+    backdrop-filter: blur(0px) saturate(100%);
+    -webkit-backdrop-filter: blur(0px) saturate(100%);
   }
 }
 
+.auth-dropdown.fade-out-bounce,
 body.auth-logged-out .auth-dropdown.fade-out-bounce {
-  animation: auth-overlay-fade-out 0.5s ease forwards !important;
+  animation: auth-overlay-fade-out 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
 
 /* Smooth reverse entrance exit for login card (mirrors entrance) */
+#auth-form-view.smooth-exit,
 body.auth-logged-out #auth-form-view.smooth-exit {
-  animation: auth-card-smooth-exit 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  animation: auth-card-smooth-exit 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
 
 @keyframes auth-card-smooth-exit {
-  from {
+  0% {
     opacity: 1;
     transform: translateY(0) scale(1);
+    filter: blur(0px);
   }
-  to {
+  100% {
     opacity: 0;
-    transform: translateY(30px) scale(0.92);
+    transform: translateY(24px) scale(0.94);
+    filter: blur(6px);
   }
 }
 

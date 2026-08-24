@@ -2396,8 +2396,7 @@ function initAuth() {
 
         // Smoothly fade out login page if there are accounts, otherwise hide instantly
         const finalizeLogin = () => {
-          const hasAccounts = (state.instagramAccounts || []).length > 0;
-          if (hasAccounts && !isInitialAuthCheck) {
+          if (!isInitialAuthCheck) {
             if (elements.authDropdown) {
               elements.authDropdown.classList.add('fade-out-bounce');
             }
@@ -2414,7 +2413,7 @@ function initAuth() {
                 elements.authFormView.classList.remove('smooth-exit');
               }
               showProfileView();
-            }, 500);
+            }, 750);
           } else {
             document.body.classList.remove('auth-logged-out');
             if (elements.authDropdown) {
