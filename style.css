@@ -2209,24 +2209,14 @@ button,
 }
 
 @media (max-width: 1024px) {
-  html {
-    background-color: var(--bg-color) !important;
-    background-image: none !important;
-    height: 100% !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    overscroll-behavior-y: bounce !important;
-    overscroll-behavior-x: none !important;
-  }
-
-  body {
+  html, body {
     background-color: var(--bg-color) !important;
     background-image: none !important;
     min-height: 100% !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
-    overscroll-behavior-y: bounce !important;
-    overscroll-behavior-x: none !important;
+    overscroll-behavior: auto !important;
+    overscroll-behavior-y: auto !important;
   }
 
   .app-container,
@@ -2236,7 +2226,6 @@ button,
   .parsed-list,
   textarea {
     -webkit-overflow-scrolling: touch !important;
-    overscroll-behavior-y: bounce !important;
   }
 
   .app-container {
