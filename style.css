@@ -1313,11 +1313,24 @@ button,
 .unstar-btn svg {
   color: #f59e0b !important;
   stroke: #f59e0b !important;
+  fill: none !important;
 }
+[data-theme="dark"] .action-star svg,
+[data-theme="dark"] .star-unfollowed-btn svg,
+[data-theme="dark"] .unstar-btn svg {
+  color: #fbbf24 !important;
+  stroke: #fbbf24 !important;
+  fill: none !important;
+}
+
+/* Only filled in for starred items (items in starred list, or starred action items) */
 .action-star.starred svg,
-.star-unfollowed-btn svg,
 .unstar-btn svg {
   fill: #f59e0b !important;
+}
+[data-theme="dark"] .action-star.starred svg,
+[data-theme="dark"] .unstar-btn svg {
+  fill: #fbbf24 !important;
 }
 
 .action-delete,
