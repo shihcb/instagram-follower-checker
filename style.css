@@ -2502,16 +2502,8 @@ body.auth-logged-out #auth-form-view {
   margin: 0;
 }
 
-body.auth-logged-out #theme-toggle {
-  position: fixed !important;
-  top: max(24px, calc(16px + env(safe-area-inset-top, 0px))) !important;
-  right: max(24px, calc(16px + env(safe-area-inset-right, 0px))) !important;
-  z-index: 100000 !important;
-  background: var(--card-bg) !important;
-  border: 1px solid var(--card-border) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
-}
-
+#theme-toggle,
+body.auth-logged-out #theme-toggle,
 body:not(.auth-logged-out) #theme-toggle {
   display: none !important;
 }
