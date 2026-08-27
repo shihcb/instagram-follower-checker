@@ -846,6 +846,12 @@ function updateResultsUI() {
       elements.emptyState.querySelector('.empty-desc').textContent = query ? 'no matching usernames found in the filter.' : '';
     }
   }
+
+  const keyboardHints = document.getElementById('keyboard-hints');
+  if (keyboardHints) {
+    const showKeyboard = localStorage.getItem('show_keyboard') !== 'false';
+    keyboardHints.classList.toggle('hidden-hints', !showKeyboard || filtered.length === 0);
+  }
 }
 
 // -------------------------------------------------------------
@@ -3333,8 +3339,9 @@ function initSettings() {
 function applySettings() {
   const keyboardHints = document.getElementById('keyboard-hints');
   const showKeyboard = localStorage.getItem('show_keyboard') !== 'false';
+  const hasResults = state.unfollowers && state.unfollowers.length > 0;
   if (keyboardHints) {
-    keyboardHints.classList.toggle('hidden-hints', !showKeyboard);
+    keyboardHints.classList.toggle('hidden-hints', !showKeyboard || !hasResults);
   }
 
   document.documentElement.classList.toggle('hide-keyboard-shortcuts', !showKeyboard);
