@@ -348,63 +348,107 @@
 
                   <!-- Live UI Showcase -->
                   <section class="landing-section">
-                    <div class="landing-preview-card glass">
-                      <div class="preview-header">
-                        <div class="preview-dots">
-                          <span></span><span></span><span></span>
+                    <div class="landing-section-header">
+                      <span class="landing-section-badge">preview</span>
+                      <h2>unfollowers list preview</h2>
+                    </div>
+                    <div class="card glass results-card highlighted-card landing-preview-card" style="max-width: 680px; margin: 0 auto; height: auto; padding-bottom: 20px;">
+                      <div class="card-header">
+                        <div class="card-title-group">
+                          <span class="card-num">3</span>
+                          <h2>unfollowers</h2>
                         </div>
-                        <div class="preview-title">unfollowers preview • ig checker</div>
-                        <span class="badge result-badge">14 unfollowers found</span>
+                        <span class="badge result-badge">14 found</span>
                       </div>
-                      <div class="preview-body">
-                        <div class="preview-search-row">
-                          <div class="preview-search-box">
-                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                            <span>search unfollowers...</span>
+                      <div class="card-body" style="padding: 0 24px;">
+                        <div class="results-controls">
+                          <div class="search-row">
+                            <div class="search-box">
+                              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                              </svg>
+                              <input type="text" placeholder="search" disabled value="alex">
+                            </div>
+                            
+                            <div class="auto-open-wrapper" title="auto-open">
+                              <label class="switch">
+                                <input type="checkbox" checked disabled>
+                                <span class="slider"></span>
+                              </label>
+                              <span>auto</span>
+                            </div>
                           </div>
-                          <div class="preview-chip">auto open</div>
-                          <div class="preview-chip starred">starred (3)</div>
+
+                          <div class="results-dropdowns-group">
+                            <div class="dropdown-wrapper">
+                              <button class="preview-toggle btn-sm" disabled>
+                                <span class="btn-label-content"><span class="btn-text-full">unfollowed</span><span class="occupied-dot"></span></span>
+                                <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                  <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                              </button>
+                            </div>
+
+                            <div class="dropdown-wrapper">
+                              <button class="preview-toggle btn-sm" disabled>
+                                <span class="btn-label-content"><span class="btn-text-full">starred</span><span class="occupied-dot"></span></span>
+                                <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                  <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                              </button>
+                            </div>
+
+                            <div class="import-button-row" style="flex: 1; display: flex; gap: 8px; align-items: center; min-width: 0;">
+                              <button class="preview-toggle btn-sm" disabled style="width: 100%; justify-content: center; gap: 6px;">
+                                <span>Import files</span>
+                                <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                  <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                        <div class="preview-list">
-                          <div class="preview-item">
-                            <div class="preview-user-info">
-                              <div class="preview-avatar">alex</div>
-                              <div>
-                                <div class="preview-username">@alex_creative</div>
-                                <div class="preview-meta">doesn't follow back</div>
-                              </div>
+
+                        <div class="results-list" style="display: flex; opacity: 1; margin-top: 12px; gap: 6px;">
+                          <div class="result-item">
+                            <div class="user-info">
+                              <span class="user-index">1</span>
+                              <a class="username-link" style="pointer-events: none;">@alex_creative</a>
                             </div>
-                            <div class="preview-actions">
-                              <span class="preview-star-btn">★</span>
-                              <span class="preview-open-btn">open ig &rarr;</span>
+                            <div class="item-actions">
+                              <button class="star-btn" title="star user" style="pointer-events: none;">★</button>
+                              <a class="open-btn" style="pointer-events: none;">open</a>
                             </div>
                           </div>
-                          <div class="preview-item">
-                            <div class="preview-user-info">
-                              <div class="preview-avatar bg-2">sam</div>
-                              <div>
-                                <div class="preview-username">@sam_developer</div>
-                                <div class="preview-meta">doesn't follow back</div>
-                              </div>
+
+                          <div class="result-item starred-item">
+                            <div class="user-info">
+                              <span class="user-index">2</span>
+                              <a class="username-link" style="pointer-events: none;">@sam_developer</a>
                             </div>
-                            <div class="preview-actions">
-                              <span class="preview-star-btn active">★</span>
-                              <span class="preview-open-btn">open ig &rarr;</span>
+                            <div class="item-actions">
+                              <button class="star-btn starred" title="starred" style="pointer-events: none;">★</button>
+                              <a class="open-btn" style="pointer-events: none;">open</a>
                             </div>
                           </div>
-                          <div class="preview-item">
-                            <div class="preview-user-info">
-                              <div class="preview-avatar bg-3">jason</div>
-                              <div>
-                                <div class="preview-username">@jason_clicks</div>
-                                <div class="preview-meta">doesn't follow back</div>
-                              </div>
+
+                          <div class="result-item">
+                            <div class="user-info">
+                              <span class="user-index">3</span>
+                              <a class="username-link" style="pointer-events: none;">@jason_clicks</a>
                             </div>
-                            <div class="preview-actions">
-                              <span class="preview-star-btn">★</span>
-                              <span class="preview-open-btn">open ig &rarr;</span>
+                            <div class="item-actions">
+                              <button class="star-btn" title="star user" style="pointer-events: none;">★</button>
+                              <a class="open-btn" style="pointer-events: none;">open</a>
                             </div>
                           </div>
+                        </div>
+
+                        <div class="keyboard-hints" style="margin-top: 14px; margin-bottom: 0;">
+                          <span><kbd>↑</kbd> <kbd>↓</kbd> select</span>
+                          <span><kbd>enter</kbd> open</span>
+                          <span><kbd>/</kbd> search</span>
                         </div>
                       </div>
                     </div>
