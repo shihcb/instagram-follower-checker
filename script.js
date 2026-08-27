@@ -183,26 +183,6 @@ function setTheme(theme) {
     document.head.appendChild(themeColorMeta);
   }
   themeColorMeta.setAttribute('content', theme === 'dark' ? '#09090b' : '#fafafa');
-  
-  if (theme === 'dark') {
-    if (elements.sunIcon) elements.sunIcon.classList.remove('hidden');
-    if (elements.moonIcon) elements.moonIcon.classList.add('hidden');
-    if (elements.menuSunIcon) elements.menuSunIcon.classList.remove('hidden');
-    if (elements.menuMoonIcon) elements.menuMoonIcon.classList.add('hidden');
-    if (elements.menuThemeText) elements.menuThemeText.textContent = 'light';
-    if (elements.landingSunIcon) elements.landingSunIcon.classList.remove('hidden');
-    if (elements.landingMoonIcon) elements.landingMoonIcon.classList.add('hidden');
-    if (elements.landingThemeText) elements.landingThemeText.textContent = 'light';
-  } else {
-    if (elements.sunIcon) elements.sunIcon.classList.add('hidden');
-    if (elements.moonIcon) elements.moonIcon.classList.remove('hidden');
-    if (elements.menuSunIcon) elements.menuSunIcon.classList.add('hidden');
-    if (elements.menuMoonIcon) elements.menuMoonIcon.classList.remove('hidden');
-    if (elements.menuThemeText) elements.menuThemeText.textContent = 'dark';
-    if (elements.landingSunIcon) elements.landingSunIcon.classList.add('hidden');
-    if (elements.landingMoonIcon) elements.landingMoonIcon.classList.remove('hidden');
-    if (elements.landingThemeText) elements.landingThemeText.textContent = 'dark';
-  }
 }
 
 // Custom Site Pop-up Confirm & Alert Modal Helpers

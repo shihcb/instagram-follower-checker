@@ -2,6 +2,10 @@
 .preload *, 
 .preload *::before, 
 .preload *::after,
+.preload .theme-text-light,
+.preload .theme-text-dark,
+.preload .sun-icon,
+.preload .moon-icon,
 .preload #toggle-preview-unfollowed,
 .preload #toggle-preview-starred,
 .preload #btn-add-account,
@@ -10,6 +14,33 @@
   -moz-transition: none !important;
   -o-transition: none !important;
   transition: none !important;
+}
+
+/* Immediate CSS-driven theme icon & label toggles (prevents JS load flickering) */
+[data-theme="dark"] .sun-icon {
+  display: inline-block !important;
+}
+[data-theme="dark"] .moon-icon {
+  display: none !important;
+}
+[data-theme="dark"] .theme-text-light {
+  display: inline !important;
+}
+[data-theme="dark"] .theme-text-dark {
+  display: none !important;
+}
+
+[data-theme="light"] .sun-icon {
+  display: none !important;
+}
+[data-theme="light"] .moon-icon {
+  display: inline-block !important;
+}
+[data-theme="light"] .theme-text-light {
+  display: none !important;
+}
+[data-theme="light"] .theme-text-dark {
+  display: inline !important;
 }
 
 /* -------------------------------------------------------------
