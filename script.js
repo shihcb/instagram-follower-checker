@@ -1638,6 +1638,38 @@ function setupEventListeners() {
     });
   });
 
+  // Instructions Modal Keyboard Shortcuts (Esc, Left/Right Arrows, Enter)
+  window.addEventListener('keydown', (e) => {
+    if (!elements.instructionsModalOverlay || elements.instructionsModalOverlay.classList.contains('hidden')) {
+      return;
+    }
+
+    if (e.key === 'Escape' || e.key === 'Esc') {
+      e.preventDefault();
+      closeInstructionsModal();
+    } else if (e.key === 'ArrowLeft' || e.key === 'Left') {
+      e.preventDefault();
+      if (currentInstructionStep > 1) {
+        currentInstructionStep--;
+        updateInstructionsStepUI();
+      }
+    } else if (e.key === 'ArrowRight' || e.key === 'Right') {
+      e.preventDefault();
+      if (currentInstructionStep < 5) {
+        currentInstructionStep++;
+        updateInstructionsStepUI();
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (currentInstructionStep < 5) {
+        currentInstructionStep++;
+        updateInstructionsStepUI();
+      } else {
+        closeInstructionsModal();
+      }
+    }
+  });
+
 // -------------------------------------------------------------
 // Instructions / How-To-Use Modal Logic
 // -------------------------------------------------------------
