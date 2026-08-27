@@ -1369,10 +1369,20 @@ function openAccountModal(index = -1) {
     elements.accountModalOverlay.classList.add('show');
     if (elements.accountUsernameInput) elements.accountUsernameInput.focus();
   });
+
+  try {
+    sessionStorage.setItem('active_modal', 'account');
+    sessionStorage.setItem('account_editing_index', editingIndex);
+  } catch (e) {}
 }
 
 function closeAccountModal() {
   if (!elements.accountModalOverlay) return;
+
+  try {
+    sessionStorage.removeItem('active_modal');
+    sessionStorage.removeItem('account_editing_index');
+  } catch (e) {}
 
   elements.accountModalOverlay.classList.remove('show');
   setTimeout(() => {
@@ -1637,6 +1647,9 @@ function setupEventListeners() {
     });
   });
 
+  // Restore open modal across reloads
+  restoreActiveModalOnReload();
+
 // -------------------------------------------------------------
 // Instructions / How-To-Use Modal Logic
 // -------------------------------------------------------------
@@ -1650,10 +1663,18 @@ function openInstructionsModal(step = 1) {
   requestAnimationFrame(() => {
     elements.instructionsModalOverlay.classList.add('show');
   });
+  try {
+    sessionStorage.setItem('active_modal', 'instructions');
+    sessionStorage.setItem('instructions_step', currentInstructionStep);
+  } catch (e) {}
 }
 
 function closeInstructionsModal() {
   if (!elements.instructionsModalOverlay) return;
+  try {
+    sessionStorage.removeItem('active_modal');
+    sessionStorage.removeItem('instructions_step');
+  } catch (e) {}
   elements.instructionsModalOverlay.classList.remove('show');
   setTimeout(() => {
     elements.instructionsModalOverlay.classList.add('hidden');
@@ -1687,6 +1708,25 @@ function updateInstructionsStepUI() {
       elements.btnInstructionsNext.textContent = 'next step';
     }
   }
+
+  try {
+    if (elements.instructionsModalOverlay && !elements.instructionsModalOverlay.classList.contains('hidden')) {
+      sessionStorage.setItem('instructions_step', currentInstructionStep);
+    }
+  } catch (e) {}
+}
+
+function restoreActiveModalOnReload() {
+  try {
+    const activeModal = sessionStorage.getItem('active_modal');
+    if (activeModal === 'instructions') {
+      const savedStep = parseInt(sessionStorage.getItem('instructions_step'), 10) || 1;
+      openInstructionsModal(savedStep);
+    } else if (activeModal === 'account') {
+      const savedIndex = parseInt(sessionStorage.getItem('account_editing_index'), 10);
+      openAccountModal(isNaN(savedIndex) ? -1 : savedIndex);
+    }
+  } catch (e) {}
 }
 
   // Realtime search filtering
