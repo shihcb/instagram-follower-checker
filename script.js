@@ -1720,21 +1720,23 @@ function updateInstructionsStepUI() {
     const currentText = textSpan.textContent.trim();
 
     if (currentText !== targetText) {
-      const isGoingToClose = (targetText === 'close');
-      const slideOutClass = isGoingToClose ? 'slide-out-up' : 'slide-out-down';
-      const slideInClass = isGoingToClose ? 'slide-in-bottom' : 'slide-in-top';
+      const btn = elements.btnInstructionsNext;
+      const startWidth = btn.offsetWidth;
+      btn.style.width = `${startWidth}px`;
 
-      textSpan.classList.remove('slide-in-bottom', 'slide-in-top', 'slide-out-up', 'slide-out-down');
-      textSpan.classList.add(slideOutClass);
+      textSpan.classList.add('fade-out');
 
       setTimeout(() => {
         textSpan.textContent = targetText;
-        textSpan.classList.remove(slideOutClass);
-        textSpan.classList.add(slideInClass);
-        setTimeout(() => {
-          textSpan.classList.remove(slideInClass);
-        }, 360);
-      }, 160);
+        btn.style.width = 'auto';
+        const targetWidth = btn.offsetWidth;
+        btn.style.width = `${startWidth}px`;
+
+        requestAnimationFrame(() => {
+          btn.style.width = `${targetWidth}px`;
+          textSpan.classList.remove('fade-out');
+        });
+      }, 140);
     }
   }
 }
