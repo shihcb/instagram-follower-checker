@@ -1758,6 +1758,158 @@ button,
   }
 }
 
+/* -------------------------------------------------------------
+ * Instructions / How-To-Use Modal Styling
+ * ------------------------------------------------------------- */
+.instructions-modal-card {
+  max-width: 480px !important;
+  width: 92% !important;
+  padding: 24px !important;
+}
+
+.instructions-steps-nav {
+  display: flex;
+  gap: 6px;
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border);
+  padding: 4px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.instructions-tab {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.instructions-tab.active {
+  background: var(--card-bg);
+  color: var(--text-main);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.instructions-step-pane {
+  display: none;
+  flex-direction: column;
+  gap: 16px;
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.instructions-step-pane.active {
+  display: flex;
+}
+
+.instructions-visual-card {
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.visual-icon-badge {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background-color: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+[data-theme="dark"] .visual-icon-badge {
+  background-color: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+.visual-step-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.banner-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background-color: var(--text-main);
+  color: var(--bg-color);
+}
+
+.instructions-step-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  line-height: 1.45;
+}
+
+.instructions-step-list code {
+  background-color: var(--input-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  border: 1px solid var(--input-border);
+}
+
+.instructions-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--card-border);
+}
+
+.instructions-step-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.instructions-step-dots .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--card-border);
+  transition: all 0.25s ease;
+  cursor: pointer;
+}
+
+.instructions-step-dots .dot.active {
+  width: 18px;
+  border-radius: 10px;
+  background-color: var(--text-main);
+}
+
 [data-theme="dark"] .modal-close-btn {
   color: #ffffff !important;
 }

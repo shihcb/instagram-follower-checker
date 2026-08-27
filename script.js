@@ -121,7 +121,13 @@ const elements = {
   addAccountDropdownMenu: document.getElementById('add-account-dropdown-menu'),
   btnUploadFiles: document.getElementById('btn-upload-files'),
   btnUploadFolder: document.getElementById('btn-upload-folder'),
-  toggleShowKeyboard: document.getElementById('toggle-show-keyboard')
+  toggleShowKeyboard: document.getElementById('toggle-show-keyboard'),
+  btnInstructionsInfo: document.getElementById('btn-instructions-info'),
+  btnEmptyInstructions: document.getElementById('btn-empty-instructions'),
+  instructionsModalOverlay: document.getElementById('instructions-modal-overlay'),
+  btnInstructionsModalClose: document.getElementById('btn-instructions-modal-close'),
+  btnInstructionsPrev: document.getElementById('btn-instructions-prev'),
+  btnInstructionsNext: document.getElementById('btn-instructions-next')
 };
 
 // -------------------------------------------------------------
@@ -1564,6 +1570,126 @@ function setupEventListeners() {
       else if (e.key === 'Escape') closeAccountModal();
     });
   }
+
+  // Instructions Modal Event Listeners
+  if (elements.btnInstructionsInfo) {
+    elements.btnInstructionsInfo.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openInstructionsModal(1);
+    });
+  }
+  if (elements.btnEmptyInstructions) {
+    elements.btnEmptyInstructions.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openInstructionsModal(1);
+    });
+  }
+  if (elements.btnInstructionsModalClose) {
+    elements.btnInstructionsModalClose.addEventListener('click', closeInstructionsModal);
+  }
+  if (elements.instructionsModalOverlay) {
+    elements.instructionsModalOverlay.addEventListener('click', (e) => {
+      if (e.target === elements.instructionsModalOverlay) closeInstructionsModal();
+    });
+  }
+  if (elements.btnInstructionsPrev) {
+    elements.btnInstructionsPrev.addEventListener('click', () => {
+      if (currentInstructionStep > 1) {
+        currentInstructionStep--;
+        updateInstructionsStepUI();
+      }
+    });
+  }
+  if (elements.btnInstructionsNext) {
+    elements.btnInstructionsNext.addEventListener('click', () => {
+      if (currentInstructionStep < 3) {
+        currentInstructionStep++;
+        updateInstructionsStepUI();
+      } else {
+        closeInstructionsModal();
+      }
+    });
+  }
+
+  // Instructions step tabs & dots click handlers
+  document.querySelectorAll('.instructions-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const s = parseInt(tab.getAttribute('data-step'), 10);
+      if (s) {
+        currentInstructionStep = s;
+        updateInstructionsStepUI();
+      }
+    });
+  });
+  document.querySelectorAll('.instructions-step-dots .dot').forEach((dot) => {
+    dot.addEventListener('click', () => {
+      const s = parseInt(dot.getAttribute('data-step'), 10);
+      if (s) {
+        currentInstructionStep = s;
+        updateInstructionsStepUI();
+      }
+    });
+  });
+
+// -------------------------------------------------------------
+// Instructions / How-To-Use Modal Logic
+// -------------------------------------------------------------
+let currentInstructionStep = 1;
+
+function openInstructionsModal(step = 1) {
+  if (!elements.instructionsModalOverlay) return;
+  currentInstructionStep = step;
+  updateInstructionsStepUI();
+  elements.instructionsModalOverlay.classList.remove('hidden');
+  requestAnimationFrame(() => {
+    elements.instructionsModalOverlay.classList.add('show');
+  });
+}
+
+function closeInstructionsModal() {
+  if (!elements.instructionsModalOverlay) return;
+  elements.instructionsModalOverlay.classList.remove('show');
+  setTimeout(() => {
+    elements.instructionsModalOverlay.classList.add('hidden');
+  }, 350);
+}
+
+function updateInstructionsStepUI() {
+  const tabs = document.querySelectorAll('.instructions-tab');
+  const panes = document.querySelectorAll('.instructions-step-pane');
+  const dots = document.querySelectorAll('.instructions-step-dots .dot');
+
+  tabs.forEach((tab) => {
+    const s = parseInt(tab.getAttribute('data-step'), 10);
+    tab.classList.toggle('active', s === currentInstructionStep);
+  });
+
+  panes.forEach((pane) => {
+    const s = parseInt(pane.id.replace('instructions-step-', ''), 10);
+    pane.classList.toggle('active', s === currentInstructionStep);
+  });
+
+  dots.forEach((dot) => {
+    const s = parseInt(dot.getAttribute('data-step'), 10);
+    dot.classList.toggle('active', s === currentInstructionStep);
+  });
+
+  if (elements.btnInstructionsPrev) {
+    if (currentInstructionStep === 1) {
+      elements.btnInstructionsPrev.classList.add('hidden');
+    } else {
+      elements.btnInstructionsPrev.classList.remove('hidden');
+    }
+  }
+
+  if (elements.btnInstructionsNext) {
+    if (currentInstructionStep === 3) {
+      elements.btnInstructionsNext.textContent = 'got it';
+    } else {
+      elements.btnInstructionsNext.textContent = 'next step';
+    }
+  }
+}
 
   // Realtime search filtering
   elements.searchUnfollowers.addEventListener('input', () => {

@@ -319,6 +319,14 @@
                     <span>upload folder</span>
                   </button>
                 </div>
+                <button id="btn-instructions-info" class="preview-toggle btn-sm" title="how to use / instructions" style="padding: 0 10px; flex-shrink: 0; justify-content: center; gap: 4px;">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                  <span class="btn-text-full">guide</span>
+                </button>
               </div>
             </div>
 
@@ -339,6 +347,14 @@
                 </svg>
                 <p class="empty-title">waiting for data</p>
                 <p class="empty-desc"></p>
+                <button id="btn-empty-instructions" class="btn btn-sm btn-secondary" style="margin-top: 8px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; font-size: 0.8rem; border-radius: 10px; cursor: pointer;">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                  <span>how to use / instructions</span>
+                </button>
               </div>
               <div class="results-list hidden" id="list-unfollowers"></div>
             </div>
@@ -443,6 +459,95 @@
   </div>
 
 
+
+  <!-- Instructions / How To Use Modal Pop-up -->
+  <div id="instructions-modal-overlay" class="modal-overlay hidden">
+    <div class="account-modal-card glass instructions-modal-card">
+      <div class="account-modal-header">
+        <h3>how to use</h3>
+        <button id="btn-instructions-modal-close" class="modal-close-btn" aria-label="close modal">&times;</button>
+      </div>
+
+      <div class="instructions-steps-nav">
+        <button class="instructions-tab active" data-step="1">1. export data</button>
+        <button class="instructions-tab" data-step="2">2. import files</button>
+        <button class="instructions-tab" data-step="3">3. check results</button>
+      </div>
+
+      <div class="instructions-step-pane active" id="instructions-step-1">
+        <div class="instructions-visual-card">
+          <div class="visual-icon-badge">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+          </div>
+          <div class="visual-step-banner">
+            <div class="banner-badge">step 1</div>
+            <span>export instagram data</span>
+          </div>
+        </div>
+        <ol class="instructions-step-list">
+          <li>Open Instagram App or Web &rarr; <strong>Settings &amp; Privacy</strong></li>
+          <li>Go to <strong>Accounts Center</strong> &rarr; <strong>Your Information &amp; Permissions</strong></li>
+          <li>Tap <strong>Download Your Information</strong> &rarr; Select <strong>Some of your information</strong></li>
+          <li>Select <strong>Followers and Following</strong> (Choose <strong>HTML</strong> or <strong>JSON</strong> format)</li>
+        </ol>
+      </div>
+
+      <div class="instructions-step-pane" id="instructions-step-2">
+        <div class="instructions-visual-card">
+          <div class="visual-icon-badge">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="12" y1="18" x2="12" y2="12"></line>
+              <line x1="9" y1="15" x2="15" y2="15"></line>
+            </svg>
+          </div>
+          <div class="visual-step-banner">
+            <div class="banner-badge">step 2</div>
+            <span>upload files or folder</span>
+          </div>
+        </div>
+        <ol class="instructions-step-list">
+          <li>Click the <strong>Import files</strong> button in List 3</li>
+          <li>Select your <code>following.html</code> &amp; <code>followers_1.html</code> files (or select the extracted folder)</li>
+          <li>Your accounts are processed <strong>100% locally</strong> in your browser (no password required)</li>
+        </ol>
+      </div>
+
+      <div class="instructions-step-pane" id="instructions-step-3">
+        <div class="instructions-visual-card">
+          <div class="visual-icon-badge">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+          </div>
+          <div class="visual-step-banner">
+            <div class="banner-badge">step 3</div>
+            <span>view unfollowers &amp; star</span>
+          </div>
+        </div>
+        <ol class="instructions-step-list">
+          <li>List 3 compares followers &amp; following to show who doesn't follow back</li>
+          <li>Click the <strong>Star</strong> icon to save favorites or separate them into your Starred list</li>
+          <li>Use <strong>Auto</strong> mode to automatically open Instagram profiles sequentially</li>
+        </ol>
+      </div>
+
+      <div class="instructions-modal-footer">
+        <button id="btn-instructions-prev" class="btn btn-sm btn-secondary hidden">previous</button>
+        <div class="instructions-step-dots">
+          <span class="dot active" data-step="1"></span>
+          <span class="dot" data-step="2"></span>
+          <span class="dot" data-step="3"></span>
+        </div>
+        <button id="btn-instructions-next" class="btn btn-sm btn-primary">next step</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Secret Romantic Easter Egg Overlay -->
   <div id="love-overlay" class="love-overlay">
