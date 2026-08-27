@@ -1608,7 +1608,7 @@ function setupEventListeners() {
   }
   if (elements.btnInstructionsNext) {
     elements.btnInstructionsNext.addEventListener('click', () => {
-      if (currentInstructionStep < 3) {
+      if (currentInstructionStep < 5) {
         currentInstructionStep++;
         updateInstructionsStepUI();
       } else {
@@ -1681,7 +1681,7 @@ function updateInstructionsStepUI() {
   });
 
   if (elements.btnInstructionsNext) {
-    if (currentInstructionStep === 3) {
+    if (currentInstructionStep === 5) {
       elements.btnInstructionsNext.textContent = 'close';
     } else {
       elements.btnInstructionsNext.textContent = 'next step';
