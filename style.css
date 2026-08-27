@@ -342,6 +342,55 @@ button,
   white-space: nowrap;
 }
 
+/* Universal Button & Interactive Pointer Cursor Stability Fix */
+button,
+.btn,
+.preview-toggle,
+.instructions-tab,
+.instructions-next-btn,
+.account-chip,
+.modal-close-btn,
+.action-star,
+.action-delete,
+.action-arrow,
+.action-dismiss,
+.star-unfollowed-btn,
+.remove-unfollowed-btn,
+.unstar-btn,
+.dropdown-item,
+.switch,
+.option-item {
+  cursor: pointer !important;
+}
+
+button *,
+.btn *,
+.preview-toggle *,
+.instructions-tab *,
+.instructions-next-btn *,
+.account-chip *,
+.modal-close-btn *,
+.action-star *,
+.action-delete *,
+.action-arrow *,
+.action-dismiss *,
+.star-unfollowed-btn *,
+.remove-unfollowed-btn *,
+.unstar-btn *,
+.dropdown-item *,
+.switch *,
+.option-item * {
+  cursor: inherit !important;
+  pointer-events: none !important;
+}
+
+button:disabled,
+button:disabled *,
+.btn:disabled,
+.btn:disabled * {
+  cursor: not-allowed !important;
+}
+
 .btn-sm {
   padding: 8px 16px;
   font-size: 0.85rem;
