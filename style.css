@@ -2477,6 +2477,34 @@ button,
   animation: chip-bounce-out 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
 }
 
+@keyframes row-deleting-anim {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    max-height: 80px;
+    margin-bottom: 6px;
+  }
+  40% {
+    opacity: 0.5;
+    transform: scale(0.95) translateY(2px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.88) translateY(8px);
+    max-height: 0px;
+    margin-bottom: 0px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    border-width: 0px;
+  }
+}
+
+.user-row.row-deleting {
+  animation: row-deleting-anim 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  pointer-events: none !important;
+  overflow: hidden !important;
+}
+
 .action-star svg {
   stroke: #f59e0b !important;
   fill: none !important;

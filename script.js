@@ -934,9 +934,7 @@ function animateFadeOutListUnfollowers() {
   if (elements.listUnfollowers) {
     const rows = elements.listUnfollowers.querySelectorAll('.user-row');
     rows.forEach((row) => {
-      row.style.transition = 'opacity 0.22s ease, transform 0.22s ease';
-      row.style.opacity = '0';
-      row.style.transform = 'scale(0.94) translateY(4px)';
+      row.classList.add('row-deleting');
     });
   }
 }
@@ -1828,14 +1826,12 @@ function updateInstructionsStepUI() {
     const taggedObj = { ...userObj, account: currentAcc };
 
     if (actionStar) {
-      // Move user to Starred (favorite) list
       if (!state.starred.some(u => u.username === username)) {
         state.starred.unshift(taggedObj);
         saveCurrentAccountData();
       }
 
-      userRow.style.opacity = '0';
-      userRow.style.transform = 'scale(0.95)';
+      userRow.classList.add('row-deleting');
       setTimeout(() => {
         userRow.remove();
         state.unfollowers = state.unfollowers.filter(u => u.username !== username);
@@ -1845,14 +1841,13 @@ function updateInstructionsStepUI() {
         if (state.unfollowers.length === 0) {
           updateResultsUI();
         }
-      }, 150);
+      }, 300);
       return;
     }
 
     const actionDismiss = e.target.closest('.action-dismiss');
     if (actionDismiss) {
-      userRow.style.opacity = '0';
-      userRow.style.transform = 'scale(0.95)';
+      userRow.classList.add('row-deleting');
       setTimeout(() => {
         userRow.remove();
         state.unfollowers = state.unfollowers.filter(u => u.username !== username);
@@ -1861,7 +1856,7 @@ function updateInstructionsStepUI() {
         if (state.unfollowers.length === 0) {
           updateResultsUI();
         }
-      }, 150);
+      }, 300);
       return;
     }
 
@@ -1889,8 +1884,7 @@ function updateInstructionsStepUI() {
 
     saveCurrentAccountData();
 
-    userRow.style.opacity = '0';
-    userRow.style.transform = 'scale(0.95)';
+    userRow.classList.add('row-deleting');
     setTimeout(() => {
       userRow.remove();
       state.unfollowers = state.unfollowers.filter(u => u.username !== username);
@@ -1900,7 +1894,7 @@ function updateInstructionsStepUI() {
       if (state.unfollowers.length === 0) {
         updateResultsUI();
       }
-    }, 150);
+    }, 300);
   });
 
   // Toggle preview unfollowed list dropdown
