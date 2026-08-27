@@ -67,6 +67,10 @@ const elements = {
   menuSunIcon: document.getElementById('menu-sun-icon'),
   menuMoonIcon: document.getElementById('menu-moon-icon'),
   menuThemeText: document.getElementById('menu-theme-text'),
+  landingThemeToggle: document.getElementById('landing-theme-toggle'),
+  landingSunIcon: document.getElementById('landing-sun-icon'),
+  landingMoonIcon: document.getElementById('landing-moon-icon'),
+  landingThemeText: document.getElementById('landing-theme-text'),
 
   // Following list elements
   inputFollowing: document.getElementById('input-following'),
@@ -162,6 +166,9 @@ function initTheme() {
   if (elements.themeToggleInMenu) {
     elements.themeToggleInMenu.addEventListener('click', toggleTheme);
   }
+  if (elements.landingThemeToggle) {
+    elements.landingThemeToggle.addEventListener('click', toggleTheme);
+  }
 }
 
 function setTheme(theme) {
@@ -183,12 +190,18 @@ function setTheme(theme) {
     if (elements.menuSunIcon) elements.menuSunIcon.classList.remove('hidden');
     if (elements.menuMoonIcon) elements.menuMoonIcon.classList.add('hidden');
     if (elements.menuThemeText) elements.menuThemeText.textContent = 'light';
+    if (elements.landingSunIcon) elements.landingSunIcon.classList.remove('hidden');
+    if (elements.landingMoonIcon) elements.landingMoonIcon.classList.add('hidden');
+    if (elements.landingThemeText) elements.landingThemeText.textContent = 'light';
   } else {
     if (elements.sunIcon) elements.sunIcon.classList.add('hidden');
     if (elements.moonIcon) elements.moonIcon.classList.remove('hidden');
     if (elements.menuSunIcon) elements.menuSunIcon.classList.add('hidden');
     if (elements.menuMoonIcon) elements.menuMoonIcon.classList.remove('hidden');
     if (elements.menuThemeText) elements.menuThemeText.textContent = 'dark';
+    if (elements.landingSunIcon) elements.landingSunIcon.classList.add('hidden');
+    if (elements.landingMoonIcon) elements.landingMoonIcon.classList.remove('hidden');
+    if (elements.landingThemeText) elements.landingThemeText.textContent = 'dark';
   }
 }
 

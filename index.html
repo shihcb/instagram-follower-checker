@@ -156,31 +156,285 @@
                 <button id="btn-logout" class="btn btn-primary btn-block">log out</button>
               </div>
 
-              <!-- Login/Registration Tabs -->
-              <div id="auth-form-view" class="auth-view">
-                <div class="auth-brand">
-                  <h2>IG checker</h2>
-                </div>
-                <div class="auth-tabs">
-                  <button class="auth-tab active" id="tab-login">log in</button>
-                  <button class="auth-tab" id="tab-signup">sign up</button>
-                </div>
-
-                <form id="auth-form" class="auth-form">
-                  <div class="form-group">
-                    <label for="auth-email">email address</label>
-                    <input type="email" id="auth-email" placeholder="enter your email" required>
+              <!-- Login / Landing Page Container (shown when logged out) -->
+              <div id="landing-page-container" class="landing-page-container">
+                <header class="landing-header">
+                  <div class="landing-brand">
+                    <span class="landing-logo-icon">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                      </svg>
+                    </span>
+                    <span class="landing-brand-name">ig checker</span>
+                    <span class="landing-version-badge">v2.5</span>
                   </div>
-                  <div class="form-group">
-                    <label for="auth-password">password</label>
-                    <input type="password" id="auth-password" placeholder="enter your password" minlength="6" required>
+                  <div class="landing-header-actions">
+                    <button id="landing-theme-toggle" class="btn btn-sm btn-secondary landing-theme-btn" title="toggle theme" aria-label="toggle theme">
+                      <svg id="landing-sun-icon" class="theme-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                      </svg>
+                      <svg id="landing-moon-icon" class="theme-icon hidden" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                      </svg>
+                      <span id="landing-theme-text">light</span>
+                    </button>
+                    <a href="#auth-form-card" class="btn btn-sm btn-primary landing-cta-btn">log in / sign up</a>
                   </div>
+                </header>
 
-                  <div id="auth-error-msg" class="auth-error hidden"></div>
-                  <div id="auth-success-msg" class="auth-success hidden"></div>
+                <div class="landing-body">
+                  <!-- Hero Section -->
+                  <section class="landing-hero">
+                    <div class="hero-left">
+                      <div class="hero-tag glass">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        <span>100% private &amp; client-side</span>
+                      </div>
+                      <h1 class="hero-headline">see who doesn't follow you back on instagram.</h1>
+                      <p class="hero-subtext">
+                        a modern, secure, and instant tool to analyze your followers and following lists. no instagram password required, 100% local in your browser.
+                      </p>
+                      <div class="hero-highlights">
+                        <div class="highlight-item">
+                          <div class="highlight-check">
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          </div>
+                          <span>no instagram password needed</span>
+                        </div>
+                        <div class="highlight-item">
+                          <div class="highlight-check">
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          </div>
+                          <span>zero risk of account bans</span>
+                        </div>
+                        <div class="highlight-item">
+                          <div class="highlight-check">
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          </div>
+                          <span>cloud sync &amp; multi-account support</span>
+                        </div>
+                      </div>
+                    </div>
 
-                  <button type="submit" id="btn-auth-submit" class="btn btn-primary btn-block">log in</button>
-                </form>
+                    <div class="hero-right" id="auth-form-card">
+                      <!-- Login/Registration Tabs Card -->
+                      <div id="auth-form-view" class="auth-view">
+                        <div class="auth-brand">
+                          <h2>IG checker</h2>
+                        </div>
+                        <div class="auth-tabs">
+                          <button class="auth-tab active" id="tab-login">log in</button>
+                          <button class="auth-tab" id="tab-signup">sign up</button>
+                        </div>
+
+                        <form id="auth-form" class="auth-form">
+                          <div class="form-group">
+                            <label for="auth-email">email address</label>
+                            <input type="email" id="auth-email" placeholder="enter your email" required>
+                          </div>
+                          <div class="form-group">
+                            <label for="auth-password">password</label>
+                            <input type="password" id="auth-password" placeholder="enter your password" minlength="6" required>
+                          </div>
+
+                          <div id="auth-error-msg" class="auth-error hidden"></div>
+                          <div id="auth-success-msg" class="auth-success hidden"></div>
+
+                          <button type="submit" id="btn-auth-submit" class="btn btn-primary btn-block">log in</button>
+                        </form>
+                      </div>
+                    </div>
+                  </section>
+
+                  <!-- Features Section -->
+                  <section class="landing-section">
+                    <div class="landing-section-header">
+                      <span class="landing-section-badge">features</span>
+                      <h2>everything you need to track your instagram connections</h2>
+                    </div>
+                    <div class="features-grid">
+                      <div class="feature-card glass">
+                        <div class="feature-icon">
+                          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                          </svg>
+                        </div>
+                        <h3>100% client-side privacy</h3>
+                        <p>your data stays strictly on your device. HTML and JSON export files are parsed locally in your browser with zero server uploads.</p>
+                      </div>
+
+                      <div class="feature-card glass">
+                        <div class="feature-icon">
+                          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                          </svg>
+                        </div>
+                        <h3>multi-account support</h3>
+                        <p>seamlessly manage multiple instagram accounts. save separate unfollowers lists, starred users, and history for each account.</p>
+                      </div>
+
+                      <div class="feature-card glass">
+                        <div class="feature-icon">
+                          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                          </svg>
+                        </div>
+                        <h3>instant comparison &amp; auto-open</h3>
+                        <p>instantly find non-reciprocal followers. auto-open profiles directly in instagram with built-in keyboard navigation shortcuts.</p>
+                      </div>
+
+                      <div class="feature-card glass">
+                        <div class="feature-icon">
+                          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+                          </svg>
+                        </div>
+                        <h3>cloud sync &amp; starred lists</h3>
+                        <p>log in to sync your starred accounts and unfollowed history safely to your cloud account across all your devices.</p>
+                      </div>
+                    </div>
+                  </section>
+
+                  <!-- How It Works Section -->
+                  <section class="landing-section">
+                    <div class="landing-section-header">
+                      <span class="landing-section-badge">how it works</span>
+                      <h2>3 simple steps to check your unfollowers</h2>
+                    </div>
+                    <div class="steps-grid">
+                      <div class="step-card glass">
+                        <div class="step-number">1</div>
+                        <h3>export data</h3>
+                        <p>go to instagram settings &rarr; accounts center &rarr; export your information. select followers &amp; following in HTML format.</p>
+                      </div>
+                      <div class="step-card glass">
+                        <div class="step-number">2</div>
+                        <h3>import files</h3>
+                        <p>drag and drop or upload your <code>following.html</code> &amp; <code>followers_1.html</code> files into IG checker.</p>
+                      </div>
+                      <div class="step-card glass">
+                        <div class="step-number">3</div>
+                        <h3>check results</h3>
+                        <p>view non-followers instantly, star key accounts, track past unfollows, and auto-navigate profiles.</p>
+                      </div>
+                    </div>
+                  </section>
+
+                  <!-- Live UI Showcase -->
+                  <section class="landing-section">
+                    <div class="landing-preview-card glass">
+                      <div class="preview-header">
+                        <div class="preview-dots">
+                          <span></span><span></span><span></span>
+                        </div>
+                        <div class="preview-title">unfollowers preview • ig checker</div>
+                        <span class="badge result-badge">14 unfollowers found</span>
+                      </div>
+                      <div class="preview-body">
+                        <div class="preview-search-row">
+                          <div class="preview-search-box">
+                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <span>search unfollowers...</span>
+                          </div>
+                          <div class="preview-chip">auto open</div>
+                          <div class="preview-chip starred">starred (3)</div>
+                        </div>
+                        <div class="preview-list">
+                          <div class="preview-item">
+                            <div class="preview-user-info">
+                              <div class="preview-avatar">alex</div>
+                              <div>
+                                <div class="preview-username">@alex_creative</div>
+                                <div class="preview-meta">doesn't follow back</div>
+                              </div>
+                            </div>
+                            <div class="preview-actions">
+                              <span class="preview-star-btn">★</span>
+                              <span class="preview-open-btn">open ig &rarr;</span>
+                            </div>
+                          </div>
+                          <div class="preview-item">
+                            <div class="preview-user-info">
+                              <div class="preview-avatar bg-2">sam</div>
+                              <div>
+                                <div class="preview-username">@sam_developer</div>
+                                <div class="preview-meta">doesn't follow back</div>
+                              </div>
+                            </div>
+                            <div class="preview-actions">
+                              <span class="preview-star-btn active">★</span>
+                              <span class="preview-open-btn">open ig &rarr;</span>
+                            </div>
+                          </div>
+                          <div class="preview-item">
+                            <div class="preview-user-info">
+                              <div class="preview-avatar bg-3">jason</div>
+                              <div>
+                                <div class="preview-username">@jason_clicks</div>
+                                <div class="preview-meta">doesn't follow back</div>
+                              </div>
+                            </div>
+                            <div class="preview-actions">
+                              <span class="preview-star-btn">★</span>
+                              <span class="preview-open-btn">open ig &rarr;</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <!-- Security Guarantee Banner -->
+                  <section class="landing-security-banner glass">
+                    <div class="security-icon">
+                      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                      </svg>
+                    </div>
+                    <div class="security-text">
+                      <h3>your instagram credentials are never requested</h3>
+                      <p>ig checker runs 100% locally in your browser using official data export files. your instagram login details and personal data remain completely private.</p>
+                    </div>
+                  </section>
+                </div>
+
+                <!-- Landing Footer -->
+                <footer class="landing-footer">
+                  <div class="landing-footer-content">
+                    <div class="footer-brand">
+                      <span>ig checker</span>
+                      <span class="dot">•</span>
+                      <span>100% private follower analytics</span>
+                    </div>
+                    <div class="footer-copy">
+                      &copy; 2026 shihab. built with privacy in mind.
+                    </div>
+                  </div>
+                </footer>
               </div>
             </div>
           </div>
