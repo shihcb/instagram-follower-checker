@@ -127,7 +127,8 @@ const elements = {
   instructionsModalOverlay: document.getElementById('instructions-modal-overlay'),
   btnInstructionsModalClose: document.getElementById('btn-instructions-modal-close'),
   btnInstructionsPrev: document.getElementById('btn-instructions-prev'),
-  btnInstructionsNext: document.getElementById('btn-instructions-next')
+  btnInstructionsNext: document.getElementById('btn-instructions-next'),
+  instructionsNavIndicator: document.getElementById('instructions-nav-indicator')
 };
 
 // -------------------------------------------------------------
@@ -1665,14 +1666,22 @@ function updateInstructionsStepUI() {
   const panes = document.querySelectorAll('.instructions-step-pane');
   const dots = document.querySelectorAll('.instructions-step-dots .dot');
 
+  let activeTab = null;
   tabs.forEach((tab) => {
     const s = parseInt(tab.getAttribute('data-step'), 10);
     const isActive = (s === currentInstructionStep);
     tab.classList.toggle('active', isActive);
     if (isActive) {
+      activeTab = tab;
       tab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     }
   });
+
+  const indicator = elements.instructionsNavIndicator || document.getElementById('instructions-nav-indicator');
+  if (indicator && activeTab) {
+    indicator.style.transform = `translateX(${activeTab.offsetLeft}px)`;
+    indicator.style.width = `${activeTab.offsetWidth}px`;
+  }
 
   panes.forEach((pane) => {
     const s = parseInt(pane.id.replace('instructions-step-', ''), 10);
