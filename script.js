@@ -1667,7 +1667,11 @@ function updateInstructionsStepUI() {
 
   tabs.forEach((tab) => {
     const s = parseInt(tab.getAttribute('data-step'), 10);
-    tab.classList.toggle('active', s === currentInstructionStep);
+    const isActive = (s === currentInstructionStep);
+    tab.classList.toggle('active', isActive);
+    if (isActive) {
+      tab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
   });
 
   panes.forEach((pane) => {
