@@ -2144,6 +2144,13 @@ button,
   opacity: 0 !important;
 }
 
+.empty-state,
+.empty-icon,
+.empty-title,
+.empty-desc {
+  display: none !important;
+}
+
 .instructions-modal-footer {
   display: flex;
   align-items: center;
