@@ -838,13 +838,15 @@ function updateResultsUI() {
     }).join('');
   } else {
     elements.listUnfollowers.classList.add('hidden');
-    if (elements.emptyState) elements.emptyState.classList.add('hidden');
-  }
-
-  const keyboardHints = document.getElementById('keyboard-hints');
-  if (keyboardHints) {
-    const showKeyboard = localStorage.getItem('show_keyboard') !== 'false';
-    keyboardHints.classList.toggle('hidden-hints', !showKeyboard || filtered.length === 0);
+    if (state.following.length === 0 && state.followers.length === 0) {
+      elements.emptyState.classList.add('hidden');
+    } else {
+      elements.emptyState.classList.remove('hidden');
+      const title = elements.emptyState.querySelector('.empty-title');
+      if (title) title.textContent = '';
+      const desc = elements.emptyState.querySelector('.empty-desc');
+      if (desc) desc.textContent = '';
+    }
   }
 }
 
@@ -3333,9 +3335,8 @@ function initSettings() {
 function applySettings() {
   const keyboardHints = document.getElementById('keyboard-hints');
   const showKeyboard = localStorage.getItem('show_keyboard') !== 'false';
-  const hasResults = state.unfollowers && state.unfollowers.length > 0;
   if (keyboardHints) {
-    keyboardHints.classList.toggle('hidden-hints', !showKeyboard || !hasResults);
+    keyboardHints.classList.toggle('hidden-hints', !showKeyboard);
   }
 
   document.documentElement.classList.toggle('hide-keyboard-shortcuts', !showKeyboard);
