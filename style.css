@@ -1765,6 +1765,11 @@ button,
   max-width: 480px !important;
   width: 92% !important;
   padding: 24px !important;
+  text-transform: lowercase !important;
+}
+
+.instructions-modal-card * {
+  text-transform: lowercase;
 }
 
 .instructions-steps-nav {
@@ -1810,53 +1815,62 @@ button,
 
 .instructions-visual-card {
   background: var(--input-bg);
-  border: 1px solid var(--input-border);
-  border-radius: 12px;
-  padding: 20px;
+  border: 1.5px solid var(--card-border);
+  border-radius: 14px;
+  padding: 22px 18px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
   text-align: center;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .instructions-visual-card {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3) !important;
 }
 
 .visual-icon-badge {
-  width: 56px;
-  height: 56px;
+  width: 58px;
+  height: 58px;
   border-radius: 16px;
-  background-color: rgba(16, 185, 129, 0.12);
-  color: #10b981;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.08));
+  color: #059669;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
 }
 
 [data-theme="dark"] .visual-icon-badge {
-  background-color: rgba(52, 211, 153, 0.15);
-  color: #34d399;
-  border-color: rgba(52, 211, 153, 0.3);
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.25), rgba(16, 185, 129, 0.12)) !important;
+  color: #34d399 !important;
+  border-color: rgba(52, 211, 153, 0.4) !important;
+  box-shadow: 0 4px 16px rgba(52, 211, 153, 0.2) !important;
 }
 
 .visual-step-banner {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 0.92rem;
+  font-weight: 700;
   color: var(--text-main);
 }
 
 .banner-badge {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 2px 8px;
-  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: lowercase;
+  letter-spacing: 0.3px;
+  padding: 3px 10px;
+  border-radius: 6px;
   background-color: var(--text-main);
   color: var(--bg-color);
 }
