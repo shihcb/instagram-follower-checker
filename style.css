@@ -2479,24 +2479,27 @@ button,
     transform: scale(1) translateY(0);
     max-height: 80px;
     margin-bottom: 6px;
+    filter: blur(0px);
   }
-  40% {
+  45% {
     opacity: 0.5;
-    transform: scale(0.95) translateY(2px);
+    transform: scale(0.96) translateY(2px);
+    filter: blur(1px);
   }
   100% {
     opacity: 0;
-    transform: scale(0.88) translateY(8px);
+    transform: scale(0.90) translateY(10px);
     max-height: 0px;
     margin-bottom: 0px;
     padding-top: 0px;
     padding-bottom: 0px;
     border-width: 0px;
+    filter: blur(3px);
   }
 }
 
 .user-row.row-deleting {
-  animation: row-deleting-anim 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  animation: row-deleting-anim 0.48s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
   pointer-events: none !important;
   overflow: hidden !important;
 }

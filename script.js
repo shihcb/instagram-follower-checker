@@ -1831,7 +1831,7 @@ function updateInstructionsStepUI() {
         if (state.unfollowers.length === 0) {
           updateResultsUI();
         }
-      }, 300);
+      }, 460);
       return;
     }
 
@@ -1846,7 +1846,7 @@ function updateInstructionsStepUI() {
         if (state.unfollowers.length === 0) {
           updateResultsUI();
         }
-      }, 300);
+      }, 460);
       return;
     }
 
@@ -1884,7 +1884,7 @@ function updateInstructionsStepUI() {
       if (state.unfollowers.length === 0) {
         updateResultsUI();
       }
-    }, 300);
+    }, 460);
   });
 
   // Toggle preview unfollowed list dropdown
