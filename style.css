@@ -1773,6 +1773,13 @@ button,
   justify-content: space-between !important;
   text-transform: lowercase !important;
   box-sizing: border-box !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+#btn-instructions-info {
+  user-select: none !important;
+  -webkit-user-select: none !important;
 }
 
 .instructions-modal-card * {
