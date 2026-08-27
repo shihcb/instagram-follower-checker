@@ -1092,9 +1092,10 @@ button,
   }
   #btn-instructions-info {
     flex-shrink: 0 !important;
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
   }
   .dropdown-menu {
     width: 100% !important;
