@@ -28,6 +28,7 @@ const state = {
   starred: JSON.parse(localStorage.getItem('starred_users') || '[]'), // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   instagramAccounts: JSON.parse(localStorage.getItem('instagram_accounts') || '[]'), // Saved account usernames
   selectedAccountUsername: localStorage.getItem('last_active_instagram_account') || localStorage.getItem('selected_instagram_account') || null, // Currently active Instagram account
+  selectedUsername: localStorage.getItem('selected_username') || null, // Currently selected username
   editingAccountIndex: -1, // Current index of account being edited (-1 for new)
   selectedIndex: -1, // Current keyboard selection index (0-indexed) in the filtered list
   pendingAutoOpen: false, // Flag to track when a return to the tab should trigger opening the next user
@@ -764,13 +765,23 @@ function updateListUI(type) {
 function updateResultsUI() {
   const count = state.unfollowers.length;
   elements.unfollowersCount.textContent = `${count} found`;
-  
 
   const query = elements.searchUnfollowers.value.toLowerCase().trim();
   const filtered = state.unfollowers.filter(user => 
     user.originalUsername.toLowerCase().includes(query) || 
     (user.fullName && user.fullName.toLowerCase().includes(query))
   );
+
+  // Restore saved selected username state on page reload / filter update
+  const savedSelectedUsername = state.selectedUsername || localStorage.getItem('selected_username');
+  if (savedSelectedUsername && filtered.length > 0) {
+    const foundIdx = filtered.findIndex(u => u.username === savedSelectedUsername);
+    if (foundIdx !== -1) {
+      state.selectedIndex = foundIdx;
+    }
+  } else if (!savedSelectedUsername) {
+    state.selectedIndex = -1;
+  }
 
   if (filtered.length > 0) {
     elements.emptyState.classList.add('hidden');
@@ -1875,6 +1886,17 @@ function updateInstructionsStepUI() {
       return;
     }
 
+    const actionDelete = e.target.closest('.action-delete');
+    if (!actionStar && !actionDismiss && !actionDelete) {
+      if (state.selectedIndex === rowIndex) {
+        state.selectedIndex = -1;
+        highlightRow(-1);
+      } else {
+        state.selectedIndex = rowIndex;
+        highlightRow(rowIndex);
+      }
+    }
+
     // Clicking anywhere on the row (username, avatar, link, or delete button) automatically moves user to Unfollowed list!
     const autoOpenToggle = document.getElementById('auto-open-toggle');
     if (autoOpenToggle && autoOpenToggle.checked) {
@@ -2520,14 +2542,26 @@ function updateInstructionsStepUI() {
 
   function highlightRow(index) {
     const rows = elements.listUnfollowers.querySelectorAll('.user-row');
+    let selectedFound = false;
     rows.forEach((row, i) => {
       if (i === index) {
         row.classList.add('selected');
         row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        const username = row.getAttribute('data-username');
+        if (username) {
+          state.selectedUsername = username;
+          localStorage.setItem('selected_username', username);
+          selectedFound = true;
+        }
       } else {
         row.classList.remove('selected');
       }
     });
+
+    if (!selectedFound || index === -1) {
+      state.selectedUsername = null;
+      localStorage.setItem('selected_username', '');
+    }
   }
 
   // Handle tab focus for auto-opening the next user
