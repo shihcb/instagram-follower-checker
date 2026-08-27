@@ -341,21 +341,32 @@
                   <section class="landing-section">
                     <div class="landing-section-header">
                       <span class="landing-section-badge">preview</span>
-                      <h2>interactive app preview</h2>
+                      <h2>try ig checker live</h2>
                     </div>
                     
-                    <div class="landing-preview-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; max-width: 1140px; margin: 0 auto; align-items: flex-start;">
+                    <!-- Main Grid Layout (Live Working App) -->
+                    <main class="app-grid" style="margin-top: 0;">
                       
-                      <!-- List 3: Unfollowers Card (Left) -->
-                      <div class="card glass results-card highlighted-card landing-preview-card" style="height: auto; min-height: 480px; padding-bottom: 20px;">
+                      <!-- Temporary Account Requirement Warning -->
+                      <div id="import-account-warning" class="import-account-warning">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="12" y1="8" x2="12" y2="12"></line>
+                          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <span>to import lists you need to have an account</span>
+                      </div>
+
+                      <!-- List 3: Unfollowers (Results) -->
+                      <section class="card glass results-card highlighted-card" id="card-unfollowers">
                         <div class="card-header">
                           <div class="card-title-group">
                             <span class="card-num">3</span>
                             <h2>unfollowers</h2>
                           </div>
-                          <span class="badge result-badge">1 found</span>
+                          <span class="badge result-badge" id="unfollowers-count">0 found</span>
                         </div>
-                        <div class="card-body" style="padding: 0 24px;">
+                        <div class="card-body">
                           <div class="results-controls">
                             <div class="search-row">
                               <div class="search-box">
@@ -363,46 +374,62 @@
                                   <circle cx="11" cy="11" r="8"></circle>
                                   <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                                 </svg>
-                                <input type="text" placeholder="search">
+                                <input type="text" id="search-unfollowers" placeholder="search">
                               </div>
                               
-                              <div class="auto-open-wrapper" title="auto-open">
+                              <div class="auto-open-wrapper" title="auto-open next username when returning to this page">
                                 <label class="switch">
-                                  <input type="checkbox">
+                                  <input type="checkbox" id="auto-open-toggle">
                                   <span class="slider"></span>
                                 </label>
-                                <span>auto</span>
+                                <span id="auto-open-label">auto</span>
                               </div>
                             </div>
 
                             <div class="results-dropdowns-group">
                               <div class="dropdown-wrapper">
-                                <button class="preview-toggle btn-sm">
-                                  <span class="btn-label-content"><span class="btn-text-full">unfollowed</span><span class="occupied-dot"></span></span>
+                                <button class="preview-toggle btn-sm" id="toggle-preview-unfollowed" disabled>
+                                  <span class="btn-label-content"><span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span></span>
                                   <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                     <polyline points="6 9 12 15 18 9"></polyline>
                                   </svg>
                                 </button>
+                                <div class="parsed-list dropdown-menu" id="list-unfollowed"></div>
                               </div>
 
                               <div class="dropdown-wrapper">
-                                <button class="preview-toggle btn-sm">
-                                  <span class="btn-label-content"><span class="btn-text-full">starred</span><span class="occupied-dot"></span></span>
+                                <button class="preview-toggle btn-sm" id="toggle-preview-starred" disabled>
+                                  <span class="btn-label-content"><span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span></span>
                                   <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                     <polyline points="6 9 12 15 18 9"></polyline>
                                   </svg>
                                 </button>
+                                <div class="parsed-list dropdown-menu" id="list-starred"></div>
                               </div>
 
                               <div class="import-button-row" style="flex: 1; display: flex; gap: 8px; align-items: center; min-width: 0;">
-                                <button class="preview-toggle btn-sm" style="width: 100%; justify-content: center; gap: 6px;">
-                                  <span>Import files</span>
-                                  <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="6 9 12 15 18 9"></polyline>
-                                  </svg>
-                                </button>
+                                <div class="dropdown-wrapper" style="flex: 1; min-width: 0;">
+                                  <input type="file" id="import-files-input" multiple accept=".html,.txt" class="hidden">
+                                  <input type="file" id="import-folder-input" webkitdirectory directory multiple class="hidden">
+                                  <button id="btn-add-account" class="preview-toggle btn-sm" title="Import files" style="width: 100%; justify-content: center; gap: 6px;">
+                                    <span>Import files</span>
+                                    <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                      <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                  </button>
+                                  <div class="dropdown-menu" id="add-account-dropdown-menu" style="min-width: 150px; padding: 4px 0;">
+                                    <button id="btn-upload-files" class="dropdown-item-btn" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; font-size: 0.8rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                                      <span>upload files</span>
+                                    </button>
+                                    <button id="btn-upload-folder" class="dropdown-item-btn" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; font-size: 0.8rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                                      <span>upload folder</span>
+                                    </button>
+                                  </div>
+                                </div>
 
-                                <button class="preview-toggle btn-sm" style="width: 32px; height: 32px; min-width: 32px; padding: 0; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px;">
+                                <button id="btn-instructions-info" class="preview-toggle btn-sm" title="instructions" style="width: 32px; height: 32px; min-width: 32px; padding: 0; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px;">
                                   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;">
                                     <circle cx="12" cy="12" r="10"></circle>
                                     <line x1="12" y1="16" x2="12" y2="12"></line>
@@ -412,60 +439,34 @@
                               </div>
                             </div>
 
-                            <div class="account-mgmt-row" style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
-                              <span class="account-chip" style="padding: 4px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; background: var(--btn-secondary-bg); border: 1px solid var(--card-border); color: var(--text-main); cursor: pointer;">@shihcb</span>
-                              <span class="account-chip active" style="padding: 4px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; color: #10b981; cursor: pointer;">@cloudyandhazel</span>
+                            <div class="account-mgmt-row" id="account-mgmt-row">
+                              <div class="account-chips-list" id="account-chips-list"></div>
                             </div>
                           </div>
 
-                          <div class="results-list" style="display: flex; flex-direction: column; opacity: 1; margin-top: 16px;">
-                            <div class="user-row selected">
-                              <div class="user-info">
-                                <div class="user-avatar" style="background: #000000; color: #ffffff;">sh</div>
-                                <div class="user-details">
-                                  <a href="https://instagram.com/shihcb" target="_blank" rel="noopener" class="user-link">@shihcb</a>
-                                </div>
-                              </div>
-                              <div class="user-meta">
-                                <div class="user-row-actions">
-                                  <button class="action-star" title="star user">
-                                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                                    </svg>
-                                  </button>
-                                  <button class="action-delete" title="delete user">
-                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                      <polyline points="3 6 5 6 21 6"></polyline>
-                                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                    </svg>
-                                  </button>
-                                  <a href="https://instagram.com/shihcb" target="_blank" rel="noopener" class="action-arrow" title="Visit Instagram Profile">
-                                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                      <line x1="5" y1="12" x2="19" y2="12"></line>
-                                      <polyline points="12 5 19 12 12 19"></polyline>
-                                    </svg>
-                                  </a>
-                                  <button class="action-dismiss" title="remove user from list">
-                                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                                    </svg>
-                                  </button>
-                                </div>
-                              </div>
+                          <div class="results-layout-wrapper">
+                            <div class="results-container">
+                              <div class="empty-state hidden" id="unfollowers-empty-state"></div>
+                              <div class="results-list hidden" id="list-unfollowers"></div>
+                            </div>
+
+                            <div class="keyboard-hints" id="keyboard-hints" style="margin-top: 12px; margin-bottom: 0;">
+                              <span><kbd>↑</kbd> <kbd>↓</kbd> select</span>
+                              <span><kbd>enter</kbd> open</span>
+                              <span><kbd>/</kbd> search</span>
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </section>
 
-                      <!-- List 2: Following Card (Middle) -->
-                      <div class="card glass landing-preview-card" style="height: auto; min-height: 480px;">
+                      <!-- List 1: Following -->
+                      <section class="card glass" id="card-following">
                         <div class="card-header">
                           <div class="card-title-group">
                             <span class="card-num">2</span>
                             <h2>following</h2>
                           </div>
-                          <span class="badge count-badge">1 loaded</span>
+                          <span class="badge count-badge" id="following-count">0 loaded</span>
                         </div>
                         <div class="card-body">
                           <div class="search-box">
@@ -473,20 +474,24 @@
                               <circle cx="11" cy="11" r="8"></circle>
                               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                             </svg>
-                            <input type="text" placeholder="search">
+                            <input type="text" id="search-following" placeholder="search">
                           </div>
-                          <textarea placeholder="enter usernames" style="height: 320px; resize: none; border-radius: 12px; font-family: var(--font-sans); font-size: 0.9rem; padding: 14px; border: 1px solid var(--text-main); background: var(--input-bg); color: var(--text-main); line-height: 1.6;">shihcb</textarea>
+                          <textarea id="input-following" placeholder="enter usernames"></textarea>
+                          
+                          <div class="card-actions" id="actions-following">
+                            <button id="clear-following" class="btn btn-secondary btn-sm">clear</button>
+                          </div>
                         </div>
-                      </div>
+                      </section>
 
-                      <!-- List 1: Followers Card (Right) -->
-                      <div class="card glass landing-preview-card" style="height: auto; min-height: 480px;">
+                      <!-- List 2: Followers -->
+                      <section class="card glass" id="card-followers">
                         <div class="card-header">
                           <div class="card-title-group">
                             <span class="card-num">1</span>
                             <h2>followers</h2>
                           </div>
-                          <span class="badge count-badge">0 loaded</span>
+                          <span class="badge count-badge" id="followers-count">0 loaded</span>
                         </div>
                         <div class="card-body">
                           <div class="search-box">
@@ -494,13 +499,17 @@
                               <circle cx="11" cy="11" r="8"></circle>
                               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                             </svg>
-                            <input type="text" placeholder="search">
+                            <input type="text" id="search-followers" placeholder="search">
                           </div>
-                          <textarea placeholder="enter usernames" style="height: 320px; resize: none; border-radius: 12px; font-family: var(--font-sans); font-size: 0.9rem; padding: 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); line-height: 1.6;"></textarea>
-                        </div>
-                      </div>
+                          <textarea id="input-followers" placeholder="enter usernames"></textarea>
 
-                    </div>
+                          <div class="card-actions" id="actions-followers">
+                            <button id="clear-followers" class="btn btn-secondary btn-sm">clear</button>
+                          </div>
+                        </div>
+                      </section>
+
+                    </main>
                   </section>
 
 
@@ -513,220 +522,7 @@
       </div>
     </header>
 
-    <!-- Main Grid Layout -->
-    <main class="app-grid">
-      
-      <!-- Temporary Account Requirement Warning -->
-      <div id="import-account-warning" class="import-account-warning">
-        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
-        <span>to import lists you need to have an account</span>
-      </div>
-      <script>
-        (function() {
-          try {
-            var hasAuth = Object.keys(localStorage).some(function(k) {
-              return (k.indexOf('auth-token') !== -1 || k.indexOf('supabase') !== -1) && localStorage.getItem(k);
-            });
-            if (hasAuth) {
-              var warningEl = document.getElementById('import-account-warning');
-              if (warningEl) warningEl.classList.add('hidden-warning');
-              var gridEl = document.querySelector('.app-grid');
-              if (gridEl) gridEl.style.marginTop = '0';
-            }
-          } catch(e) {}
-        })();
-      </script>
 
-      <!-- List 3: Unfollowers (Results) -->
-      <section class="card glass results-card highlighted-card" id="card-unfollowers">
-        <div class="card-header">
-          <div class="card-title-group">
-            <span class="card-num">3</span>
-            <h2>unfollowers</h2>
-          </div>
-          <span class="badge result-badge" id="unfollowers-count">0 found</span>
-        </div>
-        <div class="card-body">
-          <div class="results-controls">
-            <div class="search-row">
-              <div class="search-box">
-                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-                <input type="text" id="search-unfollowers" placeholder="search">
-              </div>
-              
-              <div class="auto-open-wrapper" title="auto-open next username when returning to this page">
-                <label class="switch">
-                  <input type="checkbox" id="auto-open-toggle">
-                  <span class="slider"></span>
-                </label>
-                <span id="auto-open-label">auto</span>
-              </div>
-            </div>
-
-            <div class="results-dropdowns-group">
-              <div class="dropdown-wrapper">
-                <button class="preview-toggle btn-sm" id="toggle-preview-unfollowed" disabled>
-                  <span class="btn-label-content"><span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span></span>
-                  <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </button>
-                <script>
-                  (function() {
-                    try {
-                      var unfollowed = JSON.parse(localStorage.getItem('unfollowed_users') || '[]');
-                      if (unfollowed.length > 0) {
-                        var btn = document.getElementById('toggle-preview-unfollowed');
-                        if (btn) {
-                          btn.removeAttribute('disabled');
-                          var span = btn.querySelector('.btn-label-content');
-                          if (span) span.innerHTML = '<span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span><span class="occupied-dot"></span>';
-                        }
-                      }
-                    } catch(e) {}
-                  })();
-                </script>
-                <div class="parsed-list dropdown-menu" id="list-unfollowed"></div>
-              </div>
-
-              <div class="dropdown-wrapper">
-                <button class="preview-toggle btn-sm" id="toggle-preview-starred" disabled>
-                  <span class="btn-label-content"><span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span></span>
-                  <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </button>
-                <script>
-                  (function() {
-                    try {
-                      var starred = JSON.parse(localStorage.getItem('starred_users') || '[]');
-                      if (starred.length > 0) {
-                        var btn = document.getElementById('toggle-preview-starred');
-                        if (btn) {
-                          btn.removeAttribute('disabled');
-                          var span = btn.querySelector('.btn-label-content');
-                          if (span) span.innerHTML = '<span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span><span class="occupied-dot"></span>';
-                        }
-                      }
-                    } catch(e) {}
-                  })();
-                </script>
-                <div class="parsed-list dropdown-menu" id="list-starred"></div>
-              </div>
-
-              <!-- Add Instagram Account Button & Guide Icon Button on the same line -->
-              <div class="import-button-row" style="flex: 1; display: flex; gap: 8px; align-items: center; min-width: 0;">
-                <div class="dropdown-wrapper" style="flex: 1; min-width: 0;">
-                  <input type="file" id="import-files-input" multiple accept=".html,.txt" class="hidden">
-                  <input type="file" id="import-folder-input" webkitdirectory directory multiple class="hidden">
-                  <button id="btn-add-account" class="preview-toggle btn-sm" title="Import files" style="width: 100%; justify-content: center; gap: 6px;">
-                    <span>Import files</span>
-                    <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                  </button>
-                  <div class="dropdown-menu" id="add-account-dropdown-menu" style="min-width: 150px; padding: 4px 0;">
-                    <button id="btn-upload-files" class="dropdown-item-btn" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; font-size: 0.8rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-                      <span>upload files</span>
-                    </button>
-                    <button id="btn-upload-folder" class="dropdown-item-btn" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; font-size: 0.8rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                      <span>upload folder</span>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Guide Icon Button (On the right side of Import files button on the same line) -->
-                <button id="btn-instructions-info" class="preview-toggle btn-sm" title="instructions" style="width: 32px; height: 32px; min-width: 32px; padding: 0; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px;">
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="16" x2="12" y2="12"></line>
-                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <!-- Account Management Row (Under unfollowed & starred buttons) -->
-            <div class="account-mgmt-row" id="account-mgmt-row">
-              <div class="account-chips-list" id="account-chips-list"></div>
-            </div>
-          </div>
-
-          <div class="results-layout-wrapper">
-            <div class="results-container">
-              <div class="empty-state hidden" id="unfollowers-empty-state"></div>
-              <div class="results-list hidden" id="list-unfollowers"></div>
-            </div>
-
-            <div class="keyboard-hints" id="keyboard-hints" style="margin-top: 12px; margin-bottom: 0;">
-              <span><kbd>↑</kbd> <kbd>↓</kbd> select</span>
-              <span><kbd>enter</kbd> open</span>
-              <span><kbd>/</kbd> search</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- List 1: Following -->
-      <section class="card glass" id="card-following">
-        <div class="card-header">
-          <div class="card-title-group">
-            <span class="card-num">2</span>
-            <h2>following</h2>
-          </div>
-          <span class="badge count-badge" id="following-count">0 loaded</span>
-        </div>
-        <div class="card-body">
-          <div class="search-box">
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" id="search-following" placeholder="search">
-          </div>
-          <textarea id="input-following" placeholder="enter usernames"></textarea>
-          
-          <div class="card-actions" id="actions-following">
-            <button id="clear-following" class="btn btn-secondary btn-sm">clear</button>
-          </div>
-        </div>
-      </section>
-
-      <!-- List 2: Followers -->
-      <section class="card glass" id="card-followers">
-        <div class="card-header">
-          <div class="card-title-group">
-            <span class="card-num">1</span>
-            <h2>followers</h2>
-          </div>
-          <span class="badge count-badge" id="followers-count">0 loaded</span>
-        </div>
-        <div class="card-body">
-          <div class="search-box">
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" id="search-followers" placeholder="search">
-          </div>
-          <textarea id="input-followers" placeholder="enter usernames"></textarea>
-
-          <div class="card-actions" id="actions-followers">
-            <button id="clear-followers" class="btn btn-secondary btn-sm">clear</button>
-          </div>
-        </div>
-      </section>
-
-    </main>
 
   </div>
 

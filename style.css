@@ -2935,7 +2935,7 @@ body.auth-logged-out .app-header h1 {
 }
 
 body.auth-logged-out .app-grid {
-  display: none !important;
+  display: flex !important;
 }
 
 /* -------------------------------------------------------------
