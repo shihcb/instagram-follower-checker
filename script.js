@@ -1680,17 +1680,9 @@ function updateInstructionsStepUI() {
     dot.classList.toggle('active', s === currentInstructionStep);
   });
 
-  if (elements.btnInstructionsPrev) {
-    if (currentInstructionStep === 1) {
-      elements.btnInstructionsPrev.classList.add('hidden');
-    } else {
-      elements.btnInstructionsPrev.classList.remove('hidden');
-    }
-  }
-
   if (elements.btnInstructionsNext) {
     if (currentInstructionStep === 3) {
-      elements.btnInstructionsNext.textContent = 'got it';
+      elements.btnInstructionsNext.textContent = 'close';
     } else {
       elements.btnInstructionsNext.textContent = 'next step';
     }
