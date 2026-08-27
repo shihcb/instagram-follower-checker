@@ -1660,18 +1660,20 @@ function setupEventListeners() {
 let currentInstructionStep = 1;
 
 function openInstructionsModal(step = 1) {
-  if (!elements.instructionsModalOverlay) return;
+  const overlay = elements.instructionsModalOverlay || document.getElementById('instructions-modal-overlay');
+  if (!overlay) return;
   currentInstructionStep = step;
   updateInstructionsStepUI();
-  elements.instructionsModalOverlay.classList.remove('hidden');
+  overlay.classList.remove('hidden');
+  overlay.classList.add('show');
   requestAnimationFrame(() => {
-    elements.instructionsModalOverlay.classList.add('show');
+    overlay.classList.add('show');
   });
   try {
     localStorage.setItem('instructions_modal_open', 'true');
-    localStorage.setItem('instructions_modal_step', currentInstructionStep);
+    localStorage.setItem('instructions_modal_step', currentInstructionStep.toString());
     sessionStorage.setItem('active_modal', 'instructions');
-    sessionStorage.setItem('instructions_step', currentInstructionStep);
+    sessionStorage.setItem('instructions_step', currentInstructionStep.toString());
   } catch (e) {}
 }
 
@@ -3215,6 +3217,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderAccountChips();
   }
   updateStorageProgressBar();
+  restoreActiveModalOnReload();
 });
 
 // Prevent wheel pinch-to-zoom and keyboard zoom scaling
