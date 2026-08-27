@@ -1840,15 +1840,15 @@ button,
   background: transparent !important;
   color: #000000 !important;
   border-color: transparent !important;
-  font-weight: 700 !important;
+  font-weight: 600 !important;
   box-shadow: none !important;
 }
 
 [data-theme="dark"] .instructions-tab.active {
-  background: #ffffff !important;
   color: #000000 !important;
-  border-color: #ffffff !important;
-  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.25) !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 
 @keyframes paneFadeIn {
