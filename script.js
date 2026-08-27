@@ -1682,9 +1682,11 @@ function updateInstructionsStepUI() {
   if (activeTab) {
     const nav = document.querySelector('.instructions-steps-nav');
     if (nav) {
-      const buffer = 12;
-      const tabLeft = activeTab.offsetLeft - buffer;
-      const tabRight = activeTab.offsetLeft + activeTab.offsetWidth + buffer;
+      const nextTab = document.querySelector(`.instructions-tab[data-step="${currentInstructionStep + 1}"]`);
+      const peekOffset = nextTab ? 38 : 12;
+
+      const tabLeft = activeTab.offsetLeft - 12;
+      const tabRight = activeTab.offsetLeft + activeTab.offsetWidth + peekOffset;
       const navScrollLeft = nav.scrollLeft;
       const navWidth = nav.clientWidth;
 
