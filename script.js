@@ -2217,23 +2217,30 @@ function updateInstructionsStepUI() {
 
   // Keyboard navigation shortcuts (Computer / Desktop)
   document.addEventListener('keydown', (e) => {
-    // Only enable on computer screens (width >= 601px)
-    if (window.innerWidth < 601) return;
-
     // Ignore shortcuts if the user is typing in Following or Followers textareas
     const active = document.activeElement;
-    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') && active !== elements.searchUnfollowers) {
+    if (active && (active.id === 'input-following' || active.id === 'input-followers')) {
       return;
     }
 
     const searchInput = elements.searchUnfollowers;
     const isSearchFocused = active === searchInput;
 
-    // 1. If search filter is active
+    // Ignore shortcuts if search input is focused AND user is typing a text search query (not empty)
+    if (isSearchFocused && searchInput.value.trim() !== '') {
+      if (e.key === 'Escape') {
+        searchInput.blur();
+        e.preventDefault();
+      }
+      return;
+    }
+
+    // 1. If search filter is active but empty
     if (isSearchFocused) {
       if (e.key === 'Escape') {
         searchInput.blur();
         e.preventDefault();
+        return;
       } else if (e.key === 'ArrowDown') {
         const rows = elements.listUnfollowers.querySelectorAll('.user-row');
         if (rows.length > 0) {
@@ -2242,15 +2249,17 @@ function updateInstructionsStepUI() {
           searchInput.blur();
           e.preventDefault();
         }
+        return;
       }
-      return;
     }
 
-    // 2. If list navigation is active
+    // 2. If slash key pressed to focus search
     if (e.key === '/') {
-      searchInput.focus();
-      setTimeout(() => searchInput.select(), 0);
-      e.preventDefault();
+      if (searchInput) {
+        searchInput.focus();
+        setTimeout(() => searchInput.select(), 0);
+        e.preventDefault();
+      }
       return;
     }
 
@@ -2264,6 +2273,7 @@ function updateInstructionsStepUI() {
       
       if (rows.length > targetIndex) {
         e.preventDefault();
+        if (isSearchFocused && searchInput) searchInput.blur();
         state.selectedIndex = targetIndex;
         highlightRow(targetIndex);
         
