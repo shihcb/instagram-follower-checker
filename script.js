@@ -1682,13 +1682,14 @@ function updateInstructionsStepUI() {
   if (activeTab) {
     const nav = document.querySelector('.instructions-steps-nav');
     if (nav) {
-      const tabLeft = activeTab.offsetLeft;
-      const tabRight = tabLeft + activeTab.offsetWidth;
+      const buffer = 12;
+      const tabLeft = activeTab.offsetLeft - buffer;
+      const tabRight = activeTab.offsetLeft + activeTab.offsetWidth + buffer;
       const navScrollLeft = nav.scrollLeft;
       const navWidth = nav.clientWidth;
 
       if (tabLeft < navScrollLeft) {
-        nav.scrollTo({ left: tabLeft, behavior: 'smooth' });
+        nav.scrollTo({ left: Math.max(0, tabLeft), behavior: 'smooth' });
       } else if (tabRight > navScrollLeft + navWidth) {
         nav.scrollTo({ left: tabRight - navWidth, behavior: 'smooth' });
       }
