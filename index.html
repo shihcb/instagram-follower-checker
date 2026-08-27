@@ -40,7 +40,7 @@
   <!-- Supabase Client Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body>
+<body class="auth-logged-out">
   <!-- Decorative background elements -->
   <div class="bg-glow bg-glow-1"></div>
   <div class="bg-glow bg-glow-2"></div>
@@ -69,7 +69,7 @@
             </button>
 
             <!-- Auth Dropdown Menu -->
-            <div class="auth-dropdown glass" id="auth-dropdown">
+            <div class="auth-dropdown glass show" id="auth-dropdown">
               <div class="dropdown-header">
                 <h3>account</h3>
                 <button id="theme-toggle-in-menu" class="btn btn-sm btn-secondary" style="display: inline-flex !important; align-items: center !important; gap: 6px !important; height: 26px !important; line-height: 1 !important; padding: 0 10px !important; font-size: 0.75rem !important; text-transform: lowercase !important; box-sizing: border-box !important;">

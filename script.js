@@ -2679,8 +2679,9 @@ let isInitialAuthCheck = true;
 function initAuth() {
   if (!supabaseClient) {
     // Show configuration warning if URL/Anon key are empty
-    elements.authConfigWarning.classList.remove('hidden');
-    elements.authFormView.classList.add('hidden');
+    if (elements.authConfigWarning) elements.authConfigWarning.classList.remove('hidden');
+    document.body.classList.add('auth-logged-out');
+    if (elements.authDropdown) elements.authDropdown.classList.add('show');
     return;
   }
 
