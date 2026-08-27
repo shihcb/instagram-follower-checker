@@ -1371,6 +1371,8 @@ function openAccountModal(index = -1) {
   });
 
   try {
+    localStorage.setItem('account_modal_open', 'true');
+    localStorage.setItem('account_editing_index', editingIndex);
     sessionStorage.setItem('active_modal', 'account');
     sessionStorage.setItem('account_editing_index', editingIndex);
   } catch (e) {}
@@ -1380,6 +1382,8 @@ function closeAccountModal() {
   if (!elements.accountModalOverlay) return;
 
   try {
+    localStorage.removeItem('account_modal_open');
+    localStorage.removeItem('account_editing_index');
     sessionStorage.removeItem('active_modal');
     sessionStorage.removeItem('account_editing_index');
   } catch (e) {}
@@ -1664,6 +1668,8 @@ function openInstructionsModal(step = 1) {
     elements.instructionsModalOverlay.classList.add('show');
   });
   try {
+    localStorage.setItem('instructions_modal_open', 'true');
+    localStorage.setItem('instructions_modal_step', currentInstructionStep);
     sessionStorage.setItem('active_modal', 'instructions');
     sessionStorage.setItem('instructions_step', currentInstructionStep);
   } catch (e) {}
@@ -1672,6 +1678,8 @@ function openInstructionsModal(step = 1) {
 function closeInstructionsModal() {
   if (!elements.instructionsModalOverlay) return;
   try {
+    localStorage.removeItem('instructions_modal_open');
+    localStorage.removeItem('instructions_modal_step');
     sessionStorage.removeItem('active_modal');
     sessionStorage.removeItem('instructions_step');
   } catch (e) {}
@@ -1711,6 +1719,8 @@ function updateInstructionsStepUI() {
 
   try {
     if (elements.instructionsModalOverlay && !elements.instructionsModalOverlay.classList.contains('hidden')) {
+      localStorage.setItem('instructions_modal_open', 'true');
+      localStorage.setItem('instructions_modal_step', currentInstructionStep);
       sessionStorage.setItem('instructions_step', currentInstructionStep);
     }
   } catch (e) {}
@@ -1718,12 +1728,16 @@ function updateInstructionsStepUI() {
 
 function restoreActiveModalOnReload() {
   try {
-    const activeModal = sessionStorage.getItem('active_modal');
-    if (activeModal === 'instructions') {
-      const savedStep = parseInt(sessionStorage.getItem('instructions_step'), 10) || 1;
+    const isInstructionsOpen = localStorage.getItem('instructions_modal_open') === 'true' || sessionStorage.getItem('active_modal') === 'instructions';
+    if (isInstructionsOpen) {
+      const savedStep = parseInt(localStorage.getItem('instructions_modal_step') || sessionStorage.getItem('instructions_step'), 10) || 1;
       openInstructionsModal(savedStep);
-    } else if (activeModal === 'account') {
-      const savedIndex = parseInt(sessionStorage.getItem('account_editing_index'), 10);
+      return;
+    }
+
+    const isAccountOpen = localStorage.getItem('account_modal_open') === 'true' || sessionStorage.getItem('active_modal') === 'account';
+    if (isAccountOpen) {
+      const savedIndex = parseInt(localStorage.getItem('account_editing_index') || sessionStorage.getItem('account_editing_index'), 10);
       openAccountModal(isNaN(savedIndex) ? -1 : savedIndex);
     }
   } catch (e) {}
