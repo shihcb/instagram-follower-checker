@@ -1066,20 +1066,35 @@ button,
     flex-direction: column !important;
     gap: 8px !important;
   }
-  .results-dropdowns-group .dropdown-wrapper,
-  .results-dropdowns-group #btn-add-account {
-    width: 100% !important;
-    flex: none !important;
-  }
-  .results-dropdowns-group .dropdown-wrapper button {
-    font-size: 0.8rem !important;
-    padding: 0 12px !important;
+  .import-button-row {
+    flex: 1 1 auto !important;
+    display: flex !important;
     gap: 6px !important;
+    align-items: center !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+  .import-button-row .dropdown-wrapper {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    width: auto !important;
   }
   #btn-add-account {
-    font-size: 0.8rem !important;
-    padding: 0 12px !important;
-    gap: 6px !important;
+    font-size: 0.78rem !important;
+    padding: 0 8px !important;
+    gap: 4px !important;
+    width: 100% !important;
+  }
+  #btn-add-account span {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  #btn-instructions-info {
+    flex-shrink: 0 !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
   }
   .dropdown-menu {
     width: 100% !important;
