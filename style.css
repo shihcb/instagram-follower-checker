@@ -1764,8 +1764,15 @@ button,
 .instructions-modal-card {
   max-width: 480px !important;
   width: 92% !important;
+  height: 470px !important;
+  min-height: 470px !important;
+  max-height: 90vh !important;
   padding: 24px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
   text-transform: lowercase !important;
+  box-sizing: border-box !important;
 }
 
 .instructions-modal-card * {
@@ -1779,34 +1786,47 @@ button,
   border: 1px solid var(--input-border);
   padding: 4px;
   border-radius: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
+  flex-shrink: 0;
 }
 
 .instructions-tab {
   flex: 1;
-  padding: 6px 8px;
-  font-size: 0.76rem;
+  padding: 7px 10px;
+  font-size: 0.78rem;
   font-weight: 600;
-  border-radius: 6px;
-  border: none;
+  border-radius: 7px;
+  border: 1px solid transparent;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
+  outline: none !important;
 }
 
 .instructions-tab.active {
-  background: var(--card-bg);
-  color: var(--text-main);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  background: #ffffff !important;
+  color: #000000 !important;
+  border-color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-theme="dark"] .instructions-tab.active {
+  background: #ffffff !important;
+  color: #000000 !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.25) !important;
 }
 
 .instructions-step-pane {
   display: none;
   flex-direction: column;
-  gap: 16px;
-  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .instructions-step-pane.active {
@@ -1817,16 +1837,17 @@ button,
   background: var(--input-bg);
   border: 1.5px solid var(--card-border);
   border-radius: 14px;
-  padding: 22px 18px;
+  padding: 16px 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 8px;
   text-align: center;
   position: relative;
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
 }
 
 [data-theme="dark"] .instructions-visual-card {
@@ -1836,9 +1857,9 @@ button,
 }
 
 .visual-icon-badge {
-  width: 58px;
-  height: 58px;
-  border-radius: 16px;
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.08));
   color: #059669;
   display: flex;
@@ -1846,6 +1867,7 @@ button,
   justify-content: center;
   border: 1px solid rgba(16, 185, 129, 0.3);
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+  flex-shrink: 0;
 }
 
 [data-theme="dark"] .visual-icon-badge {
@@ -1859,17 +1881,17 @@ button,
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: var(--text-main);
 }
 
 .banner-badge {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 800;
   text-transform: lowercase;
   letter-spacing: 0.3px;
-  padding: 3px 10px;
+  padding: 3px 9px;
   border-radius: 6px;
   background-color: var(--text-main);
   color: var(--bg-color);
@@ -1880,17 +1902,19 @@ button,
   padding-left: 20px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  font-size: 0.85rem;
+  gap: 6px;
+  font-size: 0.83rem;
   color: var(--text-main);
-  line-height: 1.45;
+  line-height: 1.4;
+  flex: 1;
+  overflow-y: auto;
 }
 
 .instructions-step-list code {
   background-color: var(--input-bg);
   padding: 2px 6px;
   border-radius: 4px;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   border: 1px solid var(--input-border);
 }
 
@@ -1898,9 +1922,10 @@ button,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 18px;
-  padding-top: 14px;
+  margin-top: 14px;
+  padding-top: 12px;
   border-top: 1px solid var(--card-border);
+  flex-shrink: 0;
 }
 
 .instructions-step-dots {
