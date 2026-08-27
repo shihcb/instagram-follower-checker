@@ -855,9 +855,6 @@ const handleFollowingInput = debounce(function() {
     return;
   }
   const rawText = elements.inputFollowing.value;
-  if (rawText.trim() === '') {
-    animateFadeOutListUnfollowers();
-  }
   const existingPendingMap = new Map();
   state.following.forEach(user => {
     if (user.isPendingRequest) existingPendingMap.set(user.username, true);
@@ -880,9 +877,6 @@ const handleFollowersInput = debounce(function() {
     return;
   }
   const rawText = elements.inputFollowers.value;
-  if (rawText.trim() === '') {
-    animateFadeOutListUnfollowers();
-  }
   const parsed = parseInput(rawText);
   state.followers = deduplicateEntries(parsed);
   localStorage.setItem('followers_users', JSON.stringify(state.followers));
@@ -930,24 +924,23 @@ function readAndProcessFile(file, type, append = false, isPending = false) {
   });
 }
 
-function animateFadeOutListUnfollowers() {
-  if (elements.listUnfollowers) {
-    const rows = elements.listUnfollowers.querySelectorAll('.user-row');
-    rows.forEach((row) => {
-      row.classList.add('row-deleting');
-    });
-  }
-}
-
 function smoothClearTextarea(textareaEl, callback) {
   if (!textareaEl) {
     if (callback) callback();
     return;
   }
 
-  animateFadeOutListUnfollowers();
-  textareaEl.value = '';
-  if (callback) callback();
+  if (textareaEl.value.trim() !== '') {
+    textareaEl.classList.add('textarea-fade-out');
+    setTimeout(() => {
+      textareaEl.value = '';
+      textareaEl.classList.remove('textarea-fade-out');
+      if (callback) callback();
+    }, 280);
+  } else {
+    textareaEl.value = '';
+    if (callback) callback();
+  }
 }
 
 async function clearAllLists(animate = true) {
@@ -1759,12 +1752,6 @@ function updateInstructionsStepUI() {
   elements.clearFollowing.addEventListener('click', () => {
     const searchFollowingInput = document.getElementById('search-following');
     if (searchFollowingInput) searchFollowingInput.value = '';
-
-    if (elements.accountChipsList) {
-      const activeChip = elements.accountChipsList.querySelector('.account-chip.active');
-      if (activeChip) activeChip.classList.add('bounce-out');
-    }
-
     smoothClearTextarea(elements.inputFollowing, () => {
       state.following = [];
       localStorage.removeItem('following_users');
@@ -1777,12 +1764,6 @@ function updateInstructionsStepUI() {
   elements.clearFollowers.addEventListener('click', () => {
     const searchFollowersInput = document.getElementById('search-followers');
     if (searchFollowersInput) searchFollowersInput.value = '';
-
-    if (elements.accountChipsList) {
-      const activeChip = elements.accountChipsList.querySelector('.account-chip.active');
-      if (activeChip) activeChip.classList.add('bounce-out');
-    }
-
     smoothClearTextarea(elements.inputFollowers, () => {
       state.followers = [];
       localStorage.removeItem('followers_users');
@@ -1816,12 +1797,14 @@ function updateInstructionsStepUI() {
     const taggedObj = { ...userObj, account: currentAcc };
 
     if (actionStar) {
+      // Move user to Starred (favorite) list
       if (!state.starred.some(u => u.username === username)) {
         state.starred.unshift(taggedObj);
         saveCurrentAccountData();
       }
 
-      userRow.classList.add('row-deleting');
+      userRow.style.opacity = '0';
+      userRow.style.transform = 'scale(0.95)';
       setTimeout(() => {
         userRow.remove();
         state.unfollowers = state.unfollowers.filter(u => u.username !== username);
@@ -1831,13 +1814,14 @@ function updateInstructionsStepUI() {
         if (state.unfollowers.length === 0) {
           updateResultsUI();
         }
-      }, 320);
+      }, 150);
       return;
     }
 
     const actionDismiss = e.target.closest('.action-dismiss');
     if (actionDismiss) {
-      userRow.classList.add('row-deleting');
+      userRow.style.opacity = '0';
+      userRow.style.transform = 'scale(0.95)';
       setTimeout(() => {
         userRow.remove();
         state.unfollowers = state.unfollowers.filter(u => u.username !== username);
@@ -1846,7 +1830,7 @@ function updateInstructionsStepUI() {
         if (state.unfollowers.length === 0) {
           updateResultsUI();
         }
-      }, 320);
+      }, 150);
       return;
     }
 
@@ -1874,7 +1858,8 @@ function updateInstructionsStepUI() {
 
     saveCurrentAccountData();
 
-    userRow.classList.add('row-deleting');
+    userRow.style.opacity = '0';
+    userRow.style.transform = 'scale(0.95)';
     setTimeout(() => {
       userRow.remove();
       state.unfollowers = state.unfollowers.filter(u => u.username !== username);
@@ -1884,7 +1869,7 @@ function updateInstructionsStepUI() {
       if (state.unfollowers.length === 0) {
         updateResultsUI();
       }
-    }, 320);
+    }, 150);
   });
 
   // Toggle preview unfollowed list dropdown
