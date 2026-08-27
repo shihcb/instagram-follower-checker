@@ -1764,8 +1764,8 @@ button,
 .instructions-modal-card {
   max-width: 480px !important;
   width: 92% !important;
-  height: 470px !important;
-  min-height: 470px !important;
+  height: 520px !important;
+  min-height: 520px !important;
   max-height: 90vh !important;
   padding: 24px !important;
   display: flex !important;
@@ -1823,9 +1823,11 @@ button,
 .instructions-step-pane {
   display: none;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
   animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
