@@ -1915,6 +1915,7 @@ button,
 
 .results-container {
   flex: 1;
+  min-height: 0;
   position: relative;
   background-color: var(--input-bg);
   border: 1px solid var(--input-border);
@@ -2198,7 +2199,9 @@ button,
     margin-right: 0 !important;
   }
   #card-unfollowers {
-    height: 700px;
+    height: calc(100dvh - 92px);
+    height: calc(100vh - 92px);
+    min-height: 520px;
   }
 
   .account-chip:active,
@@ -2282,7 +2285,9 @@ button,
     height: 460px;
   }
   #card-unfollowers {
-    height: 680px;
+    height: calc(100dvh - 82px);
+    height: calc(100vh - 82px);
+    min-height: 500px;
   }
   .card-header, .card-body {
     padding: 16px;
@@ -2298,6 +2303,11 @@ body.is-capacitor .app-container {
   padding-left: max(16px, calc(12px + env(safe-area-inset-left, 0px))) !important;
   padding-right: max(16px, calc(12px + env(safe-area-inset-right, 0px))) !important;
   padding-bottom: max(24px, calc(16px + env(safe-area-inset-bottom, 0px))) !important;
+}
+
+body.is-capacitor #card-unfollowers {
+  height: calc(100dvh - max(136px, calc(92px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)))) !important;
+  height: calc(100vh - max(136px, calc(92px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)))) !important;
 }
 
 body.is-capacitor.auth-logged-out #theme-toggle {
