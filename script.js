@@ -1676,9 +1676,24 @@ function updateInstructionsStepUI() {
     tab.classList.toggle('active', isActive);
     if (isActive) {
       activeTab = tab;
-      tab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     }
   });
+
+  if (activeTab) {
+    const nav = document.querySelector('.instructions-steps-nav');
+    if (nav) {
+      const tabLeft = activeTab.offsetLeft;
+      const tabRight = tabLeft + activeTab.offsetWidth;
+      const navScrollLeft = nav.scrollLeft;
+      const navWidth = nav.clientWidth;
+
+      if (tabLeft < navScrollLeft) {
+        nav.scrollTo({ left: tabLeft, behavior: 'smooth' });
+      } else if (tabRight > navScrollLeft + navWidth) {
+        nav.scrollTo({ left: tabRight - navWidth, behavior: 'smooth' });
+      }
+    }
+  }
 
   const indicator = elements.instructionsNavIndicator || document.getElementById('instructions-nav-indicator');
   if (indicator && activeTab) {
