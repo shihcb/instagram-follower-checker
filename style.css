@@ -644,11 +644,7 @@ button,
   opacity: 1 !important;
 }
 
-.card-body textarea.textarea-fade-out {
-  opacity: 0 !important;
-  transform: scale(0.97);
-  transition: opacity 0.28s ease, transform 0.28s ease !important;
-}
+
 
 .card-body textarea:focus {
   border-color: var(--text-main);

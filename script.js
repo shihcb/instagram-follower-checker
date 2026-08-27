@@ -946,18 +946,8 @@ function smoothClearTextarea(textareaEl, callback) {
   }
 
   animateFadeOutListUnfollowers();
-
-  if (textareaEl.value.trim() !== '') {
-    textareaEl.classList.add('textarea-fade-out');
-    setTimeout(() => {
-      textareaEl.value = '';
-      textareaEl.classList.remove('textarea-fade-out');
-      if (callback) callback();
-    }, 280);
-  } else {
-    textareaEl.value = '';
-    if (callback) callback();
-  }
+  textareaEl.value = '';
+  if (callback) callback();
 }
 
 async function clearAllLists(animate = true) {
