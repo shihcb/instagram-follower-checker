@@ -1715,10 +1715,26 @@ function updateInstructionsStepUI() {
   });
 
   if (elements.btnInstructionsNext) {
-    if (currentInstructionStep === 5) {
-      elements.btnInstructionsNext.textContent = 'close';
-    } else {
-      elements.btnInstructionsNext.textContent = 'next step';
+    const textSpan = document.getElementById('btn-next-text-span') || elements.btnInstructionsNext;
+    const targetText = (currentInstructionStep === 5) ? 'close' : 'next step';
+    const currentText = textSpan.textContent.trim();
+
+    if (currentText !== targetText) {
+      const isGoingToClose = (targetText === 'close');
+      const slideOutClass = isGoingToClose ? 'slide-out-up' : 'slide-out-down';
+      const slideInClass = isGoingToClose ? 'slide-in-bottom' : 'slide-in-top';
+
+      textSpan.classList.remove('slide-in-bottom', 'slide-in-top', 'slide-out-up', 'slide-out-down');
+      textSpan.classList.add(slideOutClass);
+
+      setTimeout(() => {
+        textSpan.textContent = targetText;
+        textSpan.classList.remove(slideOutClass);
+        textSpan.classList.add(slideInClass);
+        setTimeout(() => {
+          textSpan.classList.remove(slideInClass);
+        }, 360);
+      }, 160);
     }
   }
 }

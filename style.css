@@ -1874,6 +1874,63 @@ button,
   animation: paneFadeIn 0.2s ease-out;
 }
 
+.instructions-next-btn {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 86px;
+  box-sizing: border-box;
+}
+
+.btn-next-text-span {
+  display: inline-block;
+  white-space: nowrap;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.32s ease;
+  will-change: transform, opacity;
+}
+
+.btn-next-text-span.slide-out-up {
+  transform: translateY(-120%);
+  opacity: 0;
+}
+
+.btn-next-text-span.slide-in-bottom {
+  animation: textSlideInBottom 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.btn-next-text-span.slide-out-down {
+  transform: translateY(120%);
+  opacity: 0;
+}
+
+.btn-next-text-span.slide-in-top {
+  animation: textSlideInTop 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes textSlideInBottom {
+  from {
+    transform: translateY(120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes textSlideInTop {
+  from {
+    transform: translateY(-120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 .step-image-container {
   width: 100%;
   display: flex;
