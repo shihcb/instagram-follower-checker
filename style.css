@@ -1859,13 +1859,14 @@ button,
 .instructions-step-pane {
   display: none;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   scrollbar-gutter: stable;
   padding-right: 4px;
   box-sizing: border-box;
+  justify-content: center;
 }
 
 .instructions-step-pane.active {
