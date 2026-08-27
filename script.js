@@ -1752,6 +1752,12 @@ function updateInstructionsStepUI() {
   elements.clearFollowing.addEventListener('click', () => {
     const searchFollowingInput = document.getElementById('search-following');
     if (searchFollowingInput) searchFollowingInput.value = '';
+
+    if (elements.accountChipsList) {
+      const activeChip = elements.accountChipsList.querySelector('.account-chip.active');
+      if (activeChip) activeChip.classList.add('bounce-out');
+    }
+
     smoothClearTextarea(elements.inputFollowing, () => {
       state.following = [];
       localStorage.removeItem('following_users');
@@ -1764,6 +1770,12 @@ function updateInstructionsStepUI() {
   elements.clearFollowers.addEventListener('click', () => {
     const searchFollowersInput = document.getElementById('search-followers');
     if (searchFollowersInput) searchFollowersInput.value = '';
+
+    if (elements.accountChipsList) {
+      const activeChip = elements.accountChipsList.querySelector('.account-chip.active');
+      if (activeChip) activeChip.classList.add('bounce-out');
+    }
+
     smoothClearTextarea(elements.inputFollowers, () => {
       state.followers = [];
       localStorage.removeItem('followers_users');
