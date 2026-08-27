@@ -3333,6 +3333,12 @@ function initSettings() {
 function applySettings() {
   const keyboardHints = document.getElementById('keyboard-hints');
   const showKeyboard = localStorage.getItem('show_keyboard') !== 'false';
+
+  document.documentElement.classList.toggle('hide-shortcuts', !showKeyboard);
+  if (document.body) {
+    document.body.classList.toggle('hide-shortcuts', !showKeyboard);
+  }
+
   if (keyboardHints) {
     keyboardHints.classList.toggle('hidden-hints', !showKeyboard);
   }

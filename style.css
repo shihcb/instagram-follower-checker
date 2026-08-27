@@ -2135,6 +2135,20 @@ button,
   }
 }
 
+/* Hide all keyboard shortcut badges and hints when shortcut setting is disabled */
+.hide-shortcuts .row-shortcut-key,
+.hide-shortcuts .account-chip-badge,
+.hide-shortcuts #keyboard-hints,
+.hide-shortcuts .shortcut-hint,
+html.hide-shortcuts .row-shortcut-key,
+html.hide-shortcuts .account-chip-badge,
+html.hide-shortcuts #keyboard-hints,
+html.hide-shortcuts .shortcut-hint {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
 .instructions-modal-footer {
   display: flex;
   align-items: center;
