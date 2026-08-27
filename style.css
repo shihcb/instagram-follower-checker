@@ -1831,7 +1831,8 @@ button,
   background: #ffffff;
   border-radius: 7px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
-  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), width 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.52s cubic-bezier(0.22, 1, 0.36, 1), width 0.52s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, width;
   pointer-events: none;
   z-index: 1;
 }
