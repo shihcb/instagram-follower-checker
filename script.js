@@ -1369,24 +1369,10 @@ function openAccountModal(index = -1) {
     elements.accountModalOverlay.classList.add('show');
     if (elements.accountUsernameInput) elements.accountUsernameInput.focus();
   });
-
-  try {
-    localStorage.setItem('account_modal_open', 'true');
-    localStorage.setItem('account_editing_index', editingIndex);
-    sessionStorage.setItem('active_modal', 'account');
-    sessionStorage.setItem('account_editing_index', editingIndex);
-  } catch (e) {}
 }
 
 function closeAccountModal() {
   if (!elements.accountModalOverlay) return;
-
-  try {
-    localStorage.removeItem('account_modal_open');
-    localStorage.removeItem('account_editing_index');
-    sessionStorage.removeItem('active_modal');
-    sessionStorage.removeItem('account_editing_index');
-  } catch (e) {}
 
   elements.accountModalOverlay.classList.remove('show');
   setTimeout(() => {
@@ -1651,40 +1637,23 @@ function setupEventListeners() {
     });
   });
 
-  // Restore open modal across reloads
-  restoreActiveModalOnReload();
-
 // -------------------------------------------------------------
 // Instructions / How-To-Use Modal Logic
 // -------------------------------------------------------------
 let currentInstructionStep = 1;
 
 function openInstructionsModal(step = 1) {
-  const overlay = elements.instructionsModalOverlay || document.getElementById('instructions-modal-overlay');
-  if (!overlay) return;
+  if (!elements.instructionsModalOverlay) return;
   currentInstructionStep = step;
   updateInstructionsStepUI();
-  overlay.classList.remove('hidden');
-  overlay.classList.add('show');
+  elements.instructionsModalOverlay.classList.remove('hidden');
   requestAnimationFrame(() => {
-    overlay.classList.add('show');
+    elements.instructionsModalOverlay.classList.add('show');
   });
-  try {
-    localStorage.setItem('instructions_modal_open', 'true');
-    localStorage.setItem('instructions_modal_step', currentInstructionStep.toString());
-    sessionStorage.setItem('active_modal', 'instructions');
-    sessionStorage.setItem('instructions_step', currentInstructionStep.toString());
-  } catch (e) {}
 }
 
 function closeInstructionsModal() {
   if (!elements.instructionsModalOverlay) return;
-  try {
-    localStorage.removeItem('instructions_modal_open');
-    localStorage.removeItem('instructions_modal_step');
-    sessionStorage.removeItem('active_modal');
-    sessionStorage.removeItem('instructions_step');
-  } catch (e) {}
   elements.instructionsModalOverlay.classList.remove('show');
   setTimeout(() => {
     elements.instructionsModalOverlay.classList.add('hidden');
@@ -1718,31 +1687,6 @@ function updateInstructionsStepUI() {
       elements.btnInstructionsNext.textContent = 'next step';
     }
   }
-
-  try {
-    if (elements.instructionsModalOverlay && !elements.instructionsModalOverlay.classList.contains('hidden')) {
-      localStorage.setItem('instructions_modal_open', 'true');
-      localStorage.setItem('instructions_modal_step', currentInstructionStep);
-      sessionStorage.setItem('instructions_step', currentInstructionStep);
-    }
-  } catch (e) {}
-}
-
-function restoreActiveModalOnReload() {
-  try {
-    const isInstructionsOpen = localStorage.getItem('instructions_modal_open') === 'true' || sessionStorage.getItem('active_modal') === 'instructions';
-    if (isInstructionsOpen) {
-      const savedStep = parseInt(localStorage.getItem('instructions_modal_step') || sessionStorage.getItem('instructions_step'), 10) || 1;
-      openInstructionsModal(savedStep);
-      return;
-    }
-
-    const isAccountOpen = localStorage.getItem('account_modal_open') === 'true' || sessionStorage.getItem('active_modal') === 'account';
-    if (isAccountOpen) {
-      const savedIndex = parseInt(localStorage.getItem('account_editing_index') || sessionStorage.getItem('account_editing_index'), 10);
-      openAccountModal(isNaN(savedIndex) ? -1 : savedIndex);
-    }
-  } catch (e) {}
 }
 
   // Realtime search filtering
@@ -3217,7 +3161,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderAccountChips();
   }
   updateStorageProgressBar();
-  restoreActiveModalOnReload();
 });
 
 // Prevent wheel pinch-to-zoom and keyboard zoom scaling
