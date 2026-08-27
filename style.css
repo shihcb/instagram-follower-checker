@@ -2135,21 +2135,6 @@ button,
   }
 }
 
-.hide-keyboard-shortcuts .row-shortcut-key,
-.hide-keyboard-shortcuts .account-chip-badge,
-.hide-keyboard-shortcuts .keyboard-hints,
-.hide-keyboard-shortcuts .shortcut-badge {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-}
-
-.empty-state .empty-icon,
-.empty-state .empty-title,
-.empty-state .empty-desc {
-  display: none !important;
-}
-
 .instructions-modal-footer {
   display: flex;
   align-items: center;

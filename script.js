@@ -842,10 +842,8 @@ function updateResultsUI() {
       elements.emptyState.classList.add('hidden');
     } else {
       elements.emptyState.classList.remove('hidden');
-      const title = elements.emptyState.querySelector('.empty-title');
-      if (title) title.textContent = '';
-      const desc = elements.emptyState.querySelector('.empty-desc');
-      if (desc) desc.textContent = '';
+      elements.emptyState.querySelector('.empty-title').textContent = 'no results';
+      elements.emptyState.querySelector('.empty-desc').textContent = query ? 'no matching usernames found in the filter.' : '';
     }
   }
 }
@@ -3337,11 +3335,6 @@ function applySettings() {
   const showKeyboard = localStorage.getItem('show_keyboard') !== 'false';
   if (keyboardHints) {
     keyboardHints.classList.toggle('hidden-hints', !showKeyboard);
-  }
-
-  document.documentElement.classList.toggle('hide-keyboard-shortcuts', !showKeyboard);
-  if (document.body) {
-    document.body.classList.toggle('hide-keyboard-shortcuts', !showKeyboard);
   }
 
   // Clean up temporary early settings styles block
