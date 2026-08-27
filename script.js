@@ -3337,6 +3337,11 @@ function applySettings() {
     keyboardHints.classList.toggle('hidden-hints', !showKeyboard);
   }
 
+  document.documentElement.classList.toggle('hide-keyboard-shortcuts', !showKeyboard);
+  if (document.body) {
+    document.body.classList.toggle('hide-keyboard-shortcuts', !showKeyboard);
+  }
+
   // Clean up temporary early settings styles block
   const earlyStyle = document.getElementById('early-settings-style');
   if (earlyStyle) earlyStyle.remove();

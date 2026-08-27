@@ -18,6 +18,9 @@
       document.documentElement.setAttribute('data-theme', theme);
       document.querySelector('meta[name="color-scheme"]').setAttribute('content', theme === 'dark' ? 'dark' : 'light');
       
+      if (localStorage.getItem('show_keyboard') === 'false') {
+        document.documentElement.classList.add('hide-keyboard-shortcuts');
+      }
 
       window.addEventListener('DOMContentLoaded', function() {
         requestAnimationFrame(function() {
