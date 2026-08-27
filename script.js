@@ -2215,10 +2215,10 @@ function updateInstructionsStepUI() {
     }
   });
 
-  // Keyboard navigation shortcuts (Desktop only)
+  // Keyboard navigation shortcuts (Computer / Desktop)
   document.addEventListener('keydown', (e) => {
-    // Only enable if screen layout is desktop sizing
-    if (window.innerWidth < 1025) return;
+    // Only enable on computer screens (width >= 601px)
+    if (window.innerWidth < 601) return;
 
     // Ignore shortcuts if the user is typing in Following or Followers textareas
     const active = document.activeElement;

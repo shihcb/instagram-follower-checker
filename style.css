@@ -2092,16 +2092,22 @@ button,
   background-color: var(--input-bg);
   border: 1px solid var(--input-border);
   border-radius: 4px;
-  width: 17px;
-  height: 17px;
-  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  display: none;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-right: 4px;
+  margin-right: 6px;
   line-height: 1;
   user-select: none;
   -webkit-user-select: none;
+}
+
+@media (min-width: 601px) {
+  .row-shortcut-key {
+    display: inline-flex !important;
+  }
 }
 
 .instructions-modal-footer {
