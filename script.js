@@ -1646,11 +1646,14 @@ let currentInstructionStep = 1;
 function openInstructionsModal(step = 1) {
   if (!elements.instructionsModalOverlay) return;
   currentInstructionStep = step;
-  updateInstructionsStepUI();
   elements.instructionsModalOverlay.classList.remove('hidden');
   requestAnimationFrame(() => {
     elements.instructionsModalOverlay.classList.add('show');
+    updateInstructionsStepUI();
   });
+  setTimeout(() => {
+    updateInstructionsStepUI();
+  }, 100);
 }
 
 function closeInstructionsModal() {
