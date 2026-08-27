@@ -2085,6 +2085,25 @@ button,
   border: 1px solid var(--input-border);
 }
 
+.row-shortcut-key {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  width: 17px;
+  height: 17px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: 4px;
+  line-height: 1;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .instructions-modal-footer {
   display: flex;
   align-items: center;

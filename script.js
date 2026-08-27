@@ -784,6 +784,7 @@ function updateResultsUI() {
       return `
         <div class="user-row${isSelected ? ' selected' : ''}" data-username="${user.username}" data-index="${index}">
           <div class="user-info">
+            ${index < 10 ? `<span class="row-shortcut-key" title="Press key ${index === 9 ? 0 : index + 1} to open profile">${index === 9 ? 0 : index + 1}</span>` : ''}
             <a href="${user.profileUrl}" target="_blank" rel="noopener" class="user-avatar-link" title="Visit Instagram Profile">
               <div class="user-avatar">${initials}</div>
             </a>
@@ -2255,6 +2256,43 @@ function updateInstructionsStepUI() {
 
     const rows = elements.listUnfollowers.querySelectorAll('.user-row');
     if (rows.length === 0) return;
+
+    // Number keys 1-9 and 0 bound to usernames at index 0..9
+    if (/^[0-9]$/.test(e.key)) {
+      const keyNum = parseInt(e.key, 10);
+      const targetIndex = (keyNum === 0) ? 9 : (keyNum - 1);
+      
+      if (rows.length > targetIndex) {
+        e.preventDefault();
+        state.selectedIndex = targetIndex;
+        highlightRow(targetIndex);
+        
+        const selectedRow = rows[targetIndex];
+        const username = selectedRow.getAttribute('data-username');
+        const userObj = state.unfollowers.find(u => u.username === username);
+        
+        if (userObj) {
+          window.open(userObj.profileUrl, '_blank');
+          
+          const autoOpenToggle = document.getElementById('auto-open-toggle');
+          if (autoOpenToggle && autoOpenToggle.checked) {
+            state.pendingAutoOpen = true;
+            state.autoOpenCount = 1;
+          }
+          
+          if (userObj?.isPendingRequest) {
+            state.following = state.following.filter(u => u.username !== username);
+            localStorage.setItem('following_users', JSON.stringify(state.following));
+            elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
+            updateListUI('following');
+          } else if (!state.unfollowed.some(u => u.username === username)) {
+            state.unfollowed.unshift(userObj);
+          }
+          calculateUnfollowers();
+        }
+      }
+      return;
+    }
 
     if (e.key === 'ArrowDown' || e.key === 'j') {
       e.preventDefault();
