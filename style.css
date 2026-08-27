@@ -2110,6 +2110,31 @@ button,
   }
 }
 
+.account-chip-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: 6px;
+  line-height: 1;
+  text-transform: lowercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+@media (max-width: 600px) {
+  .account-chip-badge {
+    display: none !important;
+  }
+}
+
 .instructions-modal-footer {
   display: flex;
   align-items: center;

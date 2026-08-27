@@ -1276,6 +1276,13 @@ function renderAccountChips(animate = false) {
       textSpan.textContent = `@${acc.username}`;
       chip.appendChild(textSpan);
 
+      if (index < 10) {
+        const badge = document.createElement('span');
+        badge.className = 'account-chip-badge';
+        badge.textContent = `cmd ${index === 9 ? 0 : index + 1}`;
+        chip.appendChild(badge);
+      }
+
       if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === acc.originalUsername.toLowerCase()) {
         chip.classList.add('active');
       }
@@ -2239,6 +2246,25 @@ function updateInstructionsStepUI() {
 
   // Keyboard navigation shortcuts (Computer / Desktop)
   document.addEventListener('keydown', (e) => {
+    // Cmd / Ctrl + Number keys (Cmd 1, Cmd 2, Cmd 3, etc.) to switch Instagram accounts
+    if ((e.metaKey || e.ctrlKey) && /^[0-9]$/.test(e.key)) {
+      normalizeInstagramAccounts();
+      const accounts = state.instagramAccounts || [];
+      if (accounts.length > 0) {
+        const num = parseInt(e.key, 10);
+        const accIndex = (num === 0) ? 9 : (num - 1);
+        if (accounts.length > accIndex) {
+          e.preventDefault();
+          e.stopPropagation();
+          const targetAcc = accounts[accIndex];
+          if (targetAcc && targetAcc.originalUsername) {
+            selectAccount(targetAcc.originalUsername);
+          }
+        }
+      }
+      return;
+    }
+
     // Ignore shortcuts if the user is typing in Following or Followers textareas
     const active = document.activeElement;
     if (active && (active.id === 'input-following' || active.id === 'input-followers')) {
