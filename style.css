@@ -1851,6 +1851,11 @@ button,
   box-shadow: 0 4px 14px rgba(255, 255, 255, 0.25) !important;
 }
 
+@keyframes paneFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .instructions-step-pane {
   display: none;
   flex-direction: column;
@@ -1858,12 +1863,14 @@ button,
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   padding-right: 4px;
-  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
 }
 
 .instructions-step-pane.active {
   display: flex;
+  animation: paneFadeIn 0.2s ease-out;
 }
 
 .step-image-container {
@@ -2017,8 +2024,7 @@ button,
   font-size: 0.83rem;
   color: var(--text-main);
   line-height: 1.4;
-  flex: 1;
-  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .instructions-step-list code {
