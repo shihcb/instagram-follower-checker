@@ -1510,7 +1510,13 @@ function closeAllSubMenusAndPopups() {
     closedSomething = true;
   }
 
-  // 6. Blur active focused element (button or input)
+  // 6. Close Instructions / Guide Modal
+  if (elements.instructionsModalOverlay && !elements.instructionsModalOverlay.classList.contains('hidden')) {
+    closeInstructionsModal();
+    closedSomething = true;
+  }
+
+  // 7. Blur active focused element (button or input)
   if (document.activeElement && document.activeElement !== document.body) {
     document.activeElement.blur();
     closedSomething = true;
