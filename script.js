@@ -855,6 +855,9 @@ const handleFollowingInput = debounce(function() {
     return;
   }
   const rawText = elements.inputFollowing.value;
+  if (rawText.trim() === '') {
+    animateFadeOutListUnfollowers();
+  }
   const existingPendingMap = new Map();
   state.following.forEach(user => {
     if (user.isPendingRequest) existingPendingMap.set(user.username, true);
@@ -877,6 +880,9 @@ const handleFollowersInput = debounce(function() {
     return;
   }
   const rawText = elements.inputFollowers.value;
+  if (rawText.trim() === '') {
+    animateFadeOutListUnfollowers();
+  }
   const parsed = parseInput(rawText);
   state.followers = deduplicateEntries(parsed);
   localStorage.setItem('followers_users', JSON.stringify(state.followers));
@@ -924,11 +930,24 @@ function readAndProcessFile(file, type, append = false, isPending = false) {
   });
 }
 
+function animateFadeOutListUnfollowers() {
+  if (elements.listUnfollowers) {
+    const rows = elements.listUnfollowers.querySelectorAll('.user-row');
+    rows.forEach((row) => {
+      row.style.transition = 'opacity 0.22s ease, transform 0.22s ease';
+      row.style.opacity = '0';
+      row.style.transform = 'scale(0.94) translateY(4px)';
+    });
+  }
+}
+
 function smoothClearTextarea(textareaEl, callback) {
   if (!textareaEl) {
     if (callback) callback();
     return;
   }
+
+  animateFadeOutListUnfollowers();
 
   if (textareaEl.value.trim() !== '') {
     textareaEl.classList.add('textarea-fade-out');
