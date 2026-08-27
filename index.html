@@ -478,23 +478,35 @@
 
       <div class="instructions-step-pane active" id="instructions-step-1">
         <div class="instructions-visual-card">
-          <div class="visual-icon-badge">
-            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
+          <div class="export-mockup-header">
+            <span class="export-mockup-title">choose where to export</span>
           </div>
-          <div class="visual-step-banner">
-            <div class="banner-badge">step 1</div>
-            <span>export instagram data</span>
+          <div class="export-mockup-options">
+            <div class="export-option-row active">
+              <div class="export-option-left">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <span>export to device</span>
+              </div>
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </div>
+            <div class="export-option-row">
+              <div class="export-option-left">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                <span>export to external service</span>
+              </div>
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </div>
+          </div>
+          <div class="export-settings-pills">
+            <span class="export-pill">date range: <strong>all time</strong></span>
+            <span class="export-pill">format: <strong>html</strong></span>
           </div>
         </div>
         <ol class="instructions-step-list">
           <li>open instagram app or web &rarr; <strong>settings &amp; privacy</strong></li>
-          <li>go to <strong>accounts center</strong> &rarr; <strong>your information &amp; permissions</strong></li>
-          <li>tap <strong>download your information</strong> &rarr; select <strong>some of your information</strong></li>
-          <li>select <strong>followers and following</strong> (choose <strong>html</strong> or <strong>json</strong> format)</li>
+          <li>go to <strong>accounts center</strong> &rarr; <strong>download your information</strong></li>
+          <li>choose <strong>export to device</strong></li>
+          <li>set date range to <strong>all time</strong> &amp; format to <strong>html</strong></li>
         </ol>
       </div>
 

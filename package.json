@@ -5,7 +5,7 @@
   "main": "index.html",
   "scripts": {
     "start": "npx http-server -p 8080",
-    "build": "mkdir -p public && cp index.html script.js style.css public/ && cp -r mock-data public/ 2>/dev/null || true",
+    "build": "mkdir -p public && cp index.html script.js style.css public/ && cp -r mock-data public/ 2>/dev/null || true && cp -r images public/ 2>/dev/null || true",
     "cap:sync": "npm run build && npx cap sync",
     "cap:open": "npx cap open ios"
   },

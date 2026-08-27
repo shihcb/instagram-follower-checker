@@ -1856,45 +1856,86 @@ button,
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3) !important;
 }
 
-.visual-icon-badge {
-  width: 50px;
-  height: 50px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.08));
-  color: #059669;
+.export-mockup-header {
+  width: 100%;
+  text-align: left;
+  margin-bottom: 2px;
+}
+
+.export-mockup-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main);
+  text-transform: lowercase;
+}
+
+.export-mockup-options {
+  width: 100%;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  background-color: var(--card-bg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.export-option-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
-  flex-shrink: 0;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--card-border);
+  text-transform: lowercase;
 }
 
-[data-theme="dark"] .visual-icon-badge {
-  background: linear-gradient(135deg, rgba(52, 211, 153, 0.25), rgba(16, 185, 129, 0.12)) !important;
-  color: #34d399 !important;
-  border-color: rgba(52, 211, 153, 0.4) !important;
-  box-shadow: 0 4px 16px rgba(52, 211, 153, 0.2) !important;
+.export-option-row:last-child {
+  border-bottom: none;
 }
 
-.visual-step-banner {
+.export-option-row.active {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  color: var(--text-main) !important;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .export-option-row.active {
+  background-color: rgba(52, 211, 153, 0.18) !important;
+  color: #ffffff !important;
+}
+
+.export-option-left {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--text-main);
 }
 
-.banner-badge {
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: lowercase;
-  letter-spacing: 0.3px;
-  padding: 3px 9px;
+.export-settings-pills {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.export-pill {
+  font-size: 0.72rem;
+  padding: 3px 10px;
   border-radius: 6px;
-  background-color: var(--text-main);
-  color: var(--bg-color);
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-main);
+  text-transform: lowercase;
+}
+
+.export-pill strong {
+  font-weight: 700;
+  color: #10b981;
+}
+
+[data-theme="dark"] .export-pill strong {
+  color: #34d399;
 }
 
 .instructions-step-list {
