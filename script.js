@@ -2892,8 +2892,24 @@ function initAuth() {
     }, 150);
   }
 
-  elements.tabLogin.addEventListener('click', () => switchTab(false));
-  elements.tabSignup.addEventListener('click', () => switchTab(true));
+  elements.tabLogin.addEventListener('click', (e) => {
+    e.preventDefault();
+    switchTab(false);
+  });
+  elements.tabSignup.addEventListener('click', (e) => {
+    e.preventDefault();
+    switchTab(true);
+  });
+
+  const landingCtaBtn = document.getElementById('landing-cta-btn');
+  if (landingCtaBtn) {
+    landingCtaBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (elements.authEmail) {
+        elements.authEmail.focus({ preventScroll: true });
+      }
+    });
+  }
 
   // Toggle drop down menu on button click
   elements.authBtn.addEventListener('click', (e) => {
