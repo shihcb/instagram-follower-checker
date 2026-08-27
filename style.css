@@ -1838,6 +1838,10 @@ button,
   z-index: 1;
 }
 
+.instructions-nav-indicator.no-transition {
+  transition: none !important;
+}
+
 [data-theme="dark"] .instructions-nav-indicator {
   background: #ffffff;
   box-shadow: 0 4px 16px rgba(255, 255, 255, 0.22);

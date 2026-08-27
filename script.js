@@ -1646,14 +1646,22 @@ let currentInstructionStep = 1;
 function openInstructionsModal(step = 1) {
   if (!elements.instructionsModalOverlay) return;
   currentInstructionStep = step;
+
+  const indicator = elements.instructionsNavIndicator || document.getElementById('instructions-nav-indicator');
+  if (indicator) {
+    indicator.classList.add('no-transition');
+  }
+
   elements.instructionsModalOverlay.classList.remove('hidden');
   requestAnimationFrame(() => {
     elements.instructionsModalOverlay.classList.add('show');
     updateInstructionsStepUI();
+    setTimeout(() => {
+      if (indicator) {
+        indicator.classList.remove('no-transition');
+      }
+    }, 150);
   });
-  setTimeout(() => {
-    updateInstructionsStepUI();
-  }, 100);
 }
 
 function closeInstructionsModal() {
