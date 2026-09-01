@@ -2727,14 +2727,7 @@ function applyGuestPreviewLock(isLoggedIn) {
 // Physically relocate the live app grid so it isn't trapped inside
 // #landing-page-container (which is display:none once logged in).
 function relocateAppGridForAuthState(isLoggedIn) {
-  if (!elements.appGrid || !elements.appContainer || !appGridLandingHome) return;
-  if (isLoggedIn) {
-    if (elements.appGrid.parentElement !== elements.appContainer) {
-      elements.appContainer.appendChild(elements.appGrid);
-    }
-  } else if (elements.appGrid.parentElement !== appGridLandingHome) {
-    appGridLandingHome.appendChild(elements.appGrid);
-  }
+  // appGrid is statically positioned in appContainer
 }
 
 function initAuth() {
@@ -2764,8 +2757,6 @@ function initAuth() {
         elements.userBadge.classList.remove('hidden');
         elements.authUserEmail.textContent = currentUser.email;
 
-        const appGrid = document.querySelector('.app-grid');
-        if (appGrid) appGrid.style.marginTop = '0';
         const importAccountWarning = document.getElementById('import-account-warning');
         if (importAccountWarning) importAccountWarning.classList.add('hidden-warning');
         
@@ -2861,8 +2852,6 @@ function initAuth() {
         elements.authDropdown.classList.add('show');
         elements.userBadge.classList.add('hidden');
 
-        const appGrid = document.querySelector('.app-grid');
-        if (appGrid && window.innerWidth > 1024) appGrid.style.marginTop = '48px';
         const importAccountWarning = document.getElementById('import-account-warning');
         if (importAccountWarning) importAccountWarning.classList.remove('hidden-warning');
         

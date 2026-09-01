@@ -2933,10 +2933,6 @@ body.auth-logged-out .app-header {
   -webkit-backdrop-filter: none !important;
 }
 
-body.auth-logged-out .header-logo h1 {
-  display: none !important;
-}
-
 body.auth-logged-out #card-following,
 body.auth-logged-out #card-followers,
 body.auth-logged-out #card-unfollowers {
