@@ -2727,7 +2727,20 @@ function applyGuestPreviewLock(isLoggedIn) {
 // Physically relocate the live app grid so it isn't trapped inside
 // #landing-page-container (which is display:none once logged in).
 function relocateAppGridForAuthState(isLoggedIn) {
-  // appGrid is statically positioned in appContainer
+  const appGrid = document.querySelector('.app-grid');
+  const appContainer = document.querySelector('.app-container');
+  const landingHome = document.getElementById('app-grid-landing-home');
+  if (!appGrid) return;
+
+  if (isLoggedIn) {
+    if (appContainer && appGrid.parentElement !== appContainer) {
+      appContainer.appendChild(appGrid);
+    }
+  } else {
+    if (landingHome && appGrid.parentElement !== landingHome) {
+      landingHome.appendChild(appGrid);
+    }
+  }
 }
 
 function initAuth() {
