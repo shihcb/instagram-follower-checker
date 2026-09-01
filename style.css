@@ -3112,7 +3112,7 @@ body:not(.auth-logged-out) #landing-page-container {
   display: none !important;
 }
 
-body.auth-logged-out .auth-dropdown {
+body.auth-logged-out:not(.is-logged-in) .auth-dropdown {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
@@ -3130,10 +3130,16 @@ body.auth-logged-out .auth-dropdown {
   -webkit-overflow-scrolling: touch;
   z-index: 99999 !important;
   background: var(--bg-color) !important;
-  opacity: 0;
-  pointer-events: none;
+  opacity: 1 !important;
+  pointer-events: auto !important;
   transform: scale(1) !important;
   transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+html.is-logged-in .auth-dropdown:not(.show) {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 [data-theme="light"] body.auth-logged-out .auth-dropdown {
