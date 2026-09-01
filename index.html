@@ -3,6 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no, viewport-fit=cover">
+  <!-- "Request Desktop Site" on mobile keeps the physical (phone-sized) screen
+       but drops the "Mobile" token from the user-agent string (Android keeps
+       "Android" in the UA either way, so only "Mobile" itself is the signal).
+       Detect that mismatch and widen the viewport so the desktop layout
+       actually renders instead of staying pinned by width=device-width. -->
+  <script>
+    (function() {
+      try {
+        var isPhoneScreen = Math.min(screen.width, screen.height) > 0 && Math.min(screen.width, screen.height) < 700;
+        var uaClaimsDesktop = !/Mobi/i.test(navigator.userAgent);
+        if (isPhoneScreen && uaClaimsDesktop) {
+          var desktopWidth = 1280;
+          var scale = window.innerWidth / desktopWidth;
+          document.querySelector('meta[name="viewport"]').setAttribute(
+            'content',
+            'width=' + desktopWidth + ', initial-scale=' + scale
+          );
+        }
+      } catch (e) {}
+    })();
+  </script>
   <title>IG checker</title>
   <meta name="description" content="a modern, secure, and client-side IG checker to see who doesn't follow you back.">
   <meta name="color-scheme" content="light dark">
