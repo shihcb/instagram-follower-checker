@@ -3681,13 +3681,13 @@ body:not(.auth-logged-out) #theme-toggle {
 
 /* Warnings and Alerts */
 .auth-warning, .auth-error, .auth-success {
-  animation: alert-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: alert-fade-in 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes alert-fade-in {
   from {
     opacity: 0;
-    transform: translateY(-6px);
+    transform: translateY(-18px);
   }
   to {
     opacity: 1;
