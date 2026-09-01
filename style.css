@@ -2530,6 +2530,8 @@ html.hide-shortcuts .account-chip-badge {
   border: 1px solid var(--card-border);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
+  min-width: 0;
+  gap: 8px;
 }
 
 [data-theme="dark"] .user-row {
@@ -2556,6 +2558,8 @@ html.hide-shortcuts .account-chip-badge {
   align-items: center;
   gap: 12px;
   min-width: 0; /* Enable text truncation */
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 
 /* Custom avatar circle using names initials and colorful linear gradient */
@@ -2584,15 +2588,19 @@ html.hide-shortcuts .account-chip-badge {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 
 .user-link {
   font-weight: 600;
   font-size: 0.95rem;
   color: var(--text-main);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .user-link:hover {
@@ -2619,6 +2627,7 @@ html.hide-shortcuts .account-chip-badge {
   display: flex;
   align-items: center;
   gap: 4px !important;
+  flex-shrink: 0 !important;
 }
 
 .follow-date {
