@@ -2948,6 +2948,10 @@ body.auth-logged-out .keyboard-hints {
   display: none !important;
 }
 
+body.auth-logged-out #account-mgmt-row {
+  display: none !important;
+}
+
 body.auth-logged-out .app-grid {
   display: flex !important;
 }
