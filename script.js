@@ -3058,7 +3058,7 @@ function initAuth() {
 
       const email = elements.authEmail.value.trim();
       if (!email) {
-        showAuthError('enter your email address above first');
+        showAuthError('enter your email address first');
         return;
       }
 
