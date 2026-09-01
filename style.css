@@ -1529,11 +1529,11 @@ body.hide-shortcuts #keyboard-hints {
   scrollbar-width: none;
   -ms-overflow-style: none;
   flex-wrap: nowrap;
-  padding: 8px 16px;
+  padding: 0 16px !important;
   margin-left: -16px;
   margin-right: -16px;
-  margin-top: 4px;
-  margin-bottom: 4px;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
   max-height: 60px;
   opacity: 1;
   transform: translateY(0) scale(1);
@@ -2416,6 +2416,10 @@ html.hide-shortcuts .account-chip-badge {
 /* -------------------------------------------------------------
  * Results Container (Column 3)
  * ------------------------------------------------------------- */
+#card-unfollowers .card-body {
+  gap: 8px !important;
+}
+
 .results-controls {
   display: flex;
   flex-direction: column;
