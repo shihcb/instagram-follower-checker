@@ -835,6 +835,8 @@ button:disabled *,
   line-height: 1 !important;
   margin: 0 !important;
   padding: 0 !important;
+  position: relative !important;
+  top: 1px !important;
 }
 
 .preview-toggle:hover:not(:disabled) {
@@ -3016,10 +3018,37 @@ body.auth-logged-out .app-grid {
   body.auth-logged-out .import-button-row {
     width: 100% !important;
   }
+
+  /* Slightly taller preview cards on desktop, with the avatar/username
+     scaled back up proportionally to match the extra room */
+  body.auth-logged-out #card-following,
+  body.auth-logged-out #card-followers,
+  body.auth-logged-out #card-unfollowers {
+    height: 440px;
+  }
+  body.auth-logged-out .user-avatar {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 0.78rem !important;
+  }
+  body.auth-logged-out .user-link {
+    font-size: 0.85rem !important;
+  }
+  body.auth-logged-out .user-row {
+    padding: 10px 12px !important;
+  }
 }
 
 body.auth-logged-out .app-grid {
   display: flex !important;
+}
+
+/* Guarantee the "you need an account to import" warning is gone once
+   logged in, tied to the same auth-state signal as the rest of the guest
+   preview rather than relying solely on the separately-toggled
+   .hidden-warning class. */
+body:not(.auth-logged-out) #import-account-warning {
+  display: none !important;
 }
 
 /* -------------------------------------------------------------
