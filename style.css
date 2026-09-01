@@ -1159,13 +1159,6 @@ button:disabled *,
     flex-direction: column !important;
     gap: 8px !important;
   }
-  /* Left-align labels and right-align chevrons so they line up as a
-     column across the stacked unfollowed/starred/Import files buttons */
-  .results-dropdowns-group .dropdown-wrapper button,
-  #btn-add-account {
-    justify-content: space-between !important;
-    padding: 0 14px !important;
-  }
   .import-button-row {
     flex: 1 1 auto !important;
     display: flex !important;
@@ -1181,6 +1174,7 @@ button:disabled *,
   }
   #btn-add-account {
     font-size: 0.78rem !important;
+    padding: 0 8px !important;
     gap: 4px !important;
     width: 100% !important;
   }
@@ -2967,6 +2961,15 @@ body.auth-logged-out .row-shortcut-key {
   display: none !important;
 }
 
+/* Remove the dropdown chevrons in the guest preview (mobile and desktop)
+   so the labels can stay centered instead of needing an aligned chevron
+   column */
+body.auth-logged-out #toggle-preview-unfollowed .chevron-icon,
+body.auth-logged-out #toggle-preview-starred .chevron-icon,
+body.auth-logged-out #btn-add-account .chevron-icon {
+  display: none !important;
+}
+
 body.auth-logged-out #account-mgmt-row {
   display: none !important;
 }
@@ -3026,15 +3029,10 @@ body.auth-logged-out .app-grid {
     gap: 8px !important;
   }
   body.auth-logged-out #toggle-preview-unfollowed,
-  body.auth-logged-out #toggle-preview-starred,
-  body.auth-logged-out #btn-add-account {
-    justify-content: space-between !important;
-    padding: 0 14px !important;
-  }
-  body.auth-logged-out #toggle-preview-unfollowed,
   body.auth-logged-out #toggle-preview-starred {
     width: 100% !important;
     min-width: 0 !important;
+    padding: 0 12px !important;
     font-size: 0.74rem !important;
   }
   body.auth-logged-out .import-button-row {
