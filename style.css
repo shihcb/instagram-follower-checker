@@ -864,6 +864,8 @@ button:disabled *,
   min-height: 14px !important;
   color: #000000 !important;
   stroke: #000000 !important;
+  position: relative;
+  top: 1px;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
