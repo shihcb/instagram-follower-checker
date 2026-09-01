@@ -3004,9 +3004,9 @@ body.auth-logged-out .row-shortcut-key {
 
 
 body.auth-logged-out #account-mgmt-row {
-  padding: 2px 16px !important;
+  padding: 2px 16px 0 16px !important;
   margin-top: 0 !important;
-  margin-bottom: 0 !important;
+  margin-bottom: -8px !important;
 }
 
 /* Scale the avatar/username down proportionally to match how small they
