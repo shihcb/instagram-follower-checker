@@ -814,14 +814,12 @@ button:disabled *,
   -ms-user-select: none !important;
   user-select: none !important;
   -webkit-touch-callout: none !important;
-  transition: background-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  background-color: transparent !important;
-  background: transparent !important;
-  border: 1px solid var(--btn-secondary-border) !important;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease !important;
+  background-color: var(--input-bg) !important;
+  background: var(--input-bg) !important;
+  border: 1px solid var(--input-border) !important;
   color: var(--text-main) !important;
-  box-shadow: none !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
   outline: none !important;
 }
 
@@ -847,14 +845,18 @@ button:disabled *,
 }
 
 .preview-toggle:hover:not(:disabled) {
-  background-color: transparent !important;
+  background-color: var(--btn-secondary-hover) !important;
+  background: var(--btn-secondary-hover) !important;
   border-color: var(--text-main) !important;
 }
 
 .preview-toggle:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  background-color: #ffffff !important;
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  background-color: var(--input-bg) !important;
+  background: var(--input-bg) !important;
+  border-color: var(--input-border) !important;
+  color: var(--text-muted) !important;
 }
 
 .preview-toggle .chevron-icon {
@@ -1310,23 +1312,11 @@ button:disabled *,
   background-color: #27272a !important;
 }
 
-[data-theme="dark"] .preview-toggle,
-[data-theme="dark"] .preview-toggle:hover,
-[data-theme="dark"] .preview-toggle:focus,
-[data-theme="dark"] .preview-toggle:focus-visible,
-[data-theme="dark"] .preview-toggle:active,
-[data-theme="dark"] #toggle-preview-unfollowed,
-[data-theme="dark"] #toggle-preview-starred,
-[data-theme="dark"] #toggle-preview-unfollowed:hover,
-[data-theme="dark"] #toggle-preview-starred:hover,
-[data-theme="dark"] #toggle-preview-unfollowed:focus,
-[data-theme="dark"] #toggle-preview-starred:focus,
-[data-theme="dark"] #toggle-preview-unfollowed:active,
-[data-theme="dark"] #toggle-preview-starred:active {
-  background-color: transparent !important;
-  background: transparent !important;
-  border-color: var(--btn-secondary-border) !important;
-  color: var(--text-main) !important;
+[data-theme="dark"] .preview-toggle {
+  background-color: rgba(255, 255, 255, 0.07) !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #f4f4f5 !important;
   font-family: var(--font-sans) !important;
   font-size: 0.8rem !important;
   font-weight: 600 !important;
@@ -1334,30 +1324,39 @@ button:disabled *,
   line-height: 1.2 !important;
   outline: none !important;
   -webkit-tap-highlight-color: transparent !important;
-  box-shadow: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+[data-theme="dark"] .preview-toggle:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.14) !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  color: #ffffff !important;
 }
 
 [data-theme="dark"] .preview-toggle.active {
-  border-color: rgba(255, 255, 255, 0.45) !important;
+  border-color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.16) !important;
 }
 
 .preview-toggle *,
 [data-theme="dark"] .preview-toggle * {
-  color: var(--text-main) !important;
-  stroke: var(--text-main) !important;
+  color: inherit !important;
+  stroke: currentColor !important;
 }
 
 .preview-toggle .chevron-icon,
 [data-theme="dark"] .preview-toggle .chevron-icon {
-  color: var(--text-main) !important;
-  stroke: var(--text-main) !important;
+  color: inherit !important;
+  stroke: currentColor !important;
 }
 
 [data-theme="dark"] .preview-toggle:disabled {
-  background-color: rgba(255, 255, 255, 0.7) !important;
-  border-color: rgba(255, 255, 255, 0.7) !important;
-  color: rgba(0, 0, 0, 0.6) !important;
-  opacity: 0.75 !important;
+  background-color: rgba(255, 255, 255, 0.03) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-color: rgba(255, 255, 255, 0.07) !important;
+  color: rgba(255, 255, 255, 0.35) !important;
+  opacity: 0.5 !important;
 }
 
 /* Row & Dropdown Action Buttons: White in dark mode, clean in light mode */
