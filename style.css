@@ -2944,6 +2944,10 @@ body.auth-logged-out #card-unfollowers {
   height: 360px;
 }
 
+body.auth-logged-out .keyboard-hints {
+  display: none !important;
+}
+
 body.auth-logged-out .app-grid {
   display: flex !important;
 }
