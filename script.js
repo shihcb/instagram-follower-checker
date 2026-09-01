@@ -3228,14 +3228,22 @@ function clearAuthAlerts() {
   elements.authSuccessMsg.textContent = '';
 }
 
+function restartAlertAnimation(el) {
+  el.style.animation = 'none';
+  void el.offsetWidth; // force a reflow so the browser forgets the old run
+  el.style.animation = '';
+}
+
 function showAuthError(msg) {
   elements.authErrorMsg.textContent = msg.toLowerCase();
   elements.authErrorMsg.classList.remove('hidden');
+  restartAlertAnimation(elements.authErrorMsg);
 }
 
 function showAuthSuccess(msg) {
   elements.authSuccessMsg.textContent = msg.toLowerCase();
   elements.authSuccessMsg.classList.remove('hidden');
+  restartAlertAnimation(elements.authSuccessMsg);
 }
 
 // Sync helpers
