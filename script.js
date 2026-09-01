@@ -2694,6 +2694,13 @@ function applyGuestPreviewLock(isLoggedIn) {
   updateListUI('following');
   updateListUI('followers');
   calculateUnfollowers();
+
+  // Hide the clear button entirely while logged out (updateListUI shows it
+  // whenever the textarea has content, which the demo username always does)
+  const actionsFollowing = document.getElementById('actions-following');
+  const actionsFollowers = document.getElementById('actions-followers');
+  if (actionsFollowing) actionsFollowing.classList.remove('show');
+  if (actionsFollowers) actionsFollowers.classList.remove('show');
 }
 
 // Physically relocate the live app grid so it isn't trapped inside
