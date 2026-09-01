@@ -1569,7 +1569,7 @@ body.hide-shortcuts #keyboard-hints {
   -ms-user-select: none !important;
   user-select: none !important;
   -webkit-touch-callout: none !important;
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease !important;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease, width 0.8s cubic-bezier(0.16, 1, 0.3, 1), padding 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
@@ -2180,6 +2180,17 @@ body.hide-shortcuts #keyboard-hints {
   flex-shrink: 0;
   user-select: none;
   -webkit-user-select: none;
+  max-width: 80px;
+  opacity: 1;
+  transform: scale(1);
+  overflow: hidden;
+  white-space: nowrap;
+  transition: max-width 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              margin-left 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              padding 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 @media (max-width: 600px) {
@@ -2190,7 +2201,6 @@ body.hide-shortcuts #keyboard-hints {
 
 /* Hide all keyboard shortcut badges and hints with smooth transition when shortcut setting is disabled */
 .row-shortcut-key,
-.account-chip-badge,
 .shortcut-hint {
   opacity: 1;
   transform: scale(1);
@@ -2199,11 +2209,23 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 .hide-shortcuts .row-shortcut-key,
-.hide-shortcuts .account-chip-badge,
 .hide-shortcuts .shortcut-hint,
 html.hide-shortcuts .row-shortcut-key,
-html.hide-shortcuts .account-chip-badge,
 html.hide-shortcuts .shortcut-hint {
+  opacity: 0 !important;
+  transform: scale(0.8) !important;
+  pointer-events: none !important;
+}
+
+.hide-shortcuts .account-chip-badge,
+html.hide-shortcuts .account-chip-badge {
+  max-width: 0 !important;
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  border-left-width: 0 !important;
+  border-right-width: 0 !important;
+  border-color: transparent !important;
   opacity: 0 !important;
   transform: scale(0.8) !important;
   pointer-events: none !important;
