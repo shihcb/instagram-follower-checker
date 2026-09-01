@@ -2952,6 +2952,31 @@ body.auth-logged-out #account-mgmt-row {
   display: none !important;
 }
 
+@media (min-width: 1025px) {
+  body.auth-logged-out .preview-toggle span.btn-text-full {
+    display: inline !important;
+  }
+  body.auth-logged-out .preview-toggle span.btn-text-short,
+  body.auth-logged-out .preview-toggle span.btn-text-compact {
+    display: none !important;
+  }
+  body.auth-logged-out #toggle-preview-unfollowed,
+  body.auth-logged-out #toggle-preview-starred {
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 0 10px !important;
+    font-size: 0.72rem !important;
+    flex-shrink: 0;
+  }
+  body.auth-logged-out .results-dropdowns-group {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  body.auth-logged-out .import-button-row {
+    flex: 1 1 100% !important;
+  }
+}
+
 body.auth-logged-out .app-grid {
   display: flex !important;
 }
