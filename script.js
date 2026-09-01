@@ -2761,7 +2761,6 @@ function initAuth() {
 
       if (session) {
         currentUser = session.user;
-        document.documentElement.classList.add('is-logged-in');
         elements.userBadge.classList.remove('hidden');
         elements.authUserEmail.textContent = currentUser.email;
 
