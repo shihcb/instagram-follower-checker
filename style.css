@@ -873,13 +873,13 @@ button:disabled *,
   position: relative !important;
 }
 
-.dropdown-wrapper .dropdown-menu,
-.dropdown-wrapper .parsed-list {
-  width: 100% !important;
-  min-width: 100% !important;
-  max-width: 100% !important;
+body:not(.auth-logged-out) .dropdown-wrapper .parsed-list.dropdown-menu,
+body:not(.auth-logged-out) .parsed-list.dropdown-menu {
+  width: 280px !important;
+  min-width: 280px !important;
+  max-width: 320px !important;
   left: 0 !important;
-  right: 0 !important;
+  right: auto !important;
   box-sizing: border-box !important;
 }
 
