@@ -113,7 +113,7 @@
             </button>
 
             <!-- Auth Dropdown Menu -->
-            <div class="auth-dropdown glass show" id="auth-dropdown">
+            <div class="auth-dropdown glass" id="auth-dropdown">
               <div class="dropdown-header">
                 <h3>account</h3>
                 <button id="theme-toggle-in-menu" class="btn btn-sm btn-secondary" style="display: inline-flex !important; align-items: center !important; gap: 6px !important; height: 26px !important; line-height: 1 !important; padding: 0 10px !important; font-size: 0.75rem !important; text-transform: lowercase !important; box-sizing: border-box !important;">
@@ -371,179 +371,6 @@
                     </div>
                   </section>
 
-                  <!-- Live UI Showcase -->
-                  <section class="landing-section">
-                    <div class="landing-section-header no-heading">
-                      <span class="landing-section-badge">preview</span>
-                    </div>
-                    
-                    <!-- Main Grid Layout (Live Working App) -->
-                    <main class="app-grid" style="margin-top: 0;">
-                      
-                      <!-- Temporary Account Requirement Warning -->
-                      <div id="import-account-warning" class="import-account-warning">
-                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                          <circle cx="12" cy="12" r="10"></circle>
-                          <line x1="12" y1="8" x2="12" y2="12"></line>
-                          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                        </svg>
-                        <span>to import lists you need to have an account</span>
-                      </div>
-
-                      <!-- List 3: Unfollowers (Results) -->
-                      <section class="card glass results-card highlighted-card" id="card-unfollowers">
-                        <div class="card-header">
-                          <div class="card-title-group">
-                            <span class="card-num">3</span>
-                            <h2>unfollowers</h2>
-                          </div>
-                          <span class="badge result-badge" id="unfollowers-count">0 found</span>
-                        </div>
-                        <div class="card-body">
-                          <div class="results-controls">
-                            <div class="search-row">
-                              <div class="search-box">
-                                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
-                                  <circle cx="11" cy="11" r="8"></circle>
-                                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                                </svg>
-                                <input type="text" id="search-unfollowers" placeholder="search">
-                              </div>
-                              
-                              <div class="auto-open-wrapper" title="auto-open next username when returning to this page">
-                                <label class="switch">
-                                  <input type="checkbox" id="auto-open-toggle">
-                                  <span class="slider"></span>
-                                </label>
-                                <span id="auto-open-label">auto</span>
-                              </div>
-
-                              <button id="btn-instructions-info" class="preview-toggle btn-sm" title="instructions" style="width: 32px; height: 32px; min-width: 32px; padding: 0; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px;">
-                                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;">
-                                  <circle cx="12" cy="12" r="10"></circle>
-                                  <line x1="12" y1="16" x2="12" y2="12"></line>
-                                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                                </svg>
-                              </button>
-                            </div>
-
-                            <div class="results-dropdowns-group">
-                              <div class="dropdown-wrapper">
-                                <button class="preview-toggle btn-sm" id="toggle-preview-unfollowed" disabled>
-                                  <span class="btn-label-content"><span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span></span>
-                                  <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="6 9 12 15 18 9"></polyline>
-                                  </svg>
-                                </button>
-                                <div class="parsed-list dropdown-menu" id="list-unfollowed"></div>
-                              </div>
-
-                              <div class="dropdown-wrapper">
-                                <button class="preview-toggle btn-sm" id="toggle-preview-starred" disabled>
-                                  <span class="btn-label-content"><span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span></span>
-                                  <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="6 9 12 15 18 9"></polyline>
-                                  </svg>
-                                </button>
-                                <div class="parsed-list dropdown-menu" id="list-starred"></div>
-                              </div>
-
-                              <div class="dropdown-wrapper import-button-row">
-                                <input type="file" id="import-files-input" multiple accept=".html,.txt" class="hidden">
-                                <input type="file" id="import-folder-input" webkitdirectory directory multiple class="hidden">
-                                <button id="btn-add-account" class="preview-toggle btn-sm" title="Import files" style="width: 100%; justify-content: center; gap: 6px;">
-                                  <span>Import files</span>
-                                  <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="6 9 12 15 18 9"></polyline>
-                                  </svg>
-                                </button>
-                                <div class="dropdown-menu" id="add-account-dropdown-menu" style="min-width: 150px; padding: 4px 0;">
-                                  <button id="btn-upload-files" class="dropdown-item-btn" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; font-size: 0.8rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-                                    <span>upload files</span>
-                                  </button>
-                                  <button id="btn-upload-folder" class="dropdown-item-btn" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; font-size: 0.8rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                                    <span>upload folder</span>
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div class="account-mgmt-row" id="account-mgmt-row">
-                              <div class="account-chips-list" id="account-chips-list"></div>
-                            </div>
-                          </div>
-
-                          <div class="results-layout-wrapper">
-                            <div class="results-container">
-                              <div class="empty-state hidden" id="unfollowers-empty-state"></div>
-                              <div class="results-list hidden" id="list-unfollowers"></div>
-                            </div>
-
-                            <div class="keyboard-hints" id="keyboard-hints" style="margin-top: 12px; margin-bottom: 0;">
-                              <span><kbd>↑</kbd> <kbd>↓</kbd> select</span>
-                              <span><kbd>enter</kbd> open</span>
-                              <span><kbd>/</kbd> search</span>
-                            </div>
-                          </div>
-                        </div>
-                      </section>
-
-                      <!-- List 1: Following -->
-                      <section class="card glass" id="card-following">
-                        <div class="card-header">
-                          <div class="card-title-group">
-                            <span class="card-num">2</span>
-                            <h2>following</h2>
-                          </div>
-                          <span class="badge count-badge" id="following-count">0 loaded</span>
-                        </div>
-                        <div class="card-body">
-                          <div class="search-box">
-                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
-                              <circle cx="11" cy="11" r="8"></circle>
-                              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                            </svg>
-                            <input type="text" id="search-following" placeholder="search">
-                          </div>
-                          <textarea id="input-following" placeholder="enter usernames"></textarea>
-                          
-                          <div class="card-actions" id="actions-following">
-                            <button id="clear-following" class="btn btn-secondary btn-sm">clear</button>
-                          </div>
-                        </div>
-                      </section>
-
-                      <!-- List 2: Followers -->
-                      <section class="card glass" id="card-followers">
-                        <div class="card-header">
-                          <div class="card-title-group">
-                            <span class="card-num">1</span>
-                            <h2>followers</h2>
-                          </div>
-                          <span class="badge count-badge" id="followers-count">0 loaded</span>
-                        </div>
-                        <div class="card-body">
-                          <div class="search-box">
-                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
-                              <circle cx="11" cy="11" r="8"></circle>
-                              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                            </svg>
-                            <input type="text" id="search-followers" placeholder="search">
-                          </div>
-                          <textarea id="input-followers" placeholder="enter usernames"></textarea>
-
-                          <div class="card-actions" id="actions-followers">
-                            <button id="clear-followers" class="btn btn-secondary btn-sm">clear</button>
-                          </div>
-                        </div>
-                      </section>
-
-                    </main>
-                  </section>
-
-
                 </div>
 
               </div>
@@ -553,7 +380,170 @@
       </div>
     </header>
 
+    <!-- Main Grid Layout (Live Working App) -->
+    <main class="app-grid" style="margin-top: 0;">
+      
+      <!-- Temporary Account Requirement Warning -->
+      <div id="import-account-warning" class="import-account-warning">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>to import lists you need to have an account</span>
+      </div>
 
+      <!-- List 3: Unfollowers (Results) -->
+      <section class="card glass results-card highlighted-card" id="card-unfollowers">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-num">3</span>
+            <h2>unfollowers</h2>
+          </div>
+          <span class="badge result-badge" id="unfollowers-count">0 found</span>
+        </div>
+        <div class="card-body">
+          <div class="results-controls">
+            <div class="search-row">
+              <div class="search-box">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="search-unfollowers" placeholder="search">
+              </div>
+              
+              <div class="auto-open-wrapper" title="auto-open next username when returning to this page">
+                <label class="switch">
+                  <input type="checkbox" id="auto-open-toggle">
+                  <span class="slider"></span>
+                </label>
+                <span id="auto-open-label">auto</span>
+              </div>
+
+              <button id="btn-instructions-info" class="preview-toggle btn-sm" title="instructions" style="width: 32px; height: 32px; min-width: 32px; padding: 0; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px;">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+              </button>
+            </div>
+
+            <div class="results-dropdowns-group">
+              <div class="dropdown-wrapper">
+                <button class="preview-toggle btn-sm" id="toggle-preview-unfollowed" disabled>
+                  <span class="btn-label-content"><span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span></span>
+                  <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+                <div class="parsed-list dropdown-menu" id="list-unfollowed"></div>
+              </div>
+
+              <div class="dropdown-wrapper">
+                <button class="preview-toggle btn-sm" id="toggle-preview-starred" disabled>
+                  <span class="btn-label-content"><span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span></span>
+                  <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+                <div class="parsed-list dropdown-menu" id="list-starred"></div>
+              </div>
+
+              <div class="dropdown-wrapper import-button-row">
+                <input type="file" id="import-files-input" multiple accept=".html,.txt" class="hidden">
+                <input type="file" id="import-folder-input" webkitdirectory directory multiple class="hidden">
+                <button id="btn-add-account" class="preview-toggle btn-sm" title="Import files" style="width: 100%; justify-content: center; gap: 6px;">
+                  <span>Import files</span>
+                  <svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+                <div class="dropdown-menu" id="add-account-dropdown-menu" style="min-width: 150px; padding: 4px 0;">
+                  <button id="btn-upload-files" class="dropdown-item-btn" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; font-size: 0.8rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                    <span>upload files</span>
+                  </button>
+                  <button id="btn-upload-folder" class="dropdown-item-btn" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; font-size: 0.8rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                    <span>upload folder</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="account-mgmt-row" id="account-mgmt-row">
+              <div class="account-chips-list" id="account-chips-list"></div>
+            </div>
+          </div>
+
+          <div class="results-layout-wrapper">
+            <div class="results-container">
+              <div class="empty-state hidden" id="unfollowers-empty-state"></div>
+              <div class="results-list hidden" id="list-unfollowers"></div>
+            </div>
+
+            <div class="keyboard-hints" id="keyboard-hints" style="margin-top: 12px; margin-bottom: 0;">
+              <span><kbd>↑</kbd> <kbd>↓</kbd> select</span>
+              <span><kbd>enter</kbd> open</span>
+              <span><kbd>/</kbd> search</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- List 1: Following -->
+      <section class="card glass" id="card-following">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-num">2</span>
+            <h2>following</h2>
+          </div>
+          <span class="badge count-badge" id="following-count">0 loaded</span>
+        </div>
+        <div class="card-body">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="search-following" placeholder="search">
+          </div>
+          <textarea id="input-following" placeholder="enter usernames"></textarea>
+          
+          <div class="card-actions" id="actions-following">
+            <button id="clear-following" class="btn btn-secondary btn-sm">clear</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- List 2: Followers -->
+      <section class="card glass" id="card-followers">
+        <div class="card-header">
+          <div class="card-title-group">
+            <span class="card-num">1</span>
+            <h2>followers</h2>
+          </div>
+          <span class="badge count-badge" id="followers-count">0 loaded</span>
+        </div>
+        <div class="card-body">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="search-followers" placeholder="search">
+          </div>
+          <textarea id="input-followers" placeholder="enter usernames"></textarea>
+
+          <div class="card-actions" id="actions-followers">
+            <button id="clear-followers" class="btn btn-secondary btn-sm">clear</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
 
   </div>
 
