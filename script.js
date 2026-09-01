@@ -2761,6 +2761,7 @@ function initAuth() {
 
       if (session) {
         currentUser = session.user;
+        document.documentElement.classList.add('is-logged-in');
         elements.userBadge.classList.remove('hidden');
         elements.authUserEmail.textContent = currentUser.email;
 
@@ -2817,6 +2818,7 @@ function initAuth() {
               elements.authFormView.classList.add('smooth-exit');
             }
             setTimeout(() => {
+              document.documentElement.classList.add('is-logged-in');
               document.body.classList.remove('auth-logged-out');
               relocateAppGridForAuthState(true);
               if (elements.authDropdown) {
@@ -2829,6 +2831,7 @@ function initAuth() {
               showProfileView();
             }, 750);
           } else {
+            document.documentElement.classList.add('is-logged-in');
             document.body.classList.remove('auth-logged-out');
             relocateAppGridForAuthState(true);
             if (elements.authDropdown) {
@@ -2853,6 +2856,7 @@ function initAuth() {
         }
       } else {
         currentUser = null;
+        document.documentElement.classList.remove('is-logged-in');
         document.body.classList.add('auth-logged-out');
         relocateAppGridForAuthState(false);
         elements.authDropdown.classList.add('show');

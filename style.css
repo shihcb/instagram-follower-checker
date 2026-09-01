@@ -3056,6 +3056,59 @@ body:not(.auth-logged-out) #import-account-warning {
 /* -------------------------------------------------------------
  * Landing Page Layout & Component Styling (Logged Out State)
  * ------------------------------------------------------------- */
+/* Zero-flicker overrides for authenticated session on initial frame render */
+html.is-logged-in body.auth-logged-out {
+  overflow: auto !important;
+}
+
+html.is-logged-in body.auth-logged-out .app-header {
+  border-bottom: 1px solid var(--card-border) !important;
+  background: var(--nav-bg) !important;
+}
+
+html.is-logged-in body.auth-logged-out .app-header h1 {
+  display: block !important;
+}
+
+html.is-logged-in body.auth-logged-out .auth-dropdown {
+  position: absolute !important;
+  top: 100% !important;
+  right: 0 !important;
+  left: auto !important;
+  bottom: auto !important;
+  width: 320px !important;
+  height: auto !important;
+  max-width: calc(100vw - 32px) !important;
+  z-index: 1000 !important;
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  overflow-y: visible !important;
+  background: var(--card-bg) !important;
+}
+
+html.is-logged-in body.auth-logged-out .auth-dropdown.show {
+  display: flex !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+html.is-logged-in #landing-page-container {
+  display: none !important;
+}
+
+html.is-logged-in #auth-form-view {
+  display: none !important;
+}
+
+html.is-logged-in #auth-profile-view {
+  display: block !important;
+}
+
+html.is-logged-in .user-badge {
+  display: inline-flex !important;
+}
+
 body:not(.auth-logged-out) #landing-page-container {
   display: none !important;
 }

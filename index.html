@@ -29,7 +29,7 @@
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" id="theme-color-meta" content="#09090b">
   
-  <!-- Inline theme check and preload setup to prevent FOUC and reload transition flashing -->
+  <!-- Inline theme & auth check to prevent FOUC, landing/settings reload flicker -->
   <script>
     (function() {
       document.documentElement.classList.add('preload');
@@ -38,9 +38,27 @@
       const theme = savedTheme || (prefersDark ? 'dark' : 'light');
       document.documentElement.setAttribute('data-theme', theme);
       document.querySelector('meta[name="color-scheme"]').setAttribute('content', theme === 'dark' ? 'dark' : 'light');
-            if (localStorage.getItem('show_keyboard') === 'false') {
+      if (localStorage.getItem('show_keyboard') === 'false') {
         document.documentElement.classList.add('hide-shortcuts');
       }
+
+      // Synchronously check for active auth session in localStorage before frame 1 paint
+      try {
+        var hasAuth = false;
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          if (k && (k.indexOf('sb-') === 0 || k.indexOf('auth-token') !== -1 || k.indexOf('supabase') !== -1)) {
+            var val = localStorage.getItem(k);
+            if (val && (val.indexOf('access_token') !== -1 || val.indexOf('user') !== -1)) {
+              hasAuth = true;
+              break;
+            }
+          }
+        }
+        if (hasAuth) {
+          document.documentElement.classList.add('is-logged-in');
+        }
+      } catch(e) {}
 
       window.addEventListener('DOMContentLoaded', function() {
         requestAnimationFrame(function() {
@@ -62,6 +80,11 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="auth-logged-out">
+  <script>
+    if (document.documentElement.classList.contains('is-logged-in')) {
+      document.body.classList.remove('auth-logged-out');
+    }
+  </script>
   <!-- Decorative background elements -->
   <div class="bg-glow bg-glow-1"></div>
   <div class="bg-glow bg-glow-2"></div>
