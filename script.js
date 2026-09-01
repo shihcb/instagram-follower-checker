@@ -2708,9 +2708,12 @@ function applyGuestPreviewLock(isLoggedIn) {
     updateListUI('following');
     updateListUI('followers');
     calculateUnfollowers();
+    renderAccountChips(false);
     return;
   }
 
+  state.instagramAccounts = [{ username: GUEST_PREVIEW_USERNAME, originalUsername: GUEST_PREVIEW_USERNAME }];
+  state.selectedAccountUsername = GUEST_PREVIEW_USERNAME;
   elements.inputFollowing.value = `@${GUEST_PREVIEW_USERNAME}`;
   elements.inputFollowers.value = '';
   state.following = deduplicateEntries(parseInput(elements.inputFollowing.value));
@@ -2718,6 +2721,7 @@ function applyGuestPreviewLock(isLoggedIn) {
   updateListUI('following');
   updateListUI('followers');
   calculateUnfollowers();
+  renderAccountChips(false);
 
   // Hide the clear button entirely while logged out (updateListUI shows it
   // whenever the textarea has content, which the demo username always does)

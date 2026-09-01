@@ -2930,9 +2930,7 @@ body.auth-logged-out .row-shortcut-key {
   display: none !important;
 }
 
-body.auth-logged-out #account-mgmt-row {
-  display: none !important;
-}
+
 
 /* Scale the avatar/username down proportionally to match how small they
    look relative to the card at full (logged-in) size */
