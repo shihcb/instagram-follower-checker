@@ -2705,6 +2705,9 @@ function applyGuestPreviewLock(isLoggedIn) {
     state.followers = [];
     elements.inputFollowing.value = '';
     elements.inputFollowers.value = '';
+    updateListUI('following');
+    updateListUI('followers');
+    calculateUnfollowers();
     return;
   }
 
@@ -2793,11 +2796,12 @@ function initAuth() {
         // Fetch cloud data and merge/sync
         await pullFromCloud();
 
-        // Load saved Following/Followers lists if present in localStorage
+        // Load saved Following/Followers lists if present in localStorage (filtering out guest preview entries)
         const savedFollowing = localStorage.getItem('following_users');
         const savedFollowers = localStorage.getItem('followers_users');
         if (savedFollowing) {
-          state.following = JSON.parse(savedFollowing);
+          const parsed = JSON.parse(savedFollowing).filter(u => u.username !== GUEST_PREVIEW_USERNAME);
+          state.following = parsed;
           elements.inputFollowing.value = state.following.map(user => `@${user.originalUsername}`).join('\n');
           updateListUI('following');
         }
