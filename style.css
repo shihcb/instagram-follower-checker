@@ -2939,7 +2939,8 @@ body.auth-logged-out .header-logo h1 {
 }
 
 body.auth-logged-out #card-following,
-body.auth-logged-out #card-followers {
+body.auth-logged-out #card-followers,
+body.auth-logged-out #card-unfollowers {
   height: 320px;
 }
 
