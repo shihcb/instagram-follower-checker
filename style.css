@@ -1232,7 +1232,9 @@ button:disabled *,
               border-color 0.8s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-.keyboard-hints.hidden-hints {
+.keyboard-hints.hidden-hints,
+html.hide-shortcuts #keyboard-hints,
+body.hide-shortcuts #keyboard-hints {
   max-height: 0 !important;
   opacity: 0 !important;
   transform: translateY(12px) scale(0.96) !important;
@@ -2186,18 +2188,25 @@ button:disabled *,
   }
 }
 
-/* Hide all keyboard shortcut badges and hints when shortcut setting is disabled */
+/* Hide all keyboard shortcut badges and hints with smooth transition when shortcut setting is disabled */
+.row-shortcut-key,
+.account-chip-badge,
+.shortcut-hint {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .hide-shortcuts .row-shortcut-key,
 .hide-shortcuts .account-chip-badge,
-.hide-shortcuts #keyboard-hints,
 .hide-shortcuts .shortcut-hint,
 html.hide-shortcuts .row-shortcut-key,
 html.hide-shortcuts .account-chip-badge,
-html.hide-shortcuts #keyboard-hints,
 html.hide-shortcuts .shortcut-hint {
-  display: none !important;
-  visibility: hidden !important;
   opacity: 0 !important;
+  transform: scale(0.8) !important;
+  pointer-events: none !important;
 }
 
 .instructions-modal-footer {
