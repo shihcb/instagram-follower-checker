@@ -556,6 +556,9 @@ button:disabled *,
   display: flex;
   align-items: center;
   justify-content: center;
+  line-height: 1;
+  padding-top: 1px;
+  box-sizing: border-box;
   color: var(--text-muted);
 }
 
@@ -588,8 +591,12 @@ button:disabled *,
 .badge {
   font-size: 0.75rem;
   font-weight: 700;
-  padding: 4px 10px;
+  padding: 3px 10px 5px 10px;
   border-radius: 99px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .card-body {
@@ -2947,6 +2954,10 @@ body.auth-logged-out #card-unfollowers {
 }
 
 body.auth-logged-out .keyboard-hints {
+  display: none !important;
+}
+
+body.auth-logged-out .row-shortcut-key {
   display: none !important;
 }
 
