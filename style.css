@@ -68,8 +68,8 @@ html, body {
 
   /* Light Theme variables (Fallback / Active under light mode) */
   --logo-color: #000000;
-  --bg-color: #fafafa;
-  --bg-gradient: linear-gradient(185deg, #ffffff 0%, #f4f4f5 100%);
+  --bg-color: #ffffff;
+  --bg-gradient: none;
   --card-bg: rgba(255, 255, 255, 0.8);
   --card-border: rgba(9, 9, 11, 0.08);
   --card-shadow: 0 10px 30px -10px rgba(9, 9, 11, 0.05), 
@@ -87,7 +87,7 @@ html, body {
   --btn-secondary-hover: #e5e7eb;
   --btn-secondary-border: #d1d5db;
   
-  --glow-opacity: 0.08;
+  --glow-opacity: 0;
   --glass-blur: 16px;
   
   --success-color: #10b981;
@@ -107,7 +107,7 @@ html, body {
   --grad-3: #3f3f46; /* Medium gray */
   --logo-color: #ffffff;
   --bg-color: #09090b;
-  --bg-gradient: linear-gradient(185deg, #09090b 0%, #18181b 100%);
+  --bg-gradient: none;
   --card-bg: rgba(24, 24, 27, 0.65);
   --card-border: rgba(255, 255, 255, 0.08);
   --card-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 
@@ -173,8 +173,8 @@ body {
   font-size: 1rem !important;
   font-family: var(--font-sans) !important;
   background-color: var(--bg-color) !important;
-  background-image: var(--bg-gradient);
-  background-attachment: fixed;
+  background: var(--bg-color) !important;
+  background-image: none !important;
   color: var(--text-main);
   min-height: 100vh;
   position: relative;
@@ -208,30 +208,10 @@ html, body, div, textarea, section, main, article, aside, ul, li {
 }
 
 /* -------------------------------------------------------------
- * Ambient Decorative Glows
+ * Ambient Decorative Glows (Disabled for pure solid color background)
  * ------------------------------------------------------------- */
 .bg-glow {
-  position: fixed;
-  width: 600px;
-  height: 600px;
-  border-radius: 50%;
-  filter: blur(140px);
-  pointer-events: none;
-  z-index: 0;
-  opacity: var(--glow-opacity);
-  transition: opacity 0.5s ease;
-}
-
-.bg-glow-1 {
-  background: radial-gradient(circle, var(--grad-3) 0%, transparent 70%);
-  top: -200px;
-  right: -100px;
-}
-
-.bg-glow-2 {
-  background: radial-gradient(circle, var(--grad-1) 0%, transparent 70%);
-  bottom: -200px;
-  left: -200px;
+  display: none !important;
 }
 
 /* -------------------------------------------------------------
