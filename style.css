@@ -4243,6 +4243,16 @@ body.auth-logged-out .auth-dropdown.fade-out-bounce {
   animation: auth-overlay-fade-out 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
 
+/* Smooth, slow fade out animation for main app grid on logout */
+.app-grid-logout-fade {
+  opacity: 0 !important;
+  transform: translateY(16px) scale(0.97) !important;
+  filter: blur(4px) !important;
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
 /* Smooth reverse entrance exit for login card (mirrors entrance) */
 #auth-form-view.smooth-exit,
 body.auth-logged-out #auth-form-view.smooth-exit {

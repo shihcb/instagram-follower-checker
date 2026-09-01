@@ -3109,21 +3109,34 @@ function initAuth() {
     });
   }
 
-  // Handle Log Out
+  // Handle Log Out with smooth slow fade-out of the main app grid
   elements.btnLogout.addEventListener('click', async (e) => {
     e.preventDefault();
     e.stopPropagation();
     if (document.activeElement && typeof document.activeElement.blur === 'function') {
       document.activeElement.blur();
     }
-    if (supabaseClient) {
-      elements.authDropdown.classList.remove('show');
-      try {
-        await supabaseClient.auth.signOut();
-      } catch (err) {
-        console.error('Error signing out:', err);
-      }
+    
+    const appGrid = document.querySelector('.app-grid');
+    if (appGrid) {
+      appGrid.classList.add('app-grid-logout-fade');
     }
+    if (elements.authDropdown) {
+      elements.authDropdown.classList.remove('show');
+    }
+
+    setTimeout(async () => {
+      if (supabaseClient) {
+        try {
+          await supabaseClient.auth.signOut();
+        } catch (err) {
+          console.error('Error signing out:', err);
+        }
+      }
+      if (appGrid) {
+        appGrid.classList.remove('app-grid-logout-fade');
+      }
+    }, 700);
   });
 
   // Handle Import Files Selection
