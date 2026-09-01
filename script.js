@@ -2942,11 +2942,22 @@ function initAuth() {
   // Wire up auth layout UI tab triggers with a smooth cross-fade transition
   function switchTab(signup) {
     if (isSigningUp === signup) return;
-    
+
+    // Lock the card at its current height so the login<->signup content
+    // swap (which changes height, e.g. the forgot-password link) doesn't
+    // just snap - it slides smoothly to its new size instead.
+    const card = elements.authFormView;
+    const startHeight = card ? card.getBoundingClientRect().height : null;
+    if (card && startHeight) {
+      card.style.transition = '';
+      card.style.height = startHeight + 'px';
+      card.style.overflow = 'hidden';
+    }
+
     // Add fade-out state
     elements.authForm.style.opacity = '0';
     elements.authForm.style.transform = 'translateY(6px)';
-    
+
     setTimeout(() => {
       isSigningUp = signup;
       if (signup) {
@@ -2961,10 +2972,29 @@ function initAuth() {
         if (elements.btnForgotPassword) elements.btnForgotPassword.classList.remove('hidden');
       }
       clearAuthAlerts();
-      
+
       // Fade back in
       elements.authForm.style.opacity = '1';
       elements.authForm.style.transform = 'translateY(0)';
+
+      // Measure the new natural height, then animate from the locked
+      // start height to it (a slow, deliberate slide).
+      if (card && startHeight) {
+        card.style.height = 'auto';
+        const endHeight = card.getBoundingClientRect().height;
+        card.style.height = startHeight + 'px';
+        void card.offsetHeight; // force reflow so the transition triggers
+        card.style.transition = 'height 0.55s cubic-bezier(0.65, 0, 0.35, 1)';
+        card.style.height = endHeight + 'px';
+
+        card.addEventListener('transitionend', function onCardResized(e) {
+          if (e.propertyName !== 'height') return;
+          card.removeEventListener('transitionend', onCardResized);
+          card.style.height = '';
+          card.style.overflow = '';
+          card.style.transition = '';
+        });
+      }
     }, 150);
   }
 
