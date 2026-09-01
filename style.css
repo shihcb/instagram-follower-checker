@@ -895,21 +895,25 @@ button:disabled *,
 
 .results-dropdowns-group {
   display: flex;
-  flex-wrap: wrap;
-  row-gap: 8px;
   gap: 8px;
   position: relative;
   width: 100%;
 }
 
-/* Give the Import files control a protected minimum size so unfollowed/
-   starred (fixed-width) never squeeze it into overflowing its own text -
-   if there truly isn't room, it wraps onto its own line instead.
-   (!important needed: the element also carries an inline style with
-   flex:1 / min-width:0, which otherwise wins over this rule.) */
-.import-button-row {
-  flex: 1 1 155px !important;
-  min-width: 155px !important;
+/* unfollowed / starred / Import files share the row proportionally instead
+   of using fixed pixel widths, so all three always fit on one line
+   together regardless of how wide their labels render. */
+.results-dropdowns-group .dropdown-wrapper {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Import files has no text-abbreviation fallback (unlike unfollowed/
+   starred), so protect its real content width at the narrowest edge.
+   (Matches the specificity of the .dropdown-wrapper rule above, which
+   otherwise wins and keeps this at min-width:0.) */
+.results-dropdowns-group .import-button-row {
+  min-width: 116px;
 }
 
 .dropdown-menu {
@@ -996,13 +1000,9 @@ button:disabled *,
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-#toggle-preview-unfollowed {
-  width: 125px;
-  justify-content: space-between;
-}
-
+#toggle-preview-unfollowed,
 #toggle-preview-starred {
-  width: 100px;
+  width: 100%;
   justify-content: space-between;
 }
 
