@@ -2952,7 +2952,49 @@ body.auth-logged-out #account-mgmt-row {
   display: none !important;
 }
 
+/* Scale the avatar/username down proportionally to match how small they
+   look relative to the card at full (logged-in) size */
+body.auth-logged-out .user-avatar {
+  width: 28px !important;
+  height: 28px !important;
+  font-size: 0.7rem !important;
+}
+
+body.auth-logged-out .user-info {
+  gap: 8px !important;
+}
+
+body.auth-logged-out .user-link {
+  font-size: 0.8rem !important;
+}
+
+body.auth-logged-out .user-row {
+  padding: 8px 10px !important;
+}
+
+/* The warning's -48px absolute offset expects a taller header above it;
+   our shortened "preview" header no longer reserves that much space, so on
+   desktop it overlapped the header text. .app-grid is a row-flex container
+   on desktop (unlike mobile's column layout, where making the warning
+   in-flow just works), so give the warning its own full-width flex line
+   instead of trying to re-tune the old top/margin offset pairing. */
+body.auth-logged-out .app-grid {
+  margin-top: 0 !important;
+}
+
 @media (min-width: 1025px) {
+  body.auth-logged-out .app-grid {
+    flex-wrap: wrap !important;
+  }
+  body.auth-logged-out .import-account-warning {
+    position: relative !important;
+    top: 0 !important;
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    margin-bottom: 8px;
+  }
+
+  /* Match the mobile stacked button layout for the preview */
   body.auth-logged-out .preview-toggle span.btn-text-full {
     display: inline !important;
   }
@@ -2960,20 +3002,19 @@ body.auth-logged-out #account-mgmt-row {
   body.auth-logged-out .preview-toggle span.btn-text-compact {
     display: none !important;
   }
+  body.auth-logged-out .results-dropdowns-group {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
   body.auth-logged-out #toggle-preview-unfollowed,
   body.auth-logged-out #toggle-preview-starred {
-    width: auto !important;
+    width: 100% !important;
     min-width: 0 !important;
-    padding: 0 10px !important;
-    font-size: 0.72rem !important;
-    flex-shrink: 0;
-  }
-  body.auth-logged-out .results-dropdowns-group {
-    flex-wrap: wrap;
-    row-gap: 8px;
+    padding: 0 12px !important;
+    font-size: 0.74rem !important;
   }
   body.auth-logged-out .import-button-row {
-    flex: 1 1 100% !important;
+    width: 100% !important;
   }
 }
 
