@@ -866,6 +866,21 @@ button:disabled *,
 .results-dropdowns-group .dropdown-wrapper {
   flex: 1 1 0;
   min-width: 0;
+  position: relative !important;
+}
+
+.dropdown-wrapper {
+  position: relative !important;
+}
+
+.dropdown-wrapper .dropdown-menu,
+.dropdown-wrapper .parsed-list {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  left: 0 !important;
+  right: 0 !important;
+  box-sizing: border-box !important;
 }
 
 /* Import files has no text-abbreviation fallback (unlike unfollowed/
@@ -879,7 +894,7 @@ button:disabled *,
 .dropdown-menu {
   position: absolute;
   top: calc(100% + 8px);
-  width: 280px;
+  width: 100%;
   max-height: 380px;
   overflow-y: auto;
   margin-top: 0 !important;
@@ -892,6 +907,7 @@ button:disabled *,
   display: flex;
   flex-direction: column;
   gap: 6px;
+  box-sizing: border-box !important;
   
   /* GPU Accelerated Smooth Animation */
   opacity: 0;
@@ -2963,6 +2979,10 @@ body.auth-logged-out .app-grid {
     flex-direction: column !important;
     gap: 8px !important;
   }
+  body.auth-logged-out .results-dropdowns-group .dropdown-wrapper {
+    width: 100% !important;
+    position: relative !important;
+  }
   body.auth-logged-out #toggle-preview-unfollowed,
   body.auth-logged-out #toggle-preview-starred {
     width: 100% !important;
@@ -2972,6 +2992,15 @@ body.auth-logged-out .app-grid {
   }
   body.auth-logged-out .import-button-row {
     width: 100% !important;
+  }
+  body.auth-logged-out .parsed-list.dropdown-menu,
+  body.auth-logged-out .dropdown-menu {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+    box-sizing: border-box !important;
   }
 
   /* Slightly taller preview cards on desktop, with the avatar/username
