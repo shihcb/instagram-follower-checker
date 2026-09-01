@@ -14,7 +14,19 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 let supabaseClient = null;
 if (SUPABASE_URL && SUPABASE_ANON_KEY) {
   try {
-    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        // Keep the user signed in indefinitely across reloads/restarts:
+        // persist the session to localStorage and silently refresh the
+        // access token in the background for as long as the refresh
+        // token remains valid (Supabase refresh tokens don't expire from
+        // inactivity by default), instead of relying on implicit defaults.
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storage: window.localStorage,
+      },
+    });
   } catch (err) {
     console.error('Failed to initialize Supabase client:', err);
   }
@@ -2966,6 +2978,10 @@ function initAuth() {
   if (landingCtaBtn) {
     landingCtaBtn.addEventListener('click', (e) => {
       e.preventDefault();
+      const authFormCard = document.getElementById('auth-form-card');
+      if (authFormCard) {
+        authFormCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       if (elements.authEmail) {
         elements.authEmail.focus({ preventScroll: true });
       }

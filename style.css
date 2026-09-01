@@ -2775,7 +2775,7 @@ html.hide-shortcuts .shortcut-hint {
     padding-top: 12px !important;
     padding-left: 14px !important;
     padding-right: 14px !important;
-    padding-bottom: 16px !important;
+    padding-bottom: max(48px, calc(24px + env(safe-area-inset-bottom, 0px))) !important;
     gap: 10px !important;
   }
   .app-header {
@@ -3080,6 +3080,7 @@ body.auth-logged-out .auth-dropdown {
   padding: 0 !important;
   display: block !important;
   overflow-y: auto !important;
+  overflow-x: hidden !important;
   -webkit-overflow-scrolling: touch;
   z-index: 99999 !important;
   background: var(--bg-color) !important;
@@ -3141,7 +3142,13 @@ body.auth-logged-out #auth-form-view {
   color: var(--text-main);
   background: var(--bg-gradient);
   position: relative;
-  overflow-x: hidden;
+  /* No overflow-x/y here: the CSS overflow spec forces overflow-y to
+     "auto" whenever overflow-x is non-visible and overflow-y isn't equal
+     to it, which would make this its own scroll container and break
+     .landing-header's position:sticky (which needs to stick relative to
+     .auth-dropdown, the real scroller, not this element). Horizontal
+     clipping is instead handled by overflow-x:hidden on .auth-dropdown
+     itself. */
 }
 
 /* Landing Header */
