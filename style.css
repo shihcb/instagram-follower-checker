@@ -2934,8 +2934,13 @@ body.auth-logged-out .app-header {
   -webkit-backdrop-filter: none !important;
 }
 
-body.auth-logged-out .app-header h1 {
+body.auth-logged-out .header-logo h1 {
   display: none !important;
+}
+
+body.auth-logged-out #card-following,
+body.auth-logged-out #card-followers {
+  height: 320px;
 }
 
 body.auth-logged-out .app-grid {

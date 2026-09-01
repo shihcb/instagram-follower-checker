@@ -2677,6 +2677,7 @@ function applyGuestPreviewLock(isLoggedIn) {
   elements.inputFollowers.readOnly = !isLoggedIn;
   if (elements.clearFollowing) elements.clearFollowing.disabled = !isLoggedIn;
   if (elements.clearFollowers) elements.clearFollowers.disabled = !isLoggedIn;
+  if (elements.btnAddAccount) elements.btnAddAccount.disabled = !isLoggedIn;
 
   if (isLoggedIn) {
     state.following = [];
