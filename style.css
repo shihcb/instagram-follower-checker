@@ -1020,7 +1020,7 @@ button:disabled *,
   flex-shrink: 0 !important;
 }
 
-@container card-unfollowers (max-width: 350px) {
+@container card-unfollowers (max-width: 349px) {
   .preview-toggle span.btn-text-full {
     display: none !important;
   }
@@ -1057,41 +1057,12 @@ button:disabled *,
   }
 }
 
-@media (min-width: 1025px) and (max-width: 1350px) {
-  .preview-toggle span.btn-text-full {
-    display: none !important;
-  }
-  .preview-toggle span.btn-text-short {
-    display: inline !important;
-  }
-  .preview-toggle span.btn-text-compact {
-    display: none !important;
-  }
-  #toggle-preview-unfollowed,
-  #toggle-preview-starred {
-    width: auto !important;
-    min-width: 0 !important;
-    padding: 0 6px !important;
-  }
-}
-
-@media (min-width: 1025px) and (max-width: 1100px) {
-  .preview-toggle span.btn-text-full {
-    display: none !important;
-  }
-  .preview-toggle span.btn-text-short {
-    display: none !important;
-  }
-  .preview-toggle span.btn-text-compact {
-    display: inline !important;
-  }
-  #toggle-preview-unfollowed,
-  #toggle-preview-starred {
-    width: auto !important;
-    min-width: 0 !important;
-    padding: 0 4px !important;
-  }
-}
+/* Text-abbreviation for these two buttons at desktop widths is handled
+   entirely by the @container queries below (based on the card's own
+   rendered width, which is what actually constrains them) - the
+   viewport-width media queries that used to duplicate this were
+   inconsistent with the container queries and could force abbreviated
+   text even when the card had plenty of room. */
 
 @media (max-width: 1024px) {
   .preview-toggle span.btn-text-full {
