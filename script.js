@@ -2953,10 +2953,12 @@ function initAuth() {
         elements.tabLogin.classList.remove('active');
         elements.tabSignup.classList.add('active');
         elements.authSubmitBtn.textContent = 'sign up';
+        if (elements.btnForgotPassword) elements.btnForgotPassword.classList.add('hidden');
       } else {
         elements.tabLogin.classList.add('active');
         elements.tabSignup.classList.remove('active');
         elements.authSubmitBtn.textContent = 'log in';
+        if (elements.btnForgotPassword) elements.btnForgotPassword.classList.remove('hidden');
       }
       clearAuthAlerts();
       
