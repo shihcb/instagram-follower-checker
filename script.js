@@ -1245,6 +1245,10 @@ function renderAccountChips(animate = false) {
   normalizeInstagramAccounts();
 
   const accounts = state.instagramAccounts || [];
+  const accountMgmtRow = document.getElementById('account-mgmt-row');
+  if (accountMgmtRow) {
+    accountMgmtRow.classList.toggle('empty-chips', accounts.length === 0);
+  }
   const existingChips = Array.from(elements.accountChipsList.querySelectorAll('.account-chip'));
   
   // Check if existing chips match current accounts list length and names
