@@ -3238,6 +3238,10 @@ body.auth-logged-out #auth-form-view {
   margin-bottom: 36px;
 }
 
+.landing-section-header.no-heading {
+  margin-bottom: 8px;
+}
+
 .landing-section-badge {
   display: inline-block;
   font-size: 0.75rem;
