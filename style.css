@@ -1003,7 +1003,7 @@ button:disabled *,
 #toggle-preview-unfollowed,
 #toggle-preview-starred {
   width: 100%;
-  justify-content: space-between;
+  justify-content: center;
 }
 
 /* Dynamic Responsive Button Label Spans */

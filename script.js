@@ -1941,10 +1941,14 @@ function updateInstructionsStepUI() {
     e.stopPropagation();
     const isShown = elements.listUnfollowed.classList.toggle('show');
     elements.togglePreviewUnfollowed.classList.toggle('active', isShown);
-    
+
     // Close starred dropdown if open
     elements.listStarred.classList.remove('show');
     elements.togglePreviewStarred.classList.remove('active');
+
+    // Close import files dropdown if open
+    if (elements.addAccountDropdownMenu) elements.addAccountDropdownMenu.classList.remove('show');
+    if (elements.btnAddAccount) elements.btnAddAccount.classList.remove('active');
   });
 
   // Toggle preview starred list dropdown
@@ -1952,10 +1956,14 @@ function updateInstructionsStepUI() {
     e.stopPropagation();
     const isShown = elements.listStarred.classList.toggle('show');
     elements.togglePreviewStarred.classList.toggle('active', isShown);
-    
+
     // Close unfollowed dropdown if open
     elements.listUnfollowed.classList.remove('show');
     elements.togglePreviewUnfollowed.classList.remove('active');
+
+    // Close import files dropdown if open
+    if (elements.addAccountDropdownMenu) elements.addAccountDropdownMenu.classList.remove('show');
+    if (elements.btnAddAccount) elements.btnAddAccount.classList.remove('active');
   });
 
   // Close dropdowns on outside clicks
