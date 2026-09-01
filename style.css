@@ -3004,13 +3004,19 @@ body.auth-logged-out .row-shortcut-key {
 
 
 body.auth-logged-out .results-controls {
-  gap: 6px !important;
+  gap: 8px !important;
 }
 
 body.auth-logged-out #account-mgmt-row {
   padding: 0 16px !important;
   margin-top: 0 !important;
   margin-bottom: 0 !important;
+}
+
+body.auth-logged-out #card-unfollowers .card-body,
+body.auth-logged-out .results-layout-wrapper {
+  gap: 8px !important;
+  margin-top: 0 !important;
 }
 
 /* Scale the avatar/username down proportionally to match how small they
