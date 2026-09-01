@@ -129,6 +129,7 @@ const elements = {
   authEmail: document.getElementById('auth-email'),
   authPassword: document.getElementById('auth-password'),
   authSubmitBtn: document.getElementById('btn-auth-submit'),
+  btnForgotPassword: document.getElementById('btn-forgot-password'),
   authErrorMsg: document.getElementById('auth-error-msg'),
   authSuccessMsg: document.getElementById('auth-success-msg'),
   authUserEmail: document.getElementById('auth-user-email'),
@@ -3049,6 +3050,29 @@ function initAuth() {
     elements.authSubmitBtn.removeAttribute('disabled');
     elements.authSubmitBtn.textContent = isSigningUp ? 'sign up' : 'log in';
   });
+
+  // Handle "forgot password?" click
+  if (elements.btnForgotPassword) {
+    elements.btnForgotPassword.addEventListener('click', async () => {
+      clearAuthAlerts();
+
+      const email = elements.authEmail.value.trim();
+      if (!email) {
+        showAuthError('enter your email address above first');
+        return;
+      }
+
+      elements.btnForgotPassword.setAttribute('disabled', 'true');
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
+      elements.btnForgotPassword.removeAttribute('disabled');
+
+      if (error) {
+        showAuthError(error.message);
+      } else {
+        showAuthSuccess('check your email for a password reset link');
+      }
+    });
+  }
 
   // Handle Log Out
   elements.btnLogout.addEventListener('click', async (e) => {

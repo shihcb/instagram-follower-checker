@@ -2798,6 +2798,9 @@ html.hide-shortcuts .shortcut-hint {
   .results-controls {
     flex-direction: column;
   }
+  .landing-body {
+    padding-bottom: max(48px, calc(24px + env(safe-area-inset-bottom, 0px))) !important;
+  }
 }
 
 /* Native Capacitor / Standalone iOS App safe area overrides */
@@ -3738,6 +3741,27 @@ body:not(.auth-logged-out) #theme-toggle {
   color: var(--success-color);
   font-size: 0.75rem;
   text-transform: lowercase;
+}
+
+.auth-forgot-link {
+  background: none;
+  border: none;
+  padding: 0;
+  align-self: flex-end;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-transform: lowercase;
+}
+
+.auth-forgot-link:hover {
+  color: var(--text-main);
+}
+
+.auth-forgot-link:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .auth-status-text {
