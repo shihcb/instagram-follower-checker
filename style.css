@@ -2169,7 +2169,8 @@ body.hide-shortcuts #keyboard-hints {
   border-radius: 4px;
   width: 18px;
   height: 18px;
-  display: none;
+  max-width: 24px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
@@ -2177,6 +2178,18 @@ body.hide-shortcuts #keyboard-hints {
   line-height: 1;
   user-select: none;
   -webkit-user-select: none;
+  opacity: 1;
+  transform: scale(1);
+  overflow: hidden;
+  white-space: nowrap;
+  box-sizing: border-box;
+  will-change: max-width, margin-right, opacity, transform, padding, border-color;
+  transition: max-width 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              margin-right 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              padding 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 @media (min-width: 601px) {
@@ -2222,7 +2235,6 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 /* Hide all keyboard shortcut badges and hints with smooth transition when shortcut setting is disabled */
-.row-shortcut-key,
 .shortcut-hint {
   opacity: 1;
   transform: scale(1);
@@ -2230,12 +2242,25 @@ body.hide-shortcuts #keyboard-hints {
               transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.hide-shortcuts .row-shortcut-key,
 .hide-shortcuts .shortcut-hint,
-html.hide-shortcuts .row-shortcut-key,
 html.hide-shortcuts .shortcut-hint {
   opacity: 0 !important;
   transform: scale(0.8) !important;
+  pointer-events: none !important;
+}
+
+.hide-shortcuts .row-shortcut-key,
+html.hide-shortcuts .row-shortcut-key,
+body.hide-shortcuts .row-shortcut-key {
+  max-width: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  border-left-width: 0 !important;
+  border-right-width: 0 !important;
+  border-color: transparent !important;
+  opacity: 0 !important;
+  transform: scale(0.7) !important;
   pointer-events: none !important;
 }
 
