@@ -610,29 +610,7 @@ button:disabled *,
 }
 
 .import-account-warning {
-  position: absolute;
-  top: -48px;
-  left: 0;
-  width: 100%;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 8px 16px;
-  border-radius: 12px;
-  background-color: rgba(251, 191, 36, 0.12);
-  border: 1px solid rgba(251, 191, 36, 0.3);
-  color: var(--text-main);
-  font-size: 0.85rem;
-  font-weight: 500;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  will-change: opacity, transform;
-  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  display: none !important;
 }
 
 .import-account-warning svg {
