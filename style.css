@@ -732,6 +732,10 @@ button:disabled *,
   border-color: var(--text-main);
 }
 
+.card-body textarea[readonly] {
+  cursor: not-allowed;
+}
+
 .card-body textarea::placeholder {
   color: var(--text-muted);
   font-family: inherit;

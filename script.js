@@ -2663,6 +2663,38 @@ let currentUser = null;
 let isSigningUp = false;
 let isInitialAuthCheck = true;
 
+// Username shown in the logged-out preview so visitors can see the checker
+// working without being able to test it with their own account.
+const GUEST_PREVIEW_USERNAME = 'shihcb';
+
+// Lock List 1 (followers) & List 2 (following) to a fixed demo username
+// while logged out, so guests can only preview the checker and must log in
+// to test it with their own account.
+function applyGuestPreviewLock(isLoggedIn) {
+  if (!elements.inputFollowing || !elements.inputFollowers) return;
+
+  elements.inputFollowing.readOnly = !isLoggedIn;
+  elements.inputFollowers.readOnly = !isLoggedIn;
+  if (elements.clearFollowing) elements.clearFollowing.disabled = !isLoggedIn;
+  if (elements.clearFollowers) elements.clearFollowers.disabled = !isLoggedIn;
+
+  if (isLoggedIn) {
+    state.following = [];
+    state.followers = [];
+    elements.inputFollowing.value = '';
+    elements.inputFollowers.value = '';
+    return;
+  }
+
+  elements.inputFollowing.value = `@${GUEST_PREVIEW_USERNAME}`;
+  elements.inputFollowers.value = '';
+  state.following = deduplicateEntries(parseInput(elements.inputFollowing.value));
+  state.followers = [];
+  updateListUI('following');
+  updateListUI('followers');
+  calculateUnfollowers();
+}
+
 // Physically relocate the live app grid so it isn't trapped inside
 // #landing-page-container (which is display:none once logged in).
 function relocateAppGridForAuthState(isLoggedIn) {
@@ -2677,6 +2709,10 @@ function relocateAppGridForAuthState(isLoggedIn) {
 }
 
 function initAuth() {
+  // Show the locked guest preview immediately, before the async session
+  // check resolves, so visitors never see blank/editable lists flash by.
+  applyGuestPreviewLock(false);
+
   if (!supabaseClient) {
     // Show configuration warning if URL/Anon key are empty
     if (elements.authConfigWarning) elements.authConfigWarning.classList.remove('hidden');
@@ -2717,6 +2753,9 @@ function initAuth() {
         if (isSameUser && !isInitialAuthCheck) {
           return;
         }
+
+        // Unlock List 1 & 2 from the guest demo now that a real account is active
+        applyGuestPreviewLock(true);
 
         // Fetch cloud data and merge/sync
         await pullFromCloud();
@@ -2854,12 +2893,14 @@ function initAuth() {
           
           setTimeout(() => {
             clearData();
+            applyGuestPreviewLock(false);
             // Reset inline styles so they don't interfere on next login
             if (chipsList) chipsList.removeAttribute('style');
             if (resultsList) resultsList.removeAttribute('style');
           }, fadeDuration + 50);
         } else {
           clearData();
+          applyGuestPreviewLock(false);
         }
       }
     } catch (err) {
