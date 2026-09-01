@@ -133,8 +133,15 @@ const elements = {
   btnInstructionsModalClose: document.getElementById('btn-instructions-modal-close'),
   btnInstructionsPrev: document.getElementById('btn-instructions-prev'),
   btnInstructionsNext: document.getElementById('btn-instructions-next'),
-  instructionsNavIndicator: document.getElementById('instructions-nav-indicator')
+  instructionsNavIndicator: document.getElementById('instructions-nav-indicator'),
+
+  appGrid: document.querySelector('.app-grid'),
+  appContainer: document.querySelector('.app-container')
 };
+
+// Original home of the live app grid inside the landing page's preview
+// section, so it can be moved back there when the user logs out.
+const appGridLandingHome = elements.appGrid ? elements.appGrid.parentElement : null;
 
 // -------------------------------------------------------------
 // Theme Management (Light/Dark)
@@ -2656,12 +2663,26 @@ let currentUser = null;
 let isSigningUp = false;
 let isInitialAuthCheck = true;
 
+// Physically relocate the live app grid so it isn't trapped inside
+// #landing-page-container (which is display:none once logged in).
+function relocateAppGridForAuthState(isLoggedIn) {
+  if (!elements.appGrid || !elements.appContainer || !appGridLandingHome) return;
+  if (isLoggedIn) {
+    if (elements.appGrid.parentElement !== elements.appContainer) {
+      elements.appContainer.appendChild(elements.appGrid);
+    }
+  } else if (elements.appGrid.parentElement !== appGridLandingHome) {
+    appGridLandingHome.appendChild(elements.appGrid);
+  }
+}
+
 function initAuth() {
   if (!supabaseClient) {
     // Show configuration warning if URL/Anon key are empty
     if (elements.authConfigWarning) elements.authConfigWarning.classList.remove('hidden');
     document.body.classList.add('auth-logged-out');
     if (elements.authDropdown) elements.authDropdown.classList.add('show');
+    relocateAppGridForAuthState(false);
     return;
   }
 
@@ -2729,6 +2750,7 @@ function initAuth() {
             }
             setTimeout(() => {
               document.body.classList.remove('auth-logged-out');
+              relocateAppGridForAuthState(true);
               if (elements.authDropdown) {
                 elements.authDropdown.classList.remove('show');
                 elements.authDropdown.classList.remove('fade-out-bounce');
@@ -2740,6 +2762,7 @@ function initAuth() {
             }, 750);
           } else {
             document.body.classList.remove('auth-logged-out');
+            relocateAppGridForAuthState(true);
             if (elements.authDropdown) {
               elements.authDropdown.classList.remove('show');
             }
@@ -2763,6 +2786,7 @@ function initAuth() {
       } else {
         currentUser = null;
         document.body.classList.add('auth-logged-out');
+        relocateAppGridForAuthState(false);
         elements.authDropdown.classList.add('show');
         elements.userBadge.classList.add('hidden');
 
