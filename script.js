@@ -2701,13 +2701,13 @@ function applyGuestPreviewLock(isLoggedIn) {
   if (elements.btnAddAccount) elements.btnAddAccount.disabled = !isLoggedIn;
 
   if (isLoggedIn) {
-    state.following = [];
-    state.followers = [];
-    elements.inputFollowing.value = '';
-    elements.inputFollowers.value = '';
-    updateListUI('following');
-    updateListUI('followers');
-    calculateUnfollowers();
+    const savedAccounts = localStorage.getItem('instagram_accounts');
+    if (savedAccounts) {
+      try {
+        const parsed = JSON.parse(savedAccounts).filter(acc => acc.originalUsername.toLowerCase() !== GUEST_PREVIEW_USERNAME.toLowerCase());
+        state.instagramAccounts = parsed;
+      } catch (e) {}
+    }
     renderAccountChips(false);
     return;
   }
