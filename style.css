@@ -1552,7 +1552,7 @@ body.hide-shortcuts #keyboard-hints {
   opacity: 0 !important;
   transform: translateY(-8px) scale(0.96) !important;
   margin-top: 0 !important;
-  margin-bottom: 0 !important;
+  margin-bottom: -6px !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
   pointer-events: none !important;
@@ -2394,7 +2394,8 @@ html.hide-shortcuts .account-chip-badge {
 .results-controls {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
+  transition: gap 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .search-row {
