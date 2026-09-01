@@ -3084,7 +3084,9 @@ html.is-logged-in .user-badge {
   display: inline-flex !important;
 }
 
-body:not(.auth-logged-out) #landing-page-container {
+body:not(.auth-logged-out) #landing-page-container,
+html.is-logged-in #landing-preview-section,
+body:not(.auth-logged-out) #landing-preview-section {
   display: none !important;
 }
 
