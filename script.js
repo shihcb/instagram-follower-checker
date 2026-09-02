@@ -1946,9 +1946,16 @@ function updateInstructionsStepUI() {
 
     saveCurrentAccountData();
 
-    // Slow slide-out: the row glides away first, then the gap it leaves closes smoothly.
-    userRow.classList.add('username-exit');
+    // Slow smooth fade-out: pin the row's real measured height as an inline
+    // max-height first (CSS can't transition max-height from its default
+    // "none"), force a reflow so the browser commits that as the starting
+    // point, then let the fade + height/margin/padding collapse animate
+    // together as one motion — the rows below glide up in sync instead of
+    // snapping once the DOM node is removed at the end.
+    const rowHeight = userRow.getBoundingClientRect().height;
+    userRow.style.maxHeight = `${rowHeight}px`;
     void userRow.offsetWidth;
+    userRow.classList.add('username-exit');
     setTimeout(() => {
       userRow.remove();
       state.unfollowers = state.unfollowers.filter(u => u.username !== username);
@@ -1958,7 +1965,7 @@ function updateInstructionsStepUI() {
       if (state.unfollowers.length === 0) {
         updateResultsUI();
       }
-    }, 700);
+    }, 800);
   });
 
   // Toggle preview unfollowed list dropdown
