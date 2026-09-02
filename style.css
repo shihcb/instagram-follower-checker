@@ -2481,6 +2481,11 @@ html.hide-shortcuts .account-chip-badge {
   .desktop-only {
     display: none !important;
   }
+  /* Number-key row shortcuts (press 1-0 to open a profile) only make sense with a
+     physical keyboard, so drop them entirely on mobile/tablet view. */
+  .row-shortcut-key {
+    display: none !important;
+  }
 }
 
 /* -------------------------------------------------------------
@@ -4399,6 +4404,40 @@ textarea {
   justify-content: space-between;
   font-size: 0.72rem;
   color: var(--text-muted);
+}
+
+/* Weekly List Reset Reminder box (mirrors the cloud storage box styling) */
+.reset-reminder-box {
+  margin-top: 4px;
+  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.4s ease;
+}
+
+[data-theme="light"] .reset-reminder-box {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.reset-reminder-box .storage-progress-fill {
+  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1), background 0.4s ease;
+}
+
+.reset-reminder-box.overdue {
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.reset-reminder-box.overdue .storage-value {
+  color: #ef4444;
+}
+
+.reset-reminder-box.overdue .storage-progress-fill {
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
 }
 
 /* Overlay simple slow fade out & blur exit */

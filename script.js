@@ -1118,6 +1118,10 @@ async function processImportFiles(files, isFolderUpload = false) {
         importedFollowers = true;
       }
     }
+
+    // Restart the weekly reset reminder from this fresh import.
+    recordImportDate(state.selectedAccountUsername);
+    saveCurrentAccountData();
   }
 
   if (validFilesToProcess.length === 0 && invalidFiles.length > 0) {
@@ -1219,6 +1223,7 @@ function loadAccountData(username, animate = false) {
   calculateUnfollowers();
   renderAccountChips(animate);
   updateStorageProgressBar();
+  updateResetReminderUI();
 }
 
 function selectAccount(username) {
@@ -3049,6 +3054,9 @@ function initAuth() {
       document.activeElement.blur();
     }
     elements.authDropdown.classList.toggle('show');
+    if (elements.authDropdown.classList.contains('show')) {
+      updateResetReminderUI();
+    }
   });
 
   // Close drop down on clicking outside
@@ -3324,6 +3332,8 @@ async function pullFromCloud() {
             if (itemData.followers) localStorage.setItem(`followers_users_${key}`, JSON.stringify(itemData.followers));
             if (itemData.unfollowed) localStorage.setItem(`unfollowed_users_${key}`, JSON.stringify(itemData.unfollowed));
             if (itemData.starred) localStorage.setItem(`starred_users_${key}`, JSON.stringify(itemData.starred));
+            // Restore the weekly reset reminder's anchor date so it reflects real elapsed time on login.
+            if (itemData.importDate) localStorage.setItem(`import_date_${key}`, itemData.importDate);
           });
         }
 
@@ -3402,8 +3412,9 @@ async function pushToCloud() {
       const followers = JSON.parse(localStorage.getItem(`followers_users_${key}`) || '[]');
       const unfollowed = JSON.parse(localStorage.getItem(`unfollowed_users_${key}`) || '[]');
       const starred = JSON.parse(localStorage.getItem(`starred_users_${key}`) || '[]');
+      const importDate = localStorage.getItem(`import_date_${key}`) || null;
 
-      accountDataMap[key] = { following, followers, unfollowed, starred };
+      accountDataMap[key] = { following, followers, unfollowed, starred, importDate };
 
       unfollowed.forEach(u => {
         const itemAcc = u.account || key;
@@ -3519,6 +3530,7 @@ function initSettings() {
   }
 
   applySettings();
+  updateResetReminderUI();
 
   if (elements.toggleShowKeyboard) {
     elements.toggleShowKeyboard.addEventListener('change', (e) => {
@@ -3544,6 +3556,68 @@ function applySettings() {
   // Clean up temporary early settings styles block
   const earlyStyle = document.getElementById('early-settings-style');
   if (earlyStyle) earlyStyle.remove();
+}
+
+// -------------------------------------------------------------
+// Weekly List Reset Reminder
+//
+// Anchored to wall-clock time (not a running session timer), so it keeps
+// counting down while the user is logged out and reflects the true elapsed
+// time whenever they next open the app. The import timestamp is stored per
+// Instagram account in localStorage and round-trips through Supabase's
+// `accounts_data` meta block (see pushToCloud/pullFromCloud), so it survives
+// logout and is restored exactly on the next login.
+// -------------------------------------------------------------
+const RESET_REMINDER_DAYS = 7;
+const RESET_REMINDER_MS = RESET_REMINDER_DAYS * 24 * 60 * 60 * 1000;
+
+function getImportDateKey(accountUsername) {
+  const acc = accountUsername ? accountUsername.toLowerCase() : '_global_';
+  return `import_date_${acc}`;
+}
+
+function recordImportDate(accountUsername) {
+  localStorage.setItem(getImportDateKey(accountUsername), String(Date.now()));
+  updateResetReminderUI();
+}
+
+function updateResetReminderUI() {
+  const box = document.getElementById('reset-reminder-box');
+  const valueEl = document.getElementById('reset-reminder-value');
+  const detailEl = document.getElementById('reset-reminder-detail');
+  const fillEl = document.getElementById('reset-reminder-progress-fill');
+  if (!box || !valueEl || !detailEl || !fillEl) return;
+
+  const importedAtRaw = localStorage.getItem(getImportDateKey(state.selectedAccountUsername));
+
+  if (!importedAtRaw) {
+    box.classList.remove('overdue');
+    valueEl.textContent = 'not started';
+    detailEl.textContent = 'import your files to start the weekly reminder';
+    fillEl.style.width = '0%';
+    return;
+  }
+
+  const importedAt = parseInt(importedAtRaw, 10);
+  const now = Date.now();
+  const remainingMs = (importedAt + RESET_REMINDER_MS) - now;
+  const importedDateText = new Date(importedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const dayMs = 24 * 60 * 60 * 1000;
+
+  if (remainingMs <= 0) {
+    const overdueDays = Math.floor(-remainingMs / dayMs);
+    box.classList.add('overdue');
+    valueEl.textContent = overdueDays > 0 ? `overdue by ${overdueDays}d` : 'overdue';
+    detailEl.textContent = `imported ${importedDateText} — time to reset your unfollowed & starred lists`;
+    fillEl.style.width = '100%';
+  } else {
+    box.classList.remove('overdue');
+    const remainingDays = Math.floor(remainingMs / dayMs);
+    const remainingHours = Math.floor((remainingMs % dayMs) / (60 * 60 * 1000));
+    valueEl.textContent = remainingDays > 0 ? `${remainingDays}d left` : `${remainingHours}h left`;
+    detailEl.textContent = `imported ${importedDateText} — reset lists in ${remainingDays > 0 ? remainingDays + 'd' : remainingHours + 'h'}`;
+    fillEl.style.width = `${Math.min(100, Math.max(0, ((now - importedAt) / RESET_REMINDER_MS) * 100))}%`;
+  }
 }
 
 // -------------------------------------------------------------
