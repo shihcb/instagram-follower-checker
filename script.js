@@ -1972,11 +1972,14 @@ function updateInstructionsStepUI() {
 
       exitListRow(userRow, () => {
         state.unfollowers = state.unfollowers.filter(u => u.username !== username);
+        state.selectedIndex = -1;
         elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
         updateStarredUI();
 
         if (state.unfollowers.length === 0) {
           updateResultsUI();
+        } else {
+          reindexUnfollowerRows();
         }
       });
       return;
@@ -1986,10 +1989,13 @@ function updateInstructionsStepUI() {
     if (actionDismiss) {
       exitListRow(userRow, () => {
         state.unfollowers = state.unfollowers.filter(u => u.username !== username);
+        state.selectedIndex = -1;
         elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
 
         if (state.unfollowers.length === 0) {
           updateResultsUI();
+        } else {
+          reindexUnfollowerRows();
         }
       });
       return;
@@ -1999,10 +2005,10 @@ function updateInstructionsStepUI() {
     if (!actionStar && !actionDismiss && !actionDelete) {
       if (state.selectedIndex === rowIndex) {
         state.selectedIndex = -1;
-        highlightRow(-1);
+        highlightRow(-1, { scroll: false });
       } else {
         state.selectedIndex = rowIndex;
-        highlightRow(rowIndex);
+        highlightRow(rowIndex, { scroll: false });
       }
     }
 
@@ -2032,11 +2038,14 @@ function updateInstructionsStepUI() {
 
     exitListRow(userRow, () => {
       state.unfollowers = state.unfollowers.filter(u => u.username !== username);
+      state.selectedIndex = -1;
       elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
       updateUnfollowedUI();
 
       if (state.unfollowers.length === 0) {
         updateResultsUI();
+      } else {
+        reindexUnfollowerRows();
       }
     });
   });
@@ -2673,13 +2682,36 @@ function updateInstructionsStepUI() {
     });
   }
 
-  function highlightRow(index) {
+  // A row leaving list 3 via exitListRow is removed as a single surgical
+  // DOM node (no full re-render), so every row after it keeps its old
+  // data-index attribute instead of shifting down to match its new visual
+  // position. The next click on one of those rows then reads that stale
+  // index, and highlightRow ends up outlining the wrong row (or none at
+  // all, if the stale index no longer exists). Call this right after
+  // filtering a removed user out of state.unfollowers to keep data-index in
+  // sync with what's actually still in the DOM.
+  function reindexUnfollowerRows() {
+    elements.listUnfollowers.querySelectorAll('.user-row').forEach((row, i) => {
+      row.setAttribute('data-index', i);
+    });
+  }
+
+  // scrollIntoView is only needed when selection moves via keyboard (the
+  // target row can be off-screen). A direct click already means the row is
+  // visible — scrolling it "into view" there was a smooth (i.e. slow,
+  // animated) scroll still in flight a moment after the click, so a fast
+  // next tap could land on whatever row had scrolled underneath it in the
+  // meantime instead of the one actually intended. Callers driven by a
+  // click pass { scroll: false } to skip that.
+  function highlightRow(index, { scroll = true } = {}) {
     const rows = elements.listUnfollowers.querySelectorAll('.user-row');
     let selectedFound = false;
     rows.forEach((row, i) => {
       if (i === index) {
         row.classList.add('selected');
-        row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        if (scroll) {
+          row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
         const username = row.getAttribute('data-username');
         if (username) {
           state.selectedUsername = username;
