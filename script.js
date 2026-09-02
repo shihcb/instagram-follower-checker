@@ -635,7 +635,7 @@ function updateUnfollowedUI() {
       <div class="dropdown-header-bar">
         ${listData.length} ${listData.length === 1 ? 'unfollowed account' : 'unfollowed accounts'}
       </div>
-      <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; width: 100%;">
+      <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; max-height: 320px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
           <div class="parsed-item" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
@@ -692,7 +692,7 @@ function updateStarredUI() {
       <div class="dropdown-header-bar">
         ${listData.length} ${listData.length === 1 ? 'starred account' : 'starred accounts'}
       </div>
-      <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; width: 100%;">
+      <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; max-height: 320px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
           <div class="parsed-item" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
@@ -1563,23 +1563,25 @@ function closeAllSubMenusAndPopups() {
   return closedSomething;
 }
 
-// Slow smooth dissolve for a username row leaving list 3 — shared by every
-// action that removes a row (clicking the row itself, starring, dismissing,
-// or the delete/unfollow button) so they all animate identically regardless
-// of which control triggered it, and regardless of login state (nothing
-// here depends on auth). Pins the row's real measured height as an inline
-// max-height first (CSS can't transition max-height from its default
-// "none"), forces a reflow so the browser commits that as the starting
-// point, then lets .username-exit's fade + collapse animate as one motion.
-// onComplete runs after the row is removed from the DOM, for the caller's
-// own state/UI updates.
-function exitUserRow(userRow, onComplete) {
-  const rowHeight = userRow.getBoundingClientRect().height;
-  userRow.style.maxHeight = `${rowHeight}px`;
-  void userRow.offsetWidth;
-  userRow.classList.add('username-exit');
+// Slow smooth dissolve for a username row leaving a list — shared by every
+// action that removes one, in list 3 itself (clicking the row, starring,
+// dismissing, deleting) and in the unfollowed/starred preview submenus
+// (unstarring, removing, moving between them), so they all animate
+// identically no matter which control triggered it or which list it's in,
+// and regardless of login state (nothing here depends on auth — same
+// behavior logged in or in the guest preview). Pins the row's real measured
+// height as an inline max-height first (CSS can't transition max-height
+// from its default "none"), forces a reflow so the browser commits that as
+// the starting point, then lets .username-exit's fade + collapse animate as
+// one motion. onComplete runs after the row is removed from the DOM, for
+// the caller's own state/UI updates.
+function exitListRow(rowEl, onComplete) {
+  const rowHeight = rowEl.getBoundingClientRect().height;
+  rowEl.style.maxHeight = `${rowHeight}px`;
+  void rowEl.offsetWidth;
+  rowEl.classList.add('username-exit');
   setTimeout(() => {
-    userRow.remove();
+    rowEl.remove();
     onComplete();
   }, 800);
 }
@@ -1901,7 +1903,7 @@ function updateInstructionsStepUI() {
         saveCurrentAccountData();
       }
 
-      exitUserRow(userRow, () => {
+      exitListRow(userRow, () => {
         state.unfollowers = state.unfollowers.filter(u => u.username !== username);
         elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
         updateStarredUI();
@@ -1915,7 +1917,7 @@ function updateInstructionsStepUI() {
 
     const actionDismiss = e.target.closest('.action-dismiss');
     if (actionDismiss) {
-      exitUserRow(userRow, () => {
+      exitListRow(userRow, () => {
         state.unfollowers = state.unfollowers.filter(u => u.username !== username);
         elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
 
@@ -1961,7 +1963,7 @@ function updateInstructionsStepUI() {
 
     saveCurrentAccountData();
 
-    exitUserRow(userRow, () => {
+    exitListRow(userRow, () => {
       state.unfollowers = state.unfollowers.filter(u => u.username !== username);
       elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
       updateUnfollowedUI();
@@ -2027,25 +2029,25 @@ function updateInstructionsStepUI() {
     e.stopPropagation();
     const unstarBtn = e.target.closest('.unstar-btn');
     const removeBtn = e.target.closest('.remove-unfollowed-btn');
-    
+
     if (unstarBtn || removeBtn) {
       const targetBtn = unstarBtn || removeBtn;
       const username = targetBtn.getAttribute('data-username');
       const itemEl = targetBtn.closest('.parsed-item');
-      if (itemEl) itemEl.classList.add('removing');
+      if (!itemEl) return;
 
-      setTimeout(async () => {
+      exitListRow(itemEl, async () => {
         state.starred = state.starred.filter(u => u.username !== username);
         saveCurrentAccountData();
         calculateUnfollowers();
         updateStarredUI();
         await pushToCloud();
-      }, 220);
+      });
     }
   });
 
   // Handle click on elements inside unfollowed list (remove or star)
-  elements.listUnfollowed.addEventListener('click', async (e) => {
+  elements.listUnfollowed.addEventListener('click', (e) => {
     e.stopPropagation();
 
     const starBtn = e.target.closest('.star-unfollowed-btn');
@@ -2053,9 +2055,9 @@ function updateInstructionsStepUI() {
       const username = starBtn.getAttribute('data-username');
       const userObj = state.unfollowed.find(u => u.username === username);
       const itemEl = starBtn.closest('.parsed-item');
-      if (itemEl) itemEl.classList.add('removing');
+      if (!itemEl) return;
 
-      setTimeout(async () => {
+      exitListRow(itemEl, async () => {
         if (userObj) {
           state.unfollowed = state.unfollowed.filter(u => u.username !== username);
           if (!state.starred.some(u => u.username === username)) {
@@ -2067,7 +2069,7 @@ function updateInstructionsStepUI() {
           updateStarredUI();
           await pushToCloud();
         }
-      }, 220);
+      });
       return;
     }
 
@@ -2075,15 +2077,15 @@ function updateInstructionsStepUI() {
     if (removeBtn) {
       const username = removeBtn.getAttribute('data-username');
       const itemEl = removeBtn.closest('.parsed-item');
-      if (itemEl) itemEl.classList.add('removing');
+      if (!itemEl) return;
 
-      setTimeout(async () => {
+      exitListRow(itemEl, async () => {
         state.unfollowed = state.unfollowed.filter(u => u.username !== username);
         saveCurrentAccountData();
         calculateUnfollowers();
         updateUnfollowedUI();
         await pushToCloud();
-      }, 220);
+      });
     }
   });
 

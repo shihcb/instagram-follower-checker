@@ -870,20 +870,24 @@ button:disabled *,
   pointer-events: none !important;
 }
 
-/* Slow smooth dissolve for a username row after it's clicked open in the unfollowers
-   list. Pure opacity fade (no slide/scale) with the height/margin/padding collapse
-   running on the exact same timeline, so it plays as one unbroken motion: the row
-   dissolves in place while the rows below glide up to close the gap in step with it,
-   instead of snapping once it's gone. JS pins an inline max-height (the row's real
-   measured height) right before this class is added, since CSS can't transition
-   max-height from its default "none" — without that starting point the collapse would
-   jump instantly even though opacity kept fading. On the logged-out guest
-   preview, body.auth-logged-out .user-row pins its own padding with
-   !important at higher specificity than a plain .username-exit selector
-   would have, which froze the row's padding mid-fade — so this rule is also
-   declared scoped under body.auth-logged-out to outrank it there too. */
+/* Slow smooth dissolve for a row leaving list 3 (.user-row) or the
+   unfollowed/starred preview submenus (.parsed-item). Pure opacity fade (no
+   slide/scale) with the height/margin/padding collapse running on the exact
+   same timeline, so it plays as one unbroken motion: the row dissolves in
+   place while the rows below glide up to close the gap in step with it,
+   instead of snapping once it's gone. JS pins an inline max-height (the
+   row's real measured height) right before this class is added, since CSS
+   can't transition max-height from its default "none" — without that
+   starting point the collapse would jump instantly even though opacity kept
+   fading. On the logged-out guest preview, body.auth-logged-out .user-row
+   pins its own padding with !important at higher specificity than a plain
+   .username-exit selector would have, which froze the row's padding
+   mid-fade — so this rule is also declared scoped under body.auth-logged-out
+   to outrank it there too. */
 .user-row.username-exit,
-body.auth-logged-out .user-row.username-exit {
+.parsed-item.username-exit,
+body.auth-logged-out .user-row.username-exit,
+body.auth-logged-out .parsed-item.username-exit {
   opacity: 0 !important;
   max-height: 0 !important;
   overflow: hidden !important;
@@ -963,9 +967,8 @@ body:not(.auth-logged-out) .parsed-list.dropdown-menu {
   z-index: 100;
   display: flex;
   flex-direction: column;
-  gap: 6px;
   box-sizing: border-box !important;
-  
+
   /* Same enter/exit animation as the confirm-deletion modal
      (.account-modal-card / .confirm-modal-box), for a consistent feel
      across every popup/submenu in the app. */
@@ -982,6 +985,24 @@ body:not(.auth-logged-out) .parsed-list.dropdown-menu {
   opacity: 1;
   transform: translateY(0) scale(1);
   pointer-events: auto;
+}
+
+/* Spacing between dropdown-menu children (e.g. the import-files menu's
+   dropdown-item-btn entries) lives on each child's own margin rather than
+   the container's flex gap, since gap can't be animated away per-item — an
+   item mid-exit would otherwise leave a residual sliver of space that snaps
+   shut the instant it's finally removed from the DOM, same issue the
+   results-list rows had. The unfollowed/starred submenus nest their
+   .parsed-item rows one level deeper inside .dropdown-scroll-items (a
+   scrollable sub-container), so they get the same margin-based fix scoped
+   to that wrapper instead — see updateUnfollowedUI/updateStarredUI in
+   script.js, which no longer set gap inline on it. */
+.dropdown-menu > *:not(:last-child) {
+  margin-bottom: 6px;
+}
+
+.dropdown-scroll-items > .parsed-item:not(:last-child) {
+  margin-bottom: 4px;
 }
 
 #reset-unfollowed-btn,
