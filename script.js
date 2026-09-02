@@ -808,7 +808,6 @@ function updateResultsUI() {
       return `
         <div class="user-row${isSelected ? ' selected' : ''}" data-username="${user.username}" data-index="${index}">
           <div class="user-info">
-            ${index < 10 ? `<span class="row-shortcut-key" title="Press key ${index === 9 ? 0 : index + 1} to open profile">${index === 9 ? 0 : index + 1}</span>` : ''}
             <a href="${user.profileUrl}" target="_blank" rel="noopener" class="user-avatar-link" title="Visit Instagram Profile">
               <div class="user-avatar">${initials}</div>
             </a>
@@ -821,6 +820,7 @@ function updateResultsUI() {
           </div>
           <div class="user-meta">
             <div class="user-row-actions">
+              ${index < 10 ? `<span class="row-shortcut-key" title="Press key ${index === 9 ? 0 : index + 1} to open profile">${index === 9 ? 0 : index + 1}</span>` : ''}
               <button class="action-star" aria-label="star user" title="star/favorite user to separate them from results">
                 <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>

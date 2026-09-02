@@ -2174,7 +2174,7 @@ body.hide-shortcuts #keyboard-hints {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-right: 6px;
+  margin-right: 4px;
   line-height: 1;
   user-select: none;
   -webkit-user-select: none;
