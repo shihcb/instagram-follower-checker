@@ -619,17 +619,20 @@ function calculateUnfollowers() {
   }
 }
 
-function updateUnfollowedUI() {
+function updateUnfollowedUI(enteringUsername) {
   localStorage.setItem('unfollowed_users', JSON.stringify(state.unfollowed));
   const listData = state.unfollowed;
   const listEl = elements.listUnfollowed;
   const toggleBtn = elements.togglePreviewUnfollowed;
 
+  const wasShown = listEl.classList.contains('show');
+  const startHeight = wasShown ? listEl.offsetHeight : null;
+
   const labelEl = toggleBtn.querySelector('.btn-label-content');
   if (listData.length > 0) {
     toggleBtn.removeAttribute('disabled');
     if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span><span class="occupied-dot"></span>`;
-    
+
     // Render elements with a scroll container below
     listEl.innerHTML = `
       <div class="dropdown-header-bar">
@@ -637,7 +640,7 @@ function updateUnfollowedUI() {
       </div>
       <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; max-height: 320px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
-          <div class="parsed-item" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <div class="parsed-item${user.username === enteringUsername ? ' item-enter' : ''}" data-username="${user.username}" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
             <div style="display: flex; align-items: center; gap: 6px;">
               <span>${user.fullName ? user.fullName : ''}</span>
@@ -675,18 +678,24 @@ function updateUnfollowedUI() {
       resetUnfollowedBtn.setAttribute('disabled', 'true');
     }
   }
+
+  animatePanelHeightChange(listEl, wasShown, startHeight);
+  playItemEnterAnimation(listEl, enteringUsername);
 }
 
-function updateStarredUI() {
+function updateStarredUI(enteringUsername) {
   const listData = state.starred;
   const listEl = elements.listStarred;
   const toggleBtn = elements.togglePreviewStarred;
+
+  const wasShown = listEl.classList.contains('show');
+  const startHeight = wasShown ? listEl.offsetHeight : null;
 
   const labelEl = toggleBtn.querySelector('.btn-label-content');
   if (listData.length > 0) {
     toggleBtn.removeAttribute('disabled');
     if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span><span class="occupied-dot"></span>`;
-    
+
     // Render elements (same layout as parsed-list)
     listEl.innerHTML = `
       <div class="dropdown-header-bar">
@@ -694,7 +703,7 @@ function updateStarredUI() {
       </div>
       <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; max-height: 320px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
-          <div class="parsed-item" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <div class="parsed-item${user.username === enteringUsername ? ' item-enter' : ''}" data-username="${user.username}" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
             <div style="display: flex; align-items: center; gap: 6px;">
               <span>${user.fullName ? user.fullName : ''}</span>
@@ -732,6 +741,9 @@ function updateStarredUI() {
       resetStarredBtn.setAttribute('disabled', 'true');
     }
   }
+
+  animatePanelHeightChange(listEl, wasShown, startHeight);
+  playItemEnterAnimation(listEl, enteringUsername);
 }
 
 /**
@@ -1695,6 +1707,50 @@ function exitListRow(rowEl, onComplete, { shrinkBox } = {}) {
   }, DURATION);
 }
 
+// Entrance counterpart to exitListRow's fade, for the unfollowed/starred
+// submenus. Those lists always fully re-render (listEl.innerHTML) rather
+// than surgically inserting one node, so a newly-added item can't reuse the
+// FLIP technique the same way removal does — but it can still avoid just
+// popping in. updateUnfollowedUI/updateStarredUI render the entering
+// item's markup with the item-enter class already applied (its invisible,
+// offset starting state), and call this right after to commit that state
+// with a forced reflow and then trigger the transition down to rest a
+// frame later — the same enter motif (opacity+translateY, 0.6s
+// cubic-bezier(0.16,1,0.3,1)) used everywhere else a panel/modal opens.
+function playItemEnterAnimation(listEl, username) {
+  if (!username) return;
+  const itemEl = listEl.querySelector(`.parsed-item[data-username="${CSS.escape(username)}"]`);
+  if (!itemEl) return;
+  void itemEl.offsetHeight; // commit the item-enter starting state before animating away from it
+  requestAnimationFrame(() => {
+    itemEl.classList.add('item-enter-active');
+  });
+}
+
+// Animates a dropdown-menu panel's own height settling to match a fresh
+// render of its content — the growing counterpart to exitListRow's
+// shrinkBox option (which only covers a row leaving mid-panel). Call with
+// the panel's shown/height state from just *before* re-rendering it, so a
+// newly-added item (or any other content-size change) makes the panel's
+// edge glide to its new size instead of snapping — matching how removal
+// already behaves.
+function animatePanelHeightChange(listEl, startedShown, startHeight) {
+  if (!startedShown || startHeight === null) return;
+  const endHeight = listEl.offsetHeight;
+  if (endHeight === startHeight) return;
+
+  const DURATION = 600;
+  listEl.style.height = `${startHeight}px`;
+  void listEl.offsetHeight; // commit the locked starting height before animating away from it
+  listEl.style.transition = `height ${DURATION}ms cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)`;
+  listEl.style.height = `${endHeight}px`;
+
+  setTimeout(() => {
+    listEl.style.transition = '';
+    listEl.style.height = '';
+  }, DURATION);
+}
+
 function setupEventListeners() {
   // Instagram Account Management Event Listeners
   if (elements.btnAddAccount) {
@@ -2016,7 +2072,7 @@ function updateInstructionsStepUI() {
         state.unfollowers = state.unfollowers.filter(u => u.username !== username);
         state.selectedIndex = -1;
         elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
-        updateStarredUI();
+        updateStarredUI(username);
 
         if (state.unfollowers.length === 0) {
           updateResultsUI();
@@ -2082,7 +2138,7 @@ function updateInstructionsStepUI() {
       state.unfollowers = state.unfollowers.filter(u => u.username !== username);
       state.selectedIndex = -1;
       elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
-      updateUnfollowedUI();
+      updateUnfollowedUI(username);
 
       if (state.unfollowers.length === 0) {
         updateResultsUI();
@@ -2184,7 +2240,7 @@ function updateInstructionsStepUI() {
           saveCurrentAccountData();
           calculateUnfollowers();
           updateUnfollowedUI();
-          updateStarredUI();
+          updateStarredUI(username);
           await pushToCloud();
         }
       }, { shrinkBox: itemEl.closest('.dropdown-menu') });
@@ -2823,7 +2879,7 @@ function updateInstructionsStepUI() {
             state.unfollowers = state.unfollowers.filter(u => u.username !== nextUser.username);
             state.selectedIndex = -1;
             elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
-            updateUnfollowedUI();
+            updateUnfollowedUI(nextUser.username);
 
             if (state.unfollowers.length === 0) {
               updateResultsUI();
