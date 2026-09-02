@@ -1941,7 +1941,8 @@ function updateInstructionsStepUI() {
 
     saveCurrentAccountData();
 
-    userRow.classList.add('removing');
+    // Slow slide-out: the row glides away first, then the gap it leaves closes smoothly.
+    userRow.classList.add('username-exit');
     void userRow.offsetWidth;
     setTimeout(() => {
       userRow.remove();
@@ -1952,7 +1953,7 @@ function updateInstructionsStepUI() {
       if (state.unfollowers.length === 0) {
         updateResultsUI();
       }
-    }, 600);
+    }, 850);
   });
 
   // Toggle preview unfollowed list dropdown

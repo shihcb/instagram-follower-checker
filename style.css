@@ -870,6 +870,31 @@ button:disabled *,
   pointer-events: none !important;
 }
 
+/* Slow slide-out for a username row after it's clicked open in the unfollowers list:
+   the row glides away first, then the space it occupied eases shut. */
+.user-row.username-exit {
+  opacity: 0 !important;
+  -webkit-transform: translateX(64px) scale(0.97) !important;
+  transform: translateX(64px) scale(0.97) !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  pointer-events: none !important;
+  -webkit-transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                      -webkit-transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                      max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1) 0.4s,
+                      margin 0.45s cubic-bezier(0.4, 0, 0.2, 1) 0.4s,
+                      padding 0.45s cubic-bezier(0.4, 0, 0.2, 1) 0.4s !important;
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1) 0.4s,
+              margin 0.45s cubic-bezier(0.4, 0, 0.2, 1) 0.4s,
+              padding 0.45s cubic-bezier(0.4, 0, 0.2, 1) 0.4s !important;
+}
+
 /* Dropdown layouts for unfollowed and starred popovers */
 .dropdown-wrapper {
   /* position relative removed so dropdown child menus align to results-dropdowns-group container */
