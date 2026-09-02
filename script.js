@@ -1563,6 +1563,27 @@ function closeAllSubMenusAndPopups() {
   return closedSomething;
 }
 
+// Slow smooth dissolve for a username row leaving list 3 — shared by every
+// action that removes a row (clicking the row itself, starring, dismissing,
+// or the delete/unfollow button) so they all animate identically regardless
+// of which control triggered it, and regardless of login state (nothing
+// here depends on auth). Pins the row's real measured height as an inline
+// max-height first (CSS can't transition max-height from its default
+// "none"), forces a reflow so the browser commits that as the starting
+// point, then lets .username-exit's fade + collapse animate as one motion.
+// onComplete runs after the row is removed from the DOM, for the caller's
+// own state/UI updates.
+function exitUserRow(userRow, onComplete) {
+  const rowHeight = userRow.getBoundingClientRect().height;
+  userRow.style.maxHeight = `${rowHeight}px`;
+  void userRow.offsetWidth;
+  userRow.classList.add('username-exit');
+  setTimeout(() => {
+    userRow.remove();
+    onComplete();
+  }, 800);
+}
+
 function setupEventListeners() {
   // Instagram Account Management Event Listeners
   if (elements.btnAddAccount) {
@@ -1880,34 +1901,28 @@ function updateInstructionsStepUI() {
         saveCurrentAccountData();
       }
 
-      userRow.style.opacity = '0';
-      userRow.style.transform = 'scale(0.95)';
-      setTimeout(() => {
-        userRow.remove();
+      exitUserRow(userRow, () => {
         state.unfollowers = state.unfollowers.filter(u => u.username !== username);
         elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
         updateStarredUI();
-        
+
         if (state.unfollowers.length === 0) {
           updateResultsUI();
         }
-      }, 150);
+      });
       return;
     }
 
     const actionDismiss = e.target.closest('.action-dismiss');
     if (actionDismiss) {
-      userRow.classList.add('removing');
-      void userRow.offsetWidth;
-      setTimeout(() => {
-        userRow.remove();
+      exitUserRow(userRow, () => {
         state.unfollowers = state.unfollowers.filter(u => u.username !== username);
         elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
-        
+
         if (state.unfollowers.length === 0) {
           updateResultsUI();
         }
-      }, 600);
+      });
       return;
     }
 
@@ -1946,18 +1961,7 @@ function updateInstructionsStepUI() {
 
     saveCurrentAccountData();
 
-    // Slow smooth fade-out: pin the row's real measured height as an inline
-    // max-height first (CSS can't transition max-height from its default
-    // "none"), force a reflow so the browser commits that as the starting
-    // point, then let the fade + height/margin/padding collapse animate
-    // together as one motion — the rows below glide up in sync instead of
-    // snapping once the DOM node is removed at the end.
-    const rowHeight = userRow.getBoundingClientRect().height;
-    userRow.style.maxHeight = `${rowHeight}px`;
-    void userRow.offsetWidth;
-    userRow.classList.add('username-exit');
-    setTimeout(() => {
-      userRow.remove();
+    exitUserRow(userRow, () => {
       state.unfollowers = state.unfollowers.filter(u => u.username !== username);
       elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
       updateUnfollowedUI();
@@ -1965,7 +1969,7 @@ function updateInstructionsStepUI() {
       if (state.unfollowers.length === 0) {
         updateResultsUI();
       }
-    }, 800);
+    });
   });
 
   // Toggle preview unfollowed list dropdown
