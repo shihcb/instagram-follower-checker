@@ -840,10 +840,15 @@ button:disabled *,
 
 .parsed-item,
 .user-row {
-  max-height: 120px;
   opacity: 1;
+  -webkit-transform: translateX(0) scale(1);
   transform: translateX(0) scale(1);
-  overflow: hidden;
+  will-change: opacity, transform, max-height, margin, padding;
+  -webkit-transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                      -webkit-transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                      max-height 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                      margin 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                      padding 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
   transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
               transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
               max-height 0.6s cubic-bezier(0.16, 1, 0.3, 1),
@@ -854,8 +859,10 @@ button:disabled *,
 .parsed-item.removing,
 .user-row.removing {
   opacity: 0 !important;
+  -webkit-transform: translateX(-16px) scale(0.92) !important;
   transform: translateX(-16px) scale(0.92) !important;
   max-height: 0 !important;
+  overflow: hidden !important;
   margin-top: 0 !important;
   margin-bottom: 0 !important;
   padding-top: 0 !important;
@@ -2598,9 +2605,11 @@ html.hide-shortcuts .account-chip-badge {
 
 /* Custom avatar circle using names initials and colorful linear gradient */
 .user-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  border-radius: 50% !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -2609,12 +2618,12 @@ html.hide-shortcuts .account-chip-badge {
   padding: 0 !important;
   box-sizing: border-box;
   font-family: var(--font-display);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: var(--text-inverse);
   background: var(--text-main);
   border: 1px solid var(--card-border);
-  flex-shrink: 0;
+  flex-shrink: 0 !important;
   text-transform: lowercase;
 }
 
