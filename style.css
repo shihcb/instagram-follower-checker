@@ -3070,15 +3070,15 @@ body.is-capacitor.auth-logged-out #theme-toggle {
      flips to hidden only after the fade-out finishes (so the close actually
      gets to play instead of being cut short), but flips to visible with no
      delay when opening. */
-  transition: opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1),
-              visibility 0s linear 0.55s;
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0s linear 0.4s;
 }
 
 .auth-dropdown.show {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  transition: opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
               visibility 0s linear 0s;
 }
 
