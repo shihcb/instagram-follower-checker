@@ -996,12 +996,24 @@ body:not(.auth-logged-out) .parsed-list.dropdown-menu {
    .parsed-item rows one level deeper inside .dropdown-scroll-items (a
    scrollable sub-container), so they get the same margin-based fix scoped
    to that wrapper instead — see updateUnfollowedUI/updateStarredUI in
-   script.js, which no longer set gap inline on it. */
-.dropdown-menu > *:not(:last-child) {
+   script.js, which no longer set gap inline on it.
+
+   Every child gets the margin unconditionally — deliberately NOT scoped
+   with :not(:last-child) — because removing the last item would otherwise
+   make the new-last item's margin snap from its :not(:last-child) value to
+   0 the instant the DOM mutates. That's a plain (non-.username-exit)
+   element whose own class never changes, so nothing on it is actively
+   transitioning when that selector re-match happens, and it jumps
+   instantly instead of animating — exactly the residual-gap-then-snap this
+   is meant to prevent, just relocated to whichever item is now last. A
+   constant trailing margin on every item (including the last) costs a few
+   px of harmless extra bottom spacing and never needs to change when a
+   sibling is removed. */
+.dropdown-menu > * {
   margin-bottom: 6px;
 }
 
-.dropdown-scroll-items > .parsed-item:not(:last-child) {
+.dropdown-scroll-items > .parsed-item {
   margin-bottom: 4px;
 }
 
@@ -2631,11 +2643,18 @@ html.hide-shortcuts .account-chip-badge {
    gap) so a row's exit transition can animate that space away directly —
    flex `gap` can't be tweened per-item, so it would otherwise leave a
    residual sliver of space that snaps shut the instant the row is finally
-   removed from the DOM, even after it's fully faded and collapsed. */
-.results-list > .user-row:last-child {
-  margin-bottom: 0 !important;
-}
+   removed from the DOM, even after it's fully faded and collapsed.
 
+   Deliberately NOT scoped to spare the last row (:not(:last-child)) —
+   removing the last row would make the new-last row's margin snap from its
+   :not(:last-child) value to 0 the instant the DOM mutates, since that row's
+   own class never changes and nothing on it is actively transitioning when
+   the selector re-match happens, so it jumps instead of animating. That's
+   the exact residual-gap-then-snap this rule exists to prevent, just
+   relocated to whichever row is now last. A constant margin-bottom on every
+   row (including the last) costs a few px of harmless extra bottom
+   spacing inside the already-padded scroll container and never needs to
+   change when a sibling is removed. */
 .user-row {
   margin-bottom: 6px;
   display: flex;
