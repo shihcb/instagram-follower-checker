@@ -1586,13 +1586,23 @@ function closeAllSubMenusAndPopups() {
 // back to their natural position. The exiting row itself just fades via
 // .username-exit (opacity only — already out of flow, so no collapse
 // animation is needed on it at all).
-function exitListRow(rowEl, onComplete) {
+// The unfollowed/starred submenus are auto-height popup panels (.dropdown-menu)
+// that hug their content, unlike list 3 which just lives in the normal page
+// flow. Pass the panel as `shrinkBox` and, once the removed row's sibling
+// reflow lands, its new (shorter) natural height is animated to over the
+// same DURATION as the row's own fade — instead of the panel snapping to its
+// smaller size instantly the moment the row leaves flow, which is what a
+// plain FLIP-on-the-row-only fix leaves behind for any box that hugs its
+// content height.
+function exitListRow(rowEl, onComplete, { shrinkBox } = {}) {
   const DURATION = 800;
   const container = rowEl.parentElement;
   const siblings = container ? Array.from(container.children).filter(el => el !== rowEl) : [];
 
   if (!container || siblings.length === 0) {
     // Nothing else in the list to shift — a plain fade is all there is to animate.
+    // (If this was the last item, the panel empties out and hides itself via
+    // its own opacity/transform exit transition — no height shrink to animate.)
     rowEl.classList.add('username-exit');
     setTimeout(() => {
       rowEl.remove();
@@ -1600,6 +1610,14 @@ function exitListRow(rowEl, onComplete) {
     }, DURATION);
     return;
   }
+
+  // offsetHeight (not getBoundingClientRect) deliberately — shrinkBox is a
+  // .dropdown-menu panel that animates its own scale() on open/close, and
+  // getBoundingClientRect reports the post-transform, visually-scaled box.
+  // Measuring through offsetHeight (pure layout size, transform doesn't
+  // affect it) keeps this correct even if a row is removed while the
+  // panel's own open transition hasn't finished settling at scale(1) yet.
+  const boxStartHeight = shrinkBox ? shrinkBox.offsetHeight : null;
 
   // FIRST: where every sibling sits right now.
   const firstRects = siblings.map(el => el.getBoundingClientRect());
@@ -1620,6 +1638,26 @@ function exitListRow(rowEl, onComplete) {
 
   // LAST: where each sibling ended up after that one reflow.
   const lastRects = siblings.map(el => el.getBoundingClientRect());
+
+  // The panel's natural height already shrunk in that same reflow (the
+  // exiting row just left flow). Lock it back to its pre-removal height so
+  // nothing visibly moves yet, then transition down to the real new height —
+  // the panel's bottom edge slides up in step with the row's fade instead of
+  // snapping immediately.
+  if (shrinkBox) {
+    const boxEndHeight = shrinkBox.offsetHeight;
+    if (boxEndHeight !== boxStartHeight) {
+      shrinkBox.style.height = `${boxStartHeight}px`;
+      void shrinkBox.offsetHeight; // commit the locked height before animating away from it
+      // Combined with (not replacing) the panel's own opacity/transform
+      // enter/exit transition from CSS — an inline `transition` overrides
+      // the stylesheet's outright, and losing that mid-shrink would make
+      // the panel snap shut instantly if the user closes it (e.g. clicking
+      // outside) before the height animation finishes.
+      shrinkBox.style.transition = `height ${DURATION}ms cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)`;
+      shrinkBox.style.height = `${boxEndHeight}px`;
+    }
+  }
 
   // INVERT: snap each sibling back to where it used to be, with no
   // transition, using a transform (so this doesn't trigger layout either).
@@ -1649,6 +1687,10 @@ function exitListRow(rowEl, onComplete) {
       el.style.transition = '';
       el.style.transform = '';
     });
+    if (shrinkBox) {
+      shrinkBox.style.transition = '';
+      shrinkBox.style.height = '';
+    }
     onComplete();
   }, DURATION);
 }
@@ -2118,7 +2160,7 @@ function updateInstructionsStepUI() {
         calculateUnfollowers();
         updateStarredUI();
         await pushToCloud();
-      });
+      }, { shrinkBox: itemEl.closest('.dropdown-menu') });
     }
   });
 
@@ -2145,7 +2187,7 @@ function updateInstructionsStepUI() {
           updateStarredUI();
           await pushToCloud();
         }
-      });
+      }, { shrinkBox: itemEl.closest('.dropdown-menu') });
       return;
     }
 
@@ -2161,7 +2203,7 @@ function updateInstructionsStepUI() {
         calculateUnfollowers();
         updateUnfollowedUI();
         await pushToCloud();
-      });
+      }, { shrinkBox: itemEl.closest('.dropdown-menu') });
     }
   });
 
@@ -2771,20 +2813,25 @@ function updateInstructionsStepUI() {
             state.unfollowed.unshift(nextUser);
           }
 
-          // Smoothly animate the row out
-          firstRow.style.opacity = '0';
-          firstRow.style.transform = 'scale(0.95)';
-          setTimeout(() => {
-            firstRow.remove();
+          // Same shared exit animation as every other way a row leaves list 3
+          // (clicking it, starring, dismissing, deleting) instead of this
+          // path's own separate, un-reindexed fade — keeps auto-open visually
+          // consistent with the rest of the app and avoids reintroducing the
+          // stale data-index bug that a bare firstRow.remove() would bring
+          // back for whichever row ends up next in line.
+          exitListRow(firstRow, () => {
             state.unfollowers = state.unfollowers.filter(u => u.username !== nextUser.username);
+            state.selectedIndex = -1;
             elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
             updateUnfollowedUI();
 
             if (state.unfollowers.length === 0) {
               updateResultsUI();
+            } else {
+              reindexUnfollowerRows();
             }
             pushToCloud();
-          }, 150);
+          });
         }
       }, 100);
     }
