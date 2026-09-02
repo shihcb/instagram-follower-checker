@@ -236,10 +236,12 @@ function showSiteConfirm(title, message, confirmText = 'confirm', cancelText = '
     overlay.classList.add('show');
 
     function cleanup() {
+      overlay.classList.add('fade-out-bounce');
       overlay.classList.remove('show');
       setTimeout(() => {
         overlay.classList.add('hidden');
-      }, 350);
+        overlay.classList.remove('fade-out-bounce');
+      }, 600);
       okBtn.removeEventListener('click', onOk);
       if (cancelBtn) cancelBtn.removeEventListener('click', onCancel);
       if (closeBtn) closeBtn.removeEventListener('click', onCancel);
@@ -1939,8 +1941,7 @@ function updateInstructionsStepUI() {
 
     saveCurrentAccountData();
 
-    userRow.style.opacity = '0';
-    userRow.style.transform = 'scale(0.95)';
+    userRow.classList.add('removing');
     setTimeout(() => {
       userRow.remove();
       state.unfollowers = state.unfollowers.filter(u => u.username !== username);
@@ -1950,7 +1951,7 @@ function updateInstructionsStepUI() {
       if (state.unfollowers.length === 0) {
         updateResultsUI();
       }
-    }, 150);
+    }, 600);
   });
 
   // Toggle preview unfollowed list dropdown
