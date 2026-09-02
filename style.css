@@ -2874,14 +2874,6 @@ html.hide-shortcuts .account-chip-badge {
     transform: none !important;
   }
 
-  .auth-dropdown {
-    transform: scale(0.95) translateY(-24px) !important;
-    transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  }
-  .auth-dropdown.show {
-    transform: scale(1) translateY(0) !important;
-  }
   .help-grid {
     grid-template-columns: 1fr;
     gap: 20px;
@@ -3070,18 +3062,24 @@ body.is-capacitor.auth-logged-out #theme-toggle {
   gap: 16px;
   z-index: 2100;
   box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.25);
-  transform: scale(0.95) translateY(-8px);
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  transform-origin: top right;
-  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  /* Slow smooth fade only (no slide/scale) for opening and closing the
+     settings menu — the same transition drives both directions. Visibility
+     flips to hidden only after the fade-out finishes (so the close actually
+     gets to play instead of being cut short), but flips to visible with no
+     delay when opening. */
+  transition: opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0s linear 0.55s;
 }
 
 .auth-dropdown.show {
   opacity: 1;
-  transform: scale(1) translateY(0);
+  visibility: visible;
   pointer-events: auto;
+  transition: opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0s linear 0s;
 }
 
 /* Staggered content entrance inside the account/settings menu: each section
@@ -3362,7 +3360,11 @@ body.auth-logged-out:not(.is-logged-in) .auth-dropdown {
 }
 
 html.is-logged-in .auth-dropdown:not(.show) {
-  display: none !important;
+  /* Not display:none — that would cut the closing fade short since display
+     can't be transitioned. visibility (delayed on .auth-dropdown itself)
+     achieves the same "fully hidden and unfocusable when closed" result
+     without killing the animation. */
+  visibility: hidden !important;
   opacity: 0 !important;
   pointer-events: none !important;
 }
@@ -4559,18 +4561,7 @@ body.auth-logged-out #auth-form-view.smooth-exit {
 
 .auth-settings-section {
   position: relative;
-  padding-top: 12px;
-  margin-top: 8px;
-}
-
-.auth-settings-section::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 12px;
-  right: 12px;
-  height: 1px;
-  background-color: var(--card-border);
+  margin-top: 4px;
 }
 
 .setting-item-row {
