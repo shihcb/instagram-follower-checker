@@ -3091,36 +3091,6 @@ body.is-capacitor.auth-logged-out #theme-toggle {
               visibility 0s linear 0s;
 }
 
-/* Staggered content entrance inside the account/settings menu: each section
-   eases in right after the panel itself fades in, so opening it reads as an
-   animated reveal rather than a flat pop-in. Re-triggers every time .show is
-   toggled back on, since the animation only applies while it's present. */
-@keyframes auth-dropdown-item-in {
-  0% {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.auth-dropdown.show .supabase-storage-box {
-  animation: auth-dropdown-item-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: 0.05s;
-}
-
-.auth-dropdown.show .auth-settings-section {
-  animation: auth-dropdown-item-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: 0.1s;
-}
-
-.auth-dropdown.show #btn-logout {
-  animation: auth-dropdown-item-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: 0.15s;
-}
-
 /* Full-screen Login Styles when Logged Out */
 body.auth-logged-out {
   overflow: hidden !important;
