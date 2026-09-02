@@ -870,6 +870,33 @@ button:disabled *,
   pointer-events: none !important;
 }
 
+/* Slow slide-out for a username row after it's clicked open in the unfollowers list.
+   Every property (slide, fade, collapse) animates together on one timeline so the row
+   reads as a single smooth leftward glide, instead of sliding first and then visibly
+   "jumping up" once the list below shifts to close the gap. */
+.user-row.username-exit {
+  opacity: 0 !important;
+  -webkit-transform: translateX(-72px) scale(0.96) !important;
+  transform: translateX(-72px) scale(0.96) !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  pointer-events: none !important;
+  -webkit-transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                      -webkit-transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                      max-height 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                      margin 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                      padding 0.7s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              max-height 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              margin 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              padding 0.7s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
 /* Dropdown layouts for unfollowed and starred popovers */
 .dropdown-wrapper {
   /* position relative removed so dropdown child menus align to results-dropdowns-group container */
@@ -2456,6 +2483,11 @@ html.hide-shortcuts .account-chip-badge {
   .desktop-only {
     display: none !important;
   }
+  /* Number-key row shortcuts (press 1-0 to open a profile) only make sense with a
+     physical keyboard, so drop them entirely on mobile/tablet view. */
+  .row-shortcut-key {
+    display: none !important;
+  }
 }
 
 /* -------------------------------------------------------------
@@ -3033,6 +3065,36 @@ body.is-capacitor.auth-logged-out #theme-toggle {
   opacity: 1;
   transform: scale(1) translateY(0);
   pointer-events: auto;
+}
+
+/* Staggered content entrance inside the account/settings menu: each section
+   eases in right after the panel itself fades in, so opening it reads as an
+   animated reveal rather than a flat pop-in. Re-triggers every time .show is
+   toggled back on, since the animation only applies while it's present. */
+@keyframes auth-dropdown-item-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.auth-dropdown.show .supabase-storage-box {
+  animation: auth-dropdown-item-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.05s;
+}
+
+.auth-dropdown.show .auth-settings-section {
+  animation: auth-dropdown-item-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.1s;
+}
+
+.auth-dropdown.show #btn-logout {
+  animation: auth-dropdown-item-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.15s;
 }
 
 /* Full-screen Login Styles when Logged Out */
@@ -4374,6 +4436,40 @@ textarea {
   justify-content: space-between;
   font-size: 0.72rem;
   color: var(--text-muted);
+}
+
+/* Weekly List Reset Reminder box (mirrors the cloud storage box styling) */
+.reset-reminder-box {
+  margin-top: 4px;
+  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.4s ease;
+}
+
+[data-theme="light"] .reset-reminder-box {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.reset-reminder-box .storage-progress-fill {
+  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1), background 0.4s ease;
+}
+
+.reset-reminder-box.overdue {
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.reset-reminder-box.overdue .storage-value {
+  color: #ef4444;
+}
+
+.reset-reminder-box.overdue .storage-progress-fill {
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
 }
 
 /* Overlay simple slow fade out & blur exit */
