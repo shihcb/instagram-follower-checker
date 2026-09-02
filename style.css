@@ -1616,7 +1616,7 @@ body.hide-shortcuts #keyboard-hints {
   transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease, width 0.8s cubic-bezier(0.16, 1, 0.3, 1), padding 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  box-shadow: none !important;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.08), 0 1px 3px -1px rgba(0, 0, 0, 0.04);
   box-sizing: border-box;
 }
 
@@ -1624,7 +1624,7 @@ body.hide-shortcuts #keyboard-hints {
   background: rgba(16, 185, 129, 0.12) !important;
   border-color: #10b981 !important;
   color: #10b981 !important;
-  box-shadow: none !important;
+  box-shadow: 0 3px 12px -2px rgba(16, 185, 129, 0.25), 0 1px 4px -1px rgba(16, 185, 129, 0.15) !important;
   transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease !important;
 }
 
@@ -1632,11 +1632,15 @@ body.hide-shortcuts #keyboard-hints {
   border-color: #10b981 !important;
 }
 
+[data-theme="dark"] .account-chip {
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.4), 0 1px 3px -1px rgba(0, 0, 0, 0.3);
+}
+
 [data-theme="dark"] .account-chip.active {
   background: rgba(16, 185, 129, 0.18) !important;
   border-color: #34d399 !important;
   color: #34d399 !important;
-  box-shadow: none !important;
+  box-shadow: 0 3px 14px -2px rgba(52, 211, 153, 0.3), 0 1px 5px -1px rgba(52, 211, 153, 0.2) !important;
   transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease !important;
 }
 
@@ -1658,11 +1662,11 @@ body.hide-shortcuts #keyboard-hints {
 #btn-add-account::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border-radius: inherit;
+  top: -6px;
+  bottom: -6px;
+  left: -4px;
+  right: -4px;
+  z-index: 10;
   pointer-events: none;
 }
 
@@ -1677,12 +1681,12 @@ body.hide-shortcuts #keyboard-hints {
   #btn-add-account:hover {
     transform: scale(1.02) !important;
     border-color: var(--text-main) !important;
-    box-shadow: none !important;
+    box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.12) !important;
   }
 
   [data-theme="dark"] .account-chip:hover,
   [data-theme="dark"] #btn-add-account:hover {
-    box-shadow: none !important;
+    box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.45) !important;
   }
 }
 
