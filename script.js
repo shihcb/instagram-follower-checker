@@ -1892,8 +1892,8 @@ function updateInstructionsStepUI() {
 
     const actionDismiss = e.target.closest('.action-dismiss');
     if (actionDismiss) {
-      userRow.style.opacity = '0';
-      userRow.style.transform = 'scale(0.95)';
+      userRow.classList.add('removing');
+      void userRow.offsetWidth;
       setTimeout(() => {
         userRow.remove();
         state.unfollowers = state.unfollowers.filter(u => u.username !== username);
@@ -1902,7 +1902,7 @@ function updateInstructionsStepUI() {
         if (state.unfollowers.length === 0) {
           updateResultsUI();
         }
-      }, 150);
+      }, 600);
       return;
     }
 
@@ -1942,6 +1942,7 @@ function updateInstructionsStepUI() {
     saveCurrentAccountData();
 
     userRow.classList.add('removing');
+    void userRow.offsetWidth;
     setTimeout(() => {
       userRow.remove();
       state.unfollowers = state.unfollowers.filter(u => u.username !== username);
