@@ -3666,3 +3666,23 @@ window.addEventListener('keydown', (e) => {
     e.preventDefault();
   }
 });
+
+// -------------------------------------------------------------
+// Haptic Feedback (mobile only)
+// -------------------------------------------------------------
+// navigator.vibrate() only exists on touch-capable browsers (Android Chrome
+// and friends) — iOS Safari has no web API for haptics/vibration at all,
+// that's an Apple platform restriction with no workaround from a website,
+// so this silently no-ops there instead of erroring.
+(function initHapticFeedback() {
+  const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+  if (!isTouchDevice || typeof navigator.vibrate !== 'function') return;
+
+  const BUTTON_SELECTOR = 'button, [class*="btn"], .account-chip, .switch, .user-row';
+
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest(BUTTON_SELECTOR);
+    if (!target || target.disabled) return;
+    navigator.vibrate(10);
+  }, { passive: true });
+})();
