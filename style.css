@@ -60,6 +60,15 @@ html, body {
   --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
+  /* The one fade used for a username leaving OR entering any list —
+     list 3, and the unfollowed/starred submenus. .username-exit and
+     .item-enter both reference these instead of each owning their own
+     copy of the duration/easing, so the two are structurally guaranteed
+     to stay identical (just opacity 1->0 vs 0->1) rather than needing to
+     be kept in sync by hand. */
+  --list-item-fade-duration: 0.8s;
+  --list-item-fade-easing: cubic-bezier(0.4, 0, 0.2, 1);
+
   /* Grayscale Theme Gradient Colors */
   --grad-1: #000000;
   --grad-2: #3f3f46;
@@ -869,31 +878,27 @@ button:disabled *,
 .parsed-item.username-exit {
   opacity: 0 !important;
   pointer-events: none !important;
-  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: opacity var(--list-item-fade-duration) var(--list-item-fade-easing) !important;
 }
 
 /* Entrance counterpart to .username-exit above, for a username newly added
    to the unfollowed/starred submenus (starring from list 3, moving between
-   the two lists, or auto-open marking the current profile handled). Reuses
-   the same fade+slide-up motion and exact timing/easing as every other
-   panel/modal opening in the app (.dropdown-menu.show, .account-modal-card,
-   .confirm-modal-box) rather than inventing a separate entrance feel, so a
-   username appearing reads as the same family of motion as everything
-   else, not a separate instant pop-in. Applied by updateUnfollowedUI/
-   updateStarredUI in script.js: the item renders with .item-enter already
-   set (its starting, invisible state) as part of the initial innerHTML, a
-   forced reflow commits that, then .item-enter-active is added a frame
-   later to trigger the transition down to the item's normal rest state. */
+   the two lists, or auto-open marking the current profile handled) — the
+   exact same fade (see --list-item-fade-* above), just played in reverse,
+   so a username entering and a username leaving are visibly the same
+   animation rather than two different ones. Pure opacity, no slide/scale,
+   matching .username-exit's own "no slide" fade. Applied by
+   updateUnfollowedUI/updateStarredUI in script.js: the item renders with
+   .item-enter already set (its starting, invisible state) as part of the
+   initial innerHTML, a forced reflow commits that, then .item-enter-active
+   is added a frame later to trigger the transition to full opacity. */
 .parsed-item.item-enter {
   opacity: 0;
-  transform: translateY(10px);
-  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity var(--list-item-fade-duration) var(--list-item-fade-easing);
 }
 
 .parsed-item.item-enter.item-enter-active {
   opacity: 1;
-  transform: translateY(0);
 }
 
 /* Dropdown layouts for unfollowed and starred popovers */
@@ -943,7 +948,19 @@ body:not(.auth-logged-out) .parsed-list.dropdown-menu {
   position: absolute;
   top: calc(100% + 8px);
   width: 100%;
-  max-height: 380px;
+  /* This class is also used by the unrelated, always-short import-files
+     menu (#add-account-dropdown-menu), so this stays a cap rather than a
+     forced height — it must never grow that menu. For the unfollowed/
+     starred panels specifically, .dropdown-scroll-items is a *fixed*
+     450px (its own inline style, set in updateUnfollowedUI/
+     updateStarredUI) regardless of item count, which makes those two
+     panels' natural content height a constant ~510px on its own — this
+     510px cap just has to be tall enough to not clip that, so in practice
+     they always render at exactly this size whether the list has 1 item
+     or 50, and only ever fully close once it reaches 0 (see
+     updateUnfollowedUI/updateStarredUI in script.js). Beyond 10 items the
+     inner scroll area handles the rest. */
+  max-height: 510px;
   overflow-y: auto;
   margin-top: 0 !important;
   background-color: var(--input-bg) !important;

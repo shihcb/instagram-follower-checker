@@ -625,9 +625,6 @@ function updateUnfollowedUI(enteringUsername) {
   const listEl = elements.listUnfollowed;
   const toggleBtn = elements.togglePreviewUnfollowed;
 
-  const wasShown = listEl.classList.contains('show');
-  const startHeight = wasShown ? listEl.offsetHeight : null;
-
   const labelEl = toggleBtn.querySelector('.btn-label-content');
   if (listData.length > 0) {
     toggleBtn.removeAttribute('disabled');
@@ -638,7 +635,7 @@ function updateUnfollowedUI(enteringUsername) {
       <div class="dropdown-header-bar">
         ${listData.length} ${listData.length === 1 ? 'unfollowed account' : 'unfollowed accounts'}
       </div>
-      <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; max-height: 320px; overflow-y: auto; width: 100%;">
+      <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; height: 450px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
           <div class="parsed-item${user.username === enteringUsername ? ' item-enter' : ''}" data-username="${user.username}" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
@@ -679,7 +676,6 @@ function updateUnfollowedUI(enteringUsername) {
     }
   }
 
-  animatePanelHeightChange(listEl, wasShown, startHeight);
   playItemEnterAnimation(listEl, enteringUsername);
 }
 
@@ -687,9 +683,6 @@ function updateStarredUI(enteringUsername) {
   const listData = state.starred;
   const listEl = elements.listStarred;
   const toggleBtn = elements.togglePreviewStarred;
-
-  const wasShown = listEl.classList.contains('show');
-  const startHeight = wasShown ? listEl.offsetHeight : null;
 
   const labelEl = toggleBtn.querySelector('.btn-label-content');
   if (listData.length > 0) {
@@ -701,7 +694,7 @@ function updateStarredUI(enteringUsername) {
       <div class="dropdown-header-bar">
         ${listData.length} ${listData.length === 1 ? 'starred account' : 'starred accounts'}
       </div>
-      <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; max-height: 320px; overflow-y: auto; width: 100%;">
+      <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; height: 450px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
           <div class="parsed-item${user.username === enteringUsername ? ' item-enter' : ''}" data-username="${user.username}" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
@@ -742,7 +735,6 @@ function updateStarredUI(enteringUsername) {
     }
   }
 
-  animatePanelHeightChange(listEl, wasShown, startHeight);
   playItemEnterAnimation(listEl, enteringUsername);
 }
 
@@ -1598,23 +1590,18 @@ function closeAllSubMenusAndPopups() {
 // back to their natural position. The exiting row itself just fades via
 // .username-exit (opacity only — already out of flow, so no collapse
 // animation is needed on it at all).
-// The unfollowed/starred submenus are auto-height popup panels (.dropdown-menu)
-// that hug their content, unlike list 3 which just lives in the normal page
-// flow. Pass the panel as `shrinkBox` and, once the removed row's sibling
-// reflow lands, its new (shorter) natural height is animated to over the
-// same DURATION as the row's own fade — instead of the panel snapping to its
-// smaller size instantly the moment the row leaves flow, which is what a
-// plain FLIP-on-the-row-only fix leaves behind for any box that hugs its
-// content height.
-function exitListRow(rowEl, onComplete, { shrinkBox } = {}) {
+// The unfollowed/starred submenus are fixed-size popup panels (.dropdown-menu,
+// sized in CSS to show ~10 items with the rest reachable by scrolling) rather
+// than auto-height boxes that hug their content, so removing a row never
+// needs to resize the panel itself — it only ever fully closes when the list
+// empties out, via its own opacity/transform exit transition.
+function exitListRow(rowEl, onComplete) {
   const DURATION = 800;
   const container = rowEl.parentElement;
   const siblings = container ? Array.from(container.children).filter(el => el !== rowEl) : [];
 
   if (!container || siblings.length === 0) {
     // Nothing else in the list to shift — a plain fade is all there is to animate.
-    // (If this was the last item, the panel empties out and hides itself via
-    // its own opacity/transform exit transition — no height shrink to animate.)
     rowEl.classList.add('username-exit');
     setTimeout(() => {
       rowEl.remove();
@@ -1622,14 +1609,6 @@ function exitListRow(rowEl, onComplete, { shrinkBox } = {}) {
     }, DURATION);
     return;
   }
-
-  // offsetHeight (not getBoundingClientRect) deliberately — shrinkBox is a
-  // .dropdown-menu panel that animates its own scale() on open/close, and
-  // getBoundingClientRect reports the post-transform, visually-scaled box.
-  // Measuring through offsetHeight (pure layout size, transform doesn't
-  // affect it) keeps this correct even if a row is removed while the
-  // panel's own open transition hasn't finished settling at scale(1) yet.
-  const boxStartHeight = shrinkBox ? shrinkBox.offsetHeight : null;
 
   // FIRST: where every sibling sits right now.
   const firstRects = siblings.map(el => el.getBoundingClientRect());
@@ -1650,26 +1629,6 @@ function exitListRow(rowEl, onComplete, { shrinkBox } = {}) {
 
   // LAST: where each sibling ended up after that one reflow.
   const lastRects = siblings.map(el => el.getBoundingClientRect());
-
-  // The panel's natural height already shrunk in that same reflow (the
-  // exiting row just left flow). Lock it back to its pre-removal height so
-  // nothing visibly moves yet, then transition down to the real new height —
-  // the panel's bottom edge slides up in step with the row's fade instead of
-  // snapping immediately.
-  if (shrinkBox) {
-    const boxEndHeight = shrinkBox.offsetHeight;
-    if (boxEndHeight !== boxStartHeight) {
-      shrinkBox.style.height = `${boxStartHeight}px`;
-      void shrinkBox.offsetHeight; // commit the locked height before animating away from it
-      // Combined with (not replacing) the panel's own opacity/transform
-      // enter/exit transition from CSS — an inline `transition` overrides
-      // the stylesheet's outright, and losing that mid-shrink would make
-      // the panel snap shut instantly if the user closes it (e.g. clicking
-      // outside) before the height animation finishes.
-      shrinkBox.style.transition = `height ${DURATION}ms cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)`;
-      shrinkBox.style.height = `${boxEndHeight}px`;
-    }
-  }
 
   // INVERT: snap each sibling back to where it used to be, with no
   // transition, using a transform (so this doesn't trigger layout either).
@@ -1699,24 +1658,25 @@ function exitListRow(rowEl, onComplete, { shrinkBox } = {}) {
       el.style.transition = '';
       el.style.transform = '';
     });
-    if (shrinkBox) {
-      shrinkBox.style.transition = '';
-      shrinkBox.style.height = '';
-    }
     onComplete();
   }, DURATION);
 }
 
 // Entrance counterpart to exitListRow's fade, for the unfollowed/starred
-// submenus. Those lists always fully re-render (listEl.innerHTML) rather
-// than surgically inserting one node, so a newly-added item can't reuse the
-// FLIP technique the same way removal does — but it can still avoid just
+// submenus — the exact same fade used for a row *leaving* any list (list 3
+// included), just played in reverse, so entering and exiting a username
+// are visibly the same animation rather than two different ones. Reuses
+// the .username-exit rule's own duration/easing values (see style.css) via
+// the shared item-enter/item-enter-active classes: pure opacity, no slide.
+//
+// These lists always fully re-render (listEl.innerHTML) rather than
+// surgically inserting one node, so a newly-added item can't reuse the FLIP
+// technique the same way removal does — but it can still avoid just
 // popping in. updateUnfollowedUI/updateStarredUI render the entering
-// item's markup with the item-enter class already applied (its invisible,
-// offset starting state), and call this right after to commit that state
-// with a forced reflow and then trigger the transition down to rest a
-// frame later — the same enter motif (opacity+translateY, 0.6s
-// cubic-bezier(0.16,1,0.3,1)) used everywhere else a panel/modal opens.
+// item's markup with the item-enter class already applied (its invisible
+// starting state), and this is called right after to commit that state
+// with a forced reflow and then trigger the transition to full opacity a
+// frame later.
 function playItemEnterAnimation(listEl, username) {
   if (!username) return;
   const itemEl = listEl.querySelector(`.parsed-item[data-username="${CSS.escape(username)}"]`);
@@ -1725,30 +1685,6 @@ function playItemEnterAnimation(listEl, username) {
   requestAnimationFrame(() => {
     itemEl.classList.add('item-enter-active');
   });
-}
-
-// Animates a dropdown-menu panel's own height settling to match a fresh
-// render of its content — the growing counterpart to exitListRow's
-// shrinkBox option (which only covers a row leaving mid-panel). Call with
-// the panel's shown/height state from just *before* re-rendering it, so a
-// newly-added item (or any other content-size change) makes the panel's
-// edge glide to its new size instead of snapping — matching how removal
-// already behaves.
-function animatePanelHeightChange(listEl, startedShown, startHeight) {
-  if (!startedShown || startHeight === null) return;
-  const endHeight = listEl.offsetHeight;
-  if (endHeight === startHeight) return;
-
-  const DURATION = 600;
-  listEl.style.height = `${startHeight}px`;
-  void listEl.offsetHeight; // commit the locked starting height before animating away from it
-  listEl.style.transition = `height ${DURATION}ms cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)`;
-  listEl.style.height = `${endHeight}px`;
-
-  setTimeout(() => {
-    listEl.style.transition = '';
-    listEl.style.height = '';
-  }, DURATION);
 }
 
 function setupEventListeners() {
@@ -2216,7 +2152,7 @@ function updateInstructionsStepUI() {
         calculateUnfollowers();
         updateStarredUI();
         await pushToCloud();
-      }, { shrinkBox: itemEl.closest('.dropdown-menu') });
+      });
     }
   });
 
@@ -2243,7 +2179,7 @@ function updateInstructionsStepUI() {
           updateStarredUI(username);
           await pushToCloud();
         }
-      }, { shrinkBox: itemEl.closest('.dropdown-menu') });
+      });
       return;
     }
 
@@ -2259,7 +2195,7 @@ function updateInstructionsStepUI() {
         calculateUnfollowers();
         updateUnfollowedUI();
         await pushToCloud();
-      }, { shrinkBox: itemEl.closest('.dropdown-menu') });
+      });
     }
   });
 
