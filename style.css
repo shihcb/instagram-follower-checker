@@ -1548,7 +1548,6 @@ body.hide-shortcuts #keyboard-hints {
   align-items: center;
   gap: 8px;
   overflow-x: auto;
-  overflow-y: visible;
   scrollbar-width: none;
   -ms-overflow-style: none;
   flex-wrap: nowrap;
@@ -1557,9 +1556,10 @@ body.hide-shortcuts #keyboard-hints {
   margin-right: -16px;
   margin-top: -4px !important;
   margin-bottom: -4px !important;
-  max-height: 64px;
+  max-height: 60px;
   opacity: 1;
   transform: translateY(0) scale(1);
+  overflow: hidden;
   will-change: max-height, opacity, transform, margin-top, margin-bottom, padding;
   transition: max-height 0.8s cubic-bezier(0.16, 1, 0.3, 1),
               opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
@@ -1675,14 +1675,14 @@ body.hide-shortcuts #keyboard-hints {
 @media (hover: hover) {
   .account-chip:hover,
   #btn-add-account:hover {
-    transform: translateY(-1.5px) !important;
+    transform: scale(1.02) !important;
     border-color: var(--text-main) !important;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08) !important;
+    box-shadow: none !important;
   }
 
   [data-theme="dark"] .account-chip:hover,
   [data-theme="dark"] #btn-add-account:hover {
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35) !important;
+    box-shadow: none !important;
   }
 }
 
