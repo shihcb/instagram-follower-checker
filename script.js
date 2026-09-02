@@ -3640,7 +3640,13 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   initAuth();
   updateStarredUI();
-  if (state.selectedAccountUsername) {
+  // initAuth() -> applyGuestPreviewLock() already set up the guest demo
+  // account (and rendered it) when logged out; loadAccountData would
+  // immediately overwrite that with the (empty) localStorage data for
+  // that username, wiping out the demo unfollower before it's ever seen.
+  if (state.selectedAccountUsername === GUEST_PREVIEW_USERNAME) {
+    // already loaded by applyGuestPreviewLock; nothing to do
+  } else if (state.selectedAccountUsername) {
     loadAccountData(state.selectedAccountUsername);
   } else {
     renderAccountChips();
