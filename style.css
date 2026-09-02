@@ -838,75 +838,38 @@ button:disabled *,
   transform: rotate(180deg);
 }
 
+/* opacity/transform base values only — no transition declared here.
+   .username-exit (below) owns its own self-contained transition for the
+   exiting row's fade. Siblings that need to shift up during a removal get
+   a purely inline transition from exitListRow() in script.js (the FLIP
+   technique). Both of those need to be free to set `transition: none`
+   momentarily (to snap a sibling to its inverted starting position without
+   it visibly animating there) and then re-enable it — impossible if this
+   rule pins its own transition with !important, since a stylesheet
+   !important always beats a plain (non-!important) inline style. That
+   exact conflict used to silently defeat every inline transition/transform
+   these elements were ever given, however it was set. */
 .parsed-item,
 .user-row {
   opacity: 1;
-  -webkit-transform: translateX(0) scale(1);
   transform: translateX(0) scale(1);
-  will-change: opacity, transform, max-height, margin, padding;
-  -webkit-transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                      -webkit-transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                      max-height 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                      margin 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                      padding 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              max-height 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              margin 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              padding 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-
-.parsed-item.removing,
-.user-row.removing {
-  opacity: 0 !important;
-  -webkit-transform: translateX(-16px) scale(0.92) !important;
-  transform: translateX(-16px) scale(0.92) !important;
-  max-height: 0 !important;
-  overflow: hidden !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  pointer-events: none !important;
 }
 
 /* Slow smooth dissolve for a row leaving list 3 (.user-row) or the
    unfollowed/starred preview submenus (.parsed-item). Pure opacity fade (no
-   slide/scale) with the height/margin/padding collapse running on the exact
-   same timeline, so it plays as one unbroken motion: the row dissolves in
-   place while the rows below glide up to close the gap in step with it,
-   instead of snapping once it's gone. JS pins an inline max-height (the
-   row's real measured height) right before this class is added, since CSS
-   can't transition max-height from its default "none" — without that
-   starting point the collapse would jump instantly even though opacity kept
-   fading. On the logged-out guest preview, body.auth-logged-out .user-row
-   pins its own padding with !important at higher specificity than a plain
-   .username-exit selector would have, which froze the row's padding
-   mid-fade — so this rule is also declared scoped under body.auth-logged-out
-   to outrank it there too. */
+   slide/scale). JS (exitListRow, see script.js) takes the row out of flow
+   with position: absolute — pinned to its exact current visual spot — the
+   instant this class is added, and animates the siblings that need to shift
+   up separately via `transform` (see exitListRow). So this rule only ever
+   needs to fade opacity: the row's space is already reclaimed by the time
+   it starts fading, nothing here has to collapse height/margin/padding on
+   a timer, and there's no longer a per-frame layout cost that scales with
+   how many rows are in the list. */
 .user-row.username-exit,
-.parsed-item.username-exit,
-body.auth-logged-out .user-row.username-exit,
-body.auth-logged-out .parsed-item.username-exit {
+.parsed-item.username-exit {
   opacity: 0 !important;
-  max-height: 0 !important;
-  overflow: hidden !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  border-width: 0 !important;
   pointer-events: none !important;
-  -webkit-transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1),
-                      max-height 0.8s cubic-bezier(0.4, 0, 0.2, 1),
-                      margin 0.8s cubic-bezier(0.4, 0, 0.2, 1),
-                      padding 0.8s cubic-bezier(0.4, 0, 0.2, 1),
-                      border-width 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1),
-              max-height 0.8s cubic-bezier(0.4, 0, 0.2, 1),
-              margin 0.8s cubic-bezier(0.4, 0, 0.2, 1),
-              padding 0.8s cubic-bezier(0.4, 0, 0.2, 1),
-              border-width 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 /* Dropdown layouts for unfollowed and starred popovers */

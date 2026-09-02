@@ -1569,21 +1569,88 @@ function closeAllSubMenusAndPopups() {
 // (unstarring, removing, moving between them), so they all animate
 // identically no matter which control triggered it or which list it's in,
 // and regardless of login state (nothing here depends on auth — same
-// behavior logged in or in the guest preview). Pins the row's real measured
-// height as an inline max-height first (CSS can't transition max-height
-// from its default "none"), forces a reflow so the browser commits that as
-// the starting point, then lets .username-exit's fade + collapse animate as
-// one motion. onComplete runs after the row is removed from the DOM, for
-// the caller's own state/UI updates.
+// behavior logged in or in the guest preview).
+//
+// Uses a FLIP (First-Last-Invert-Play) animation rather than animating
+// max-height/margin/padding directly. Those box-model properties force a
+// full synchronous layout recalculation on *every animation frame*, for
+// the exiting row and every sibling below it — cheap enough with a
+// handful of rows, but with real lists (unfollowed histories routinely
+// have 50+ entries) that per-frame reflow cost is what actually caused
+// the visible "chops up then snaps" jank on real phones, even though it
+// looked perfectly smooth here with a handful of test rows. Removing the
+// row from flow (position: absolute, pinned to its current visual spot)
+// forces exactly one reflow up front instead of one per frame, then the
+// siblings that need to shift up are animated purely with `transform`
+// (GPU-composited, no further layout cost) from where they used to be
+// back to their natural position. The exiting row itself just fades via
+// .username-exit (opacity only — already out of flow, so no collapse
+// animation is needed on it at all).
 function exitListRow(rowEl, onComplete) {
-  const rowHeight = rowEl.getBoundingClientRect().height;
-  rowEl.style.maxHeight = `${rowHeight}px`;
-  void rowEl.offsetWidth;
+  const DURATION = 800;
+  const container = rowEl.parentElement;
+  const siblings = container ? Array.from(container.children).filter(el => el !== rowEl) : [];
+
+  if (!container || siblings.length === 0) {
+    // Nothing else in the list to shift — a plain fade is all there is to animate.
+    rowEl.classList.add('username-exit');
+    setTimeout(() => {
+      rowEl.remove();
+      onComplete();
+    }, DURATION);
+    return;
+  }
+
+  // FIRST: where every sibling sits right now.
+  const firstRects = siblings.map(el => el.getBoundingClientRect());
+
+  // Take the exiting row out of flow, pinned exactly where it visually is,
+  // so the page doesn't jump — this is the one synchronous reflow.
+  const containerRect = container.getBoundingClientRect();
+  const rowRect = rowEl.getBoundingClientRect();
+  if (getComputedStyle(container).position === 'static') {
+    container.style.position = 'relative';
+  }
+  rowEl.style.position = 'absolute';
+  rowEl.style.top = `${rowRect.top - containerRect.top + container.scrollTop}px`;
+  rowEl.style.left = `${rowRect.left - containerRect.left + container.scrollLeft}px`;
+  rowEl.style.width = `${rowRect.width}px`;
+  rowEl.style.margin = '0';
+  rowEl.style.zIndex = '1';
+
+  // LAST: where each sibling ended up after that one reflow.
+  const lastRects = siblings.map(el => el.getBoundingClientRect());
+
+  // INVERT: snap each sibling back to where it used to be, with no
+  // transition, using a transform (so this doesn't trigger layout either).
+  siblings.forEach((el, i) => {
+    const dy = firstRects[i].top - lastRects[i].top;
+    if (dy !== 0) {
+      el.style.transition = 'none';
+      el.style.transform = `translateY(${dy}px)`;
+    }
+  });
+  void container.offsetWidth; // commit the inverted transforms before animating away from them
+
+  // PLAY: animate every shifted sibling back to translateY(0) — its real,
+  // final position — purely via transform.
+  siblings.forEach(el => {
+    if (el.style.transform) {
+      el.style.transition = `transform ${DURATION}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+      el.style.transform = '';
+    }
+  });
+
   rowEl.classList.add('username-exit');
+
   setTimeout(() => {
     rowEl.remove();
+    siblings.forEach(el => {
+      el.style.transition = '';
+      el.style.transform = '';
+    });
     onComplete();
-  }, 800);
+  }, DURATION);
 }
 
 function setupEventListeners() {
