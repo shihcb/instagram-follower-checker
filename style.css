@@ -870,12 +870,14 @@ button:disabled *,
   pointer-events: none !important;
 }
 
-/* Slow slide-out for a username row after it's clicked open in the unfollowers list:
-   the row glides away first, then the space it occupied eases shut. */
+/* Slow slide-out for a username row after it's clicked open in the unfollowers list.
+   Every property (slide, fade, collapse) animates together on one timeline so the row
+   reads as a single smooth leftward glide, instead of sliding first and then visibly
+   "jumping up" once the list below shifts to close the gap. */
 .user-row.username-exit {
   opacity: 0 !important;
-  -webkit-transform: translateX(64px) scale(0.97) !important;
-  transform: translateX(64px) scale(0.97) !important;
+  -webkit-transform: translateX(-72px) scale(0.96) !important;
+  transform: translateX(-72px) scale(0.96) !important;
   max-height: 0 !important;
   overflow: hidden !important;
   margin-top: 0 !important;
@@ -883,16 +885,16 @@ button:disabled *,
   padding-top: 0 !important;
   padding-bottom: 0 !important;
   pointer-events: none !important;
-  -webkit-transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-                      -webkit-transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-                      max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1) 0.4s,
-                      margin 0.45s cubic-bezier(0.4, 0, 0.2, 1) 0.4s,
-                      padding 0.45s cubic-bezier(0.4, 0, 0.2, 1) 0.4s !important;
-  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-              max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1) 0.4s,
-              margin 0.45s cubic-bezier(0.4, 0, 0.2, 1) 0.4s,
-              padding 0.45s cubic-bezier(0.4, 0, 0.2, 1) 0.4s !important;
+  -webkit-transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                      -webkit-transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                      max-height 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                      margin 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                      padding 0.7s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              max-height 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              margin 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              padding 0.7s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 /* Dropdown layouts for unfollowed and starred popovers */
@@ -3063,6 +3065,36 @@ body.is-capacitor.auth-logged-out #theme-toggle {
   opacity: 1;
   transform: scale(1) translateY(0);
   pointer-events: auto;
+}
+
+/* Staggered content entrance inside the account/settings menu: each section
+   eases in right after the panel itself fades in, so opening it reads as an
+   animated reveal rather than a flat pop-in. Re-triggers every time .show is
+   toggled back on, since the animation only applies while it's present. */
+@keyframes auth-dropdown-item-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.auth-dropdown.show .supabase-storage-box {
+  animation: auth-dropdown-item-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.05s;
+}
+
+.auth-dropdown.show .auth-settings-section {
+  animation: auth-dropdown-item-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.1s;
+}
+
+.auth-dropdown.show #btn-logout {
+  animation: auth-dropdown-item-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.15s;
 }
 
 /* Full-screen Login Styles when Logged Out */

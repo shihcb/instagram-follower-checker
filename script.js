@@ -1958,7 +1958,7 @@ function updateInstructionsStepUI() {
       if (state.unfollowers.length === 0) {
         updateResultsUI();
       }
-    }, 850);
+    }, 700);
   });
 
   // Toggle preview unfollowed list dropdown
