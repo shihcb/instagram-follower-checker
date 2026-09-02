@@ -966,19 +966,21 @@ body:not(.auth-logged-out) .parsed-list.dropdown-menu {
   gap: 6px;
   box-sizing: border-box !important;
   
-  /* GPU Accelerated Smooth Animation */
+  /* Same enter/exit animation as the confirm-deletion modal
+     (.account-modal-card / .confirm-modal-box), for a consistent feel
+     across every popup/submenu in the app. */
   opacity: 0;
-  transform: scale(0.94) translateY(-8px);
+  transform: translateY(14px) scale(0.95);
   pointer-events: none;
   transform-origin: top left;
   will-change: opacity, transform;
-  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dropdown-menu.show {
   opacity: 1;
-  transform: scale(1) translateY(0);
+  transform: translateY(0) scale(1);
   pointer-events: auto;
 }
 
@@ -3064,21 +3066,28 @@ body.is-capacitor.auth-logged-out #theme-toggle {
   box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.25);
   opacity: 0;
   visibility: hidden;
+  transform: translateY(14px) scale(0.95);
+  transform-origin: top right;
   pointer-events: none;
-  /* Slow smooth fade only (no slide/scale) for opening and closing the
-     settings menu — the same transition drives both directions. Visibility
-     flips to hidden only after the fade-out finishes (so the close actually
-     gets to play instead of being cut short), but flips to visible with no
-     delay when opening. */
-  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-              visibility 0s linear 0.4s;
+  /* Same enter/exit animation as the confirm-deletion modal
+     (.account-modal-card / .confirm-modal-box) and the other submenu
+     dropdowns, for a consistent feel across every popup in the app.
+     Visibility flips to hidden only after the fade-out finishes (so the
+     close actually gets to play instead of being cut short by the
+     display:none it used to snap to), but flips to visible with no delay
+     when opening. */
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0s linear 0.6s;
 }
 
 .auth-dropdown.show {
   opacity: 1;
   visibility: visible;
+  transform: translateY(0) scale(1);
   pointer-events: auto;
-  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
               visibility 0s linear 0s;
 }
 
