@@ -1596,9 +1596,37 @@ function closeAllSubMenusAndPopups() {
 // needs to resize the panel itself — it only ever fully closes when the list
 // empties out, via its own opacity/transform exit transition.
 function exitListRow(rowEl, onComplete) {
+  // A row already fading out ignores any further attempt to remove it
+  // again. Without this, clicking the same delete/star/unstar button
+  // rapidly (before the first 800ms fade finishes — easy to do since the
+  // fade itself gives no immediate feedback) called this a second time on
+  // the same row: a second FLIP measurement, a second 800ms timer and a
+  // second onComplete stacked on top of the one already running, which
+  // visibly glitched the row and could take several clicks before it
+  // actually left, since only the first click's timer removed it from
+  // state but every click's timer still ran its own (by-then-redundant)
+  // cleanup and re-render.
+  if (rowEl.classList.contains('username-exit')) {
+    return;
+  }
+
+  // Clear any transform/transition this row might still be carrying from
+  // a moment ago, when it was a *sibling* being shifted by some other
+  // row's removal (see below) — a rapid second click landing on this row
+  // right as that shift was still mid-flight used to let it inherit that
+  // leftover inline style, which visibly glitched as this row's own exit
+  // then started on top of it.
+  rowEl.style.transition = '';
+  rowEl.style.transform = '';
+
   const DURATION = 800;
   const container = rowEl.parentElement;
-  const siblings = container ? Array.from(container.children).filter(el => el !== rowEl) : [];
+  // Exclude any sibling that's already exiting itself — it's already out
+  // of flow (won't shift) and already mid-fade on its own; touching its
+  // transform/transition here would stomp that.
+  const siblings = container
+    ? Array.from(container.children).filter(el => el !== rowEl && !el.classList.contains('username-exit'))
+    : [];
 
   if (!container || siblings.length === 0) {
     // Nothing else in the list to shift — a plain fade is all there is to animate.
