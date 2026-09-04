@@ -686,7 +686,6 @@ function updateUnfollowedUI(enteringUsername) {
   // After the label update above, since the occupied-dot indicator it can
   // add/remove changes the button's own rendered width.
   syncDropdownWidthToButton(listEl, toggleBtn);
-  playItemEnterAnimation(listEl, enteringUsername);
 }
 
 function updateStarredUI(enteringUsername) {
@@ -755,7 +754,6 @@ function updateStarredUI(enteringUsername) {
   // After the label update above, since the occupied-dot indicator it can
   // add/remove changes the button's own rendered width.
   syncDropdownWidthToButton(listEl, toggleBtn);
-  playItemEnterAnimation(listEl, enteringUsername);
 }
 
 /**
@@ -1647,6 +1645,17 @@ function exitListRow(rowEl, onComplete, { shrinkBox } = {}) {
   rowEl.style.transition = '';
   rowEl.style.transform = '';
 
+  // Also clear item-enter (the dropdown-item-enter-slide keyframe class —
+  // see style.css) if this row still has it from its own entrance
+  // animation, which never gets removed once it finishes. A row can be
+  // removed again shortly after entering (e.g. immediately unstarring
+  // something you just starred), and with both classes present the CSS
+  // cascade doesn't merge their competing `animation` declarations — one
+  // wins outright — so leaving item-enter in place could silently block
+  // username-exit's own animation from ever playing. No-op for .user-row
+  // (list 3), which never gets this class.
+  rowEl.classList.remove('item-enter');
+
   const DURATION = 800;
   const container = rowEl.parentElement;
   // Exclude any sibling that's already exiting itself — it's already out
@@ -1750,31 +1759,6 @@ function exitListRow(rowEl, onComplete, { shrinkBox } = {}) {
     }
     onComplete();
   }, DURATION);
-}
-
-// Entrance counterpart to exitListRow's fade, for the unfollowed/starred
-// submenus — the exact same fade used for a row *leaving* any list (list 3
-// included), just played in reverse, so entering and exiting a username
-// are visibly the same animation rather than two different ones. Reuses
-// the .username-exit rule's own duration/easing values (see style.css) via
-// the shared item-enter/item-enter-active classes: pure opacity, no slide.
-//
-// These lists always fully re-render (listEl.innerHTML) rather than
-// surgically inserting one node, so a newly-added item can't reuse the FLIP
-// technique the same way removal does — but it can still avoid just
-// popping in. updateUnfollowedUI/updateStarredUI render the entering
-// item's markup with the item-enter class already applied (its invisible
-// starting state), and this is called right after to commit that state
-// with a forced reflow and then trigger the transition to full opacity a
-// frame later.
-function playItemEnterAnimation(listEl, username) {
-  if (!username) return;
-  const itemEl = listEl.querySelector(`.parsed-item[data-username="${CSS.escape(username)}"]`);
-  if (!itemEl) return;
-  void itemEl.offsetHeight; // commit the item-enter starting state before animating away from it
-  requestAnimationFrame(() => {
-    itemEl.classList.add('item-enter-active');
-  });
 }
 
 // Animates the unfollowed/starred panel's own height settling to match a

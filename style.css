@@ -864,41 +864,65 @@ button:disabled *,
   transform: translateX(0) scale(1);
 }
 
-/* Slow smooth dissolve for a row leaving list 3 (.user-row) or the
-   unfollowed/starred preview submenus (.parsed-item). Pure opacity fade (no
-   slide/scale). JS (exitListRow, see script.js) takes the row out of flow
-   with position: absolute — pinned to its exact current visual spot — the
-   instant this class is added, and animates the siblings that need to shift
-   up separately via `transform` (see exitListRow). So this rule only ever
-   needs to fade opacity: the row's space is already reclaimed by the time
-   it starts fading, nothing here has to collapse height/margin/padding on
-   a timer, and there's no longer a per-frame layout cost that scales with
-   how many rows are in the list. */
-.user-row.username-exit,
-.parsed-item.username-exit {
+/* Slow smooth dissolve for a row leaving list 3 (.user-row only — the
+   unfollowed/starred submenus use a slide, see .parsed-item.username-exit
+   below). Pure opacity fade (no slide/scale). JS (exitListRow, see
+   script.js) takes the row out of flow with position: absolute — pinned
+   to its exact current visual spot — the instant this class is added, and
+   animates the siblings that need to shift up separately via `transform`
+   (see exitListRow). So this rule only ever needs to fade opacity: the
+   row's space is already reclaimed by the time it starts fading, nothing
+   here has to collapse height/margin/padding on a timer, and there's no
+   longer a per-frame layout cost that scales with how many rows are in
+   the list. */
+.user-row.username-exit {
   opacity: 0 !important;
   pointer-events: none !important;
   transition: opacity var(--list-item-fade-duration) var(--list-item-fade-easing) !important;
 }
 
-/* Entrance counterpart to .username-exit above, for a username newly added
-   to the unfollowed/starred submenus (starring from list 3, moving between
-   the two lists, or auto-open marking the current profile handled) — the
-   exact same fade (see --list-item-fade-* above), just played in reverse,
-   so a username entering and a username leaving are visibly the same
-   animation rather than two different ones. Pure opacity, no slide/scale,
-   matching .username-exit's own "no slide" fade. Applied by
-   updateUnfollowedUI/updateStarredUI in script.js: the item renders with
-   .item-enter already set (its starting, invisible state) as part of the
-   initial innerHTML, a forced reflow commits that, then .item-enter-active
-   is added a frame later to trigger the transition to full opacity. */
-.parsed-item.item-enter {
-  opacity: 0;
-  transition: opacity var(--list-item-fade-duration) var(--list-item-fade-easing);
+/* Unfollowed/starred submenu rows slide up rather than just fading — a
+   multi-stop @keyframes animation instead of a two-point opacity
+   transition, for both directions:
+    - exit: the row (already pinned absolute by exitListRow, same as
+      list 3) drifts upward and out as it dissolves.
+    - enter: a newly-added row rises up into its resting position from
+      just below it.
+   @keyframes is used deliberately instead of transition here — a
+   transition needs its "before" state to actually get painted before the
+   "after" state is applied (the classic two-step
+   set-state/reflow/rAF/set-again dance .item-enter used to need), and a
+   missed paint there is exactly what caused newly-entering rows —
+   especially the very top one, added most often since new usernames are
+   unshifted to the front of the list — to occasionally flicker straight
+   to their resting state with no visible animation at all. A @keyframes
+   animation defines its own start and end inside itself, so it always
+   plays its full course the instant the class matches, with nothing for
+   JS to coordinate. */
+@keyframes dropdown-item-exit-slide {
+  0%   { opacity: 1;    transform: translateY(0); }
+  35%  { opacity: 0.65; transform: translateY(-6px); }
+  65%  { opacity: 0.25; transform: translateY(-13px); }
+  100% { opacity: 0;    transform: translateY(-20px); }
 }
 
-.parsed-item.item-enter.item-enter-active {
-  opacity: 1;
+.parsed-item.username-exit {
+  animation: dropdown-item-exit-slide var(--list-item-fade-duration) var(--list-item-fade-easing) forwards;
+  pointer-events: none !important;
+}
+
+@keyframes dropdown-item-enter-slide {
+  0%   { opacity: 0;    transform: translateY(20px); }
+  35%  { opacity: 0.35; transform: translateY(12px); }
+  65%  { opacity: 0.75; transform: translateY(5px); }
+  100% { opacity: 1;    transform: translateY(0); }
+}
+
+/* Applied by updateUnfollowedUI/updateStarredUI in script.js as part of
+   the entering item's initial markup — no JS-side trigger needed (see
+   above), it's already animating the moment the element exists. */
+.parsed-item.item-enter {
+  animation: dropdown-item-enter-slide var(--list-item-fade-duration) var(--list-item-fade-easing) forwards;
 }
 
 /* Dropdown layouts for unfollowed and starred popovers */
