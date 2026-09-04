@@ -951,16 +951,16 @@ body:not(.auth-logged-out) .parsed-list.dropdown-menu {
   /* This class is also used by the unrelated, always-short import-files
      menu (#add-account-dropdown-menu), so this stays a cap rather than a
      forced height — it must never grow that menu. For the unfollowed/
-     starred panels specifically, .dropdown-scroll-items is a *fixed*
-     450px (its own inline style, set in updateUnfollowedUI/
-     updateStarredUI) regardless of item count, which makes those two
-     panels' natural content height a constant ~510px on its own — this
-     510px cap just has to be tall enough to not clip that, so in practice
-     they always render at exactly this size whether the list has 1 item
-     or 50, and only ever fully close once it reaches 0 (see
-     updateUnfollowedUI/updateStarredUI in script.js). Beyond 10 items the
-     inner scroll area handles the rest. */
-  max-height: 510px;
+     starred panels specifically, .dropdown-scroll-items has its own
+     440px cap (exactly 10 rows at 44px each — see its inline style in
+     updateUnfollowedUI/updateStarredUI), below which it hugs its actual
+     content height, so those two panels grow/shrink smoothly between 1
+     and 10 items (animatePanelHeightChange in script.js) and then hold
+     steady past 10, scrolling internally for the rest. This 500px is
+     that inner 440px cap plus the header bar/padding/border around it —
+     tall enough to never clip it, tight enough that the panel doesn't
+     keep growing between exactly 10 items and 11+. */
+  max-height: 500px;
   overflow-y: auto;
   margin-top: 0 !important;
   background-color: var(--input-bg) !important;
@@ -989,6 +989,19 @@ body:not(.auth-logged-out) .parsed-list.dropdown-menu {
   opacity: 1;
   transform: translateY(0) scale(1);
   pointer-events: auto;
+}
+
+/* Same punchier close as the confirm-deletion modal's own
+   .fade-out-bounce (see .modal-overlay.fade-out-bounce above) — applied
+   by updateUnfollowedUI/updateStarredUI in script.js when the unfollowed/
+   starred panel closes because its list just emptied out, instead of the
+   plain .show removal every other close (toggle button, outside click)
+   uses. .dropdown-menu is both the overlay and the card in one element
+   (unlike the two-tier .modal-overlay/.account-modal-card split), so this
+   is a single rule rather than a pair. */
+.dropdown-menu.fade-out-bounce {
+  opacity: 0 !important;
+  transform: translateY(16px) scale(0.92) !important;
 }
 
 /* Spacing between dropdown-menu children (e.g. the import-files menu's

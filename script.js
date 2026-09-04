@@ -625,6 +625,9 @@ function updateUnfollowedUI(enteringUsername) {
   const listEl = elements.listUnfollowed;
   const toggleBtn = elements.togglePreviewUnfollowed;
 
+  const wasShown = listEl.classList.contains('show');
+  const startHeight = wasShown ? listEl.offsetHeight : null;
+
   const labelEl = toggleBtn.querySelector('.btn-label-content');
   if (listData.length > 0) {
     toggleBtn.removeAttribute('disabled');
@@ -635,7 +638,7 @@ function updateUnfollowedUI(enteringUsername) {
       <div class="dropdown-header-bar">
         ${listData.length} ${listData.length === 1 ? 'unfollowed account' : 'unfollowed accounts'}
       </div>
-      <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; height: 450px; overflow-y: auto; width: 100%;">
+      <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; max-height: 440px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
           <div class="parsed-item${user.username === enteringUsername ? ' item-enter' : ''}" data-username="${user.username}" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
@@ -659,11 +662,15 @@ function updateUnfollowedUI(enteringUsername) {
         `).join('')}
       </div>
     `;
+    animatePanelHeightChange(listEl, wasShown, startHeight);
   } else {
     toggleBtn.setAttribute('disabled', 'true');
     if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span>`;
     listEl.innerHTML = '';
-    listEl.classList.remove('show');
+    // Same close as the confirm-deletion modal's own .fade-out-bounce —
+    // deliberately no height animation alongside it, see
+    // animatePanelHeightChange's own comment for why.
+    closeDropdownPanel(listEl, wasShown);
     toggleBtn.classList.remove('active');
   }
 
@@ -684,6 +691,9 @@ function updateStarredUI(enteringUsername) {
   const listEl = elements.listStarred;
   const toggleBtn = elements.togglePreviewStarred;
 
+  const wasShown = listEl.classList.contains('show');
+  const startHeight = wasShown ? listEl.offsetHeight : null;
+
   const labelEl = toggleBtn.querySelector('.btn-label-content');
   if (listData.length > 0) {
     toggleBtn.removeAttribute('disabled');
@@ -694,7 +704,7 @@ function updateStarredUI(enteringUsername) {
       <div class="dropdown-header-bar">
         ${listData.length} ${listData.length === 1 ? 'starred account' : 'starred accounts'}
       </div>
-      <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; height: 450px; overflow-y: auto; width: 100%;">
+      <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; max-height: 440px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
           <div class="parsed-item${user.username === enteringUsername ? ' item-enter' : ''}" data-username="${user.username}" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
@@ -718,11 +728,15 @@ function updateStarredUI(enteringUsername) {
         `).join('')}
       </div>
     `;
+    animatePanelHeightChange(listEl, wasShown, startHeight);
   } else {
     toggleBtn.setAttribute('disabled', 'true');
     if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span>`;
     listEl.innerHTML = '';
-    listEl.classList.remove('show');
+    // Same close as the confirm-deletion modal's own .fade-out-bounce —
+    // deliberately no height animation alongside it, see
+    // animatePanelHeightChange's own comment for why.
+    closeDropdownPanel(listEl, wasShown);
     toggleBtn.classList.remove('active');
   }
 
@@ -1417,6 +1431,10 @@ function closeAccountModal() {
   if (!elements.accountModalOverlay) return;
 
   elements.accountModalOverlay.classList.remove('show');
+  // 600ms, matching .modal-overlay/.account-modal-card's own CSS transition
+  // duration (style.css) — this used to fire at 350ms, cutting .hidden's
+  // display:none in partway through the fade/scale-out and snapping the
+  // rest of it away instead of letting it finish closing smoothly.
   setTimeout(() => {
     elements.accountModalOverlay.classList.add('hidden');
     if (elements.accountModalOriginalCaption) {
@@ -1426,7 +1444,7 @@ function closeAccountModal() {
     // Clean up double-click active suppression state
     document.querySelectorAll('.account-chip').forEach(c => c.classList.remove('no-active'));
     state.editingAccountIndex = -1;
-  }, 350);
+  }, 600);
 }
 
 function saveAccountFromModal() {
@@ -1590,12 +1608,16 @@ function closeAllSubMenusAndPopups() {
 // back to their natural position. The exiting row itself just fades via
 // .username-exit (opacity only — already out of flow, so no collapse
 // animation is needed on it at all).
-// The unfollowed/starred submenus are fixed-size popup panels (.dropdown-menu,
-// sized in CSS to show ~10 items with the rest reachable by scrolling) rather
-// than auto-height boxes that hug their content, so removing a row never
-// needs to resize the panel itself — it only ever fully closes when the list
-// empties out, via its own opacity/transform exit transition.
-function exitListRow(rowEl, onComplete) {
+// The unfollowed/starred submenus are auto-height popup panels
+// (.dropdown-menu) that hug their content up to a 10-item cap. Pass the
+// panel as `shrinkBox` and, once the removed row's sibling reflow lands,
+// its new (shorter) natural height is animated to over the same DURATION
+// as the row's own fade — instead of the panel snapping to its smaller
+// size the instant the row leaves flow, well before the row itself has
+// visibly finished fading. Past the 10-item cap this is a no-op (the
+// panel's height doesn't change either way, since it was already pinned
+// at the cap).
+function exitListRow(rowEl, onComplete, { shrinkBox } = {}) {
   // A row already fading out ignores any further attempt to remove it
   // again. Without this, clicking the same delete/star/unstar button
   // rapidly (before the first 800ms fade finishes — easy to do since the
@@ -1630,6 +1652,8 @@ function exitListRow(rowEl, onComplete) {
 
   if (!container || siblings.length === 0) {
     // Nothing else in the list to shift — a plain fade is all there is to animate.
+    // (If this was the last item, the panel empties out and closes itself via
+    // its own opacity/transform exit transition — no height shrink to animate.)
     rowEl.classList.add('username-exit');
     setTimeout(() => {
       rowEl.remove();
@@ -1637,6 +1661,14 @@ function exitListRow(rowEl, onComplete) {
     }, DURATION);
     return;
   }
+
+  // offsetHeight (not getBoundingClientRect) deliberately — shrinkBox is a
+  // .dropdown-menu panel that animates its own scale() on open/close, and
+  // getBoundingClientRect reports the post-transform, visually-scaled box.
+  // Measuring through offsetHeight (pure layout size, transform doesn't
+  // affect it) keeps this correct even if a row is removed while the
+  // panel's own open transition hasn't finished settling at scale(1) yet.
+  const boxStartHeight = shrinkBox ? shrinkBox.offsetHeight : null;
 
   // FIRST: where every sibling sits right now.
   const firstRects = siblings.map(el => el.getBoundingClientRect());
@@ -1657,6 +1689,26 @@ function exitListRow(rowEl, onComplete) {
 
   // LAST: where each sibling ended up after that one reflow.
   const lastRects = siblings.map(el => el.getBoundingClientRect());
+
+  // The panel's natural height already shrunk in that same reflow (the
+  // exiting row just left flow). Lock it back to its pre-removal height so
+  // nothing visibly moves yet, then transition down to the real new height —
+  // the panel's bottom edge slides up in step with the row's fade instead of
+  // snapping immediately.
+  if (shrinkBox) {
+    const boxEndHeight = shrinkBox.offsetHeight;
+    if (boxEndHeight !== boxStartHeight) {
+      shrinkBox.style.height = `${boxStartHeight}px`;
+      void shrinkBox.offsetHeight; // commit the locked height before animating away from it
+      // Combined with (not replacing) the panel's own opacity/transform
+      // enter/exit transition from CSS — an inline `transition` overrides
+      // the stylesheet's outright, and losing that mid-shrink would make
+      // the panel snap shut instantly if the user closes it (e.g. clicking
+      // outside) before the height animation finishes.
+      shrinkBox.style.transition = `height ${DURATION}ms cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)`;
+      shrinkBox.style.height = `${boxEndHeight}px`;
+    }
+  }
 
   // INVERT: snap each sibling back to where it used to be, with no
   // transition, using a transform (so this doesn't trigger layout either).
@@ -1686,6 +1738,10 @@ function exitListRow(rowEl, onComplete) {
       el.style.transition = '';
       el.style.transform = '';
     });
+    if (shrinkBox) {
+      shrinkBox.style.transition = '';
+      shrinkBox.style.height = '';
+    }
     onComplete();
   }, DURATION);
 }
@@ -1713,6 +1769,53 @@ function playItemEnterAnimation(listEl, username) {
   requestAnimationFrame(() => {
     itemEl.classList.add('item-enter-active');
   });
+}
+
+// Animates the unfollowed/starred panel's own height settling to match a
+// fresh render of its content, so it visibly grows/shrinks to fit 1-10
+// items instead of snapping to its new size. Below 10 items
+// .dropdown-scroll-items hugs its actual content (see its own max-height
+// cap in updateUnfollowedUI/updateStarredUI); at 10 or more it's already
+// pinned at the cap, so startHeight === endHeight there and this is a
+// harmless no-op. Call with the panel's shown/height state read *before*
+// re-rendering it. Deliberately never called for the transition into an
+// empty list — that's the panel fully closing (see closeDropdownPanel
+// below) instead, which a competing height animation running at the same
+// time would only fight.
+function animatePanelHeightChange(listEl, startedShown, startHeight) {
+  if (!startedShown || startHeight === null) return;
+  const endHeight = listEl.offsetHeight;
+  if (endHeight === startHeight) return;
+
+  const DURATION = 600;
+  listEl.style.height = `${startHeight}px`;
+  void listEl.offsetHeight; // commit the locked starting height before animating away from it
+  // Combined with (not replacing) the panel's own opacity/transform
+  // .show-class transition from CSS — an inline `transition` overrides
+  // the stylesheet's outright, and losing that mid-resize would make the
+  // panel snap instantly if the user closes it before this finishes.
+  listEl.style.transition = `height ${DURATION}ms cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)`;
+  listEl.style.height = `${endHeight}px`;
+
+  setTimeout(() => {
+    listEl.style.transition = '';
+    listEl.style.height = '';
+  }, DURATION);
+}
+
+// Closes the unfollowed/starred panel the same way showSiteConfirm's
+// modal closes (see .fade-out-bounce, style.css) — a punchier close than
+// a plain .show removal, used specifically for the panel closing because
+// its list just emptied out to 0. Only plays when the panel was actually
+// open (startedShown); otherwise there's nothing visible to animate.
+function closeDropdownPanel(listEl, startedShown) {
+  if (startedShown) {
+    listEl.classList.add('fade-out-bounce');
+  }
+  listEl.classList.remove('show');
+  setTimeout(() => {
+    listEl.classList.remove('fade-out-bounce');
+  }, 600);
 }
 
 function setupEventListeners() {
@@ -1888,9 +1991,11 @@ function openInstructionsModal(step = 1) {
 function closeInstructionsModal() {
   if (!elements.instructionsModalOverlay) return;
   elements.instructionsModalOverlay.classList.remove('show');
+  // 600ms, matching .modal-overlay/.account-modal-card's own CSS transition
+  // duration (style.css) — see closeAccountModal for why this can't be 350.
   setTimeout(() => {
     elements.instructionsModalOverlay.classList.add('hidden');
-  }, 350);
+  }, 600);
 }
 
 function updateInstructionsStepUI() {
@@ -2180,7 +2285,7 @@ function updateInstructionsStepUI() {
         calculateUnfollowers();
         updateStarredUI();
         await pushToCloud();
-      });
+      }, { shrinkBox: itemEl.closest('.dropdown-menu') });
     }
   });
 
@@ -2207,7 +2312,7 @@ function updateInstructionsStepUI() {
           updateStarredUI(username);
           await pushToCloud();
         }
-      });
+      }, { shrinkBox: itemEl.closest('.dropdown-menu') });
       return;
     }
 
@@ -2223,7 +2328,7 @@ function updateInstructionsStepUI() {
         calculateUnfollowers();
         updateUnfollowedUI();
         await pushToCloud();
-      });
+      }, { shrinkBox: itemEl.closest('.dropdown-menu') });
     }
   });
 
