@@ -926,11 +926,17 @@ button:disabled *,
   position: relative !important;
 }
 
+/* Width itself is deliberately not set here — the toggle button is
+   width: fit-content (hugs its own label) inside a flex: 1 1 0 wrapper
+   that's usually wider than that, so matching the button specifically
+   (not the wrapper) needs its actual rendered width, which only JS can
+   read. syncDropdownWidthToButton in script.js sets it as an inline
+   style on open/render and on window resize; body.auth-logged-out
+   overrides that with width: 100% !important below regardless (its
+   toggle buttons are already forced to 100% width themselves, so 100%
+   already matches there without needing JS). */
 body:not(.auth-logged-out) .dropdown-wrapper .parsed-list.dropdown-menu,
 body:not(.auth-logged-out) .parsed-list.dropdown-menu {
-  width: 280px !important;
-  min-width: 280px !important;
-  max-width: 320px !important;
   left: 0 !important;
   right: auto !important;
   box-sizing: border-box !important;

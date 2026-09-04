@@ -683,6 +683,9 @@ function updateUnfollowedUI(enteringUsername) {
     }
   }
 
+  // After the label update above, since the occupied-dot indicator it can
+  // add/remove changes the button's own rendered width.
+  syncDropdownWidthToButton(listEl, toggleBtn);
   playItemEnterAnimation(listEl, enteringUsername);
 }
 
@@ -749,6 +752,9 @@ function updateStarredUI(enteringUsername) {
     }
   }
 
+  // After the label update above, since the occupied-dot indicator it can
+  // add/remove changes the button's own rendered width.
+  syncDropdownWidthToButton(listEl, toggleBtn);
   playItemEnterAnimation(listEl, enteringUsername);
 }
 
@@ -1817,6 +1823,37 @@ function closeDropdownPanel(listEl, startedShown) {
     listEl.classList.remove('fade-out-bounce');
   }, 600);
 }
+
+// Matches the unfollowed/starred panel's width to its own toggle button's
+// rendered width, not the wrapper around it — the button is
+// width: fit-content (hugs its label) inside a flex: 1 1 0 wrapper that's
+// usually noticeably wider, so a plain CSS width: 100% on the panel (which
+// resolves against the wrapper) leaves the dropdown visibly wider than the
+// control that opened it. Only JS can read the button's actual box, so
+// this sets it as an inline style; style.css leaves width unset for this
+// case specifically so it doesn't fight the JS value.
+function syncDropdownWidthToButton(listEl, toggleBtn) {
+  if (!listEl || !toggleBtn) return;
+  const width = toggleBtn.offsetWidth;
+  if (width > 0) {
+    listEl.style.width = `${width}px`;
+  }
+}
+
+// The toggle buttons' own width can change across the app's responsive
+// breakpoints (font-size/padding/label-abbreviation all shift with
+// viewport width) without state.unfollowed/state.starred ever changing,
+// so updateUnfollowedUI/updateStarredUI's own sync call never re-runs on
+// its own — re-sync on resize too, so the panel doesn't end up stuck at
+// whatever width its button happened to be the last time its list changed.
+let dropdownWidthResizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(dropdownWidthResizeTimer);
+  dropdownWidthResizeTimer = setTimeout(() => {
+    syncDropdownWidthToButton(elements.listUnfollowed, elements.togglePreviewUnfollowed);
+    syncDropdownWidthToButton(elements.listStarred, elements.togglePreviewStarred);
+  }, 150);
+});
 
 function setupEventListeners() {
   // Instagram Account Management Event Listeners
