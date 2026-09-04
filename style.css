@@ -60,14 +60,14 @@ html, body {
   --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
-  /* The one fade used for a username leaving OR entering any list —
-     list 3, and the unfollowed/starred submenus. .username-exit and
-     .item-enter both reference these instead of each owning their own
-     copy of the duration/easing, so the two are structurally guaranteed
-     to stay identical (just opacity 1->0 vs 0->1) rather than needing to
-     be kept in sync by hand. */
-  --list-item-fade-duration: 0.8s;
-  --list-item-fade-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  /* The one duration/easing used for a username leaving OR entering any
+     list — list 3's own row fade, list 3's FLIP sibling-shift (see
+     exitListRow, script.js), and the unfollowed/starred submenus' slide.
+     All of them reference these instead of each owning their own copy,
+     so they're structurally guaranteed to stay identical rather than
+     needing to be kept in sync by hand. */
+  --list-item-motion-duration: 0.8s;
+  --list-item-motion-easing: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Grayscale Theme Gradient Colors */
   --grad-1: #000000;
@@ -878,17 +878,22 @@ button:disabled *,
 .user-row.username-exit {
   opacity: 0 !important;
   pointer-events: none !important;
-  transition: opacity var(--list-item-fade-duration) var(--list-item-fade-easing) !important;
+  transition: opacity var(--list-item-motion-duration) var(--list-item-motion-easing) !important;
 }
 
-/* Unfollowed/starred submenu rows slide up rather than just fading — a
-   multi-stop @keyframes animation instead of a two-point opacity
-   transition, for both directions:
+/* Unfollowed/starred submenu rows slide up the exact same way list 3's
+   OWN rows do — not the row-exit fade above (that's list-3-only), but
+   the FLIP sibling-shift transform every remaining row in list 3 gets
+   when one above it is removed (see exitListRow in script.js: `transform
+   ${DURATION}ms cubic-bezier(0.4, 0, 0.2, 1)`). Same easing, same
+   duration (--list-item-motion-easing/--list-item-motion-duration hold those
+   exact values), same pure-transform character — no opacity at all, a
+   slide and only a slide, for both directions:
     - exit: the row (already pinned absolute by exitListRow, same as
-      list 3) drifts upward and out as it dissolves.
+      list 3) slides up and out.
     - enter: a newly-added row rises up into its resting position from
-      just below it.
-   @keyframes is used deliberately instead of transition here — a
+      one row-height below.
+   @keyframes rather than a plain transition so it's self-contained — a
    transition needs its "before" state to actually get painted before the
    "after" state is applied (the classic two-step
    set-state/reflow/rAF/set-again dance .item-enter used to need), and a
@@ -900,29 +905,25 @@ button:disabled *,
    plays its full course the instant the class matches, with nothing for
    JS to coordinate. */
 @keyframes dropdown-item-exit-slide {
-  0%   { opacity: 1;    transform: translateY(0); }
-  35%  { opacity: 0.65; transform: translateY(-6px); }
-  65%  { opacity: 0.25; transform: translateY(-13px); }
-  100% { opacity: 0;    transform: translateY(-20px); }
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(-44px); }
 }
 
 .parsed-item.username-exit {
-  animation: dropdown-item-exit-slide var(--list-item-fade-duration) var(--list-item-fade-easing) forwards;
+  animation: dropdown-item-exit-slide var(--list-item-motion-duration) var(--list-item-motion-easing) forwards;
   pointer-events: none !important;
 }
 
 @keyframes dropdown-item-enter-slide {
-  0%   { opacity: 0;    transform: translateY(20px); }
-  35%  { opacity: 0.35; transform: translateY(12px); }
-  65%  { opacity: 0.75; transform: translateY(5px); }
-  100% { opacity: 1;    transform: translateY(0); }
+  0%   { transform: translateY(44px); }
+  100% { transform: translateY(0); }
 }
 
 /* Applied by updateUnfollowedUI/updateStarredUI in script.js as part of
    the entering item's initial markup — no JS-side trigger needed (see
    above), it's already animating the moment the element exists. */
 .parsed-item.item-enter {
-  animation: dropdown-item-enter-slide var(--list-item-fade-duration) var(--list-item-fade-easing) forwards;
+  animation: dropdown-item-enter-slide var(--list-item-motion-duration) var(--list-item-motion-easing) forwards;
 }
 
 /* Dropdown layouts for unfollowed and starred popovers */
