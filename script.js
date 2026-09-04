@@ -2359,7 +2359,7 @@ function updateInstructionsStepUI() {
             }
           }
 
-          updateStarredUI();
+          updateStarredUI(username);
           await pushToCloud();
         }
       }, { shrinkBox: itemEl.closest('.dropdown-menu') });
