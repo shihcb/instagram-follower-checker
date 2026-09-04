@@ -2272,7 +2272,7 @@ function updateInstructionsStepUI() {
     e.stopPropagation();
     const unstarBtn = e.target.closest('.unstar-btn');
     const removeBtn = e.target.closest('.remove-unfollowed-btn');
-
+    
     if (unstarBtn || removeBtn) {
       const targetBtn = unstarBtn || removeBtn;
       const username = targetBtn.getAttribute('data-username');
@@ -2281,9 +2281,34 @@ function updateInstructionsStepUI() {
 
       exitListRow(itemEl, async () => {
         state.starred = state.starred.filter(u => u.username !== username);
+
+        // Recalculate unfollowers math without re-rendering active listStarred dropdown DOM
+        const followersSet = new Set(state.followers.map(user => user.username));
+        const unfollowedSet = new Set(state.unfollowed.map(user => user.username));
+        const starredSet = new Set(state.starred.map(user => user.username));
+        state.unfollowers = state.following.filter(user => 
+          !followersSet.has(user.username) && 
+          !unfollowedSet.has(user.username) &&
+          !starredSet.has(user.username)
+        );
+        updateResultsUI();
+
         saveCurrentAccountData();
-        calculateUnfollowers();
-        updateStarredUI();
+
+        const listEl = elements.listStarred;
+        const headerBar = listEl.querySelector('.dropdown-header-bar');
+        const resetStarredBtn = document.getElementById('settings-reset-starred-btn');
+
+        if (state.starred.length === 0) {
+          updateStarredUI();
+        } else {
+          if (headerBar) {
+            headerBar.textContent = `${state.starred.length} ${state.starred.length === 1 ? 'starred account' : 'starred accounts'}`;
+          }
+          if (resetStarredBtn) {
+            resetStarredBtn.removeAttribute('disabled');
+          }
+        }
         await pushToCloud();
       }, { shrinkBox: itemEl.closest('.dropdown-menu') });
     }
@@ -2306,10 +2331,35 @@ function updateInstructionsStepUI() {
           if (!state.starred.some(u => u.username === username)) {
             state.starred.unshift(userObj);
           }
+
+          const followersSet = new Set(state.followers.map(user => user.username));
+          const unfollowedSet = new Set(state.unfollowed.map(user => user.username));
+          const starredSet = new Set(state.starred.map(user => user.username));
+          state.unfollowers = state.following.filter(user => 
+            !followersSet.has(user.username) && 
+            !unfollowedSet.has(user.username) &&
+            !starredSet.has(user.username)
+          );
+          updateResultsUI();
+
           saveCurrentAccountData();
-          calculateUnfollowers();
-          updateUnfollowedUI();
-          updateStarredUI(username);
+
+          const listEl = elements.listUnfollowed;
+          const headerBar = listEl.querySelector('.dropdown-header-bar');
+          const resetUnfollowedBtn = document.getElementById('settings-reset-unfollowed-btn');
+
+          if (state.unfollowed.length === 0) {
+            updateUnfollowedUI();
+          } else {
+            if (headerBar) {
+              headerBar.textContent = `${state.unfollowed.length} ${state.unfollowed.length === 1 ? 'unfollowed account' : 'unfollowed accounts'}`;
+            }
+            if (resetUnfollowedBtn) {
+              resetUnfollowedBtn.removeAttribute('disabled');
+            }
+          }
+
+          updateStarredUI();
           await pushToCloud();
         }
       }, { shrinkBox: itemEl.closest('.dropdown-menu') });
@@ -2324,9 +2374,34 @@ function updateInstructionsStepUI() {
 
       exitListRow(itemEl, async () => {
         state.unfollowed = state.unfollowed.filter(u => u.username !== username);
+
+        const followersSet = new Set(state.followers.map(user => user.username));
+        const unfollowedSet = new Set(state.unfollowed.map(user => user.username));
+        const starredSet = new Set(state.starred.map(user => user.username));
+        state.unfollowers = state.following.filter(user => 
+          !followersSet.has(user.username) && 
+          !unfollowedSet.has(user.username) &&
+          !starredSet.has(user.username)
+        );
+        updateResultsUI();
+
         saveCurrentAccountData();
-        calculateUnfollowers();
-        updateUnfollowedUI();
+
+        const listEl = elements.listUnfollowed;
+        const headerBar = listEl.querySelector('.dropdown-header-bar');
+        const resetUnfollowedBtn = document.getElementById('settings-reset-unfollowed-btn');
+
+        if (state.unfollowed.length === 0) {
+          updateUnfollowedUI();
+        } else {
+          if (headerBar) {
+            headerBar.textContent = `${state.unfollowed.length} ${state.unfollowed.length === 1 ? 'unfollowed account' : 'unfollowed accounts'}`;
+          }
+          if (resetUnfollowedBtn) {
+            resetUnfollowedBtn.removeAttribute('disabled');
+          }
+        }
+
         await pushToCloud();
       }, { shrinkBox: itemEl.closest('.dropdown-menu') });
     }
