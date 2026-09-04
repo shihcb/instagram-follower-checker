@@ -666,12 +666,17 @@ function updateUnfollowedUI(enteringUsername) {
   } else {
     toggleBtn.setAttribute('disabled', 'true');
     if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span>`;
-    listEl.innerHTML = '';
-    // Same close as the confirm-deletion modal's own .fade-out-bounce —
-    // deliberately no height animation alongside it, see
-    // animatePanelHeightChange's own comment for why.
-    closeDropdownPanel(listEl, wasShown);
-    toggleBtn.classList.remove('active');
+    // Used to force-close the panel here the instant the list emptied
+    // out, even if the user still had it open and was looking at it —
+    // surprising and unwanted. Now it just shows an empty state and
+    // leaves .show/.active exactly as they already were: still open if
+    // it was open (closable by clicking outside, same as any other
+    // dropdown), still closed if it was closed.
+    listEl.innerHTML = `
+      <div class="dropdown-header-bar">0 unfollowed accounts</div>
+      <div class="dropdown-empty-message">no unfollowed accounts yet</div>
+    `;
+    animatePanelHeightChange(listEl, wasShown, startHeight);
   }
 
   const resetUnfollowedBtn = document.getElementById('settings-reset-unfollowed-btn');
@@ -734,12 +739,17 @@ function updateStarredUI(enteringUsername) {
   } else {
     toggleBtn.setAttribute('disabled', 'true');
     if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span>`;
-    listEl.innerHTML = '';
-    // Same close as the confirm-deletion modal's own .fade-out-bounce —
-    // deliberately no height animation alongside it, see
-    // animatePanelHeightChange's own comment for why.
-    closeDropdownPanel(listEl, wasShown);
-    toggleBtn.classList.remove('active');
+    // Used to force-close the panel here the instant the list emptied
+    // out, even if the user still had it open and was looking at it —
+    // surprising and unwanted. Now it just shows an empty state and
+    // leaves .show/.active exactly as they already were: still open if
+    // it was open (closable by clicking outside, same as any other
+    // dropdown), still closed if it was closed.
+    listEl.innerHTML = `
+      <div class="dropdown-header-bar">0 starred accounts</div>
+      <div class="dropdown-empty-message">no starred accounts yet</div>
+    `;
+    animatePanelHeightChange(listEl, wasShown, startHeight);
   }
 
   const resetStarredBtn = document.getElementById('settings-reset-starred-btn');
@@ -1613,14 +1623,18 @@ function closeAllSubMenusAndPopups() {
 // .username-exit (opacity only — already out of flow, so no collapse
 // animation is needed on it at all).
 // The unfollowed/starred submenus are auto-height popup panels
-// (.dropdown-menu) that hug their content up to a 10-item cap. Pass the
-// panel as `shrinkBox` and, once the removed row's sibling reflow lands,
-// its new (shorter) natural height is animated to over the same DURATION
-// as the row's own fade — instead of the panel snapping to its smaller
+// (.dropdown-menu) that hug their content up to a 10-item cap, and their
+// inner .dropdown-scroll-items (rowEl's own parent) does too, one level
+// in. Pass the panel as `shrinkBox` and both it and that inner container
+// get their new (shorter) natural height animated to over the same
+// DURATION as the row's own fade — instead of snapping to the smaller
 // size the instant the row leaves flow, well before the row itself has
-// visibly finished fading. Past the 10-item cap this is a no-op (the
-// panel's height doesn't change either way, since it was already pinned
-// at the cap).
+// visibly finished fading, which for the inner container specifically
+// also used to clip the bottom-most row (translated back to its old,
+// now out-of-bounds position by the FLIP inversion below) until the
+// animation caught back up, reading as that row flickering. Past the
+// 10-item cap both are no-ops (heights don't change either way, already
+// pinned at their caps).
 function exitListRow(rowEl, onComplete, { shrinkBox } = {}) {
   // A row already fading out ignores any further attempt to remove it
   // again. Without this, clicking the same delete/star/unstar button
@@ -1684,6 +1698,12 @@ function exitListRow(rowEl, onComplete, { shrinkBox } = {}) {
   // affect it) keeps this correct even if a row is removed while the
   // panel's own open transition hasn't finished settling at scale(1) yet.
   const boxStartHeight = shrinkBox ? shrinkBox.offsetHeight : null;
+  // The scroll-items container itself (rowEl's immediate parent) hugs its
+  // content up to its own cap, same as shrinkBox one level out — lock and
+  // animate it too (see below) for the same reason: below that cap its
+  // height is content-driven and shrinks in the very same synchronous
+  // reflow the exiting row's position:absolute causes.
+  const containerStartHeight = shrinkBox ? container.offsetHeight : null;
 
   // FIRST: where every sibling sits right now.
   const firstRects = siblings.map(el => el.getBoundingClientRect());
@@ -1723,6 +1743,24 @@ function exitListRow(rowEl, onComplete, { shrinkBox } = {}) {
       shrinkBox.style.transition = `height ${DURATION}ms cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)`;
       shrinkBox.style.height = `${boxEndHeight}px`;
     }
+
+    // Same lock-then-transition for the inner scroll-items container. Below
+    // its own cap, its overflow-y: auto clipping bound shrinks in that same
+    // synchronous reflow, before the FLIP-compensated siblings below the
+    // exiting row (translated back to their *old* position, which briefly
+    // sits below the container's *new*, already-shrunk bottom edge) have
+    // animated back up into it — so the bottom-most row would get clipped
+    // by the container and then "grow" back into view over the transition,
+    // reading as a flicker on exactly the last row, and only ever below the
+    // cap where this container's height is content-driven at all (matching
+    // exactly when this was reported: "less than 10 usernames").
+    const containerEndHeight = container.offsetHeight;
+    if (containerEndHeight !== containerStartHeight) {
+      container.style.height = `${containerStartHeight}px`;
+      void container.offsetHeight;
+      container.style.transition = `height ${DURATION}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+      container.style.height = `${containerEndHeight}px`;
+    }
   }
 
   // INVERT: snap each sibling back to where it used to be, with no
@@ -1756,6 +1794,8 @@ function exitListRow(rowEl, onComplete, { shrinkBox } = {}) {
     if (shrinkBox) {
       shrinkBox.style.transition = '';
       shrinkBox.style.height = '';
+      container.style.transition = '';
+      container.style.height = '';
     }
     onComplete();
   }, DURATION);
@@ -1763,15 +1803,14 @@ function exitListRow(rowEl, onComplete, { shrinkBox } = {}) {
 
 // Animates the unfollowed/starred panel's own height settling to match a
 // fresh render of its content, so it visibly grows/shrinks to fit 1-10
-// items instead of snapping to its new size. Below 10 items
-// .dropdown-scroll-items hugs its actual content (see its own max-height
-// cap in updateUnfollowedUI/updateStarredUI); at 10 or more it's already
-// pinned at the cap, so startHeight === endHeight there and this is a
-// harmless no-op. Call with the panel's shown/height state read *before*
-// re-rendering it. Deliberately never called for the transition into an
-// empty list — that's the panel fully closing (see closeDropdownPanel
-// below) instead, which a competing height animation running at the same
-// time would only fight.
+// items (and down to the small empty-state message once the list runs
+// out entirely — the panel no longer force-closes itself at 0, see
+// updateUnfollowedUI/updateStarredUI) instead of snapping to its new
+// size. Below 10 items .dropdown-scroll-items hugs its actual content
+// (see its own max-height cap in updateUnfollowedUI/updateStarredUI); at
+// 10 or more it's already pinned at the cap, so startHeight === endHeight
+// there and this is a harmless no-op. Call with the panel's shown/height
+// state read *before* re-rendering it.
 function animatePanelHeightChange(listEl, startedShown, startHeight) {
   if (!startedShown || startHeight === null) return;
   const endHeight = listEl.offsetHeight;
@@ -1791,21 +1830,6 @@ function animatePanelHeightChange(listEl, startedShown, startHeight) {
     listEl.style.transition = '';
     listEl.style.height = '';
   }, DURATION);
-}
-
-// Closes the unfollowed/starred panel the same way showSiteConfirm's
-// modal closes (see .fade-out-bounce, style.css) — a punchier close than
-// a plain .show removal, used specifically for the panel closing because
-// its list just emptied out to 0. Only plays when the panel was actually
-// open (startedShown); otherwise there's nothing visible to animate.
-function closeDropdownPanel(listEl, startedShown) {
-  if (startedShown) {
-    listEl.classList.add('fade-out-bounce');
-  }
-  listEl.classList.remove('show');
-  setTimeout(() => {
-    listEl.classList.remove('fade-out-bounce');
-  }, 600);
 }
 
 // Matches the unfollowed/starred panel's width to its own toggle button's

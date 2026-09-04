@@ -1022,19 +1022,6 @@ body:not(.auth-logged-out) .parsed-list.dropdown-menu {
   pointer-events: auto;
 }
 
-/* Same punchier close as the confirm-deletion modal's own
-   .fade-out-bounce (see .modal-overlay.fade-out-bounce above) — applied
-   by updateUnfollowedUI/updateStarredUI in script.js when the unfollowed/
-   starred panel closes because its list just emptied out, instead of the
-   plain .show removal every other close (toggle button, outside click)
-   uses. .dropdown-menu is both the overlay and the card in one element
-   (unlike the two-tier .modal-overlay/.account-modal-card split), so this
-   is a single rule rather than a pair. */
-.dropdown-menu.fade-out-bounce {
-  opacity: 0 !important;
-  transform: translateY(16px) scale(0.92) !important;
-}
-
 /* Spacing between dropdown-menu children (e.g. the import-files menu's
    dropdown-item-btn entries) lives on each child's own margin rather than
    the container's flex gap, since gap can't be animated away per-item — an
@@ -4624,6 +4611,17 @@ body.auth-logged-out #auth-form-view.smooth-exit {
   right: 10px;
   height: 1px;
   background-color: var(--card-border);
+}
+
+/* Shown in the unfollowed/starred panel in place of the item list once it
+   empties out to 0 — the panel no longer force-closes itself at that
+   point (see updateUnfollowedUI/updateStarredUI, script.js), so it needs
+   something other than a blank box if the user still has it open. */
+.dropdown-empty-message {
+  padding: 16px 10px 20px 10px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-align: center;
 }
 
 .auth-settings-section {
