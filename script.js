@@ -1688,6 +1688,28 @@ function measureFinalPanelHeight(panelEl, finalHtml) {
   return height;
 }
 
+// iOS/WebKit's momentum scrolling (-webkit-overflow-scrolling: touch, set
+// on .dropdown-scroll-items for mobile — see the max-width:1024px rule)
+// has a long-documented bug where a scrollable region can get "stuck"
+// showing its content clipped to roughly its pre-transition size — here,
+// the panel's own opening transform/opacity transition — until something
+// forces the browser to recomposite it. Any later star/delete already
+// does that incidentally (exitListRow/animatePanelHeightChange both read
+// offsetHeight and touch inline styles, forcing a reflow), which is
+// exactly why the panel only ever "snapped" to its correct, full size
+// after the first edit — nothing forced that same fix on open itself.
+// Nudging scrollTop is the standard fix for this class of bug: it forces
+// WebKit to recompute the scrollable area's real content bounds
+// immediately, rather than leaving it to chance.
+function forceDropdownScrollRepaint(listEl) {
+  const scrollItems = listEl.querySelector('.dropdown-scroll-items');
+  if (!scrollItems) return;
+  requestAnimationFrame(() => {
+    scrollItems.scrollTop += 1;
+    scrollItems.scrollTop -= 1;
+  });
+}
+
 function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   // A row already fading out ignores any further attempt to remove it
   // again. Without this, clicking the same delete/star/unstar button
@@ -2347,6 +2369,7 @@ function updateInstructionsStepUI() {
     e.stopPropagation();
     const isShown = elements.listUnfollowed.classList.toggle('show');
     elements.togglePreviewUnfollowed.classList.toggle('active', isShown);
+    if (isShown) forceDropdownScrollRepaint(elements.listUnfollowed);
 
     // Close starred dropdown if open
     elements.listStarred.classList.remove('show');
@@ -2362,6 +2385,7 @@ function updateInstructionsStepUI() {
     e.stopPropagation();
     const isShown = elements.listStarred.classList.toggle('show');
     elements.togglePreviewStarred.classList.toggle('active', isShown);
+    if (isShown) forceDropdownScrollRepaint(elements.listStarred);
 
     // Close unfollowed dropdown if open
     elements.listUnfollowed.classList.remove('show');
