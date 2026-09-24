@@ -956,11 +956,17 @@ button:disabled *,
    that's usually wider than that, so matching the button specifically
    (not the wrapper) needs its actual rendered width, which only JS can
    read. syncDropdownWidthToButton in script.js sets it as an inline
-   style on open/render and on window resize. */
+   style on open/render and on window resize. That button (one of three
+   evenly-split controls in the row) is too narrow to hold a username
+   plus its star/delete icons, so min-width floors the panel itself
+   comfortably wider than the button that opens it — a popup wider than
+   its trigger, anchored to the trigger's left edge, is normal dropdown
+   behavior and there's nothing above it that clips an overflow. */
 body:not(.auth-logged-out) .dropdown-wrapper .parsed-list.dropdown-menu,
 body:not(.auth-logged-out) .parsed-list.dropdown-menu {
   left: 0 !important;
   right: auto !important;
+  min-width: 260px;
   box-sizing: border-box !important;
 }
 
@@ -1298,6 +1304,36 @@ body:not(.auth-logged-out) .parsed-list.dropdown-menu {
 .parsed-item .parsed-username {
   font-weight: 600;
   color: var(--text-main);
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The trailing full-name/star/delete group: let it shrink (unlike the
+   icons inside it, see below), so an unbounded full name can't force the
+   whole group to its full natural width and squeeze the username to
+   nothing — its own child (the full-name span) is what actually gives up
+   space, via the truncation rule below. */
+.parsed-item > div {
+  min-width: 0;
+}
+
+/* The full-name span (always the trailing group's first child, per the
+   updateUnfollowedUI/updateStarredUI markup, even when empty) truncates
+   instead of stretching the row — same reasoning as .parsed-username. */
+.parsed-item > div > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 90px;
+}
+
+/* The star/delete icons never shrink — they're what the username and
+   full name give up space for. */
+.parsed-item .dropdown-actions-group {
+  flex-shrink: 0;
 }
 
 .parsed-item a.parsed-username:hover {
