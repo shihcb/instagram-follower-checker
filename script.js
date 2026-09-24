@@ -619,6 +619,17 @@ function calculateUnfollowers() {
   }
 }
 
+// Shared by the empty-state render below and by the pre-removal height
+// measurement in the listUnfollowed click handler (see
+// measureFinalPanelHeight) — both need byte-identical markup so the
+// pre-measured height is guaranteed to match what actually gets rendered.
+function getUnfollowedEmptyHtml() {
+  return `
+      <div class="dropdown-header-bar">0 unfollowed accounts</div>
+      <div class="dropdown-empty-message">no unfollowed accounts yet</div>
+    `;
+}
+
 function updateUnfollowedUI(enteringUsername) {
   localStorage.setItem('unfollowed_users', JSON.stringify(state.unfollowed));
   const listData = state.unfollowed;
@@ -672,10 +683,7 @@ function updateUnfollowedUI(enteringUsername) {
     // leaves .show/.active exactly as they already were: still open if
     // it was open (closable by clicking outside, same as any other
     // dropdown), still closed if it was closed.
-    listEl.innerHTML = `
-      <div class="dropdown-header-bar">0 unfollowed accounts</div>
-      <div class="dropdown-empty-message">no unfollowed accounts yet</div>
-    `;
+    listEl.innerHTML = getUnfollowedEmptyHtml();
     animatePanelHeightChange(listEl, wasShown, startHeight);
   }
 
@@ -691,6 +699,14 @@ function updateUnfollowedUI(enteringUsername) {
   // After the label update above, since the occupied-dot indicator it can
   // add/remove changes the button's own rendered width.
   syncDropdownWidthToButton(listEl, toggleBtn);
+}
+
+// See getUnfollowedEmptyHtml's comment — same reasoning, for the starred submenu.
+function getStarredEmptyHtml() {
+  return `
+      <div class="dropdown-header-bar">0 starred accounts</div>
+      <div class="dropdown-empty-message">no starred accounts yet</div>
+    `;
 }
 
 function updateStarredUI(enteringUsername) {
@@ -745,10 +761,7 @@ function updateStarredUI(enteringUsername) {
     // leaves .show/.active exactly as they already were: still open if
     // it was open (closable by clicking outside, same as any other
     // dropdown), still closed if it was closed.
-    listEl.innerHTML = `
-      <div class="dropdown-header-bar">0 starred accounts</div>
-      <div class="dropdown-empty-message">no starred accounts yet</div>
-    `;
+    listEl.innerHTML = getStarredEmptyHtml();
     animatePanelHeightChange(listEl, wasShown, startHeight);
   }
 
@@ -1641,7 +1654,29 @@ function closeAllSubMenusAndPopups() {
 // animation caught back up, reading as that row flickering. Past the
 // 10-item cap both are no-ops (heights don't change either way, already
 // pinned at their caps).
-function exitListRow(rowEl, onComplete, { shrinkBox } = {}) {
+//
+// When removing a submenu's very last row, its caller can additionally
+// pass `finalBoxHeight` — the exact height the panel will end up at once
+// it re-renders to its empty state (see measureFinalPanelHeight). Without
+// it, this function would shrink shrinkBox down to the height of "row
+// removed, but header text/empty-message not updated yet" (an
+// intermediate state nothing ever intentionally shows), and the caller's
+// own subsequent re-render to the real empty state would then trigger a
+// second, independent height animation on top of this one — shrink, then
+// regrow, a visibly janky two-step motion. Animating directly to the
+// known final height instead makes it one continuous motion.
+function measureFinalPanelHeight(panelEl, finalHtml) {
+  const savedHtml = panelEl.innerHTML;
+  const savedTransition = panelEl.style.transition;
+  panelEl.style.transition = 'none';
+  panelEl.innerHTML = finalHtml;
+  const height = panelEl.offsetHeight;
+  panelEl.innerHTML = savedHtml;
+  panelEl.style.transition = savedTransition;
+  return height;
+}
+
+function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   // A row already fading out ignores any further attempt to remove it
   // again. Without this, clicking the same delete/star/unstar button
   // rapidly (before the first 800ms fade finishes — easy to do since the
@@ -1699,10 +1734,8 @@ function exitListRow(rowEl, onComplete, { shrinkBox } = {}) {
     ? Array.from(container.children).filter(el => el !== rowEl && !el.classList.contains('username-exit'))
     : [];
 
-  if (!container || siblings.length === 0) {
-    // Nothing else in the list to shift — just the row's own exit animation.
-    // (If this was the last item, the panel empties out and closes itself via
-    // its own opacity/transform exit transition — no height shrink to animate.)
+  if (!container) {
+    // No parent to measure/shrink at all — just the row's own exit animation.
     if (userRowExitDistance !== null) {
       rowEl.style.setProperty('--user-row-exit-distance', `-${userRowExitDistance}px`);
     }
@@ -1754,7 +1787,7 @@ function exitListRow(rowEl, onComplete, { shrinkBox } = {}) {
   // the panel's bottom edge slides up in step with the row's fade instead of
   // snapping immediately.
   if (shrinkBox) {
-    const boxEndHeight = shrinkBox.offsetHeight;
+    const boxEndHeight = finalBoxHeight != null ? finalBoxHeight : shrinkBox.offsetHeight;
     if (boxEndHeight !== boxStartHeight) {
       shrinkBox.style.height = `${boxStartHeight}px`;
       void shrinkBox.offsetHeight; // commit the locked height before animating away from it
@@ -1819,7 +1852,16 @@ function exitListRow(rowEl, onComplete, { shrinkBox } = {}) {
     });
     if (shrinkBox) {
       shrinkBox.style.transition = '';
-      shrinkBox.style.height = '';
+      // When finalBoxHeight was given, leave the panel pinned at it rather
+      // than clearing back to '' (which would briefly read its *current*
+      // content's natural height — the stale pre-re-render one). The
+      // caller's re-render right after this is guaranteed to match it
+      // exactly (see measureFinalPanelHeight), so nothing visibly moves
+      // either way, but this keeps animatePanelHeightChange's own
+      // before/after measurement equal and correctly a no-op.
+      if (finalBoxHeight == null) {
+        shrinkBox.style.height = '';
+      }
       container.style.transition = '';
       container.style.height = '';
     }
@@ -2350,6 +2392,11 @@ function updateInstructionsStepUI() {
       const itemEl = targetBtn.closest('.parsed-item');
       if (!itemEl) return;
 
+      const menuEl = itemEl.closest('.dropdown-menu');
+      const finalBoxHeight = (state.starred.length === 1 && menuEl)
+        ? measureFinalPanelHeight(menuEl, getStarredEmptyHtml())
+        : null;
+
       exitListRow(itemEl, async () => {
         state.starred = state.starred.filter(u => u.username !== username);
 
@@ -2381,7 +2428,7 @@ function updateInstructionsStepUI() {
           }
         }
         await pushToCloud();
-      }, { shrinkBox: itemEl.closest('.dropdown-menu') });
+      }, { shrinkBox: menuEl, finalBoxHeight });
     }
   });
 
@@ -2395,6 +2442,11 @@ function updateInstructionsStepUI() {
       const userObj = state.unfollowed.find(u => u.username === username);
       const itemEl = starBtn.closest('.parsed-item');
       if (!itemEl) return;
+
+      const menuEl = itemEl.closest('.dropdown-menu');
+      const finalBoxHeight = (state.unfollowed.length === 1 && menuEl)
+        ? measureFinalPanelHeight(menuEl, getUnfollowedEmptyHtml())
+        : null;
 
       exitListRow(itemEl, async () => {
         if (userObj) {
@@ -2433,7 +2485,7 @@ function updateInstructionsStepUI() {
           updateStarredUI(username);
           await pushToCloud();
         }
-      }, { shrinkBox: itemEl.closest('.dropdown-menu') });
+      }, { shrinkBox: menuEl, finalBoxHeight });
       return;
     }
 
@@ -2442,6 +2494,11 @@ function updateInstructionsStepUI() {
       const username = removeBtn.getAttribute('data-username');
       const itemEl = removeBtn.closest('.parsed-item');
       if (!itemEl) return;
+
+      const menuEl = itemEl.closest('.dropdown-menu');
+      const finalBoxHeight = (state.unfollowed.length === 1 && menuEl)
+        ? measureFinalPanelHeight(menuEl, getUnfollowedEmptyHtml())
+        : null;
 
       exitListRow(itemEl, async () => {
         state.unfollowed = state.unfollowed.filter(u => u.username !== username);
@@ -2474,7 +2531,7 @@ function updateInstructionsStepUI() {
         }
 
         await pushToCloud();
-      }, { shrinkBox: itemEl.closest('.dropdown-menu') });
+      }, { shrinkBox: menuEl, finalBoxHeight });
     }
   });
 
