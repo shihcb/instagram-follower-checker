@@ -817,6 +817,21 @@ button:disabled *,
   border-color: var(--text-main) !important;
 }
 
+/* The unfollowed/starred toggle buttons specifically: clicking them left
+   a darkish highlight (the :hover background above staying under the
+   cursor after the click, plus the platform's own tap-highlight on touch)
+   — pin the pressed (:active) state to look identical to the resting
+   state, same as though nothing were pressed at all. Scoped to just
+   these two (not every .preview-toggle, e.g. "Import files") since
+   that's what was actually reported. */
+#toggle-preview-unfollowed:active,
+#toggle-preview-starred:active {
+  background-color: var(--input-bg) !important;
+  background: var(--input-bg) !important;
+  border-color: var(--input-border) !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
 .preview-toggle:disabled {
   opacity: 0.45 !important;
   cursor: not-allowed !important;
@@ -1475,6 +1490,14 @@ body.hide-shortcuts #keyboard-hints {
   background: rgba(255, 255, 255, 0.14) !important;
   border-color: rgba(255, 255, 255, 0.3) !important;
   color: #ffffff !important;
+}
+
+[data-theme="dark"] #toggle-preview-unfollowed:active,
+[data-theme="dark"] #toggle-preview-starred:active {
+  background-color: rgba(255, 255, 255, 0.07) !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #f4f4f5 !important;
 }
 
 [data-theme="dark"] .preview-toggle.active {
