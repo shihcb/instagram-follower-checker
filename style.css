@@ -966,9 +966,11 @@ button:disabled *,
    plus its star/delete icons, so min-width floors the panel itself
    comfortably wider than the button that opens it — a popup wider than
    its trigger, anchored to the trigger's left edge, is normal dropdown
-   behavior and there's nothing above it that clips an overflow. */
-body:not(.auth-logged-out) .dropdown-wrapper .parsed-list.dropdown-menu,
-body:not(.auth-logged-out) .parsed-list.dropdown-menu {
+   behavior and there's nothing above it that clips an overflow. Applies
+   identically logged in or in the guest preview — same markup, same
+   exitListRow animation, same everything. */
+.dropdown-wrapper .parsed-list.dropdown-menu,
+.parsed-list.dropdown-menu {
   left: 0 !important;
   right: auto !important;
   min-width: 260px;
@@ -3216,12 +3218,6 @@ body.auth-logged-out .app-header {
   -webkit-backdrop-filter: none !important;
 }
 
-/* The live app (lists 1/2/3) only exists for logged-in users now — no
-   guest demo to show while logged out. */
-body.auth-logged-out .app-grid {
-  display: none !important;
-}
-
 /* -------------------------------------------------------------
  * Landing Page Layout & Component Styling (Logged Out State)
  * ------------------------------------------------------------- */
@@ -3262,7 +3258,8 @@ html.is-logged-in body.auth-logged-out .auth-dropdown.show {
   pointer-events: auto !important;
 }
 
-html.is-logged-in #landing-page-container {
+html.is-logged-in #landing-page-container,
+html.is-logged-in #landing-preview-section {
   display: none !important;
 }
 
@@ -3278,7 +3275,8 @@ html.is-logged-in .user-badge {
   display: inline-flex !important;
 }
 
-body:not(.auth-logged-out) #landing-page-container {
+body:not(.auth-logged-out) #landing-page-container,
+body:not(.auth-logged-out) #landing-preview-section {
   display: none !important;
 }
 
