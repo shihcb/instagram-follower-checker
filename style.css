@@ -614,7 +614,7 @@ button:disabled *,
   gap: 24px;
   align-items: stretch;
   position: relative;
-  margin-top: 48px;
+  margin-top: 0;
   transition: margin-top 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
