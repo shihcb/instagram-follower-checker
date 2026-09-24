@@ -1603,9 +1603,7 @@ function closeAllSubMenusAndPopups() {
 // action that removes one, in list 3 itself (clicking the row, starring,
 // dismissing, deleting) and in the unfollowed/starred preview submenus
 // (unstarring, removing, moving between them), so they all animate
-// identically no matter which control triggered it or which list it's in,
-// and regardless of login state (nothing here depends on auth — same
-// behavior logged in or in the guest preview).
+// identically no matter which control triggered it or which list it's in.
 //
 // Uses a FLIP (First-Last-Invert-Play) animation rather than animating
 // max-height/margin/padding directly. Those box-model properties force a
@@ -3100,83 +3098,25 @@ let currentUser = null;
 let isSigningUp = false;
 let isInitialAuthCheck = true;
 
-// Username shown in the logged-out preview so visitors can see the checker
-// working without being able to test it with their own account.
-const GUEST_PREVIEW_USERNAME = 'shihcb';
-
-// Lock List 1 (followers) & List 2 (following) to a fixed demo username
-// while logged out, so guests can only preview the checker and must log in
-// to test it with their own account.
-function applyGuestPreviewLock(isLoggedIn) {
-  if (!elements.inputFollowing || !elements.inputFollowers) return;
-
-  elements.inputFollowing.readOnly = !isLoggedIn;
-  elements.inputFollowers.readOnly = !isLoggedIn;
-  if (elements.clearFollowing) elements.clearFollowing.disabled = !isLoggedIn;
-  if (elements.clearFollowers) elements.clearFollowers.disabled = !isLoggedIn;
-  if (elements.btnAddAccount) elements.btnAddAccount.disabled = !isLoggedIn;
-
-  if (isLoggedIn) {
-    const savedAccounts = localStorage.getItem('instagram_accounts');
-    if (savedAccounts) {
-      try {
-        const parsed = JSON.parse(savedAccounts).filter(acc => acc.originalUsername.toLowerCase() !== GUEST_PREVIEW_USERNAME.toLowerCase());
-        state.instagramAccounts = parsed;
-      } catch (e) {}
-    }
-    renderAccountChips(false);
-    return;
+// Restore any previously saved Instagram accounts from localStorage right
+// before the cloud sync (pullFromCloud) runs, so there's a sane fallback
+// account list if this is the very first sync and no cloud row exists yet.
+function loadSavedAccountsOnLogin() {
+  const savedAccounts = localStorage.getItem('instagram_accounts');
+  if (savedAccounts) {
+    try {
+      state.instagramAccounts = JSON.parse(savedAccounts);
+    } catch (e) {}
   }
-
-  state.instagramAccounts = [{ username: GUEST_PREVIEW_USERNAME, originalUsername: GUEST_PREVIEW_USERNAME }];
-  state.selectedAccountUsername = GUEST_PREVIEW_USERNAME;
-  elements.inputFollowing.value = `@${GUEST_PREVIEW_USERNAME}`;
-  elements.inputFollowers.value = '';
-  state.following = deduplicateEntries(parseInput(elements.inputFollowing.value));
-  state.followers = [];
-  updateListUI('following');
-  updateListUI('followers');
-  calculateUnfollowers();
   renderAccountChips(false);
-
-  // Hide the clear button entirely while logged out (updateListUI shows it
-  // whenever the textarea has content, which the demo username always does)
-  const actionsFollowing = document.getElementById('actions-following');
-  const actionsFollowers = document.getElementById('actions-followers');
-  if (actionsFollowing) actionsFollowing.classList.remove('show');
-  if (actionsFollowers) actionsFollowers.classList.remove('show');
-}
-
-// Physically relocate the live app grid so it isn't trapped inside
-// #landing-page-container (which is display:none once logged in).
-function relocateAppGridForAuthState(isLoggedIn) {
-  const appGrid = document.querySelector('.app-grid');
-  const appContainer = document.querySelector('.app-container');
-  const landingHome = document.getElementById('app-grid-landing-home');
-  if (!appGrid) return;
-
-  if (isLoggedIn) {
-    if (appContainer && appGrid.parentElement !== appContainer) {
-      appContainer.appendChild(appGrid);
-    }
-  } else {
-    if (landingHome && appGrid.parentElement !== landingHome) {
-      landingHome.appendChild(appGrid);
-    }
-  }
 }
 
 function initAuth() {
-  // Show the locked guest preview immediately, before the async session
-  // check resolves, so visitors never see blank/editable lists flash by.
-  applyGuestPreviewLock(false);
-
   if (!supabaseClient) {
     // Show configuration warning if URL/Anon key are empty
     if (elements.authConfigWarning) elements.authConfigWarning.classList.remove('hidden');
     document.body.classList.add('auth-logged-out');
     if (elements.authDropdown) elements.authDropdown.classList.add('show');
-    relocateAppGridForAuthState(false);
     return;
   }
 
@@ -3210,17 +3150,17 @@ function initAuth() {
           return;
         }
 
-        // Unlock List 1 & 2 from the guest demo now that a real account is active
-        applyGuestPreviewLock(true);
+        // Load any previously saved account list as a fallback before syncing from the cloud
+        loadSavedAccountsOnLogin();
 
         // Fetch cloud data and merge/sync
         await pullFromCloud();
 
-        // Load saved Following/Followers lists if present in localStorage (filtering out guest preview entries)
+        // Load saved Following/Followers lists if present in localStorage
         const savedFollowing = localStorage.getItem('following_users');
         const savedFollowers = localStorage.getItem('followers_users');
         if (savedFollowing) {
-          const parsed = JSON.parse(savedFollowing).filter(u => u.username !== GUEST_PREVIEW_USERNAME);
+          const parsed = JSON.parse(savedFollowing);
           state.following = parsed;
           elements.inputFollowing.value = state.following.map(user => `@${user.originalUsername}`).join('\n');
           updateListUI('following');
@@ -3247,7 +3187,6 @@ function initAuth() {
             setTimeout(() => {
               document.documentElement.classList.add('is-logged-in');
               document.body.classList.remove('auth-logged-out');
-              relocateAppGridForAuthState(true);
               if (elements.authDropdown) {
                 elements.authDropdown.classList.remove('show');
                 elements.authDropdown.classList.remove('fade-out-bounce');
@@ -3260,7 +3199,6 @@ function initAuth() {
           } else {
             document.documentElement.classList.add('is-logged-in');
             document.body.classList.remove('auth-logged-out');
-            relocateAppGridForAuthState(true);
             if (elements.authDropdown) {
               elements.authDropdown.classList.remove('show');
             }
@@ -3285,7 +3223,6 @@ function initAuth() {
         currentUser = null;
         document.documentElement.classList.remove('is-logged-in');
         document.body.classList.add('auth-logged-out');
-        relocateAppGridForAuthState(false);
         elements.authDropdown.classList.add('show');
         elements.userBadge.classList.add('hidden');
 
@@ -3351,14 +3288,12 @@ function initAuth() {
           
           setTimeout(() => {
             clearData();
-            applyGuestPreviewLock(false);
             // Reset inline styles so they don't interfere on next login
             if (chipsList) chipsList.removeAttribute('style');
             if (resultsList) resultsList.removeAttribute('style');
           }, fadeDuration + 50);
         } else {
           clearData();
-          applyGuestPreviewLock(false);
         }
       }
     } catch (err) {
@@ -4037,13 +3972,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   initAuth();
   updateStarredUI();
-  // initAuth() -> applyGuestPreviewLock() already set up the guest demo
-  // account (and rendered it) when logged out; loadAccountData would
-  // immediately overwrite that with the (empty) localStorage data for
-  // that username, wiping out the demo unfollower before it's ever seen.
-  if (state.selectedAccountUsername === GUEST_PREVIEW_USERNAME) {
-    // already loaded by applyGuestPreviewLock; nothing to do
-  } else if (state.selectedAccountUsername) {
+  if (state.selectedAccountUsername) {
     loadAccountData(state.selectedAccountUsername);
   } else {
     renderAccountChips();
