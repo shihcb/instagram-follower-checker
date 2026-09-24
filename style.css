@@ -3280,6 +3280,26 @@ body:not(.auth-logged-out) #landing-preview-section {
   display: none !important;
 }
 
+/* The logged-in app's .card height:100% (see the min-width:1025px rule
+   near the top of this file) only makes sense inside .app-container's
+   fixed-viewport app shell. Here the card sits in a normal scrolling
+   landing page, so without an explicit override its height ends up
+   content-driven instead — meaning it visibly resizes on every
+   star/delete/dismiss (the results count changing shrinks or grows the
+   whole card). That reflow shifts every button positioned inside it,
+   including the unfollowed/starred toggle buttons an open submenu is
+   anchored to, dragging the submenu along with it mid-interaction even
+   though its own .show state never changes — reading as the submenu
+   randomly jumping or closing. A fixed height (ID+class specificity
+   beats both the plain .card rule and its mobile/desktop media-query
+   variants, so this applies at every width) keeps the card, and
+   everything positioned relative to it, rock solid regardless of how
+   many rows are currently in view — matching the logged-in app's own
+   fixed-viewport stability. */
+#landing-preview-section .card {
+  height: 440px;
+}
+
 body.auth-logged-out:not(.is-logged-in) .auth-dropdown {
   position: fixed !important;
   top: 0 !important;
