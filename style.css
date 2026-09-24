@@ -864,27 +864,32 @@ button:disabled *,
   transform: translateX(0) scale(1);
 }
 
-/* Slow smooth dissolve for a row leaving list 3 (.user-row only — the
-   unfollowed/starred submenus use a slide, see .parsed-item.username-exit
-   below). Pure opacity fade (no slide/scale). JS (exitListRow, see
-   script.js) takes the row out of flow with position: absolute — pinned
-   to its exact current visual spot — the instant this class is added, and
-   animates the siblings that need to shift up separately via `transform`
-   (see exitListRow). So this rule only ever needs to fade opacity: the
-   row's space is already reclaimed by the time it starts fading, nothing
-   here has to collapse height/margin/padding on a timer, and there's no
-   longer a per-frame layout cost that scales with how many rows are in
-   the list. */
+/* List 3's own rows exit with the exact same slide the unfollowed/starred
+   submenu's rows use below (.parsed-item.username-exit) — translateY
+   only, no opacity change. The submenu can hardcode its distance in CSS
+   because every one of its rows is a fixed 44px tall; list 3's rows vary
+   (avatar row height, optional full-name line), so exitListRow in
+   script.js measures the row's actual height right before adding this
+   class and hands it in as --user-row-exit-distance. The fallback below
+   only matters if that JS step is ever skipped. JS (exitListRow) takes
+   the row out of flow with position: absolute — pinned to its exact
+   current visual spot — the instant this class is added, and animates
+   the siblings that need to shift up separately via `transform` (see
+   exitListRow), so this only ever has to animate the exiting row itself. */
+@keyframes user-row-exit-slide {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(var(--user-row-exit-distance, -60px)); }
+}
+
 .user-row.username-exit {
-  opacity: 0 !important;
+  animation: user-row-exit-slide var(--list-item-motion-duration) var(--list-item-motion-easing) forwards;
   pointer-events: none !important;
-  transition: opacity var(--list-item-motion-duration) var(--list-item-motion-easing) !important;
 }
 
 /* Unfollowed/starred submenu rows slide up the exact same way list 3's
-   OWN rows do — not the row-exit fade above (that's list-3-only), but
-   the FLIP sibling-shift transform every remaining row in list 3 gets
-   when one above it is removed (see exitListRow in script.js: `transform
+   OWN rows do above — not just in spirit, but the same FLIP
+   sibling-shift transform every remaining row in list 3 gets when one
+   above it is removed (see exitListRow in script.js: `transform
    ${DURATION}ms cubic-bezier(0.4, 0, 0.2, 1)`). Same easing, same
    duration (--list-item-motion-easing/--list-item-motion-duration hold those
    exact values), same pure-transform character — no opacity at all, a

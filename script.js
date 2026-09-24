@@ -1599,7 +1599,7 @@ function closeAllSubMenusAndPopups() {
   return closedSomething;
 }
 
-// Slow smooth dissolve for a username row leaving a list — shared by every
+// Slide-up exit for a username row leaving a list — shared by every
 // action that removes one, in list 3 itself (clicking the row, starring,
 // dismissing, deleting) and in the unfollowed/starred preview submenus
 // (unstarring, removing, moving between them), so they all animate
@@ -1617,9 +1617,11 @@ function closeAllSubMenusAndPopups() {
 // forces exactly one reflow up front instead of one per frame, then the
 // siblings that need to shift up are animated purely with `transform`
 // (GPU-composited, no further layout cost) from where they used to be
-// back to their natural position. The exiting row itself just fades via
-// .username-exit (opacity only — already out of flow, so no collapse
-// animation is needed on it at all).
+// back to their natural position. The exiting row itself just slides via
+// .username-exit (transform only — already out of flow, so no collapse
+// animation is needed on it at all) — a fixed 44px in the submenus, where
+// every row is that same height, or the row's own just-measured height
+// for list 3's rows, which vary (see userRowExitDistance below).
 // The unfollowed/starred submenus are auto-height popup panels
 // (.dropdown-menu) that hug their content up to a 10-item cap, and their
 // inner .dropdown-scroll-items (rowEl's own parent) does too, one level
@@ -1668,6 +1670,20 @@ function exitListRow(rowEl, onComplete, { shrinkBox } = {}) {
   // (list 3), which never gets this class.
   rowEl.classList.remove('item-enter');
 
+  // List 3's own rows (.user-row) now slide out exactly like the
+  // unfollowed/starred submenu's rows (.parsed-item) — same keyframe, same
+  // duration/easing — rather than list 3's old plain opacity fade. The
+  // submenu can hardcode its slide distance in CSS because every one of
+  // its rows is a fixed 44px tall; list 3's rows vary (avatar row height,
+  // optional full-name line), so the distance is measured here and handed
+  // to the keyframe as a custom property instead.
+  let userRowExitDistance = null;
+  if (rowEl.classList.contains('user-row')) {
+    const preExitRect = rowEl.getBoundingClientRect();
+    const marginBottom = parseFloat(getComputedStyle(rowEl).marginBottom) || 0;
+    userRowExitDistance = preExitRect.height + marginBottom;
+  }
+
   const DURATION = 800;
   const container = rowEl.parentElement;
   // Exclude any sibling that's already exiting itself — it's already out
@@ -1678,9 +1694,12 @@ function exitListRow(rowEl, onComplete, { shrinkBox } = {}) {
     : [];
 
   if (!container || siblings.length === 0) {
-    // Nothing else in the list to shift — a plain fade is all there is to animate.
+    // Nothing else in the list to shift — just the row's own exit animation.
     // (If this was the last item, the panel empties out and closes itself via
     // its own opacity/transform exit transition — no height shrink to animate.)
+    if (userRowExitDistance !== null) {
+      rowEl.style.setProperty('--user-row-exit-distance', `-${userRowExitDistance}px`);
+    }
     rowEl.classList.add('username-exit');
     setTimeout(() => {
       rowEl.remove();
@@ -1781,6 +1800,9 @@ function exitListRow(rowEl, onComplete, { shrinkBox } = {}) {
     }
   });
 
+  if (userRowExitDistance !== null) {
+    rowEl.style.setProperty('--user-row-exit-distance', `-${userRowExitDistance}px`);
+  }
   rowEl.classList.add('username-exit');
 
   setTimeout(() => {
