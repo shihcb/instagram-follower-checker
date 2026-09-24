@@ -1550,8 +1550,14 @@ function deleteAccountFromModal() {
 function closeAllSubMenusAndPopups() {
   let closedSomething = false;
 
-  // 1. Close Auth Dropdown (Account Menu)
-  if (elements.authDropdown && elements.authDropdown.classList.contains('show')) {
+  // 1. Close Auth Dropdown (Account Menu) — only while actually logged in.
+  // While logged out, #auth-dropdown IS the fullscreen landing page/login
+  // form (see body.auth-logged-out .auth-dropdown in style.css), not a
+  // dismissible menu — removing its .show class there doesn't close
+  // anything, it blanks the entire page (visibility: hidden kicks in
+  // after the 0.6s close transition, per .auth-dropdown's base rule).
+  if (document.documentElement.classList.contains('is-logged-in') &&
+      elements.authDropdown && elements.authDropdown.classList.contains('show')) {
     elements.authDropdown.classList.remove('show');
     closedSomething = true;
   }
