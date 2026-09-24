@@ -1665,14 +1665,26 @@ function closeAllSubMenusAndPopups() {
 // second, independent height animation on top of this one — shrink, then
 // regrow, a visibly janky two-step motion. Animating directly to the
 // known final height instead makes it one continuous motion.
+// Measures via an off-screen clone rather than swapping panelEl's own
+// innerHTML — panelEl still contains the very row exitListRow is about to
+// animate out, and setting .innerHTML (even briefly, restored right after)
+// destroys and recreates every child from the HTML string, orphaning that
+// row's element reference entirely. The caller would then be animating a
+// detached node nothing sees, while the freshly-recreated (non-fading)
+// duplicate sat fully visible in the real panel until the final re-render
+// snapped it away — the row appearing to "come back, then snap out".
 function measureFinalPanelHeight(panelEl, finalHtml) {
-  const savedHtml = panelEl.innerHTML;
-  const savedTransition = panelEl.style.transition;
-  panelEl.style.transition = 'none';
-  panelEl.innerHTML = finalHtml;
-  const height = panelEl.offsetHeight;
-  panelEl.innerHTML = savedHtml;
-  panelEl.style.transition = savedTransition;
+  const clone = panelEl.cloneNode(false); // same classes/inline styles (incl. its synced width), no children
+  clone.removeAttribute('id');
+  clone.style.position = 'absolute';
+  clone.style.visibility = 'hidden';
+  clone.style.pointerEvents = 'none';
+  clone.style.height = 'auto';
+  clone.style.transition = 'none';
+  clone.innerHTML = finalHtml;
+  document.body.appendChild(clone);
+  const height = clone.offsetHeight;
+  clone.remove();
   return height;
 }
 
