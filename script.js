@@ -600,7 +600,7 @@ let isSyncingFromCloud = false;
 // { animate: true } when list 1/2 were just edited or cleared by the user,
 // so list 3's rows slide out/in/along instead of snapping (see
 // updateResultsUI). Loads, imports and cloud syncs stay instant.
-function calculateUnfollowers({ animate = false } = {}) {
+function calculateUnfollowers({ animate = false, matchRenames = false } = {}) {
   const followersSet = new Set(state.followers.map(user => user.username));
   const unfollowedSet = new Set(state.unfollowed.map(user => user.username));
   const starredSet = new Set(state.starred.map(user => user.username));
@@ -612,7 +612,7 @@ function calculateUnfollowers({ animate = false } = {}) {
     !starredSet.has(user.username)
   );
   
-  updateResultsUI({ animate });
+  updateResultsUI({ animate, matchRenames });
   updateUnfollowedUI();
   updateStarredUI();
 
@@ -839,11 +839,35 @@ function updateListUI(type) {
 // a deleted row does (slideRowOut), and rows in both slide to their new
 // positions instead of jumping. Plain re-renders (search, loads) stay
 // instant.
-function updateResultsUI({ animate = false } = {}) {
+// `matchRenames`: list 1/2 are being typed in, so a username that just
+// extends or shortens one already shown (@co -> @coo) is the same row
+// being edited — it updates in place instead of sliding out and back in
+// after every pause in typing.
+function updateResultsUI({ animate = false, matchRenames = false } = {}) {
   const listEl = elements.listUnfollowers;
+
+  // Rows still sliding out from an earlier change survive this re-render
+  // instead of being wiped mid-slide:
+  //  - ones the user removed (exitListRow: star/delete/dismiss/click) are
+  //    only dropped from state once their slide ends, so until then they're
+  //    also kept out of the new render — otherwise the username was drawn
+  //    again as a normal row and stuck around after state dropped it.
+  //  - ones leaving because the list changed (animateResultsExits,
+  //    data-render-exit) keep sliding out, unless their username is back
+  //    in the new render, in which case it reverses from where it is.
+  const exitingRows = Array.from(listEl.querySelectorAll('.user-row.username-exit'));
+  const pendingRemoval = new Set(exitingRows.filter(r => !r.dataset.renderExit).map(r => r.dataset.username));
+  const resumeTops = new Map();
+  exitingRows.filter(r => r.dataset.renderExit).forEach(r => {
+    resumeTops.set(r.dataset.username, r.getBoundingClientRect().top);
+  });
+  // With a removal mid-slide, the rows around it are mid-slide too, so
+  // carry them over smoothly even on an otherwise instant re-render.
+  const flip = animate || exitingRows.length > 0;
+
   const previousTops = new Map();
   const previousRows = new Map(); // row element -> its on-screen box before the re-render
-  if (animate && !listEl.classList.contains('hidden')) {
+  if (flip && !listEl.classList.contains('hidden')) {
     listEl.querySelectorAll('.user-row:not(.username-exit)').forEach(row => {
       const rect = row.getBoundingClientRect();
       previousTops.set(row.dataset.username, rect.top);
@@ -859,9 +883,28 @@ function updateResultsUI({ animate = false } = {}) {
 
   const query = elements.searchUnfollowers.value.toLowerCase().trim();
   const filtered = state.unfollowers.filter(user => 
+    !pendingRemoval.has(user.username) && (
     user.originalUsername.toLowerCase().includes(query) || 
-    (user.fullName && user.fullName.toLowerCase().includes(query))
+    (user.fullName && user.fullName.toLowerCase().includes(query)))
   );
+
+  if (matchRenames && animate) {
+    const newNames = new Set(filtered.map(u => u.username));
+    const gone = [...previousRows.keys()].filter(row => !newNames.has(row.dataset.username));
+    filtered.forEach(user => {
+      const name = user.username;
+      if (previousTops.has(name)) return;
+      const match = gone.find(row => {
+        const old = row.dataset.username;
+        return name.startsWith(old) || old.startsWith(name);
+      });
+      if (!match) return;
+      previousTops.set(name, previousTops.get(match.dataset.username));
+      previousRows.delete(match); // edited, not leaving
+      gone.splice(gone.indexOf(match), 1);
+    });
+  }
+  const keptExits = exitingRows.filter(r => !r.dataset.renderExit || !filtered.some(u => u.username === r.dataset.username));
 
   // Restore saved selected username state on page reload / filter update
   const savedSelectedUsername = state.selectedUsername || localStorage.getItem('selected_username');
@@ -928,16 +971,16 @@ function updateResultsUI({ animate = false } = {}) {
       `;
     }).join('');
 
-    if (animate) {
-      animateResultsReentry(listEl, previousTops);
-      animateResultsExits(listEl, previousRows);
-    }
-  } else if (animate && previousRows.size > 0) {
+    keptExits.forEach(row => listEl.appendChild(row));
+    if (flip) animateResultsReentry(listEl, previousTops, resumeTops, { enter: animate });
+    if (animate) animateResultsExits(listEl, previousRows);
+  } else if ((animate && previousRows.size > 0) || keptExits.length > 0) {
     // Emptied out: keep the list visible just long enough for its rows to
     // slide out, then hide it as usual (unless something refilled it).
     listEl.innerHTML = '';
     elements.emptyState.classList.add('hidden');
-    animateResultsExits(listEl, previousRows);
+    keptExits.forEach(row => listEl.appendChild(row));
+    if (animate) animateResultsExits(listEl, previousRows);
     setTimeout(() => {
       if (!listEl.querySelector('.user-row:not(.username-exit)') && state.unfollowers.length === 0) {
         listEl.classList.add('hidden');
@@ -971,6 +1014,7 @@ function animateResultsExits(listEl, previousRows) {
     row.getAnimations?.().forEach(anim => anim.cancel());
     row.classList.remove('selected');
     row.classList.add('username-exit');
+    row.dataset.renderExit = '1';
     row.style.transition = 'none';
     row.style.transform = '';
     row.style.position = 'absolute';
@@ -985,9 +1029,9 @@ function animateResultsExits(listEl, previousRows) {
   });
 }
 
-function animateResultsReentry(listEl, previousTops) {
+function animateResultsReentry(listEl, previousTops, resumeTops = new Map(), { enter = true } = {}) {
   const DURATION = 800;
-  const rows = Array.from(listEl.querySelectorAll('.user-row'));
+  const rows = Array.from(listEl.querySelectorAll('.user-row:not(.username-exit)'));
   if (rows.length === 0) return;
 
   // getBoundingClientRect is in visual px, inline translateY in layout px —
@@ -999,7 +1043,20 @@ function animateResultsReentry(listEl, previousTops) {
   const shifted = [];
   rows.forEach(row => {
     const previousTop = previousTops.get(row.dataset.username);
+    const resumeTop = resumeTops.get(row.dataset.username);
+    if (previousTop === undefined && resumeTop !== undefined) {
+      // Was mid-slide out and is back: reverse from exactly where it is.
+      const dy = (resumeTop - row.getBoundingClientRect().top) / visualScale;
+      if (dy < 0) {
+        slideRowIn(row, -dy, DURATION);
+      } else if (dy > 0 && typeof row.animate === 'function') {
+        row.animate([{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }],
+          { duration: DURATION, easing: ROW_SLIDE_EASING });
+      }
+      return;
+    }
     if (previousTop === undefined) {
+      if (!enter) return;
       // Only rows actually on screen — pasting a whole list can add hundreds.
       const rect = row.getBoundingClientRect();
       if (rect.bottom <= listRect.top || rect.top >= listRect.bottom) return;
@@ -1064,7 +1121,7 @@ const handleFollowingInput = debounce(function() {
   state.following = deduplicateEntries(parsed);
   localStorage.setItem('following_users', JSON.stringify(state.following));
   updateListUI('following');
-  calculateUnfollowers({ animate: true });
+  calculateUnfollowers({ animate: true, matchRenames: true });
 }, 250);
 
 const handleFollowersInput = debounce(function() {
@@ -1077,7 +1134,7 @@ const handleFollowersInput = debounce(function() {
   state.followers = deduplicateEntries(parsed);
   localStorage.setItem('followers_users', JSON.stringify(state.followers));
   updateListUI('followers');
-  calculateUnfollowers({ animate: true });
+  calculateUnfollowers({ animate: true, matchRenames: true });
 }, 250);
 
 function readAndProcessFile(file, type, append = false, isPending = false) {
