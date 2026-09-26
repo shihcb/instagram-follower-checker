@@ -1162,7 +1162,7 @@ function animateResultsReentry(listEl, previousTops, resumeTops = new Map(), { e
   if (shifted.length === 0) return;
   void listEl.offsetWidth; // commit the inverted positions before animating away from them
   shifted.forEach(row => {
-    row.style.transition = `transform ${DURATION}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+    row.style.transition = `transform ${DURATION}ms ${ROW_SLIDE_EASING}`;
     row.style.transform = '';
   });
   setTimeout(() => {
@@ -1974,9 +1974,19 @@ function closeAllSubMenusAndPopups() {
 // `finalBoxHeight`, so the panel holds exactly the same size through the
 // row's exit and the re-render to its empty state — no shrink at all —
 // with the "no … accounts yet" message fading into the space instead.
+// Returns the height to hold: what the panel measures with just this last
+// row in it (rows already sliding out are out of flow), not its current
+// height. After deleting several quickly, the current height is still
+// mid-shrink — much taller — and holding that left an empty panel sized
+// as if usernames were still inside. exitListRow animates to this height.
 function pinPanelHeight(panelEl) {
-  const height = panelEl.offsetHeight;
-  panelEl.style.height = `${height}px`;
+  const container = panelEl.querySelector('.dropdown-scroll-items');
+  let height = panelEl.offsetHeight;
+  if (container) {
+    if (getComputedStyle(container).position === 'static') container.style.position = 'relative';
+    // Panel chrome (header, padding) + the list hugging just this row.
+    height = panelEl.offsetHeight - container.offsetHeight + naturalContentHeight(container);
+  }
   panelEl.dataset.heightPinned = '1';
   return height;
 }
@@ -2053,21 +2063,6 @@ function releaseExitLock(el) {
   return remaining === 0;
 }
 
-// An element's content-driven height, ignoring any inline height lock.
-// Lifting the lock cancels any height transition in flight, so the element
-// is then re-locked at `currentHeight` — the in-flight value read just
-// before — rather than the old lock's target, which would snap it there.
-// `alsoUnlock` lists [descendant, its current height] pairs whose own
-// locks would otherwise hold el's content at their in-flight size.
-function measureNaturalHeight(el, currentHeight, alsoUnlock = []) {
-  el.style.height = '';
-  alsoUnlock.forEach(([inner]) => { inner.style.height = ''; });
-  const height = el.offsetHeight;
-  el.style.height = `${currentHeight}px`;
-  alsoUnlock.forEach(([inner, innerHeight]) => { inner.style.height = `${innerHeight}px`; });
-  return height;
-}
-
 // List 3's rows that are actually in the list — excluding ones sliding
 // out, which stay in the DOM for their exit animation (and would
 // otherwise shift every index-based lookup, e.g. keyboard shortcuts).
@@ -2116,9 +2111,14 @@ const ROW_SLIDE_EASING = 'cubic-bezier(0.4, 0, 0.2, 1)';
 
 function slideRowOut(rowEl, distance, duration) {
   if (typeof rowEl.animate !== 'function') return;
+  // Transform layered on top of any shift the row is already doing (see
+  // addRowShift), so it keeps moving with its neighbours; the clip is its
+  // own animation since clip-path can't be layered.
+  rowEl.animate([{ transform: 'translateY(0px)' }, { transform: `translateY(${-distance}px)` }],
+    { duration, easing: ROW_SLIDE_EASING, fill: 'forwards', composite: SUPPORTS_ADDITIVE_ANIMATION ? 'add' : 'replace' });
   rowEl.animate([
-    { transform: 'translateY(0)', clipPath: 'inset(0px 0px 0px 0px)', webkitClipPath: 'inset(0px 0px 0px 0px)' },
-    { transform: `translateY(${-distance}px)`, clipPath: `inset(${distance}px 0px 0px 0px)`, webkitClipPath: `inset(${distance}px 0px 0px 0px)` }
+    { clipPath: 'inset(0px 0px 0px 0px)', webkitClipPath: 'inset(0px 0px 0px 0px)' },
+    { clipPath: `inset(${distance}px 0px 0px 0px)`, webkitClipPath: `inset(${distance}px 0px 0px 0px)` }
   ], { duration, easing: ROW_SLIDE_EASING, fill: 'forwards' });
 }
 
@@ -2140,62 +2140,105 @@ function onRowExitStarted(rowEl) {
   reindexUnfollowerRows();
 }
 
+// Whether this browser can layer Web Animations on top of each other
+// (composite: 'add'). Used so rapid removals each add their own motion on
+// top of the ones still running rather than cancelling and restarting
+// them — see exitListRow.
+const SUPPORTS_ADDITIVE_ANIMATION = (() => {
+  try {
+    const probe = document.createElement('div');
+    const anim = probe.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 1, composite: 'add' });
+    const ok = !!anim.effect && anim.effect.composite === 'add';
+    anim.cancel();
+    return ok;
+  } catch (e) {
+    return false;
+  }
+})();
+
+// Slides el from `offset` px back to where it is, on top of any slide it's
+// already doing. Several overlapping removals therefore sum into one
+// continuous motion: nothing is cancelled and restarted mid-flight, which
+// made rows stall and lurch on every click when deleting quickly.
+function addRowShift(el, offset, duration) {
+  if (Math.abs(offset) < 0.5 || typeof el.animate !== 'function') return;
+  if (SUPPORTS_ADDITIVE_ANIMATION) {
+    el.animate([{ transform: `translateY(${offset}px)` }, { transform: 'translateY(0px)' }],
+      { duration, easing: ROW_SLIDE_EASING, composite: 'add' });
+  } else {
+    el.animate([{ transform: `translateY(${offset}px)` }, { transform: 'translateY(0px)' }],
+      { duration, easing: ROW_SLIDE_EASING });
+  }
+}
+
+// Sets el's height to `targetPx` (border-box) and animates the change from
+// `targetPx + offset`, likewise layered on top of any height change already
+// in flight.
+function setHeightWithShift(el, targetPx, offset, duration) {
+  const cs = getComputedStyle(el);
+  const extra = cs.boxSizing === 'border-box' ? 0
+    : parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+  el.style.height = `${targetPx - extra}px`;
+  if (Math.abs(offset) < 0.5 || typeof el.animate !== 'function') return;
+  if (SUPPORTS_ADDITIVE_ANIMATION) {
+    el.animate([{ height: `${offset}px` }, { height: '0px' }],
+      { duration, easing: ROW_SLIDE_EASING, composite: 'add' });
+  } else {
+    el.animate([{ height: `${targetPx + offset - extra}px` }, { height: `${targetPx - extra}px` }],
+      { duration, easing: ROW_SLIDE_EASING });
+  }
+}
+
+// The height (border-box) a row container takes when it just hugs the rows
+// still in its flow, up to its own max-height — computed from layout
+// positions, so height/transform animations running on it or its rows
+// don't affect the answer. The container must be positioned (offsetTop is
+// relative to it).
+function naturalContentHeight(container) {
+  const cs = getComputedStyle(container);
+  const borders = parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+  const rows = Array.from(container.children).filter(el => getComputedStyle(el).position !== 'absolute');
+  let height;
+  if (rows.length === 0) {
+    height = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + borders;
+  } else {
+    const last = rows[rows.length - 1];
+    height = last.offsetTop + last.offsetHeight + (parseFloat(getComputedStyle(last).marginBottom) || 0)
+      + parseFloat(cs.paddingBottom) + borders;
+  }
+  const cap = parseFloat(cs.maxHeight);
+  return Number.isFinite(cap) ? Math.min(height, cap) : height;
+}
+
 function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
-  // A row already fading out ignores any further attempt to remove it
-  // again. Without this, clicking the same delete/star/unstar button
-  // rapidly (before the first 800ms fade finishes — easy to do since the
-  // fade itself gives no immediate feedback) called this a second time on
-  // the same row: a second FLIP measurement, a second 800ms timer and a
-  // second onComplete stacked on top of the one already running, which
-  // visibly glitched the row and could take several clicks before it
-  // actually left, since only the first click's timer removed it from
-  // state but every click's timer still ran its own (by-then-redundant)
-  // cleanup and re-render.
+  // A row already sliding out ignores any further attempt to remove it
+  // again (rapid repeat clicks on the same button used to stack a second
+  // exit and a second onComplete on top of the first).
   if (rowEl.classList.contains('username-exit')) {
     return;
   }
 
-  // Clear any transform/transition this row might still be carrying from
-  // a moment ago, when it was a *sibling* being shifted by some other
-  // row's removal (see below) — a rapid second click landing on this row
-  // right as that shift was still mid-flight used to let it inherit that
-  // leftover inline style, which visibly glitched as this row's own exit
-  // then started on top of it.
+  // Stop a slide-in still running on it (a username removed again right
+  // after sliding back in). Shifts it's doing because of *other* rows'
+  // removals are layered animations and keep running, so it stays exactly
+  // in step with its neighbours while it leaves.
   rowEl.style.transition = '';
   rowEl.style.transform = '';
-
-
-  // Also stop any slide-in still running on it (a username removed again
-  // right after sliding back into list 3).
   if (typeof rowEl.getAnimations === 'function') {
-    rowEl.getAnimations().forEach(anim => anim.cancel());
+    rowEl.getAnimations().forEach(anim => {
+      if (!anim.effect || anim.effect.composite !== 'add') anim.cancel();
+    });
   }
 
   // Slide distance: one full row pitch (its height plus the gap below it),
-  // exactly how far the rows below it move up to close the gap — measured
-  // before it's taken out of flow below. Works for both list 3 rows (which
-  // vary in height) and the submenus' fixed-height rows.
+  // exactly how far the rows below it move up to close the gap. Works for
+  // both list 3 rows (which vary in height) and the submenus' fixed rows.
   const exitDistance = rowEl.offsetHeight + (parseFloat(getComputedStyle(rowEl).marginBottom) || 0);
-
-  // getBoundingClientRect reports visual (post-transform) px,
-  // but the inline top/left/width/translateY set below are in the row's
-  // own layout px. Those differ whenever an ancestor is scaled — the
-  // guest preview's scaled-down grid (fitGuestPreviewGrid), or a submenu
-  // still mid scale() open transition — so convert every measured delta
-  // back into layout px, or the FLIP would jump by the scale difference.
-  const visualScale = (rowEl.getBoundingClientRect().height / rowEl.offsetHeight) || 1;
 
   const DURATION = 800;
   const container = rowEl.parentElement;
-  // Exclude any sibling that's already exiting itself — it's already out
-  // of flow (won't shift) and already mid-fade on its own; touching its
-  // transform/transition here would stomp that.
-  const siblings = container
-    ? Array.from(container.children).filter(el => el !== rowEl && !el.classList.contains('username-exit'))
-    : [];
 
   if (!container) {
-    // No parent to measure/shrink at all — just the row's own exit animation.
     rowEl.classList.add('username-exit');
     slideRowOut(rowEl, exitDistance, DURATION);
     onRowExitStarted(rowEl);
@@ -2206,153 +2249,69 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
     return;
   }
 
-  // offsetHeight (not getBoundingClientRect) deliberately — shrinkBox is a
-  // .dropdown-menu panel that animates its own scale() on open/close, and
-  // getBoundingClientRect reports the post-transform, visually-scaled box.
-  // Measuring through offsetHeight (pure layout size, transform doesn't
-  // affect it) keeps this correct even if a row is removed while the
-  // panel's own open transition hasn't finished settling at scale(1) yet.
-  const boxStartHeight = shrinkBox ? shrinkBox.offsetHeight : null;
-  // The scroll-items container itself (rowEl's immediate parent) hugs its
-  // content up to its own cap, same as shrinkBox one level out — lock and
-  // animate it too (see below) for the same reason: below that cap its
-  // height is content-driven and shrinks in the very same synchronous
-  // reflow the exiting row's position:absolute causes.
-  const containerStartHeight = shrinkBox ? container.offsetHeight : null;
-
-  // FIRST: where every sibling sits right now.
-  const firstRects = siblings.map(el => el.getBoundingClientRect());
-
-  // Take the exiting row out of flow, pinned exactly where it visually is,
-  // so the page doesn't jump — this is the one synchronous reflow.
-  const containerRect = container.getBoundingClientRect();
-  const rowRect = rowEl.getBoundingClientRect();
   if (getComputedStyle(container).position === 'static') {
     container.style.position = 'relative';
   }
+
+  // Rows still in the list (ones already sliding out are out of flow).
+  const siblings = Array.from(container.children)
+    .filter(el => el !== rowEl && !el.classList.contains('username-exit'));
+
+  // BEFORE: layout positions/heights (unaffected by the transforms and
+  // height animations earlier removals may still be running).
+  const topsBefore = siblings.map(el => el.offsetTop);
+  const containerBefore = shrinkBox ? naturalContentHeight(container) : null;
+  const boxNow = shrinkBox ? shrinkBox.offsetHeight : null;
+
+  // Take the row out of flow, pinned at its layout slot — the layered
+  // shifts it's still doing keep it visually where it was.
+  const rowTop = rowEl.offsetTop;
+  const rowLeft = rowEl.offsetLeft;
+  const rowWidth = rowEl.offsetWidth;
   rowEl.style.position = 'absolute';
-  rowEl.style.top = `${(rowRect.top - containerRect.top) / visualScale + container.scrollTop}px`;
-  rowEl.style.left = `${(rowRect.left - containerRect.left) / visualScale + container.scrollLeft}px`;
-  rowEl.style.width = `${rowRect.width / visualScale}px`;
+  rowEl.style.top = `${rowTop}px`;
+  rowEl.style.left = `${rowLeft}px`;
+  rowEl.style.width = `${rowWidth}px`;
   rowEl.style.margin = '0';
   rowEl.style.zIndex = '1';
 
-  // A sibling may still be mid-slide from an earlier, overlapping removal
-  // (a CSS transition easing its translateY back to 0 — its inline
-  // transform already reads '' by then, so this can't be detected from the
-  // style). firstRects above captured that in-flight visual position;
-  // cancel any such transition before measuring LAST, so the inversion
-  // below is computed from the pure layout position and picks the motion
-  // up exactly where it was, instead of being computed relative to the
-  // old offset — which made the row jump by whatever distance the old
-  // slide had left.
-  siblings.forEach(el => {
-    el.style.transition = 'none';
-    el.style.transform = '';
-  });
+  // AFTER: every row below moved up in layout by this removal alone; add
+  // exactly that as a new slide on top of whatever each is already doing.
+  siblings.forEach((el, i) => addRowShift(el, topsBefore[i] - el.offsetTop, DURATION));
 
-  // LAST: where each sibling ended up after that one reflow.
-  const lastRects = siblings.map(el => el.getBoundingClientRect());
-
-  // The panel's natural height already shrunk in that same reflow (the
-  // exiting row just left flow). Lock it back to its pre-removal height so
-  // nothing visibly moves yet, then transition down to the real new height —
-  // the panel's bottom edge slides up in step with the row's fade instead of
-  // snapping immediately.
   if (shrinkBox) {
-    // Measured with any inline height lock from an earlier, still-running
-    // removal lifted — otherwise this reads that lock (the old in-flight
-    // height) as the target, never really shrinks, and the panel snaps to
-    // its true size when the locks are finally cleared.
-    const boxEndHeight = finalBoxHeight != null ? finalBoxHeight : measureNaturalHeight(shrinkBox, boxStartHeight, [[container, containerStartHeight]]);
-    if (boxEndHeight !== boxStartHeight) {
-      shrinkBox.style.height = `${boxStartHeight}px`;
-      void shrinkBox.offsetHeight; // commit the locked height before animating away from it
-      // Combined with (not replacing) the panel's own opacity/transform
-      // enter/exit transition from CSS — an inline `transition` overrides
-      // the stylesheet's outright, and losing that mid-shrink would make
-      // the panel snap shut instantly if the user closes it (e.g. clicking
-      // outside) before the height animation finishes.
-      shrinkBox.style.transition = `height ${DURATION}ms cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)`;
-      shrinkBox.style.height = `${boxEndHeight}px`;
+    // The list's own height (it hugs its rows below its 10-row cap) shrinks
+    // by the same amount, layered the same way; the panel's height follows
+    // it. Without this the list's clipping edge would jump up at once and
+    // cut off the bottom row while it's still sliding up.
+    const containerAfter = naturalContentHeight(container);
+    setHeightWithShift(container, containerAfter, containerBefore - containerAfter, DURATION);
+    // Last row: the panel instead holds the one-row size (pinPanelHeight),
+    // easing there from wherever it is now — after rapid deletes that can
+    // still be well above it, mid-shrink.
+    if (finalBoxHeight != null) {
+      setHeightWithShift(shrinkBox, finalBoxHeight, boxNow - finalBoxHeight, DURATION);
     }
-
-    // Same lock-then-transition for the inner scroll-items container. Below
-    // its own cap, its overflow-y: auto clipping bound shrinks in that same
-    // synchronous reflow, before the FLIP-compensated siblings below the
-    // exiting row (translated back to their *old* position, which briefly
-    // sits below the container's *new*, already-shrunk bottom edge) have
-    // animated back up into it — so the bottom-most row would get clipped
-    // by the container and then "grow" back into view over the transition,
-    // reading as a flicker on exactly the last row, and only ever below the
-    // cap where this container's height is content-driven at all (matching
-    // exactly when this was reported: "less than 10 usernames").
-    const containerEndHeight = measureNaturalHeight(container, containerStartHeight);
-    if (containerEndHeight !== containerStartHeight) {
-      container.style.height = `${containerStartHeight}px`;
-      void container.offsetHeight;
-      container.style.transition = `height ${DURATION}ms cubic-bezier(0.4, 0, 0.2, 1)`;
-      container.style.height = `${containerEndHeight}px`;
-    }
+    acquireExitLock(container);
   }
-
-  // INVERT: snap each sibling back to where it used to be, with no
-  // transition, using a transform (so this doesn't trigger layout either).
-  siblings.forEach((el, i) => {
-    const dy = (firstRects[i].top - lastRects[i].top) / visualScale;
-    if (dy !== 0) {
-      el.style.transition = 'none';
-      el.style.transform = `translateY(${dy}px)`;
-    }
-  });
-  void container.offsetWidth; // commit the inverted transforms before animating away from them
-
-  // PLAY: animate every shifted sibling back to translateY(0) — its real,
-  // final position — purely via transform. Each sibling remembers which
-  // exit last took over its motion, so an earlier, overlapping exit
-  // finishing first doesn't clear a slide a newer one is still running.
-  const flipToken = {};
-  siblings.forEach(el => {
-    if (el.style.transform) {
-      el._exitFlipToken = flipToken;
-      el.style.transition = `transform ${DURATION}ms cubic-bezier(0.4, 0, 0.2, 1)`;
-      el.style.transform = '';
-    }
-  });
 
   rowEl.classList.add('username-exit');
   slideRowOut(rowEl, exitDistance, DURATION);
   onRowExitStarted(rowEl);
 
-  if (shrinkBox) {
-    acquireExitLock(shrinkBox);
-    acquireExitLock(container);
-  }
-
   setTimeout(() => {
     rowEl.remove();
-    siblings.forEach(el => {
-      if (el._exitFlipToken && el._exitFlipToken !== flipToken) return;
-      el._exitFlipToken = null;
-      el.style.transition = '';
-      el.style.transform = '';
-    });
-    if (shrinkBox && releaseExitLock(shrinkBox)) {
-      shrinkBox.style.transition = '';
-      // When finalBoxHeight was given, leave the panel pinned at it rather
-      // than clearing back to '' (which would briefly read its *current*
-      // content's natural height — the stale pre-re-render one). The
-      // caller's re-render right after this is guaranteed to match it
-      // exactly (see pinPanelHeight), so nothing visibly moves
-      // either way, but this keeps animatePanelHeightChange's own
-      // before/after measurement equal and correctly a no-op. Same if an
-      // overlapping last-row removal pinned it (pinPanelHeight) meanwhile.
-      if (finalBoxHeight == null && !shrinkBox.dataset.heightPinned) {
-        shrinkBox.style.height = '';
-      }
-    }
+    // Only the last overlapping removal to finish hands the list its
+    // natural height back — by then every layered shrink has played out.
     if (shrinkBox && releaseExitLock(container)) {
-      container.style.transition = '';
+      // End the layered height animations first: this timer can fire a
+      // frame before the last one's own end, and a layered height on top of
+      // 'auto' collapses the list for that frame (the panel flickered down
+      // to just its header, then back).
+      container.getAnimations().forEach(anim => {
+        if (anim.effect && typeof anim.effect.getKeyframes === 'function'
+            && anim.effect.getKeyframes().some(k => 'height' in k)) anim.cancel();
+      });
       container.style.height = '';
     }
     onComplete();
