@@ -597,7 +597,10 @@ function parseInput(text) {
  */
 let isSyncingFromCloud = false;
 
-function calculateUnfollowers() {
+// { animate: true } when list 1/2 were just edited or cleared by the user,
+// so list 3's rows slide out/in/along instead of snapping (see
+// updateResultsUI). Loads, imports and cloud syncs stay instant.
+function calculateUnfollowers({ animate = false } = {}) {
   const followersSet = new Set(state.followers.map(user => user.username));
   const unfollowedSet = new Set(state.unfollowed.map(user => user.username));
   const starredSet = new Set(state.starred.map(user => user.username));
@@ -609,7 +612,7 @@ function calculateUnfollowers() {
     !starredSet.has(user.username)
   );
   
-  updateResultsUI();
+  updateResultsUI({ animate });
   updateUnfollowedUI();
   updateStarredUI();
 
@@ -654,7 +657,7 @@ function updateUnfollowedUI(enteringUsername) {
       </div>
       <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; max-height: 440px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
-          <div class="parsed-item${user.username === enteringUsername ? ' item-enter' : ''}" data-username="${user.username}" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <div class="parsed-item${wasShown && user.username === enteringUsername ? ' item-enter' : ''}" data-username="${user.username}" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
             <div style="display: flex; align-items: center; gap: 6px;">
               <span>${user.fullName ? user.fullName : ''}</span>
@@ -736,7 +739,7 @@ function updateStarredUI(enteringUsername) {
       </div>
       <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; max-height: 440px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
-          <div class="parsed-item${user.username === enteringUsername ? ' item-enter' : ''}" data-username="${user.username}" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <div class="parsed-item${wasShown && user.username === enteringUsername ? ' item-enter' : ''}" data-username="${user.username}" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
             <div style="display: flex; align-items: center; gap: 6px;">
               <span>${user.fullName ? user.fullName : ''}</span>
@@ -829,17 +832,25 @@ function updateListUI(type) {
   }
 }
 
-// Pass { animate: true } when usernames are coming back into list 3 from
-// the unfollowed/starred submenus: rows that weren't there before slide
-// back into existence (the exact reverse of exitListRow's slide-out, same
-// duration/easing), and rows already there slide to their new positions
-// instead of jumping. Plain re-renders (search, loads) stay instant.
+// Pass { animate: true } when list 3's contents change because of something
+// the user just did elsewhere (a username removed from the unfollowed/
+// starred submenus, list 1/2 edited or cleared): rows that weren't there
+// before slide into existence, rows that are gone slide out exactly like
+// a deleted row does (slideRowOut), and rows in both slide to their new
+// positions instead of jumping. Plain re-renders (search, loads) stay
+// instant.
 function updateResultsUI({ animate = false } = {}) {
   const listEl = elements.listUnfollowers;
   const previousTops = new Map();
+  const previousRows = new Map(); // row element -> its on-screen box before the re-render
   if (animate && !listEl.classList.contains('hidden')) {
     listEl.querySelectorAll('.user-row:not(.username-exit)').forEach(row => {
-      previousTops.set(row.dataset.username, row.getBoundingClientRect().top);
+      const rect = row.getBoundingClientRect();
+      previousTops.set(row.dataset.username, rect.top);
+      previousRows.set(row, {
+        top: rect.top, bottom: rect.bottom, left: rect.left, width: rect.width,
+        pitch: row.offsetHeight + (parseFloat(getComputedStyle(row).marginBottom) || 0)
+      });
     });
   }
 
@@ -917,11 +928,61 @@ function updateResultsUI({ animate = false } = {}) {
       `;
     }).join('');
 
-    if (animate) animateResultsReentry(listEl, previousTops);
+    if (animate) {
+      animateResultsReentry(listEl, previousTops);
+      animateResultsExits(listEl, previousRows);
+    }
+  } else if (animate && previousRows.size > 0) {
+    // Emptied out: keep the list visible just long enough for its rows to
+    // slide out, then hide it as usual (unless something refilled it).
+    listEl.innerHTML = '';
+    elements.emptyState.classList.add('hidden');
+    animateResultsExits(listEl, previousRows);
+    setTimeout(() => {
+      if (!listEl.querySelector('.user-row:not(.username-exit)') && state.unfollowers.length === 0) {
+        listEl.classList.add('hidden');
+      }
+    }, 800);
   } else {
     elements.listUnfollowers.classList.add('hidden');
     elements.emptyState.classList.add('hidden');
   }
+}
+
+// Rows the re-render above just replaced: any whose username is no longer
+// in the list (and that was on screen) is put back, pinned out of flow at
+// exactly where it was, and slides out with the same slide a deleted row
+// gets. Off-screen ones are just dropped — nobody would see them move,
+// and a cleared list can hold hundreds.
+function animateResultsExits(listEl, previousRows) {
+  if (previousRows.size === 0) return;
+  const DURATION = 800;
+  const stillHere = new Set(Array.from(listEl.querySelectorAll('.user-row:not(.username-exit)')).map(r => r.dataset.username));
+  const leaving = Array.from(previousRows.keys()).filter(row => !stillHere.has(row.dataset.username));
+  if (leaving.length === 0) return;
+
+  const listRect = listEl.getBoundingClientRect();
+  const visualScale = (listRect.height / listEl.offsetHeight) || 1;
+  if (getComputedStyle(listEl).position === 'static') listEl.style.position = 'relative';
+
+  leaving.forEach(row => {
+    const rect = previousRows.get(row);
+    if (!rect || rect.bottom <= listRect.top || rect.top >= listRect.bottom) return;
+    row.getAnimations?.().forEach(anim => anim.cancel());
+    row.classList.remove('selected');
+    row.classList.add('username-exit');
+    row.style.transition = 'none';
+    row.style.transform = '';
+    row.style.position = 'absolute';
+    row.style.top = `${(rect.top - listRect.top) / visualScale + listEl.scrollTop}px`;
+    row.style.left = `${(rect.left - listRect.left) / visualScale + listEl.scrollLeft}px`;
+    row.style.width = `${rect.width / visualScale}px`;
+    row.style.margin = '0';
+    row.style.zIndex = '1';
+    listEl.appendChild(row);
+    slideRowOut(row, rect.pitch, DURATION);
+    setTimeout(() => row.remove(), DURATION);
+  });
 }
 
 function animateResultsReentry(listEl, previousTops) {
@@ -934,10 +995,14 @@ function animateResultsReentry(listEl, previousTops) {
   // (same reasoning as exitListRow's visualScale).
   const visualScale = (listEl.getBoundingClientRect().height / listEl.offsetHeight) || 1;
 
+  const listRect = listEl.getBoundingClientRect();
   const shifted = [];
   rows.forEach(row => {
     const previousTop = previousTops.get(row.dataset.username);
     if (previousTop === undefined) {
+      // Only rows actually on screen — pasting a whole list can add hundreds.
+      const rect = row.getBoundingClientRect();
+      if (rect.bottom <= listRect.top || rect.top >= listRect.bottom) return;
       // New to the list: slide down into place from one row pitch above,
       // emerging from its own slot's top edge (see slideRowIn).
       const marginBottom = parseFloat(getComputedStyle(row).marginBottom) || 0;
@@ -999,7 +1064,7 @@ const handleFollowingInput = debounce(function() {
   state.following = deduplicateEntries(parsed);
   localStorage.setItem('following_users', JSON.stringify(state.following));
   updateListUI('following');
-  calculateUnfollowers();
+  calculateUnfollowers({ animate: true });
 }, 250);
 
 const handleFollowersInput = debounce(function() {
@@ -1012,7 +1077,7 @@ const handleFollowersInput = debounce(function() {
   state.followers = deduplicateEntries(parsed);
   localStorage.setItem('followers_users', JSON.stringify(state.followers));
   updateListUI('followers');
-  calculateUnfollowers();
+  calculateUnfollowers({ animate: true });
 }, 250);
 
 function readAndProcessFile(file, type, append = false, isPending = false) {
@@ -2410,7 +2475,7 @@ function updateInstructionsStepUI() {
       localStorage.removeItem('following_users');
       state.selectedIndex = -1; // Reset selection index
       updateListUI('following');
-      calculateUnfollowers();
+      calculateUnfollowers({ animate: true });
     });
   });
 
@@ -2422,7 +2487,7 @@ function updateInstructionsStepUI() {
       localStorage.removeItem('followers_users');
       state.selectedIndex = -1; // Reset selection index
       updateListUI('followers');
-      calculateUnfollowers();
+      calculateUnfollowers({ animate: true });
     });
   });
 
