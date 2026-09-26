@@ -619,14 +619,13 @@ function calculateUnfollowers() {
   }
 }
 
-// Shared by the empty-state render below and by the pre-removal height
-// measurement in the listUnfollowed click handler (see
-// measureFinalPanelHeight) — both need byte-identical markup so the
-// pre-measured height is guaranteed to match what actually gets rendered.
-function getUnfollowedEmptyHtml() {
+// `animate` adds the slow bouncy fade-in (.empty-enter, see style.css) —
+// used when the panel is open and the user just removed its last row, so
+// the message eases into the space that row left behind.
+function getUnfollowedEmptyHtml(animate) {
   return `
       <div class="dropdown-header-bar">0 unfollowed accounts</div>
-      <div class="dropdown-empty-message">no unfollowed accounts yet</div>
+      <div class="dropdown-empty-message${animate ? ' empty-enter' : ''}">no unfollowed accounts yet</div>
     `;
 }
 
@@ -638,6 +637,10 @@ function updateUnfollowedUI(enteringUsername) {
 
   const wasShown = listEl.classList.contains('show');
   const startHeight = wasShown ? listEl.offsetHeight : null;
+  // Items are back after the panel was held at its old size for the empty
+  // state (see pinPanelHeight) — let it size to its content again;
+  // animatePanelHeightChange below eases it there from startHeight.
+  if (listData.length > 0) unpinPanelHeight(listEl);
 
   const labelEl = toggleBtn.querySelector('.btn-label-content');
   if (listData.length > 0) {
@@ -683,7 +686,7 @@ function updateUnfollowedUI(enteringUsername) {
     // leaves .show/.active exactly as they already were: still open if
     // it was open (closable by clicking outside, same as any other
     // dropdown), still closed if it was closed.
-    listEl.innerHTML = getUnfollowedEmptyHtml();
+    listEl.innerHTML = getUnfollowedEmptyHtml(wasShown);
     animatePanelHeightChange(listEl, wasShown, startHeight);
   }
 
@@ -701,11 +704,11 @@ function updateUnfollowedUI(enteringUsername) {
   syncDropdownWidthToButton(listEl, toggleBtn);
 }
 
-// See getUnfollowedEmptyHtml's comment — same reasoning, for the starred submenu.
-function getStarredEmptyHtml() {
+// See getUnfollowedEmptyHtml's comment — same, for the starred submenu.
+function getStarredEmptyHtml(animate) {
   return `
       <div class="dropdown-header-bar">0 starred accounts</div>
-      <div class="dropdown-empty-message">no starred accounts yet</div>
+      <div class="dropdown-empty-message${animate ? ' empty-enter' : ''}">no starred accounts yet</div>
     `;
 }
 
@@ -716,6 +719,10 @@ function updateStarredUI(enteringUsername) {
 
   const wasShown = listEl.classList.contains('show');
   const startHeight = wasShown ? listEl.offsetHeight : null;
+  // Items are back after the panel was held at its old size for the empty
+  // state (see pinPanelHeight) — let it size to its content again;
+  // animatePanelHeightChange below eases it there from startHeight.
+  if (listData.length > 0) unpinPanelHeight(listEl);
 
   const labelEl = toggleBtn.querySelector('.btn-label-content');
   if (listData.length > 0) {
@@ -761,7 +768,7 @@ function updateStarredUI(enteringUsername) {
     // leaves .show/.active exactly as they already were: still open if
     // it was open (closable by clicking outside, same as any other
     // dropdown), still closed if it was closed.
-    listEl.innerHTML = getStarredEmptyHtml();
+    listEl.innerHTML = getStarredEmptyHtml(wasShown);
     animatePanelHeightChange(listEl, wasShown, startHeight);
   }
 
@@ -1655,38 +1662,35 @@ function closeAllSubMenusAndPopups() {
 // 10-item cap both are no-ops (heights don't change either way, already
 // pinned at their caps).
 //
-// When removing a submenu's very last row, its caller can additionally
-// pass `finalBoxHeight` — the exact height the panel will end up at once
-// it re-renders to its empty state (see measureFinalPanelHeight). Without
-// it, this function would shrink shrinkBox down to the height of "row
-// removed, but header text/empty-message not updated yet" (an
-// intermediate state nothing ever intentionally shows), and the caller's
-// own subsequent re-render to the real empty state would then trigger a
-// second, independent height animation on top of this one — shrink, then
-// regrow, a visibly janky two-step motion. Animating directly to the
-// known final height instead makes it one continuous motion.
-// Measures via an off-screen clone rather than swapping panelEl's own
-// innerHTML — panelEl still contains the very row exitListRow is about to
-// animate out, and setting .innerHTML (even briefly, restored right after)
-// destroys and recreates every child from the HTML string, orphaning that
-// row's element reference entirely. The caller would then be animating a
-// detached node nothing sees, while the freshly-recreated (non-fading)
-// duplicate sat fully visible in the real panel until the final re-render
-// snapped it away — the row appearing to "come back, then snap out".
-function measureFinalPanelHeight(panelEl, finalHtml) {
-  const clone = panelEl.cloneNode(false); // same classes/inline styles (incl. its synced width), no children
-  clone.removeAttribute('id');
-  clone.style.position = 'absolute';
-  clone.style.visibility = 'hidden';
-  clone.style.pointerEvents = 'none';
-  clone.style.height = 'auto';
-  clone.style.transition = 'none';
-  clone.innerHTML = finalHtml;
-  document.body.appendChild(clone);
-  const height = clone.offsetHeight;
-  clone.remove();
+// When removing a submenu's very last row, its caller pins the panel at
+// its current height first (pinPanelHeight) and passes that as
+// `finalBoxHeight`, so the panel holds exactly the same size through the
+// row's exit and the re-render to its empty state — no shrink at all —
+// with the "no … accounts yet" message fading into the space instead.
+function pinPanelHeight(panelEl) {
+  const height = panelEl.offsetHeight;
+  panelEl.style.height = `${height}px`;
+  panelEl.dataset.heightPinned = '1';
   return height;
 }
+
+function unpinPanelHeight(panelEl) {
+  if (!panelEl.dataset.heightPinned) return;
+  delete panelEl.dataset.heightPinned;
+  panelEl.style.height = '';
+}
+
+// Hold that size only while the panel stays open — once its close
+// transition finishes, drop back to natural sizing so the next open fits
+// its (empty-state) content.
+[elements.listUnfollowed, elements.listStarred].forEach(panelEl => {
+  if (!panelEl) return;
+  panelEl.addEventListener('transitionend', (e) => {
+    if (e.target === panelEl && e.propertyName === 'opacity' && !panelEl.classList.contains('show')) {
+      unpinPanelHeight(panelEl);
+    }
+  });
+});
 
 // iOS/WebKit's momentum scrolling (-webkit-overflow-scrolling: touch, set
 // on .dropdown-scroll-items for mobile — see the max-width:1024px rule)
@@ -1897,7 +1901,7 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
       // than clearing back to '' (which would briefly read its *current*
       // content's natural height — the stale pre-re-render one). The
       // caller's re-render right after this is guaranteed to match it
-      // exactly (see measureFinalPanelHeight), so nothing visibly moves
+      // exactly (see pinPanelHeight), so nothing visibly moves
       // either way, but this keeps animatePanelHeightChange's own
       // before/after measurement equal and correctly a no-op.
       if (finalBoxHeight == null) {
@@ -2437,7 +2441,7 @@ function updateInstructionsStepUI() {
 
       const menuEl = itemEl.closest('.dropdown-menu');
       const finalBoxHeight = (state.starred.length === 1 && menuEl)
-        ? measureFinalPanelHeight(menuEl, getStarredEmptyHtml())
+        ? pinPanelHeight(menuEl)
         : null;
 
       exitListRow(itemEl, async () => {
@@ -2488,7 +2492,7 @@ function updateInstructionsStepUI() {
 
       const menuEl = itemEl.closest('.dropdown-menu');
       const finalBoxHeight = (state.unfollowed.length === 1 && menuEl)
-        ? measureFinalPanelHeight(menuEl, getUnfollowedEmptyHtml())
+        ? pinPanelHeight(menuEl)
         : null;
 
       exitListRow(itemEl, async () => {
@@ -2540,7 +2544,7 @@ function updateInstructionsStepUI() {
 
       const menuEl = itemEl.closest('.dropdown-menu');
       const finalBoxHeight = (state.unfollowed.length === 1 && menuEl)
-        ? measureFinalPanelHeight(menuEl, getUnfollowedEmptyHtml())
+        ? pinPanelHeight(menuEl)
         : null;
 
       exitListRow(itemEl, async () => {
