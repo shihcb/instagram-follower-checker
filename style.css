@@ -910,17 +910,6 @@ button:disabled *,
   pointer-events: none !important;
 }
 
-@keyframes dropdown-item-enter-slide {
-  0%   { transform: translateY(44px); }
-  100% { transform: translateY(0); }
-}
-
-/* Applied by updateUnfollowedUI/updateStarredUI in script.js as part of
-   the entering item's initial markup — no JS-side trigger needed (see
-   above), it's already animating the moment the element exists. */
-.parsed-item.item-enter {
-  animation: dropdown-item-enter-slide var(--list-item-motion-duration) var(--list-item-motion-easing) forwards;
-}
 
 /* Dropdown layouts for unfollowed and starred popovers */
 .dropdown-wrapper {

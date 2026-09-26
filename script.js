@@ -305,6 +305,29 @@ function formatDate(dateVal) {
 /**
  * Normalizes a username for accurate set comparisons.
  */
+// Usernames, names and profile links come from imported files (and from
+// cloud/localStorage copies of them), so they're untrusted: always escape
+// them before putting them in HTML, and only ever link/open real Instagram
+// profile URLs. A crafted "export" could otherwise inject markup that runs
+// as script (e.g. a username like <img onerror=...>) or a javascript: link.
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+const INSTAGRAM_URL_PATTERN = /^https?:\/\/(www\.)?instagram\.com\/[^\s"'<>]*$/i;
+
+function safeProfileUrl(user) {
+  const url = user && typeof user.profileUrl === 'string' ? user.profileUrl.trim() : '';
+  if (INSTAGRAM_URL_PATTERN.test(url)) return url;
+  const name = String((user && (user.originalUsername || user.username)) || '').replace(/^@+/, '');
+  return `https://www.instagram.com/${encodeURIComponent(name)}/`;
+}
+
 function normalizeUsername(username) {
   if (!username) return '';
   return username.replace(/^@/, '').trim().toLowerCase();
@@ -645,6 +668,20 @@ function updateUnfollowedUI(enteringUsername) {
   // animatePanelHeightChange below eases it there from startHeight.
   if (listData.length > 0) unpinPanelHeight(listEl);
 
+  // A username added while the panel is open slides in (the same clipped
+  // slide as list 3) and the rows below slide down to make room — capture
+  // where they are now. Added while closed, nothing animates: it's just
+  // there when the panel opens.
+  const previousRowTops = new Map();
+  if (wasShown && enteringUsername) {
+    listEl.querySelectorAll('.parsed-item:not(.username-exit)').forEach(row => {
+      previousRowTops.set(row.dataset.username, row.getBoundingClientRect().top);
+    });
+  }
+  // The empty state's bounce is for the moment the last username leaves,
+  // not for every later redraw while the panel stays open and empty.
+  const wasAlreadyEmpty = !!listEl.querySelector('.dropdown-empty-message');
+
   const labelEl = toggleBtn.querySelector('.btn-label-content');
   if (listData.length > 0) {
     toggleBtn.removeAttribute('disabled');
@@ -657,17 +694,17 @@ function updateUnfollowedUI(enteringUsername) {
       </div>
       <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; max-height: 440px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
-          <div class="parsed-item${wasShown && user.username === enteringUsername ? ' item-enter' : ''}" data-username="${user.username}" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-            <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
+          <div class="parsed-item" data-username="${escapeHtml(user.username)}" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <a href="${escapeHtml(safeProfileUrl(user))}" target="_blank" rel="noopener" class="parsed-username">@${escapeHtml(user.originalUsername)}</a>
             <div style="display: flex; align-items: center; gap: 6px;">
-              <span>${user.fullName ? user.fullName : ''}</span>
+              <span>${escapeHtml(user.fullName || '')}</span>
               <div class="dropdown-actions-group">
-                <button class="star-unfollowed-btn" data-username="${user.username}" aria-label="star user" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-main); padding: 2px;" title="move to starred list">
+                <button class="star-unfollowed-btn" data-username="${escapeHtml(user.username)}" aria-label="star user" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-main); padding: 2px;" title="move to starred list">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                   </svg>
                 </button>
-                <button class="remove-unfollowed-btn" data-username="${user.username}" aria-label="remove from unfollowed" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px;" title="remove from history">
+                <button class="remove-unfollowed-btn" data-username="${escapeHtml(user.username)}" aria-label="remove from unfollowed" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px;" title="remove from history">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -680,6 +717,10 @@ function updateUnfollowedUI(enteringUsername) {
       </div>
     `;
     animatePanelHeightChange(listEl, wasShown, startHeight);
+    if (previousRowTops.size > 0) {
+      const scrollItems = listEl.querySelector('.dropdown-scroll-items');
+      if (scrollItems) animateResultsReentry(scrollItems, previousRowTops, new Map(), { rowSelector: '.parsed-item' });
+    }
   } else {
     toggleBtn.setAttribute('disabled', 'true');
     if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span>`;
@@ -689,7 +730,7 @@ function updateUnfollowedUI(enteringUsername) {
     // leaves .show/.active exactly as they already were: still open if
     // it was open (closable by clicking outside, same as any other
     // dropdown), still closed if it was closed.
-    listEl.innerHTML = getUnfollowedEmptyHtml(wasShown);
+    listEl.innerHTML = getUnfollowedEmptyHtml(wasShown && !wasAlreadyEmpty);
     animatePanelHeightChange(listEl, wasShown, startHeight);
   }
 
@@ -727,6 +768,20 @@ function updateStarredUI(enteringUsername) {
   // animatePanelHeightChange below eases it there from startHeight.
   if (listData.length > 0) unpinPanelHeight(listEl);
 
+  // A username added while the panel is open slides in (the same clipped
+  // slide as list 3) and the rows below slide down to make room — capture
+  // where they are now. Added while closed, nothing animates: it's just
+  // there when the panel opens.
+  const previousRowTops = new Map();
+  if (wasShown && enteringUsername) {
+    listEl.querySelectorAll('.parsed-item:not(.username-exit)').forEach(row => {
+      previousRowTops.set(row.dataset.username, row.getBoundingClientRect().top);
+    });
+  }
+  // The empty state's bounce is for the moment the last username leaves,
+  // not for every later redraw while the panel stays open and empty.
+  const wasAlreadyEmpty = !!listEl.querySelector('.dropdown-empty-message');
+
   const labelEl = toggleBtn.querySelector('.btn-label-content');
   if (listData.length > 0) {
     toggleBtn.removeAttribute('disabled');
@@ -739,17 +794,17 @@ function updateStarredUI(enteringUsername) {
       </div>
       <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; max-height: 440px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
-          <div class="parsed-item${wasShown && user.username === enteringUsername ? ' item-enter' : ''}" data-username="${user.username}" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-            <a href="${user.profileUrl}" target="_blank" rel="noopener" class="parsed-username">@${user.originalUsername}</a>
+          <div class="parsed-item" data-username="${escapeHtml(user.username)}" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <a href="${escapeHtml(safeProfileUrl(user))}" target="_blank" rel="noopener" class="parsed-username">@${escapeHtml(user.originalUsername)}</a>
             <div style="display: flex; align-items: center; gap: 6px;">
-              <span>${user.fullName ? user.fullName : ''}</span>
+              <span>${escapeHtml(user.fullName || '')}</span>
               <div class="dropdown-actions-group">
-                <button class="unstar-btn" data-username="${user.username}" aria-label="unstar user" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px;" title="unstar user">
+                <button class="unstar-btn" data-username="${escapeHtml(user.username)}" aria-label="unstar user" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px;" title="unstar user">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                   </svg>
                 </button>
-                <button class="remove-unfollowed-btn" data-username="${user.username}" aria-label="remove from starred" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px;" title="remove from history">
+                <button class="remove-unfollowed-btn" data-username="${escapeHtml(user.username)}" aria-label="remove from starred" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px;" title="remove from history">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -762,6 +817,10 @@ function updateStarredUI(enteringUsername) {
       </div>
     `;
     animatePanelHeightChange(listEl, wasShown, startHeight);
+    if (previousRowTops.size > 0) {
+      const scrollItems = listEl.querySelector('.dropdown-scroll-items');
+      if (scrollItems) animateResultsReentry(scrollItems, previousRowTops, new Map(), { rowSelector: '.parsed-item' });
+    }
   } else {
     toggleBtn.setAttribute('disabled', 'true');
     if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span>`;
@@ -771,7 +830,7 @@ function updateStarredUI(enteringUsername) {
     // leaves .show/.active exactly as they already were: still open if
     // it was open (closable by clicking outside, same as any other
     // dropdown), still closed if it was closed.
-    listEl.innerHTML = getStarredEmptyHtml(wasShown);
+    listEl.innerHTML = getStarredEmptyHtml(wasShown && !wasAlreadyEmpty);
     animatePanelHeightChange(listEl, wasShown, startHeight);
   }
 
@@ -923,20 +982,21 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
     
     elements.listUnfollowers.innerHTML = filtered.map((user, index) => {
       // Get display initials for profile avatar fallback
-      const initials = user.originalUsername.substring(0, 2);
+      const initials = escapeHtml(user.originalUsername.substring(0, 2));
+      const profileHref = escapeHtml(safeProfileUrl(user));
       const isSelected = index === state.selectedIndex;
       
       return `
-        <div class="user-row${isSelected ? ' selected' : ''}" data-username="${user.username}" data-index="${index}">
+        <div class="user-row${isSelected ? ' selected' : ''}" data-username="${escapeHtml(user.username)}" data-index="${index}">
           <div class="user-info">
-            <a href="${user.profileUrl}" target="_blank" rel="noopener" class="user-avatar-link" title="Visit Instagram Profile">
+            <a href="${profileHref}" target="_blank" rel="noopener" class="user-avatar-link" title="Visit Instagram Profile">
               <div class="user-avatar">${initials}</div>
             </a>
             <div class="user-details">
-              <a href="${user.profileUrl}" target="_blank" rel="noopener" class="user-link">
-                @${user.originalUsername}
+              <a href="${profileHref}" target="_blank" rel="noopener" class="user-link">
+                @${escapeHtml(user.originalUsername)}
               </a>
-              ${user.fullName ? `<span class="user-fullname">${user.fullName}</span>` : ''}
+              ${user.fullName ? `<span class="user-fullname">${escapeHtml(user.fullName)}</span>` : ''}
             </div>
           </div>
           <div class="user-meta">
@@ -953,7 +1013,7 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                 </svg>
               </button>
-              <a href="${user.profileUrl}" target="_blank" rel="noopener" class="action-arrow" aria-label="Visit Instagram Profile" title="Visit Instagram Profile">
+              <a href="${profileHref}" target="_blank" rel="noopener" class="action-arrow" aria-label="Visit Instagram Profile" title="Visit Instagram Profile">
                 <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                   <polyline points="12 5 19 12 12 19"></polyline>
@@ -1029,9 +1089,9 @@ function animateResultsExits(listEl, previousRows) {
   });
 }
 
-function animateResultsReentry(listEl, previousTops, resumeTops = new Map(), { enter = true } = {}) {
+function animateResultsReentry(listEl, previousTops, resumeTops = new Map(), { enter = true, rowSelector = '.user-row' } = {}) {
   const DURATION = 800;
-  const rows = Array.from(listEl.querySelectorAll('.user-row:not(.username-exit)'));
+  const rows = Array.from(listEl.querySelectorAll(`${rowSelector}:not(.username-exit)`));
   if (rows.length === 0) return;
 
   // getBoundingClientRect is in visual px, inline translateY in layout px —
@@ -1701,7 +1761,7 @@ function deleteAccountFromModal() {
     // Try to find the chip element in the DOM to animate it
     let chipEl = null;
     if (elements.accountChipsList) {
-      chipEl = elements.accountChipsList.querySelector(`.account-chip[data-account-name="${acc}"]`);
+      chipEl = elements.accountChipsList.querySelector(`.account-chip[data-account-name="${CSS.escape(acc)}"]`);
     }
 
     const performDelete = () => {
@@ -1944,6 +2004,39 @@ function measureNaturalHeight(el, currentHeight, alsoUnlock = []) {
   return height;
 }
 
+// List 3's rows that are actually in the list — excluding ones sliding
+// out, which stay in the DOM for their exit animation (and would
+// otherwise shift every index-based lookup, e.g. keyboard shortcuts).
+function getLiveUnfollowerRows() {
+  return Array.from(elements.listUnfollowers.querySelectorAll('.user-row:not(.username-exit)'));
+}
+
+// Also renumbers the rows' visible 1-9/0 shortcut badges — they used to
+// keep their original numbers after a row above was removed, so the
+// badge shown on a row and the key that opens it disagreed.
+function reindexUnfollowerRows() {
+  getLiveUnfollowerRows().forEach((row, i) => {
+    row.setAttribute('data-index', i);
+    const actions = row.querySelector('.user-row-actions');
+    let badge = row.querySelector('.row-shortcut-key');
+    if (i < 10) {
+      const key = i === 9 ? 0 : i + 1;
+      if (!badge && actions) {
+        badge = document.createElement('span');
+        badge.className = 'row-shortcut-key';
+        actions.insertBefore(badge, actions.firstChild);
+      }
+      if (badge) {
+        badge.textContent = String(key);
+        badge.title = `Press key ${key} to open profile`;
+      }
+    } else if (badge) {
+      badge.remove();
+    }
+  });
+}
+
+
 // The row slide used for list 3 and the unfollowed/starred submenus, in
 // both directions. Driven by the Web Animations API rather than CSS
 // @keyframes: list 3's rows vary in height, so the distance has to come
@@ -1973,6 +2066,16 @@ function slideRowIn(rowEl, distance, duration) {
   ], { duration, easing: ROW_SLIDE_EASING });
 }
 
+// A list 3 row that starts leaving stops counting straight away: the
+// remaining rows' 1-9/0 badges renumber now (not once its slide ends, which
+// left a row showing "2" while key 1 opened it), and it drops its
+// selection ring so it can't look selected next to the newly selected row.
+function onRowExitStarted(rowEl) {
+  if (!rowEl.classList.contains('user-row')) return;
+  rowEl.classList.remove('selected');
+  reindexUnfollowerRows();
+}
+
 function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   // A row already fading out ignores any further attempt to remove it
   // again. Without this, clicking the same delete/star/unstar button
@@ -1997,16 +2100,6 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   rowEl.style.transition = '';
   rowEl.style.transform = '';
 
-  // Also clear item-enter (the dropdown-item-enter-slide keyframe class —
-  // see style.css) if this row still has it from its own entrance
-  // animation, which never gets removed once it finishes. A row can be
-  // removed again shortly after entering (e.g. immediately unstarring
-  // something you just starred), and with both classes present the CSS
-  // cascade doesn't merge their competing `animation` declarations — one
-  // wins outright — so leaving item-enter in place could silently block
-  // username-exit's own animation from ever playing. No-op for .user-row
-  // (list 3), which never gets this class.
-  rowEl.classList.remove('item-enter');
 
   // Also stop any slide-in still running on it (a username removed again
   // right after sliding back into list 3).
@@ -2041,6 +2134,7 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
     // No parent to measure/shrink at all — just the row's own exit animation.
     rowEl.classList.add('username-exit');
     slideRowOut(rowEl, exitDistance, DURATION);
+    onRowExitStarted(rowEl);
     setTimeout(() => {
       rowEl.remove();
       onComplete();
@@ -2164,6 +2258,7 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
 
   rowEl.classList.add('username-exit');
   slideRowOut(rowEl, exitDistance, DURATION);
+  onRowExitStarted(rowEl);
 
   if (shrinkBox) {
     acquireExitLock(shrinkBox);
@@ -2559,8 +2654,11 @@ function updateInstructionsStepUI() {
     const userRow = e.target.closest('.user-row');
     if (!userRow) return;
 
+    // A row already sliding out is on its way out — ignore further clicks.
+    if (userRow.classList.contains('username-exit')) return;
+
     const username = userRow.getAttribute('data-username');
-    const rowIndex = parseInt(userRow.getAttribute('data-index'), 10);
+    const rowIndex = getLiveUnfollowerRows().indexOf(userRow);
     const userObj = state.unfollowers.find(u => u.username === username);
     if (!userObj) return;
 
@@ -2624,41 +2722,10 @@ function updateInstructionsStepUI() {
     }
 
     // Clicking anywhere on the row (username, avatar, link, or delete button) automatically moves user to Unfollowed list!
-    const autoOpenToggle = document.getElementById('auto-open-toggle');
-    if (autoOpenToggle && autoOpenToggle.checked) {
-      state.pendingAutoOpen = true;
-      state.autoOpenCount = 1;
-    }
-
     // Open Instagram link in new tab if the user clicked the row background or action arrow (not a direct link anchor or trash/delete button)
     const clickedLink = e.target.closest('a');
     const clickedDelete = e.target.closest('.action-delete');
-    if (!clickedLink && !clickedDelete) {
-      window.open(userObj.profileUrl, '_blank');
-    }
-
-    if (userObj?.isPendingRequest) {
-      state.following = state.following.filter(u => u.username !== username);
-      elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
-      updateListUI('following');
-    } else if (!state.unfollowed.some(u => u.username === username)) {
-      state.unfollowed.unshift(taggedObj);
-    }
-
-    saveCurrentAccountData();
-
-    exitListRow(userRow, () => {
-      state.unfollowers = state.unfollowers.filter(u => u.username !== username);
-      state.selectedIndex = -1;
-      elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
-      updateUnfollowedUI(username);
-
-      if (state.unfollowers.length === 0) {
-        updateResultsUI();
-      } else {
-        reindexUnfollowerRows();
-      }
-    });
+    unfollowAndExitRow(userRow, { openProfile: !clickedLink && !clickedDelete });
   });
 
   // Toggle preview unfollowed list dropdown
@@ -3040,8 +3107,11 @@ function updateInstructionsStepUI() {
         clickedWord = clickedWord.substring(1);
       }
       
-      // Clean punctuation
-      clickedWord = clickedWord.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
+      // Trim surrounding punctuation only — '.' and '_' are valid inside
+      // Instagram usernames (stripping them everywhere opened the wrong
+      // profile for e.g. @danielle.lefleur), but a username can't end
+      // with '.', so a trailing sentence period is still dropped.
+      clickedWord = clickedWord.replace(/^[^a-zA-Z0-9._]+/, '').replace(/[^a-zA-Z0-9_]+$/, '');
       
       if (clickedWord && /^[a-zA-Z0-9._]+$/.test(clickedWord)) {
         window.open(`https://instagram.com/${clickedWord}`, '_blank');
@@ -3109,7 +3179,7 @@ function updateInstructionsStepUI() {
         e.preventDefault();
         return;
       } else if (e.key === 'ArrowDown') {
-        const rows = elements.listUnfollowers.querySelectorAll('.user-row');
+        const rows = getLiveUnfollowerRows();
         if (rows.length > 0) {
           state.selectedIndex = 0;
           highlightRow(0);
@@ -3130,7 +3200,7 @@ function updateInstructionsStepUI() {
       return;
     }
 
-    const rows = elements.listUnfollowers.querySelectorAll('.user-row');
+    const rows = getLiveUnfollowerRows();
     if (rows.length === 0) return;
 
     // Number keys 1-9 and 0 bound to usernames at index 0..9
@@ -3144,29 +3214,7 @@ function updateInstructionsStepUI() {
         state.selectedIndex = targetIndex;
         highlightRow(targetIndex);
         
-        const selectedRow = rows[targetIndex];
-        const username = selectedRow.getAttribute('data-username');
-        const userObj = state.unfollowers.find(u => u.username === username);
-        
-        if (userObj) {
-          window.open(userObj.profileUrl, '_blank');
-          
-          const autoOpenToggle = document.getElementById('auto-open-toggle');
-          if (autoOpenToggle && autoOpenToggle.checked) {
-            state.pendingAutoOpen = true;
-            state.autoOpenCount = 1;
-          }
-          
-          if (userObj?.isPendingRequest) {
-            state.following = state.following.filter(u => u.username !== username);
-            localStorage.setItem('following_users', JSON.stringify(state.following));
-            elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
-            updateListUI('following');
-          } else if (!state.unfollowed.some(u => u.username === username)) {
-            state.unfollowed.unshift(userObj);
-          }
-          calculateUnfollowers();
-        }
+        unfollowAndExitRow(rows[targetIndex]);
       }
       return;
     }
@@ -3188,42 +3236,19 @@ function updateInstructionsStepUI() {
     } else if (e.key === 'Enter' || e.key === 'o') {
       e.preventDefault();
       if (state.selectedIndex >= 0 && state.selectedIndex < rows.length) {
-        const selectedRow = rows[state.selectedIndex];
-        const username = selectedRow.getAttribute('data-username');
-        const userObj = state.unfollowers.find(u => u.username === username);
-        
-        if (userObj) {
-          // Open Instagram profile
-          window.open(userObj.profileUrl, '_blank');
-          
-          const autoOpenToggle = document.getElementById('auto-open-toggle');
-          if (autoOpenToggle && autoOpenToggle.checked) {
-            state.pendingAutoOpen = true;
-            state.autoOpenCount = 1; // Start counting from 1
+        unfollowAndExitRow(rows[state.selectedIndex], { keepSelection: true });
+
+        // Selection stays at the same index, which now points to the next
+        // row (the removed one no longer counts, even while it slides out).
+        // If that was the last row, clip to the new end.
+        const newRows = getLiveUnfollowerRows();
+        if (newRows.length > 0) {
+          if (state.selectedIndex >= newRows.length) {
+            state.selectedIndex = newRows.length - 1;
           }
-          
-          // Move user to Unfollowed list (unless pending request)
-          if (userObj?.isPendingRequest) {
-            state.following = state.following.filter(u => u.username !== username);
-            localStorage.setItem('following_users', JSON.stringify(state.following));
-            elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
-            updateListUI('following');
-          } else if (!state.unfollowed.some(u => u.username === username)) {
-            state.unfollowed.unshift(userObj);
-          }
-          calculateUnfollowers();
-          
-          // Selection index remains the same but points to next item. 
-          // If out of bounds (reached end of list), clip it.
-          const newRows = elements.listUnfollowers.querySelectorAll('.user-row');
-          if (newRows.length > 0) {
-            if (state.selectedIndex >= newRows.length) {
-              state.selectedIndex = newRows.length - 1;
-            }
-            highlightRow(state.selectedIndex);
-          } else {
-            state.selectedIndex = -1;
-          }
+          highlightRow(state.selectedIndex);
+        } else {
+          state.selectedIndex = -1;
         }
       }
     } else if (e.key === 'Escape') {
@@ -3393,9 +3418,48 @@ function updateInstructionsStepUI() {
   // all, if the stale index no longer exists). Call this right after
   // filtering a removed user out of state.unfollowers to keep data-index in
   // sync with what's actually still in the DOM.
-  function reindexUnfollowerRows() {
-    elements.listUnfollowers.querySelectorAll('.user-row').forEach((row, i) => {
-      row.setAttribute('data-index', i);
+  // Opens a list 3 username's profile (optionally) and moves it to the
+  // unfollowed list, sliding its row out — shared by clicking a row and by
+  // the keyboard shortcuts (1-9/0, Enter/o), which used to drop the row
+  // instantly with no animation.
+  function unfollowAndExitRow(userRow, { openProfile = true, keepSelection = false, fromAutoOpen = false } = {}) {
+    if (!userRow || userRow.classList.contains('username-exit')) return;
+    const username = userRow.getAttribute('data-username');
+    const userObj = state.unfollowers.find(u => u.username === username);
+    if (!userObj) return;
+
+    const autoOpenToggle = document.getElementById('auto-open-toggle');
+    if (!fromAutoOpen && autoOpenToggle && autoOpenToggle.checked) {
+      state.pendingAutoOpen = true;
+      state.autoOpenCount = 1;
+    }
+
+    if (openProfile) {
+      window.open(safeProfileUrl(userObj), '_blank');
+    }
+
+    const currentAcc = (state.selectedAccountUsername || '_global_').toLowerCase();
+    if (userObj.isPendingRequest) {
+      state.following = state.following.filter(u => u.username !== username);
+      elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
+      updateListUI('following');
+    } else if (!state.unfollowed.some(u => u.username === username)) {
+      state.unfollowed.unshift({ ...userObj, account: currentAcc });
+    }
+
+    saveCurrentAccountData();
+
+    exitListRow(userRow, () => {
+      state.unfollowers = state.unfollowers.filter(u => u.username !== username);
+      if (!keepSelection) state.selectedIndex = -1;
+      elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
+      updateUnfollowedUI(username);
+
+      if (state.unfollowers.length === 0) {
+        updateResultsUI();
+      } else {
+        reindexUnfollowerRows();
+      }
     });
   }
 
@@ -3407,7 +3471,7 @@ function updateInstructionsStepUI() {
   // meantime instead of the one actually intended. Callers driven by a
   // click pass { scroll: false } to skip that.
   function highlightRow(index, { scroll = true } = {}) {
-    const rows = elements.listUnfollowers.querySelectorAll('.user-row');
+    const rows = getLiveUnfollowerRows();
     let selectedFound = false;
     rows.forEach((row, i) => {
       if (i === index) {
@@ -3452,48 +3516,18 @@ function updateInstructionsStepUI() {
 
       // Wait a tiny bit for the page focus layout to stabilise
       setTimeout(() => {
-        const nextUser = state.unfollowers[0];
-        if (!nextUser) return;
+        // The first row actually showing (and not already sliding out) —
+        // not state.unfollowers[0], which differs whenever a search filter
+        // is active and would open one profile while removing another row.
+        const firstRow = getLiveUnfollowerRows()[0];
+        if (!firstRow) return;
 
-        const firstRow = elements.listUnfollowers.querySelector('.user-row');
-        if (firstRow) {
-          // Open Instagram profile
-          window.open(nextUser.profileUrl, '_blank');
-          
-          // Re-enable flag and increment counter
-          state.pendingAutoOpen = true;
-          state.autoOpenCount++;
-
-          // Move user to Unfollowed list (unless pending request)
-          if (nextUser?.isPendingRequest) {
-            state.following = state.following.filter(u => u.username !== nextUser.username);
-            localStorage.setItem('following_users', JSON.stringify(state.following));
-            elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
-            updateListUI('following');
-          } else if (!state.unfollowed.some(u => u.username === nextUser.username)) {
-            state.unfollowed.unshift(nextUser);
-          }
-
-          // Same shared exit animation as every other way a row leaves list 3
-          // (clicking it, starring, dismissing, deleting) instead of this
-          // path's own separate, un-reindexed fade — keeps auto-open visually
-          // consistent with the rest of the app and avoids reintroducing the
-          // stale data-index bug that a bare firstRow.remove() would bring
-          // back for whichever row ends up next in line.
-          exitListRow(firstRow, () => {
-            state.unfollowers = state.unfollowers.filter(u => u.username !== nextUser.username);
-            state.selectedIndex = -1;
-            elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
-            updateUnfollowedUI(nextUser.username);
-
-            if (state.unfollowers.length === 0) {
-              updateResultsUI();
-            } else {
-              reindexUnfollowerRows();
-            }
-            pushToCloud();
-          });
-        }
+        unfollowAndExitRow(firstRow, { fromAutoOpen: true });
+        // Re-arm for the next return to this tab, and count towards the
+        // batch-of-5 confirmation above.
+        state.pendingAutoOpen = true;
+        state.autoOpenCount++;
+        pushToCloud();
       }, 100);
     }
   });
