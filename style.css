@@ -811,10 +811,7 @@ button:disabled *,
   top: 1px !important;
 }
 
-/* Hover only darkens the border — no background highlight. */
-.preview-toggle:hover:not(:disabled) {
-  border-color: var(--text-main) !important;
-}
+/* No hover highlight at all — neither background nor border changes. */
 
 /* The unfollowed/starred toggle buttons specifically: clicking them left
    a darkish highlight (the :hover background above staying under the
@@ -1505,10 +1502,6 @@ body.hide-shortcuts #keyboard-hints {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
 }
 
-[data-theme="dark"] .preview-toggle:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.3) !important;
-}
-
 [data-theme="dark"] #toggle-preview-unfollowed:active,
 [data-theme="dark"] #toggle-preview-starred:active {
   background-color: rgba(255, 255, 255, 0.07) !important;
@@ -1862,15 +1855,13 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 @media (hover: hover) {
-  .account-chip:hover,
-  #btn-add-account:hover {
+  .account-chip:hover {
     transform: scale(1.02) !important;
     border-color: var(--text-main) !important;
     box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.12) !important;
   }
 
-  [data-theme="dark"] .account-chip:hover,
-  [data-theme="dark"] #btn-add-account:hover {
+  [data-theme="dark"] .account-chip:hover {
     box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.45) !important;
   }
 }
