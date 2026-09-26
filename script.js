@@ -1754,10 +1754,17 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   // to the keyframe as a custom property instead.
   let userRowExitDistance = null;
   if (rowEl.classList.contains('user-row')) {
-    const preExitRect = rowEl.getBoundingClientRect();
     const marginBottom = parseFloat(getComputedStyle(rowEl).marginBottom) || 0;
-    userRowExitDistance = preExitRect.height + marginBottom;
+    userRowExitDistance = rowEl.offsetHeight + marginBottom;
   }
+
+  // getBoundingClientRect reports visual (post-zoom/post-transform) px,
+  // but the inline top/left/width/translateY set below are in the row's
+  // own layout px. Those differ whenever an ancestor is scaled — the
+  // guest preview's zoomed-down grid (fitGuestPreviewGrid), or a submenu
+  // still mid scale() open transition — so convert every measured delta
+  // back into layout px, or the FLIP would jump by the scale difference.
+  const visualScale = (rowEl.getBoundingClientRect().height / rowEl.offsetHeight) || 1;
 
   const DURATION = 800;
   const container = rowEl.parentElement;
@@ -1806,9 +1813,9 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
     container.style.position = 'relative';
   }
   rowEl.style.position = 'absolute';
-  rowEl.style.top = `${rowRect.top - containerRect.top + container.scrollTop}px`;
-  rowEl.style.left = `${rowRect.left - containerRect.left + container.scrollLeft}px`;
-  rowEl.style.width = `${rowRect.width}px`;
+  rowEl.style.top = `${(rowRect.top - containerRect.top) / visualScale + container.scrollTop}px`;
+  rowEl.style.left = `${(rowRect.left - containerRect.left) / visualScale + container.scrollLeft}px`;
+  rowEl.style.width = `${rowRect.width / visualScale}px`;
   rowEl.style.margin = '0';
   rowEl.style.zIndex = '1';
 
@@ -1856,7 +1863,7 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   // INVERT: snap each sibling back to where it used to be, with no
   // transition, using a transform (so this doesn't trigger layout either).
   siblings.forEach((el, i) => {
-    const dy = firstRects[i].top - lastRects[i].top;
+    const dy = (firstRects[i].top - lastRects[i].top) / visualScale;
     if (dy !== 0) {
       el.style.transition = 'none';
       el.style.transform = `translateY(${dy}px)`;
@@ -3287,7 +3294,50 @@ function relocateAppGridForAuthState(isLoggedIn) {
       landingHome.appendChild(appGrid);
     }
   }
+  fitGuestPreviewGrid();
 }
+
+// The guest preview is the logged-in app's own grid, so to look identical
+// it has to be laid out at the logged-in app's own size — the landing
+// section is narrower (and, on desktop, has no viewport-height app shell
+// for the cards' height:100% to fill), which used to squeeze the preview
+// into abbreviated labels, truncated usernames and a shorter card. Size
+// it exactly as .app-container would (content width; on desktop, the
+// height left after the header), then zoom the whole grid down to fit.
+function fitGuestPreviewGrid() {
+  const appGrid = document.querySelector('.app-grid');
+  const appContainer = document.querySelector('.app-container');
+  const landingHome = document.getElementById('app-grid-landing-home');
+  if (!appGrid || !appContainer || !landingHome) return;
+
+  if (appGrid.parentElement !== landingHome) {
+    appGrid.style.width = '';
+    appGrid.style.height = '';
+    appGrid.style.zoom = '';
+    return;
+  }
+
+  const cs = getComputedStyle(appContainer);
+  const width = appContainer.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  if (!(width > 0) || !(landingHome.clientWidth > 0)) return;
+
+  // Desktop (min-width:1025px) stretches the grid to fill the fixed-height
+  // app shell below the header; narrower layouts size each card on its own.
+  let height = null;
+  if (window.matchMedia('(min-width: 1025px)').matches) {
+    const gap = parseFloat(cs.rowGap) || 0;
+    const siblingsHeight = Array.from(appContainer.children)
+      .filter(el => getComputedStyle(el).display !== 'none')
+      .reduce((sum, el) => sum + el.offsetHeight + gap, 0);
+    height = appContainer.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - siblingsHeight;
+  }
+
+  appGrid.style.width = `${width}px`;
+  appGrid.style.height = height > 0 ? `${height}px` : '';
+  appGrid.style.zoom = String(Math.min(1, landingHome.clientWidth / width));
+}
+
+window.addEventListener('resize', () => requestAnimationFrame(fitGuestPreviewGrid));
 
 function initAuth() {
   // Show the locked guest preview immediately, before the async session

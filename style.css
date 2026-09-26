@@ -1077,6 +1077,27 @@ button:disabled *,
   margin-bottom: 4px;
 }
 
+/* The unfollowed/starred item list is a flex child of the panel's
+   column flexbox, and as an overflow-y: auto scroll container its
+   automatic minimum height is 0 — so any time WebKit resolved the
+   panel's height too small on first layout (before any edit forced a
+   fresh one), the list was free to shrink down to a single visible row
+   and scroll the rest, which is exactly what showed on first open.
+   flex-shrink: 0 pins it to its own content height (still capped by its
+   inline 440px max-height), so the panel can never squeeze it. */
+.dropdown-scroll-items {
+  flex-shrink: 0;
+}
+
+/* The item list above already caps itself at 440px; with it no longer
+   shrinkable, the panel's generic 500px cap would clip its last few px
+   (header + 440 + padding/margins is just over 500), so these two panels
+   size purely to their content instead. */
+#list-unfollowed,
+#list-starred {
+  max-height: none;
+}
+
 #reset-unfollowed-btn,
 [data-theme="dark"] #reset-unfollowed-btn {
   background-color: rgba(239, 68, 68, 0.12) !important;
@@ -3303,24 +3324,16 @@ body:not(.auth-logged-out) #landing-preview-section {
   display: none !important;
 }
 
-/* The logged-in app's .card height:100% (see the min-width:1025px rule
-   near the top of this file) only makes sense inside .app-container's
-   fixed-viewport app shell. Here the card sits in a normal scrolling
-   landing page, so without an explicit override its height ends up
-   content-driven instead — meaning it visibly resizes on every
-   star/delete/dismiss (the results count changing shrinks or grows the
-   whole card). That reflow shifts every button positioned inside it,
-   including the unfollowed/starred toggle buttons an open submenu is
-   anchored to, dragging the submenu along with it mid-interaction even
-   though its own .show state never changes — reading as the submenu
-   randomly jumping or closing. A fixed height (ID+class specificity
-   beats both the plain .card rule and its mobile/desktop media-query
-   variants, so this applies at every width) keeps the card, and
-   everything positioned relative to it, rock solid regardless of how
-   many rows are currently in view — matching the logged-in app's own
-   fixed-viewport stability. */
-#landing-preview-section .card {
-  height: 440px;
+/* The guest preview is the logged-in app's own .app-grid (moved here by
+   relocateAppGridForAuthState), and gets no preview-specific sizing of
+   its own: fitGuestPreviewGrid in script.js lays it out at exactly the
+   width/height the logged-in app would give it at this viewport — so
+   every card, button label, submenu and row renders identically — and
+   then CSS-zooms the whole thing down to fit the landing section. The
+   desktop cards' height:100% resolves against that explicit grid height,
+   keeping them fixed-size (not content-driven) just like in the app. */
+#app-grid-landing-home {
+  width: 100%;
 }
 
 body.auth-logged-out:not(.is-logged-in) .auth-dropdown {
