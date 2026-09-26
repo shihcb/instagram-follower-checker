@@ -875,47 +875,12 @@ button:disabled *,
   transform: translateX(0) scale(1);
 }
 
-/* List 3's own rows exit with the exact same slide the unfollowed/starred
-   submenu's rows use below (.parsed-item.username-exit) — translateY
-   only, no opacity change. The submenu can hardcode its distance in CSS
-   because every one of its rows is a fixed 44px tall; list 3's rows vary
-   (avatar row height, optional full-name line), so exitListRow in
-   script.js measures the row's actual height right before adding this
-   class and hands it in as --user-row-exit-distance. The fallback below
-   only matters if that JS step is ever skipped. JS (exitListRow) takes
-   the row out of flow with position: absolute — pinned to its exact
-   current visual spot — the instant this class is added, and animates
-   the siblings that need to shift up separately via `transform` (see
-   exitListRow), so this only ever has to animate the exiting row itself. */
-@keyframes user-row-exit-slide {
-  0%   { transform: translateY(0); }
-  100% { transform: translateY(var(--user-row-exit-distance, -60px)); }
-}
-
+/* The exit slide itself (list 3 and the submenus alike) is run from JS —
+   slideRowOut/slideRowIn in script.js, which also explain why. This class
+   only marks a row as leaving: exitListRow takes it out of flow and
+   excludes it from sibling shifts, and it stops taking clicks. */
 .user-row.username-exit {
-  animation: user-row-exit-slide var(--list-item-motion-duration) var(--list-item-motion-easing) forwards;
   pointer-events: none !important;
-}
-
-/* The exact reverse, for a username coming back into list 3 after being
-   removed from the unfollowed/starred submenus (animateResultsReentry in
-   script.js): it slides down from one row-height above into its slot
-   while the rows below slide down to make room. z-index -1 (inside the
-   list's own isolated stacking context, below) tucks it behind the row
-   above, so it emerges from underneath it rather than covering it. */
-@keyframes user-row-enter-slide {
-  0%   { transform: translateY(var(--user-row-enter-distance, -60px)); }
-  100% { transform: translateY(0); }
-}
-
-.user-row.row-enter {
-  position: relative;
-  z-index: -1;
-  animation: user-row-enter-slide var(--list-item-motion-duration) var(--list-item-motion-easing) both;
-}
-
-#list-unfollowers {
-  isolation: isolate;
 }
 
 /* Unfollowed/starred submenu rows slide up the exact same way list 3's
@@ -941,13 +906,7 @@ button:disabled *,
    animation defines its own start and end inside itself, so it always
    plays its full course the instant the class matches, with nothing for
    JS to coordinate. */
-@keyframes dropdown-item-exit-slide {
-  0%   { transform: translateY(0); }
-  100% { transform: translateY(-44px); }
-}
-
 .parsed-item.username-exit {
-  animation: dropdown-item-exit-slide var(--list-item-motion-duration) var(--list-item-motion-easing) forwards;
   pointer-events: none !important;
 }
 

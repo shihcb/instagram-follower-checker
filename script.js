@@ -938,12 +938,10 @@ function animateResultsReentry(listEl, previousTops) {
   rows.forEach(row => {
     const previousTop = previousTops.get(row.dataset.username);
     if (previousTop === undefined) {
-      // New to the list: slide down into place from one row-height above,
-      // tucked behind the rows around it (see .user-row.row-enter).
+      // New to the list: slide down into place from one row pitch above,
+      // emerging from its own slot's top edge (see slideRowIn).
       const marginBottom = parseFloat(getComputedStyle(row).marginBottom) || 0;
-      row.style.setProperty('--user-row-enter-distance', `-${row.offsetHeight + marginBottom}px`);
-      row.classList.add('row-enter');
-      setTimeout(() => row.classList.remove('row-enter'), DURATION);
+      slideRowIn(row, row.offsetHeight + marginBottom, DURATION);
       return;
     }
     // Already here: FLIP from where it was to where it is now.
@@ -1707,7 +1705,7 @@ function closeAllSubMenusAndPopups() {
 // .username-exit (transform only — already out of flow, so no collapse
 // animation is needed on it at all) — a fixed 44px in the submenus, where
 // every row is that same height, or the row's own just-measured height
-// for list 3's rows, which vary (see userRowExitDistance below).
+// for list 3's rows, which vary (see exitDistance below).
 // The unfollowed/starred submenus are auto-height popup panels
 // (.dropdown-menu) that hug their content up to a 10-item cap, and their
 // inner .dropdown-scroll-items (rowEl's own parent) does too, one level
@@ -1821,6 +1819,35 @@ function measureNaturalHeight(el, currentHeight, alsoUnlock = []) {
   return height;
 }
 
+// The row slide used for list 3 and the unfollowed/starred submenus, in
+// both directions. Driven by the Web Animations API rather than CSS
+// @keyframes: list 3's rows vary in height, so the distance has to come
+// from JS, and a CSS variable inside @keyframes (what this used to do)
+// doesn't animate in WebKit — on iOS the deleted row just sat still while
+// the row below slid up through it.
+// The row is also clipped at its own slot's top edge as it moves, so it
+// disappears into / emerges from that line instead of sliding over the
+// row above it. Row backgrounds are translucent (fully transparent in
+// dark mode), so any overlap showed both usernames' text on top of each
+// other.
+const ROW_SLIDE_EASING = 'cubic-bezier(0.4, 0, 0.2, 1)';
+
+function slideRowOut(rowEl, distance, duration) {
+  if (typeof rowEl.animate !== 'function') return;
+  rowEl.animate([
+    { transform: 'translateY(0)', clipPath: 'inset(0px 0px 0px 0px)', webkitClipPath: 'inset(0px 0px 0px 0px)' },
+    { transform: `translateY(${-distance}px)`, clipPath: `inset(${distance}px 0px 0px 0px)`, webkitClipPath: `inset(${distance}px 0px 0px 0px)` }
+  ], { duration, easing: ROW_SLIDE_EASING, fill: 'forwards' });
+}
+
+function slideRowIn(rowEl, distance, duration) {
+  if (typeof rowEl.animate !== 'function') return;
+  rowEl.animate([
+    { transform: `translateY(${-distance}px)`, clipPath: `inset(${distance}px 0px 0px 0px)`, webkitClipPath: `inset(${distance}px 0px 0px 0px)` },
+    { transform: 'translateY(0)', clipPath: 'inset(0px 0px 0px 0px)', webkitClipPath: 'inset(0px 0px 0px 0px)' }
+  ], { duration, easing: ROW_SLIDE_EASING });
+}
+
 function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   // A row already fading out ignores any further attempt to remove it
   // again. Without this, clicking the same delete/star/unstar button
@@ -1856,18 +1883,17 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   // (list 3), which never gets this class.
   rowEl.classList.remove('item-enter');
 
-  // List 3's own rows (.user-row) now slide out exactly like the
-  // unfollowed/starred submenu's rows (.parsed-item) — same keyframe, same
-  // duration/easing — rather than list 3's old plain opacity fade. The
-  // submenu can hardcode its slide distance in CSS because every one of
-  // its rows is a fixed 44px tall; list 3's rows vary (avatar row height,
-  // optional full-name line), so the distance is measured here and handed
-  // to the keyframe as a custom property instead.
-  let userRowExitDistance = null;
-  if (rowEl.classList.contains('user-row')) {
-    const marginBottom = parseFloat(getComputedStyle(rowEl).marginBottom) || 0;
-    userRowExitDistance = rowEl.offsetHeight + marginBottom;
+  // Also stop any slide-in still running on it (a username removed again
+  // right after sliding back into list 3).
+  if (typeof rowEl.getAnimations === 'function') {
+    rowEl.getAnimations().forEach(anim => anim.cancel());
   }
+
+  // Slide distance: one full row pitch (its height plus the gap below it),
+  // exactly how far the rows below it move up to close the gap — measured
+  // before it's taken out of flow below. Works for both list 3 rows (which
+  // vary in height) and the submenus' fixed-height rows.
+  const exitDistance = rowEl.offsetHeight + (parseFloat(getComputedStyle(rowEl).marginBottom) || 0);
 
   // getBoundingClientRect reports visual (post-transform) px,
   // but the inline top/left/width/translateY set below are in the row's
@@ -1888,10 +1914,8 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
 
   if (!container) {
     // No parent to measure/shrink at all — just the row's own exit animation.
-    if (userRowExitDistance !== null) {
-      rowEl.style.setProperty('--user-row-exit-distance', `-${userRowExitDistance}px`);
-    }
     rowEl.classList.add('username-exit');
+    slideRowOut(rowEl, exitDistance, DURATION);
     setTimeout(() => {
       rowEl.remove();
       onComplete();
@@ -2013,10 +2037,8 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
     }
   });
 
-  if (userRowExitDistance !== null) {
-    rowEl.style.setProperty('--user-row-exit-distance', `-${userRowExitDistance}px`);
-  }
   rowEl.classList.add('username-exit');
+  slideRowOut(rowEl, exitDistance, DURATION);
 
   if (shrinkBox) {
     acquireExitLock(shrinkBox);
