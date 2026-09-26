@@ -3329,7 +3329,7 @@ body:not(.auth-logged-out) #landing-preview-section {
    its own: fitGuestPreviewGrid in script.js lays it out at exactly the
    width/height the logged-in app would give it at this viewport — so
    every card, button label, submenu and row renders identically — and
-   then CSS-zooms the whole thing down to fit the landing section. The
+   then scales the whole thing down (transform) to fit the landing section. The
    desktop cards' height:100% resolves against that explicit grid height,
    keeping them fixed-size (not content-driven) just like in the app. */
 #app-grid-landing-home {

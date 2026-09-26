@@ -1758,10 +1758,10 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
     userRowExitDistance = rowEl.offsetHeight + marginBottom;
   }
 
-  // getBoundingClientRect reports visual (post-zoom/post-transform) px,
+  // getBoundingClientRect reports visual (post-transform) px,
   // but the inline top/left/width/translateY set below are in the row's
   // own layout px. Those differ whenever an ancestor is scaled — the
-  // guest preview's zoomed-down grid (fitGuestPreviewGrid), or a submenu
+  // guest preview's scaled-down grid (fitGuestPreviewGrid), or a submenu
   // still mid scale() open transition — so convert every measured delta
   // back into layout px, or the FLIP would jump by the scale difference.
   const visualScale = (rowEl.getBoundingClientRect().height / rowEl.offsetHeight) || 1;
@@ -3301,9 +3301,16 @@ function relocateAppGridForAuthState(isLoggedIn) {
 // it has to be laid out at the logged-in app's own size — the landing
 // section is narrower (and, on desktop, has no viewport-height app shell
 // for the cards' height:100% to fill), which used to squeeze the preview
-// into abbreviated labels, truncated usernames and a shorter card. Size
-// it exactly as .app-container would (content width; on desktop, the
-// height left after the header), then zoom the whole grid down to fit.
+// into abbreviated button labels, truncated usernames and a shorter card.
+// Size it exactly as .app-container would (content width; on desktop, the
+// height left after the header), then scale the whole grid down to fit.
+// transform: scale() rather than CSS zoom: a transform never touches
+// layout, so #card-unfollowers' @container label queries, flex sizing and
+// text measurement all see the real app-sized card in every browser
+// (Safari evaluates container queries against the zoomed size, which
+// brought back "unflwd" and the shrink-wrapped buttons). A transform
+// doesn't shrink the grid's layout box, so the landing wrapper is given
+// the scaled height explicitly instead.
 function fitGuestPreviewGrid() {
   const appGrid = document.querySelector('.app-grid');
   const appContainer = document.querySelector('.app-container');
@@ -3313,13 +3320,16 @@ function fitGuestPreviewGrid() {
   if (appGrid.parentElement !== landingHome) {
     appGrid.style.width = '';
     appGrid.style.height = '';
-    appGrid.style.zoom = '';
+    appGrid.style.transform = '';
+    appGrid.style.transformOrigin = '';
+    landingHome.style.height = '';
     return;
   }
 
   const cs = getComputedStyle(appContainer);
   const width = appContainer.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-  if (!(width > 0) || !(landingHome.clientWidth > 0)) return;
+  const available = landingHome.clientWidth;
+  if (!(width > 0) || !(available > 0)) return;
 
   // Desktop (min-width:1025px) stretches the grid to fill the fixed-height
   // app shell below the header; narrower layouts size each card on its own.
@@ -3327,17 +3337,33 @@ function fitGuestPreviewGrid() {
   if (window.matchMedia('(min-width: 1025px)').matches) {
     const gap = parseFloat(cs.rowGap) || 0;
     const siblingsHeight = Array.from(appContainer.children)
-      .filter(el => getComputedStyle(el).display !== 'none')
+      .filter(el => el !== appGrid && getComputedStyle(el).display !== 'none')
       .reduce((sum, el) => sum + el.offsetHeight + gap, 0);
     height = appContainer.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - siblingsHeight;
   }
 
+  const scale = Math.min(1, available / width);
   appGrid.style.width = `${width}px`;
   appGrid.style.height = height > 0 ? `${height}px` : '';
-  appGrid.style.zoom = String(Math.min(1, landingHome.clientWidth / width));
+  appGrid.style.transformOrigin = 'top left';
+  appGrid.style.transform = scale < 1 ? `scale(${scale})` : '';
+  landingHome.style.height = `${appGrid.offsetHeight * scale}px`;
 }
 
 window.addEventListener('resize', () => requestAnimationFrame(fitGuestPreviewGrid));
+
+// Refit whenever the landing section or the app shell changes size — this
+// also covers the landing page first becoming visible (0 width → real
+// width), fonts loading, and the grid's own height changing, none of
+// which fire a window resize.
+if (typeof ResizeObserver !== 'undefined') {
+  const guestPreviewObserver = new ResizeObserver(() => requestAnimationFrame(fitGuestPreviewGrid));
+  ['app-grid-landing-home'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) guestPreviewObserver.observe(el);
+  });
+  document.querySelectorAll('.app-container, .app-grid').forEach(el => guestPreviewObserver.observe(el));
+}
 
 function initAuth() {
   // Show the locked guest preview immediately, before the async session
