@@ -206,6 +206,27 @@ function setTheme(theme) {
 }
 
 // Custom Site Pop-up Confirm & Alert Modal Helpers
+// Popups fade out over 600ms and only then get .hidden (and any reset).
+// Reopening one inside that window used to let the old close's timer fire
+// afterwards and hide the freshly opened popup (and, for the account
+// modal, forget which account was being edited). Opening now cancels any
+// pending hide for that popup.
+const pendingOverlayHides = new WeakMap();
+function scheduleOverlayHide(overlay, fn, delay = 600) {
+  cancelOverlayHide(overlay);
+  pendingOverlayHides.set(overlay, setTimeout(() => {
+    pendingOverlayHides.delete(overlay);
+    fn();
+  }, delay));
+}
+function cancelOverlayHide(overlay) {
+  const timer = pendingOverlayHides.get(overlay);
+  if (timer) {
+    clearTimeout(timer);
+    pendingOverlayHides.delete(overlay);
+  }
+}
+
 function showSiteConfirm(title, message, confirmText = 'confirm', cancelText = 'cancel') {
   return new Promise((resolve) => {
     const overlay = document.getElementById('confirm-modal-overlay');
@@ -231,6 +252,8 @@ function showSiteConfirm(title, message, confirmText = 'confirm', cancelText = '
       cancelBtn.style.display = 'none';
     }
 
+    cancelOverlayHide(overlay);
+    overlay.classList.remove('fade-out-bounce');
     overlay.classList.remove('hidden');
     void overlay.offsetWidth;
     overlay.classList.add('show');
@@ -238,10 +261,10 @@ function showSiteConfirm(title, message, confirmText = 'confirm', cancelText = '
     function cleanup() {
       overlay.classList.add('fade-out-bounce');
       overlay.classList.remove('show');
-      setTimeout(() => {
+      scheduleOverlayHide(overlay, () => {
         overlay.classList.add('hidden');
         overlay.classList.remove('fade-out-bounce');
-      }, 600);
+      });
       okBtn.removeEventListener('click', onOk);
       if (cancelBtn) cancelBtn.removeEventListener('click', onCancel);
       if (closeBtn) closeBtn.removeEventListener('click', onCancel);
@@ -1042,7 +1065,9 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
     keptExits.forEach(row => listEl.appendChild(row));
     if (animate) animateResultsExits(listEl, previousRows);
     setTimeout(() => {
-      if (!listEl.querySelector('.user-row:not(.username-exit)') && state.unfollowers.length === 0) {
+      // Nothing was put back in the meantime (by any render, including a
+      // search that simply matches nothing).
+      if (!listEl.querySelector('.user-row:not(.username-exit)')) {
         listEl.classList.add('hidden');
       }
     }, 800);
@@ -1577,9 +1602,10 @@ function renderAccountChips(animate = false) {
     accounts.forEach((acc, index) => {
       const chip = document.createElement('div');
       chip.className = 'account-chip';
-      if (animate) {
+      // Only chips that weren't already there fade in — renaming or adding
+      // one account used to re-fade every existing chip as well.
+      if (animate && !existingUsernames.includes(acc.originalUsername.toLowerCase())) {
         chip.classList.add('fade-in');
-        chip.style.animationDelay = `${index * 80}ms`;
       }
       chip.setAttribute('data-account-name', acc.originalUsername.toLowerCase());
       chip.setAttribute('data-index', index);
@@ -1697,6 +1723,7 @@ function openAccountModal(index = -1) {
     }
   }
 
+  cancelOverlayHide(elements.accountModalOverlay);
   elements.accountModalOverlay.classList.remove('hidden');
   requestAnimationFrame(() => {
     elements.accountModalOverlay.classList.add('show');
@@ -1712,7 +1739,7 @@ function closeAccountModal() {
   // duration (style.css) — this used to fire at 350ms, cutting .hidden's
   // display:none in partway through the fade/scale-out and snapping the
   // rest of it away instead of letting it finish closing smoothly.
-  setTimeout(() => {
+  scheduleOverlayHide(elements.accountModalOverlay, () => {
     elements.accountModalOverlay.classList.add('hidden');
     if (elements.accountModalOriginalCaption) {
       elements.accountModalOriginalCaption.classList.add('hidden');
@@ -1721,7 +1748,7 @@ function closeAccountModal() {
     // Clean up double-click active suppression state
     document.querySelectorAll('.account-chip').forEach(c => c.classList.remove('no-active'));
     state.editingAccountIndex = -1;
-  }, 600);
+  });
 }
 
 function saveAccountFromModal() {
@@ -1744,7 +1771,7 @@ function saveAccountFromModal() {
     // Auto-select newly added account!
     state.selectedAccountUsername = username;
     localStorage.setItem('selected_instagram_account', username);
-    loadAccountData(username);
+    loadAccountData(username, true, true); // its new chip fades in; switching to it animates list 3, like selecting its chip
   }
 
   localStorage.setItem('instagram_accounts', JSON.stringify(state.instagramAccounts));
@@ -1792,7 +1819,7 @@ function deleteAccountFromModal() {
       if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === acc) {
         state.selectedAccountUsername = null;
         localStorage.removeItem('selected_instagram_account');
-        loadAccountData(null);
+        loadAccountData(null, false, true); // its usernames slide out of list 3, like unselecting its chip
       } else {
         renderAccountChips(true);
       }
@@ -1846,16 +1873,19 @@ function closeAllSubMenusAndPopups() {
     closedSomething = true;
   }
 
-  // 5. Close Account Select Modal
-  const modalAccount = document.getElementById('account-select-modal');
-  if (modalAccount && !modalAccount.classList.contains('hidden')) {
-    if (typeof closeAccountModal === 'function') closeAccountModal();
+  // 5. Close the add/edit account modal (this used to look for an
+  // #account-select-modal that doesn't exist, so Escape only closed it
+  // while its text input had focus).
+  if (elements.accountModalOverlay && !elements.accountModalOverlay.classList.contains('hidden')) {
+    closeAccountModal();
     closedSomething = true;
   }
 
-  // 6. Close Instructions / Guide Modal
+  // 6. Close Instructions / Guide Modal (defined inside setupEventListeners,
+  // hence reached through window — calling it directly threw a
+  // ReferenceError that aborted the rest of this cleanup).
   if (elements.instructionsModalOverlay && !elements.instructionsModalOverlay.classList.contains('hidden')) {
-    closeInstructionsModal();
+    if (typeof window.closeInstructionsModal === 'function') window.closeInstructionsModal();
     closedSomething = true;
   }
 
@@ -2515,6 +2545,7 @@ function openInstructionsModal(step = 1) {
     indicator.classList.add('no-transition');
   }
 
+  cancelOverlayHide(elements.instructionsModalOverlay);
   elements.instructionsModalOverlay.classList.remove('hidden');
   requestAnimationFrame(() => {
     elements.instructionsModalOverlay.classList.add('show');
@@ -2532,10 +2563,11 @@ function closeInstructionsModal() {
   elements.instructionsModalOverlay.classList.remove('show');
   // 600ms, matching .modal-overlay/.account-modal-card's own CSS transition
   // duration (style.css) — see closeAccountModal for why this can't be 350.
-  setTimeout(() => {
+  scheduleOverlayHide(elements.instructionsModalOverlay, () => {
     elements.instructionsModalOverlay.classList.add('hidden');
-  }, 600);
+  });
 }
+window.closeInstructionsModal = closeInstructionsModal;
 
 function updateInstructionsStepUI() {
   const tabs = document.querySelectorAll('.instructions-tab');
@@ -2685,7 +2717,7 @@ function updateInstructionsStepUI() {
         elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
         updateStarredUI(username);
 
-        if (state.unfollowers.length === 0) {
+        if (getLiveUnfollowerRows().length === 0) {
           updateResultsUI();
         } else {
           reindexUnfollowerRows();
@@ -2701,7 +2733,7 @@ function updateInstructionsStepUI() {
         state.selectedIndex = -1;
         elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
 
-        if (state.unfollowers.length === 0) {
+        if (getLiveUnfollowerRows().length === 0) {
           updateResultsUI();
         } else {
           reindexUnfollowerRows();
@@ -2961,6 +2993,10 @@ function updateInstructionsStepUI() {
   }
 
   function showLoveOverlay() {
+    // Already open: don't start a second spawner — its interval handle
+    // would be overwritten and never cleared, so hearts kept spawning
+    // forever after closing.
+    if (loveOverlay.classList.contains('show')) return;
     loveOverlay.classList.add('show');
     // Periodically spawn floating hearts
     heartInterval = setInterval(spawnFloatHeart, 300);
@@ -2984,9 +3020,18 @@ function updateInstructionsStepUI() {
   }
 
   let lastLogoTap = 0;
+  let lastLogoTouch = 0;
   if (headerLogo && loveOverlay) {
     const detectDoubleTap = (e) => {
       const now = Date.now();
+      // A touch fires touchstart and then a synthetic click for the same
+      // tap — counted as two taps, a single tap opened the overlay on
+      // phones. Ignore clicks that follow a touch.
+      if (e.type === 'touchstart') {
+        lastLogoTouch = now;
+      } else if (now - lastLogoTouch < 800) {
+        return;
+      }
       const DOUBLE_PRESS_DELAY = 300; // ms
       if (now - lastLogoTap < DOUBLE_PRESS_DELAY) {
         e.preventDefault();
@@ -3279,7 +3324,7 @@ function updateInstructionsStepUI() {
           localStorage.setItem('unfollowed_users', JSON.stringify([]));
         }
         saveCurrentAccountData();
-        calculateUnfollowers();
+        calculateUnfollowers({ animate: true }); // usernames return to list 3 — slide them in
         updateUnfollowedUI();
         await pushToCloud();
       }
@@ -3306,7 +3351,7 @@ function updateInstructionsStepUI() {
           localStorage.setItem('starred_users', JSON.stringify([]));
         }
         saveCurrentAccountData();
-        calculateUnfollowers();
+        calculateUnfollowers({ animate: true }); // usernames return to list 3 — slide them in
         updateStarredUI();
         await pushToCloud();
       }
@@ -3455,7 +3500,7 @@ function updateInstructionsStepUI() {
       elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
       updateUnfollowedUI(username);
 
-      if (state.unfollowers.length === 0) {
+      if (getLiveUnfollowerRows().length === 0) {
         updateResultsUI();
       } else {
         reindexUnfollowerRows();
