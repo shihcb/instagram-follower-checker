@@ -897,6 +897,27 @@ button:disabled *,
   pointer-events: none !important;
 }
 
+/* The exact reverse, for a username coming back into list 3 after being
+   removed from the unfollowed/starred submenus (animateResultsReentry in
+   script.js): it slides down from one row-height above into its slot
+   while the rows below slide down to make room. z-index -1 (inside the
+   list's own isolated stacking context, below) tucks it behind the row
+   above, so it emerges from underneath it rather than covering it. */
+@keyframes user-row-enter-slide {
+  0%   { transform: translateY(var(--user-row-enter-distance, -60px)); }
+  100% { transform: translateY(0); }
+}
+
+.user-row.row-enter {
+  position: relative;
+  z-index: -1;
+  animation: user-row-enter-slide var(--list-item-motion-duration) var(--list-item-motion-easing) both;
+}
+
+#list-unfollowers {
+  isolation: isolate;
+}
+
 /* Unfollowed/starred submenu rows slide up the exact same way list 3's
    OWN rows do above — not just in spirit, but the same FLIP
    sibling-shift transform every remaining row in list 3 gets when one

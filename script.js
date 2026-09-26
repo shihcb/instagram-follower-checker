@@ -829,7 +829,20 @@ function updateListUI(type) {
   }
 }
 
-function updateResultsUI() {
+// Pass { animate: true } when usernames are coming back into list 3 from
+// the unfollowed/starred submenus: rows that weren't there before slide
+// back into existence (the exact reverse of exitListRow's slide-out, same
+// duration/easing), and rows already there slide to their new positions
+// instead of jumping. Plain re-renders (search, loads) stay instant.
+function updateResultsUI({ animate = false } = {}) {
+  const listEl = elements.listUnfollowers;
+  const previousTops = new Map();
+  if (animate && !listEl.classList.contains('hidden')) {
+    listEl.querySelectorAll('.user-row:not(.username-exit)').forEach(row => {
+      previousTops.set(row.dataset.username, row.getBoundingClientRect().top);
+    });
+  }
+
   const count = state.unfollowers.length;
   elements.unfollowersCount.textContent = `${count} found`;
 
@@ -903,10 +916,57 @@ function updateResultsUI() {
         </div>
       `;
     }).join('');
+
+    if (animate) animateResultsReentry(listEl, previousTops);
   } else {
     elements.listUnfollowers.classList.add('hidden');
     elements.emptyState.classList.add('hidden');
   }
+}
+
+function animateResultsReentry(listEl, previousTops) {
+  const DURATION = 800;
+  const rows = Array.from(listEl.querySelectorAll('.user-row'));
+  if (rows.length === 0) return;
+
+  // getBoundingClientRect is in visual px, inline translateY in layout px —
+  // they differ inside the guest preview's scaled-down grid, so convert
+  // (same reasoning as exitListRow's visualScale).
+  const visualScale = (listEl.getBoundingClientRect().height / listEl.offsetHeight) || 1;
+
+  const shifted = [];
+  rows.forEach(row => {
+    const previousTop = previousTops.get(row.dataset.username);
+    if (previousTop === undefined) {
+      // New to the list: slide down into place from one row-height above,
+      // tucked behind the rows around it (see .user-row.row-enter).
+      const marginBottom = parseFloat(getComputedStyle(row).marginBottom) || 0;
+      row.style.setProperty('--user-row-enter-distance', `-${row.offsetHeight + marginBottom}px`);
+      row.classList.add('row-enter');
+      setTimeout(() => row.classList.remove('row-enter'), DURATION);
+      return;
+    }
+    // Already here: FLIP from where it was to where it is now.
+    const dy = (previousTop - row.getBoundingClientRect().top) / visualScale;
+    if (Math.abs(dy) < 0.5) return;
+    row.style.transition = 'none';
+    row.style.transform = `translateY(${dy}px)`;
+    shifted.push(row);
+  });
+
+  if (shifted.length === 0) return;
+  void listEl.offsetWidth; // commit the inverted positions before animating away from them
+  shifted.forEach(row => {
+    row.style.transition = `transform ${DURATION}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+    row.style.transform = '';
+  });
+  setTimeout(() => {
+    shifted.forEach(row => {
+      if (row.isConnected && !row.classList.contains('username-exit')) {
+        row.style.transition = '';
+      }
+    });
+  }, DURATION);
 }
 
 // -------------------------------------------------------------
@@ -2535,7 +2595,7 @@ function updateInstructionsStepUI() {
           !unfollowedSet.has(user.username) &&
           !starredSet.has(user.username)
         );
-        updateResultsUI();
+        updateResultsUI({ animate: true });
 
         saveCurrentAccountData();
 
@@ -2637,7 +2697,7 @@ function updateInstructionsStepUI() {
           !unfollowedSet.has(user.username) &&
           !starredSet.has(user.username)
         );
-        updateResultsUI();
+        updateResultsUI({ animate: true });
 
         saveCurrentAccountData();
 
