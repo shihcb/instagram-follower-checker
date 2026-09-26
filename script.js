@@ -1333,7 +1333,10 @@ function saveCurrentAccountData() {
   pushToCloud();
 }
 
-function loadAccountData(username, animate = false) {
+// `animateResults`: the user just switched accounts by selecting/unselecting
+// a chip, so list 3's usernames slide out/in/along as they change (see
+// updateResultsUI) instead of the whole list snapping to the new account.
+function loadAccountData(username, animate = false, animateResults = false) {
   if (username) {
     state.selectedAccountUsername = username;
     localStorage.setItem('selected_instagram_account', username);
@@ -1395,7 +1398,7 @@ function loadAccountData(username, animate = false) {
 
   updateListUI('following');
   updateListUI('followers');
-  calculateUnfollowers();
+  calculateUnfollowers({ animate: animateResults });
   renderAccountChips(animate);
   updateStorageProgressBar();
   updateResetReminderUI();
@@ -1407,7 +1410,7 @@ function selectAccount(username) {
     saveCurrentAccountData();
     state.selectedAccountUsername = null;
     localStorage.removeItem('selected_instagram_account');
-    loadAccountData(null);
+    loadAccountData(null, false, true);
   } else {
     // Select the clicked username chip!
     if (state.selectedAccountUsername) {
@@ -1415,7 +1418,7 @@ function selectAccount(username) {
     }
     state.selectedAccountUsername = username;
     localStorage.setItem('selected_instagram_account', username);
-    loadAccountData(username);
+    loadAccountData(username, false, true);
   }
 }
 
