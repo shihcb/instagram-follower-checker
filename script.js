@@ -1714,6 +1714,53 @@ function forceDropdownScrollRepaint(listEl) {
   });
 }
 
+// Whether rowEl is the only row left on screen in its list. Rows already
+// sliding out don't count: state (state.unfollowed/state.starred) isn't
+// updated until a row's exit animation finishes, so checking its length
+// instead made a quick second delete right after the first miss that it
+// was actually removing the last row.
+function isLastVisibleRow(rowEl) {
+  const container = rowEl.parentElement;
+  if (!container) return false;
+  return Array.from(container.children)
+    .filter(el => el !== rowEl && !el.classList.contains('username-exit')).length === 0;
+}
+
+// How many exitListRow animations are currently using each shrinkBox /
+// scroll container. Overlapping removals (a second click before the
+// first row's exit finishes) each lock and animate the same elements'
+// heights, so only the last one to finish may clear those locks — the
+// first one clearing them mid-way snapped the panel to its intermediate
+// natural height while the second was still animating.
+const exitLockCounts = new WeakMap();
+function acquireExitLock(el) {
+  exitLockCounts.set(el, (exitLockCounts.get(el) || 0) + 1);
+}
+function releaseExitLock(el) {
+  const remaining = (exitLockCounts.get(el) || 1) - 1;
+  if (remaining > 0) {
+    exitLockCounts.set(el, remaining);
+  } else {
+    exitLockCounts.delete(el);
+  }
+  return remaining === 0;
+}
+
+// An element's content-driven height, ignoring any inline height lock.
+// Lifting the lock cancels any height transition in flight, so the element
+// is then re-locked at `currentHeight` — the in-flight value read just
+// before — rather than the old lock's target, which would snap it there.
+// `alsoUnlock` lists [descendant, its current height] pairs whose own
+// locks would otherwise hold el's content at their in-flight size.
+function measureNaturalHeight(el, currentHeight, alsoUnlock = []) {
+  el.style.height = '';
+  alsoUnlock.forEach(([inner]) => { inner.style.height = ''; });
+  const height = el.offsetHeight;
+  el.style.height = `${currentHeight}px`;
+  alsoUnlock.forEach(([inner, innerHeight]) => { inner.style.height = `${innerHeight}px`; });
+  return height;
+}
+
 function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   // A row already fading out ignores any further attempt to remove it
   // again. Without this, clicking the same delete/star/unstar button
@@ -1823,6 +1870,20 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   rowEl.style.margin = '0';
   rowEl.style.zIndex = '1';
 
+  // A sibling may still be mid-slide from an earlier, overlapping removal
+  // (a CSS transition easing its translateY back to 0 — its inline
+  // transform already reads '' by then, so this can't be detected from the
+  // style). firstRects above captured that in-flight visual position;
+  // cancel any such transition before measuring LAST, so the inversion
+  // below is computed from the pure layout position and picks the motion
+  // up exactly where it was, instead of being computed relative to the
+  // old offset — which made the row jump by whatever distance the old
+  // slide had left.
+  siblings.forEach(el => {
+    el.style.transition = 'none';
+    el.style.transform = '';
+  });
+
   // LAST: where each sibling ended up after that one reflow.
   const lastRects = siblings.map(el => el.getBoundingClientRect());
 
@@ -1832,7 +1893,11 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   // the panel's bottom edge slides up in step with the row's fade instead of
   // snapping immediately.
   if (shrinkBox) {
-    const boxEndHeight = finalBoxHeight != null ? finalBoxHeight : shrinkBox.offsetHeight;
+    // Measured with any inline height lock from an earlier, still-running
+    // removal lifted — otherwise this reads that lock (the old in-flight
+    // height) as the target, never really shrinks, and the panel snaps to
+    // its true size when the locks are finally cleared.
+    const boxEndHeight = finalBoxHeight != null ? finalBoxHeight : measureNaturalHeight(shrinkBox, boxStartHeight, [[container, containerStartHeight]]);
     if (boxEndHeight !== boxStartHeight) {
       shrinkBox.style.height = `${boxStartHeight}px`;
       void shrinkBox.offsetHeight; // commit the locked height before animating away from it
@@ -1855,7 +1920,7 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
     // reading as a flicker on exactly the last row, and only ever below the
     // cap where this container's height is content-driven at all (matching
     // exactly when this was reported: "less than 10 usernames").
-    const containerEndHeight = container.offsetHeight;
+    const containerEndHeight = measureNaturalHeight(container, containerStartHeight);
     if (containerEndHeight !== containerStartHeight) {
       container.style.height = `${containerStartHeight}px`;
       void container.offsetHeight;
@@ -1876,9 +1941,13 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   void container.offsetWidth; // commit the inverted transforms before animating away from them
 
   // PLAY: animate every shifted sibling back to translateY(0) — its real,
-  // final position — purely via transform.
+  // final position — purely via transform. Each sibling remembers which
+  // exit last took over its motion, so an earlier, overlapping exit
+  // finishing first doesn't clear a slide a newer one is still running.
+  const flipToken = {};
   siblings.forEach(el => {
     if (el.style.transform) {
+      el._exitFlipToken = flipToken;
       el.style.transition = `transform ${DURATION}ms cubic-bezier(0.4, 0, 0.2, 1)`;
       el.style.transform = '';
     }
@@ -1889,13 +1958,20 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   }
   rowEl.classList.add('username-exit');
 
+  if (shrinkBox) {
+    acquireExitLock(shrinkBox);
+    acquireExitLock(container);
+  }
+
   setTimeout(() => {
     rowEl.remove();
     siblings.forEach(el => {
+      if (el._exitFlipToken && el._exitFlipToken !== flipToken) return;
+      el._exitFlipToken = null;
       el.style.transition = '';
       el.style.transform = '';
     });
-    if (shrinkBox) {
+    if (shrinkBox && releaseExitLock(shrinkBox)) {
       shrinkBox.style.transition = '';
       // When finalBoxHeight was given, leave the panel pinned at it rather
       // than clearing back to '' (which would briefly read its *current*
@@ -1903,10 +1979,13 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
       // caller's re-render right after this is guaranteed to match it
       // exactly (see pinPanelHeight), so nothing visibly moves
       // either way, but this keeps animatePanelHeightChange's own
-      // before/after measurement equal and correctly a no-op.
-      if (finalBoxHeight == null) {
+      // before/after measurement equal and correctly a no-op. Same if an
+      // overlapping last-row removal pinned it (pinPanelHeight) meanwhile.
+      if (finalBoxHeight == null && !shrinkBox.dataset.heightPinned) {
         shrinkBox.style.height = '';
       }
+    }
+    if (shrinkBox && releaseExitLock(container)) {
       container.style.transition = '';
       container.style.height = '';
     }
@@ -2440,7 +2519,7 @@ function updateInstructionsStepUI() {
       if (!itemEl) return;
 
       const menuEl = itemEl.closest('.dropdown-menu');
-      const finalBoxHeight = (state.starred.length === 1 && menuEl)
+      const finalBoxHeight = (menuEl && isLastVisibleRow(itemEl))
         ? pinPanelHeight(menuEl)
         : null;
 
@@ -2491,7 +2570,7 @@ function updateInstructionsStepUI() {
       if (!itemEl) return;
 
       const menuEl = itemEl.closest('.dropdown-menu');
-      const finalBoxHeight = (state.unfollowed.length === 1 && menuEl)
+      const finalBoxHeight = (menuEl && isLastVisibleRow(itemEl))
         ? pinPanelHeight(menuEl)
         : null;
 
@@ -2543,7 +2622,7 @@ function updateInstructionsStepUI() {
       if (!itemEl) return;
 
       const menuEl = itemEl.closest('.dropdown-menu');
-      const finalBoxHeight = (state.unfollowed.length === 1 && menuEl)
+      const finalBoxHeight = (menuEl && isLastVisibleRow(itemEl))
         ? pinPanelHeight(menuEl)
         : null;
 
