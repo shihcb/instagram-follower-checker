@@ -811,9 +811,8 @@ button:disabled *,
   top: 1px !important;
 }
 
+/* Hover only darkens the border — no background highlight. */
 .preview-toggle:hover:not(:disabled) {
-  background-color: var(--btn-secondary-hover) !important;
-  background: var(--btn-secondary-hover) !important;
   border-color: var(--text-main) !important;
 }
 
@@ -1507,10 +1506,7 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 [data-theme="dark"] .preview-toggle:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.14) !important;
-  background: rgba(255, 255, 255, 0.14) !important;
   border-color: rgba(255, 255, 255, 0.3) !important;
-  color: #ffffff !important;
 }
 
 [data-theme="dark"] #toggle-preview-unfollowed:active,
