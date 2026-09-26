@@ -507,17 +507,6 @@ button:disabled *,
               border-color 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-.card.card-fade-out {
-  flex: 0 0 0px !important;
-  opacity: 0 !important;
-  transform: scale(0.94) translateY(20px) !important;
-  pointer-events: none !important;
-  overflow: hidden !important;
-  border-width: 0 !important;
-  border-color: transparent !important;
-  margin-right: -24px !important;
-}
-
 .card:hover {
 }
 
@@ -1866,25 +1855,6 @@ body.hide-shortcuts #keyboard-hints {
   flex-shrink: 0;
 }
 
-@keyframes add-btn-bounce {
-  0% {
-    transform: scale(0.9) translateX(-10px);
-  }
-  55% {
-    transform: scale(1.04) translateX(3px);
-  }
-  80% {
-    transform: scale(0.98) translateX(-1px);
-  }
-  100% {
-    transform: scale(1) translateX(0);
-  }
-}
-
-.btn-add-account.bounce {
-  animation: add-btn-bounce 0.75s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
 .btn-add-account svg {
   display: block;
   flex-shrink: 0;
@@ -2870,23 +2840,6 @@ html.hide-shortcuts .account-chip-badge {
 
 
 
-@keyframes chip-bounce-in {
-  0% {
-    opacity: 0;
-    transform: scale(0.3);
-  }
-  50% {
-    transform: scale(1.15);
-  }
-  80% {
-    transform: scale(0.95);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 @keyframes chip-fade-in {
   from {
     opacity: 0;
@@ -2940,19 +2893,6 @@ html.hide-shortcuts .account-chip-badge {
   stroke: #fbbf24 !important;
 }
 
-@keyframes row-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-
-
 /* -------------------------------------------------------------
  * Responsive Design Queries (Tablet & Mobile)
  * ------------------------------------------------------------- */
@@ -2969,17 +2909,6 @@ html.hide-shortcuts .account-chip-badge {
                 border-color 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
   }
 
-  .card.card-fade-out {
-    height: 0 !important;
-    opacity: 0 !important;
-    transform: scale(0.94) translateY(20px) !important;
-    pointer-events: none !important;
-    overflow: hidden !important;
-    border-width: 0 !important;
-    border-color: transparent !important;
-    margin-bottom: -24px !important;
-    margin-right: 0 !important;
-  }
   #card-unfollowers {
     height: calc(100dvh - 92px);
     height: calc(100vh - 92px);

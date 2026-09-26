@@ -1566,6 +1566,32 @@ function selectAccount(username) {
 
 let chipClickTimer = null;
 
+// FLIP for account chips after a full re-render: each chip that existed
+// before starts at its old position and slides to its new one.
+function slideChipsFromPreviousRects(previousRects) {
+  if (previousRects.size === 0) return;
+  const chips = Array.from(elements.accountChipsList.querySelectorAll('.account-chip'));
+  const moved = [];
+  chips.forEach(chip => {
+    const before = previousRects.get(chip.getAttribute('data-account-name'));
+    if (!before) return;
+    const after = chip.getBoundingClientRect();
+    // Visual -> layout px (the guest preview's grid is scaled down).
+    const scale = (after.width / chip.offsetWidth) || 1;
+    const dx = (before.left - after.left) / scale;
+    const dy = (before.top - after.top) / scale;
+    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+    moved.push([chip, dx, dy]);
+  });
+  if (moved.length === 0 || typeof moved[0][0].animate !== 'function') return;
+  moved.forEach(([chip, dx, dy]) => {
+    chip.animate([
+      { transform: `translate(${dx}px, ${dy}px)` },
+      { transform: 'translate(0, 0)' }
+    ], { duration: 450, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' });
+  });
+}
+
 function renderAccountChips(animate = false) {
   if (!elements.accountChipsList || !elements.btnAddAccount) return;
 
@@ -1597,6 +1623,12 @@ function renderAccountChips(animate = false) {
     });
   } else {
     // Full re-render when accounts are added or deleted -> Layout shifts!
+    // Remember where each surviving chip is so they can slide to their new
+    // spots afterwards instead of jumping (e.g. into a deleted chip's gap).
+    const previousChipRects = new Map();
+    existingChips.forEach(c => {
+      if (!c.classList.contains('bounce-out')) previousChipRects.set(c.getAttribute('data-account-name'), c.getBoundingClientRect());
+    });
     elements.accountChipsList.innerHTML = '';
 
     accounts.forEach((acc, index) => {
@@ -1682,6 +1714,8 @@ function renderAccountChips(animate = false) {
 
       elements.accountChipsList.appendChild(chip);
     });
+
+    slideChipsFromPreviousRects(previousChipRects);
   }
 
   if (accounts.length > 0) {
@@ -3841,12 +3875,19 @@ function initAuth() {
         if (!isInitialAuthCheck) {
           // Slowly fade in the results list consistently
           if (elements.listUnfollowers) {
-            elements.listUnfollowers.style.transition = 'none';
-            elements.listUnfollowers.style.opacity = '0';
-            requestAnimationFrame(() => {
-              elements.listUnfollowers.style.transition = 'opacity 700ms ease';
-              elements.listUnfollowers.style.opacity = '1';
-            });
+            const list = elements.listUnfollowers;
+            list.style.transition = 'none';
+            list.style.opacity = '0';
+            // Commit opacity 0 before animating away from it — setting 1 in
+            // the next rAF alone (before that frame's style recalc) never
+            // painted the 0, so the fade-in never actually played.
+            void list.offsetWidth;
+            list.style.transition = 'opacity 700ms ease';
+            list.style.opacity = '1';
+            setTimeout(() => {
+              list.style.transition = '';
+              list.style.opacity = '';
+            }, 750);
           }
         }
       } else {
@@ -3937,14 +3978,21 @@ function initAuth() {
   });
 
   // Wire up auth layout UI tab triggers with a smooth cross-fade transition
+  // The tab a click asked for most recently — isSigningUp itself only
+  // flips 150ms later, so comparing against it let a quick second click
+  // (sign up, then straight back to log in) get ignored and leave the
+  // wrong tab showing.
+  let requestedSigningUp = null;
   function switchTab(signup) {
-    if (isSigningUp === signup) return;
+    const current = requestedSigningUp === null ? isSigningUp : requestedSigningUp;
+    if (current === signup) return;
+    requestedSigningUp = signup;
 
     // Lock the card at its current height so the login<->signup content
     // swap (which changes height, e.g. the forgot-password link) doesn't
     // just snap - it slides smoothly to its new size instead.
     const card = elements.authFormView;
-    const startHeight = card ? card.getBoundingClientRect().height : null;
+    const startHeight = card ? card.offsetHeight : null;
     if (card && startHeight) {
       card.style.transition = '';
       card.style.height = startHeight + 'px';
@@ -3956,6 +4004,9 @@ function initAuth() {
     elements.authForm.style.transform = 'translateY(6px)';
 
     setTimeout(() => {
+      // A later click already asked for the other tab — let it win.
+      if (requestedSigningUp !== signup) return;
+      requestedSigningUp = null;
       isSigningUp = signup;
       if (signup) {
         elements.tabLogin.classList.remove('active');
@@ -3978,19 +4029,38 @@ function initAuth() {
       // start height to it (a slow, deliberate slide).
       if (card && startHeight) {
         card.style.height = 'auto';
-        const endHeight = card.getBoundingClientRect().height;
-        card.style.height = startHeight + 'px';
-        void card.offsetHeight; // force reflow so the transition triggers
-        card.style.transition = 'height 0.55s cubic-bezier(0.65, 0, 0.35, 1)';
-        card.style.height = endHeight + 'px';
-
-        card.addEventListener('transitionend', function onCardResized(e) {
-          if (e.propertyName !== 'height') return;
-          card.removeEventListener('transitionend', onCardResized);
+        const endHeight = card.offsetHeight;
+        const token = (card._resizeToken = {});
+        const unlock = () => {
+          if (card._resizeToken !== token) return; // a newer switch owns it now
           card.style.height = '';
           card.style.overflow = '';
           card.style.transition = '';
-        });
+        };
+        // Same height: there's nothing to animate and no transitionend
+        // would ever fire, which used to leave the card pinned at a fixed
+        // height with overflow hidden — clipping anything that appeared
+        // later (e.g. an error message).
+        if (Math.abs(endHeight - startHeight) < 0.5) {
+          unlock();
+        } else {
+          card.style.height = startHeight + 'px';
+          void card.offsetHeight; // force reflow so the transition triggers
+          card.style.transition = 'height 0.55s cubic-bezier(0.65, 0, 0.35, 1)';
+          card.style.height = endHeight + 'px';
+          let done = false;
+          const finish = () => {
+            if (done) return;
+            done = true;
+            card.removeEventListener('transitionend', onCardResized);
+            unlock();
+          };
+          function onCardResized(e) {
+            if (e.propertyName === 'height') finish();
+          }
+          card.addEventListener('transitionend', onCardResized);
+          setTimeout(finish, 650); // in case the transition gets interrupted
+        }
       }
     }, 150);
   }
