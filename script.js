@@ -4199,12 +4199,22 @@ function initAuth() {
           return;
         }
 
+        // No uploads until this user's cloud data is loaded (see cloudReady).
+        cloudReady = false;
+        clearTimeout(cloudPushTimer);
+        cloudPushTimer = null;
+        cloudPushWaiters.splice(0).forEach(resolve => resolve());
+
         // Unlock List 1 & 2 from the guest demo now that a real account is active
         applyGuestPreviewLock(true);
 
         // Another user's data left on this device (e.g. their upload failed
         // at logout, so it was kept): never show or upload it as this user's.
+        // Only data this device already held for this same user (a reload
+        // while logged in, or kept after an offline logout) may be uploaded
+        // before the download.
         const owner = storageGet(LOCAL_DATA_OWNER_KEY);
+        const localIsThisUsers = owner === currentUser.id;
         if (owner && owner !== currentUser.id) clearLocalAccountData();
         storageSet(LOCAL_DATA_OWNER_KEY, currentUser.id);
 
@@ -4214,12 +4224,21 @@ function initAuth() {
         // can't be reached (offline), carry on with this device's copy —
         // this used to abort the login, leaving the landing page up.
         try {
-          await pullFromCloud();
+          await pullFromCloud(localIsThisUsers);
+          cloudReady = true;
         } catch (err) {
           console.error('Error loading cloud data:', err);
           const acc = state.selectedAccountUsername;
           const exists = acc && state.instagramAccounts.some(a => a.originalUsername.toLowerCase() === acc.toLowerCase());
           loadAccountData(exists ? acc : null);
+          if (localIsThisUsers) {
+            // This device's copy is this user's latest: keep saving it.
+            cloudReady = true;
+          } else {
+            // Nothing of this user's here — uploading now would replace
+            // their saved data with an empty copy. Load it once back online.
+            retryCloudLoadWhenOnline();
+          }
         }
 
         // Always render chips instantly under the login screen before it fades out
@@ -4280,6 +4299,7 @@ function initAuth() {
         }
       } else {
         currentUser = null;
+        cloudReady = false;
         document.documentElement.classList.remove('is-logged-in');
         document.body.classList.add('auth-logged-out');
         relocateAppGridForAuthState(false);
@@ -4778,15 +4798,38 @@ function showAuthSuccess(msg) {
 }
 
 // Sync helpers
-async function pullFromCloud() {
+// Loading the cloud data failed at login (offline) with nothing of this
+// user's on the device: try again when the connection is back or the app
+// is reopened.
+function retryCloudLoadWhenOnline() {
+  const retry = async () => {
+    if (!currentUser || cloudReady) return cleanup();
+    try {
+      await pullFromCloud(false);
+      cloudReady = true;
+      cleanup();
+    } catch (err) {
+      console.error('Error loading cloud data:', err);
+    }
+  };
+  const onVisible = () => { if (document.visibilityState === 'visible') retry(); };
+  const cleanup = () => {
+    window.removeEventListener('online', retry);
+    document.removeEventListener('visibilitychange', onVisible);
+  };
+  window.addEventListener('online', retry);
+  document.addEventListener('visibilitychange', onVisible);
+}
+
+// `uploadLocalFirst`: this device's data is this user's own (see the login
+// handler) — changes of theirs that never made it to the cloud (tab closed
+// or offline before the batched upload) go up first, or the download would
+// overwrite them with the older cloud copy.
+async function pullFromCloud(uploadLocalFirst = false) {
   if (!supabaseClient || !currentUser) return;
-  // Local changes still waiting to be uploaded go first, or the pull would
-  // overwrite them with the older cloud copy — including ones left over
-  // from a previous visit whose upload never went out (tab closed first).
-  if (hasPendingCloudPush()) {
-    await flushCloudPush();
-  } else if (storageGet(CLOUD_DIRTY_KEY) === currentUser.id) {
-    await pushToCloudNow();
+  if (uploadLocalFirst && storageGet(CLOUD_DIRTY_KEY) === currentUser.id) {
+    cloudReady = true;
+    try { await pushToCloudNow(); } finally { cloudReady = false; }
   }
 
   isSyncingFromCloud = true;
@@ -4927,8 +4970,15 @@ function clearLocalAccountData() {
    'selected_username', CLOUD_DIRTY_KEY, LOCAL_DATA_OWNER_KEY].forEach(storageRemove);
 }
 
+// Nothing is uploaded until this login's data has been downloaded. Logging
+// in resets the page to an empty state first (dropping the guest demo),
+// and that redraw asked for an upload — which the download then sent
+// before reading, overwriting the user's saved accounts and lists with
+// nothing.
+let cloudReady = false;
+
 function pushToCloud() {
-  if (!supabaseClient || !currentUser) return Promise.resolve();
+  if (!supabaseClient || !currentUser || !cloudReady) return Promise.resolve();
   storageSet(CLOUD_DIRTY_KEY, currentUser.id);
   return new Promise((resolve) => {
     cloudPushWaiters.push(resolve);
@@ -4960,7 +5010,7 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('pagehide', () => { flushCloudPush(); });
 
 async function pushToCloudNow() {
-  if (!supabaseClient || !currentUser) return;
+  if (!supabaseClient || !currentUser || !cloudReady) return;
 
   try {
     const accountDataMap = {};
