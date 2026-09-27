@@ -3131,22 +3131,22 @@ function updateInstructionsStepUI() {
         ? pinPanelHeight(menuEl)
         : null;
 
+      // The username goes back into list 3 right away — the same moment a
+      // chip switch updates it — sliding in there while its row slides out
+      // of this submenu, rather than only once that slide has finished.
+      state.starred = state.starred.filter(u => u.username !== username);
+      const followersSet = new Set(state.followers.map(user => user.username));
+      const unfollowedSet = new Set(state.unfollowed.map(user => user.username));
+      const starredSet = new Set(state.starred.map(user => user.username));
+      state.unfollowers = state.following.filter(user => 
+        !followersSet.has(user.username) && 
+        !unfollowedSet.has(user.username) &&
+        !starredSet.has(user.username)
+      );
+      updateResultsUI({ animate: true });
+      saveCurrentAccountData();
+
       exitListRow(itemEl, async () => {
-        state.starred = state.starred.filter(u => u.username !== username);
-
-        // Recalculate unfollowers math without re-rendering active listStarred dropdown DOM
-        const followersSet = new Set(state.followers.map(user => user.username));
-        const unfollowedSet = new Set(state.unfollowed.map(user => user.username));
-        const starredSet = new Set(state.starred.map(user => user.username));
-        state.unfollowers = state.following.filter(user => 
-          !followersSet.has(user.username) && 
-          !unfollowedSet.has(user.username) &&
-          !starredSet.has(user.username)
-        );
-        updateResultsUI({ animate: true });
-
-        saveCurrentAccountData();
-
         const listEl = elements.listStarred;
         const headerBar = listEl.querySelector('.dropdown-header-bar');
         const resetStarredBtn = document.getElementById('settings-reset-starred-btn');
@@ -3234,21 +3234,24 @@ function updateInstructionsStepUI() {
         ? pinPanelHeight(menuEl)
         : null;
 
+      // The username goes back into list 3 right away — the same moment a
+      // chip switch updates it — sliding in there while its row slides out
+      // of this submenu, rather than only once that slide has finished.
+      state.unfollowed = state.unfollowed.filter(u => u.username !== username);
+
+      const followersSet = new Set(state.followers.map(user => user.username));
+      const unfollowedSet = new Set(state.unfollowed.map(user => user.username));
+      const starredSet = new Set(state.starred.map(user => user.username));
+      state.unfollowers = state.following.filter(user => 
+        !followersSet.has(user.username) && 
+        !unfollowedSet.has(user.username) &&
+        !starredSet.has(user.username)
+      );
+      updateResultsUI({ animate: true });
+
+      saveCurrentAccountData();
+
       exitListRow(itemEl, async () => {
-        state.unfollowed = state.unfollowed.filter(u => u.username !== username);
-
-        const followersSet = new Set(state.followers.map(user => user.username));
-        const unfollowedSet = new Set(state.unfollowed.map(user => user.username));
-        const starredSet = new Set(state.starred.map(user => user.username));
-        state.unfollowers = state.following.filter(user => 
-          !followersSet.has(user.username) && 
-          !unfollowedSet.has(user.username) &&
-          !starredSet.has(user.username)
-        );
-        updateResultsUI({ animate: true });
-
-        saveCurrentAccountData();
-
         const listEl = elements.listUnfollowed;
         const headerBar = listEl.querySelector('.dropdown-header-bar');
         const resetUnfollowedBtn = document.getElementById('settings-reset-unfollowed-btn');
