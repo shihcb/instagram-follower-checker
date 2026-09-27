@@ -4069,20 +4069,97 @@ function initAuth() {
   // (sign up, then straight back to log in) get ignored and leave the
   // wrong tab showing.
   let requestedSigningUp = null;
+
+  // The auth card's natural height with the given tab's content in it
+  // (forgot-password link only on log in, alerts cleared as the switch
+  // does), measured by applying that state for a moment and undoing it.
+  function measureAuthCardHeightFor(signup) {
+    const card = elements.authFormView;
+    const forgot = elements.btnForgotPassword;
+    const alerts = [elements.authErrorMsg, elements.authSuccessMsg].filter(Boolean);
+    const saved = {
+      forgotHidden: forgot ? forgot.classList.contains('hidden') : null,
+      text: elements.authSubmitBtn.textContent,
+      alertsHidden: alerts.map(el => el.classList.contains('hidden')),
+      height: card.style.height,
+    };
+    if (forgot) forgot.classList.toggle('hidden', signup);
+    elements.authSubmitBtn.textContent = signup ? 'sign up' : 'log in';
+    alerts.forEach(el => el.classList.add('hidden'));
+    card.style.height = 'auto';
+    const height = card.offsetHeight;
+    if (forgot) forgot.classList.toggle('hidden', saved.forgotHidden);
+    elements.authSubmitBtn.textContent = saved.text;
+    alerts.forEach((el, i) => el.classList.toggle('hidden', saved.alertsHidden[i]));
+    card.style.height = saved.height;
+    return height;
+  }
+
+  // Slides the auth card from one height to another, then hands it back to
+  // its natural (auto) height. A newer resize takes over from an older one.
+  function resizeAuthCard(fromHeight, toHeight, transition = 'height 0.55s cubic-bezier(0.65, 0, 0.35, 1)') {
+    const card = elements.authFormView;
+    const token = (card._resizeToken = {});
+    const unlock = () => {
+      if (card._resizeToken !== token) return; // a newer switch owns it now
+      card.style.height = '';
+      card.style.overflow = '';
+      card.style.transition = '';
+    };
+    // Same height: nothing to animate, and no transitionend would ever fire
+    // — which once left the card pinned with overflow hidden, clipping
+    // anything that appeared later (e.g. an error message).
+    if (Math.abs(toHeight - fromHeight) < 0.5) {
+      unlock();
+      return;
+    }
+    card.style.transition = 'none';
+    card.style.height = fromHeight + 'px';
+    card.style.overflow = 'hidden';
+    void card.offsetHeight; // commit the start height before animating from it
+    card.style.transition = transition;
+    card.style.height = toHeight + 'px';
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      card.removeEventListener('transitionend', onCardResized);
+      unlock();
+    };
+    function onCardResized(e) {
+      if (e.target === card && e.propertyName === 'height') finish();
+    }
+    card.addEventListener('transitionend', onCardResized);
+    setTimeout(finish, 650); // in case the transition gets interrupted
+  }
+
   function switchTab(signup) {
     const current = requestedSigningUp === null ? isSigningUp : requestedSigningUp;
     if (current === signup) return;
     requestedSigningUp = signup;
 
-    // Lock the card at its current height so the login<->signup content
-    // swap (which changes height, e.g. the forgot-password link) doesn't
-    // just snap - it slides smoothly to its new size instead.
+    // The card slides to its new height rather than snapping (the log-in
+    // form is taller — it has the forgot-password link). Work out that
+    // height now, by briefly applying the new tab's differences and
+    // measuring: when the card has to GROW it starts right away, while the
+    // old form slides out, so the taller form never appears inside a card
+    // still too short for it (its bottom — the log-in button — used to be
+    // cut off until the card caught up). When it SHRINKS it waits for the
+    // swap, so the outgoing, taller form isn't cut off either.
     const card = elements.authFormView;
-    const startHeight = card ? card.offsetHeight : null;
-    if (card && startHeight) {
-      card.style.transition = '';
-      card.style.height = startHeight + 'px';
+    let fromHeight = null;
+    let endHeight = null;
+    if (card) {
+      fromHeight = card.offsetHeight; // mid-resize if a previous switch is still animating
+      endHeight = measureAuthCardHeightFor(signup);
+      card.style.transition = 'none';
+      card.style.height = fromHeight + 'px';
       card.style.overflow = 'hidden';
+      // Growing uses the site's fast-start ease-out, so the card is ~90% of
+      // the way there by the time the taller form starts fading in (0.26s).
+      if (endHeight > fromHeight + 0.5) {
+        resizeAuthCard(fromHeight, endHeight, 'height 0.5s cubic-bezier(0.16, 1, 0.3, 1)');
+      }
     }
 
     // The tab switcher's pill and the tab labels move right away — the pill
@@ -4131,42 +4208,9 @@ function initAuth() {
         }
       }, 520);
 
-      // Measure the new natural height, then animate from the locked
-      // start height to it (a slow, deliberate slide).
-      if (card && startHeight) {
-        card.style.height = 'auto';
-        const endHeight = card.offsetHeight;
-        const token = (card._resizeToken = {});
-        const unlock = () => {
-          if (card._resizeToken !== token) return; // a newer switch owns it now
-          card.style.height = '';
-          card.style.overflow = '';
-          card.style.transition = '';
-        };
-        // Same height: there's nothing to animate and no transitionend
-        // would ever fire, which used to leave the card pinned at a fixed
-        // height with overflow hidden — clipping anything that appeared
-        // later (e.g. an error message).
-        if (Math.abs(endHeight - startHeight) < 0.5) {
-          unlock();
-        } else {
-          card.style.height = startHeight + 'px';
-          void card.offsetHeight; // force reflow so the transition triggers
-          card.style.transition = 'height 0.55s cubic-bezier(0.65, 0, 0.35, 1)';
-          card.style.height = endHeight + 'px';
-          let done = false;
-          const finish = () => {
-            if (done) return;
-            done = true;
-            card.removeEventListener('transitionend', onCardResized);
-            unlock();
-          };
-          function onCardResized(e) {
-            if (e.propertyName === 'height') finish();
-          }
-          card.addEventListener('transitionend', onCardResized);
-          setTimeout(finish, 650); // in case the transition gets interrupted
-        }
+      // Shrinking (or unchanged): resize now that the smaller form is in.
+      if (card && endHeight !== null && endHeight <= fromHeight + 0.5) {
+        resizeAuthCard(card.offsetHeight, endHeight);
       }
     }, 260);
   }
