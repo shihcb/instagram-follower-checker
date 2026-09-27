@@ -4067,6 +4067,36 @@ function applyGuestPreviewLock(isLoggedIn) {
   if (actionsFollowers) actionsFollowers.classList.remove('show');
 }
 
+// The app coming in right after logging in, built from animations it
+// already uses so it feels like the same app: the header title/badge fade
+// in (style.css, .login-entering), the grid rises into place
+// with the logout's motion in reverse (minus its blur, which is costly on
+// phones for a layer this big), the account chips
+// get the fade a newly added chip gets, and list 3's usernames slide in
+// with list 3's own slide (the one switching accounts uses).
+function playAppEntrance() {
+  const ease = 'cubic-bezier(0.16, 1, 0.3, 1)';
+  const grid = elements.appGrid;
+  document.body.classList.add('login-entering');
+  setTimeout(() => document.body.classList.remove('login-entering'), 700);
+  if (grid && typeof grid.animate === 'function') {
+    grid.animate([
+      { opacity: 0, transform: 'translateY(16px) scale(0.97)' },
+      { opacity: 1, transform: 'none' }
+    ], { duration: 800, easing: ease });
+  }
+  if (elements.accountChipsList) {
+    elements.accountChipsList.querySelectorAll('.account-chip').forEach(chip => {
+      chip.classList.remove('fade-in');
+      void chip.offsetWidth; // restart the animation if it already ran
+      chip.classList.add('fade-in');
+    });
+  }
+  if (elements.listUnfollowers && !elements.listUnfollowers.classList.contains('hidden')) {
+    animateResultsReentry(elements.listUnfollowers, new Map(), new Map(), { enter: true });
+  }
+}
+
 // Physically relocate the live app grid so it isn't trapped inside
 // #landing-page-container (which is display:none once logged in).
 function relocateAppGridForAuthState(isLoggedIn) {
@@ -4247,25 +4277,28 @@ function initAuth() {
         // Smoothly fade out login page if there are accounts, otherwise hide instantly
         const finalizeLogin = () => {
           if (!isInitialAuthCheck) {
-            if (elements.authDropdown) {
-              elements.authDropdown.classList.add('fade-out-bounce');
-            }
+            // 1. The whole login page fades out while the card sinks away
+            //    (.login-leaving, style.css). This used to blur only the
+            //    card, then cut straight to the app at 750ms.
+            document.body.classList.add('login-leaving');
             if (elements.authFormView) {
               elements.authFormView.classList.add('smooth-exit');
             }
+            // 2. Once it's gone, switch to the app and bring it in.
             setTimeout(() => {
               document.documentElement.classList.add('is-logged-in');
               document.body.classList.remove('auth-logged-out');
+              document.body.classList.remove('login-leaving');
               relocateAppGridForAuthState(true);
               if (elements.authDropdown) {
                 elements.authDropdown.classList.remove('show');
-                elements.authDropdown.classList.remove('fade-out-bounce');
               }
               if (elements.authFormView) {
                 elements.authFormView.classList.remove('smooth-exit');
               }
               showProfileView();
-            }, 750);
+              playAppEntrance();
+            }, 450);
           } else {
             document.documentElement.classList.add('is-logged-in');
             document.body.classList.remove('auth-logged-out');
@@ -4277,26 +4310,10 @@ function initAuth() {
           }
         };
 
+        // (List 3 used to get its own opacity fade-in here, but that ran
+        // while the list was still hidden inside the login page, so it was
+        // never seen — playAppEntrance brings its rows in instead.)
         finalizeLogin();
-
-        if (!isInitialAuthCheck) {
-          // Slowly fade in the results list consistently
-          if (elements.listUnfollowers) {
-            const list = elements.listUnfollowers;
-            list.style.transition = 'none';
-            list.style.opacity = '0';
-            // Commit opacity 0 before animating away from it — setting 1 in
-            // the next rAF alone (before that frame's style recalc) never
-            // painted the 0, so the fade-in never actually played.
-            void list.offsetWidth;
-            list.style.transition = 'opacity 700ms ease';
-            list.style.opacity = '1';
-            setTimeout(() => {
-              list.style.transition = '';
-              list.style.opacity = '';
-            }, 750);
-          }
-        }
       } else {
         currentUser = null;
         cloudReady = false;

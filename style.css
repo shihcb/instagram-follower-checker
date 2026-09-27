@@ -4472,6 +4472,33 @@ body.auth-logged-out .auth-dropdown.fade-out-bounce {
   animation: auth-overlay-fade-out 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
 }
 
+/* Logging in: the whole login page (headline, features, card) fades out
+   together, instead of only the card blurring away while the rest sat
+   still and then cut to the app. (The overlay's `opacity: 1 !important`
+   above also blocks the fade-out-bounce animation's opacity, so it has to
+   be overridden here, with a transition.) */
+body.auth-logged-out.login-leaving .auth-dropdown {
+  opacity: 0 !important;
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  pointer-events: none !important;
+}
+
+/* The app's own header title/badge stay out of sight until the login page
+   has gone (they showed through it, overlapping its header), then fade in
+   with the rest of the app. */
+body.login-leaving .app-header h1,
+body.login-leaving #auth-btn {
+  opacity: 0 !important;
+}
+body.login-entering .app-header h1,
+body.login-entering #auth-btn {
+  animation: login-header-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes login-header-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* Smooth, slow fade out animation for main app grid on logout */
 .app-grid-logout-fade {
   opacity: 0 !important;
