@@ -2901,6 +2901,17 @@ function updateInstructionsStepUI() {
       return;
     }
 
+    // From the star icon rightwards is the buttons' area: a click there that
+    // doesn't land exactly on a button (the gaps between/around them, the
+    // row's right padding) does nothing, instead of counting as a click on
+    // the row — which opened the profile on Instagram, easy to trigger by
+    // just missing the star / delete / X button.
+    const onButton = e.target.closest('.action-star, .action-delete, .action-dismiss');
+    const starBtn = userRow.querySelector('.action-star');
+    if (!onButton && starBtn && e.clientX >= starBtn.getBoundingClientRect().left) {
+      return;
+    }
+
     const actionStar = e.target.closest('.action-star');
     const currentAcc = (state.selectedAccountUsername || '_global_').toLowerCase();
     const taggedObj = { ...userObj, account: currentAcc };

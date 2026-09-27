@@ -2824,6 +2824,16 @@ html.hide-shortcuts .account-chip-badge {
   flex-shrink: 0 !important;
 }
 
+/* The gaps between the row's buttons don't open the profile (see the list 3
+   click handler in script.js), so don't show the link cursor there. The
+   shortcut badge, left of the star, still opens it. */
+.user-row-actions {
+  cursor: default;
+}
+.user-row-actions .row-shortcut-key {
+  cursor: pointer;
+}
+
 .follow-date {
   font-size: 0.7rem;
   color: var(--text-muted);
