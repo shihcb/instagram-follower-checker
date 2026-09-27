@@ -827,6 +827,12 @@ function updateStarredUI(enteringUsername) {
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                   </svg>
                 </button>
+                <button class="unfollow-starred-btn" data-username="${escapeHtml(user.username)}" aria-label="move to unfollowed" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px;" title="move to unfollowed list">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                </button>
                 <button class="remove-unfollowed-btn" data-username="${escapeHtml(user.username)}" aria-label="remove from starred" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px;" title="remove from history">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -2808,6 +2814,46 @@ function updateInstructionsStepUI() {
   // Handle click on unstar or remove inside starred list
   elements.listStarred.addEventListener('click', (e) => {
     e.stopPropagation();
+
+    // Trash: move the username from starred to the unfollowed list (the ✕
+    // just drops it from starred, putting it back in list 3). It's in
+    // neither list 3 before nor after, so only the two submenus change.
+    const unfollowBtn = e.target.closest('.unfollow-starred-btn');
+    if (unfollowBtn) {
+      const username = unfollowBtn.getAttribute('data-username');
+      const userObj = state.starred.find(u => u.username === username);
+      const itemEl = unfollowBtn.closest('.parsed-item');
+      if (!itemEl) return;
+
+      const menuEl = itemEl.closest('.dropdown-menu');
+      const finalBoxHeight = (menuEl && isLastVisibleRow(itemEl))
+        ? pinPanelHeight(menuEl)
+        : null;
+
+      exitListRow(itemEl, async () => {
+        state.starred = state.starred.filter(u => u.username !== username);
+        if (userObj && !state.unfollowed.some(u => u.username === username)) {
+          const currentAcc = (state.selectedAccountUsername || '_global_').toLowerCase();
+          state.unfollowed.unshift({ ...userObj, account: userObj.account || currentAcc });
+        }
+        saveCurrentAccountData();
+
+        const headerBar = elements.listStarred.querySelector('.dropdown-header-bar');
+        const resetStarredBtn = document.getElementById('settings-reset-starred-btn');
+        if (state.starred.length === 0) {
+          updateStarredUI();
+        } else {
+          if (headerBar) {
+            headerBar.textContent = `${state.starred.length} ${state.starred.length === 1 ? 'starred account' : 'starred accounts'}`;
+          }
+          if (resetStarredBtn) resetStarredBtn.removeAttribute('disabled');
+        }
+        updateUnfollowedUI(username);
+        await pushToCloud();
+      }, { shrinkBox: menuEl, finalBoxHeight });
+      return;
+    }
+
     const unstarBtn = e.target.closest('.unstar-btn');
     const removeBtn = e.target.closest('.remove-unfollowed-btn');
     

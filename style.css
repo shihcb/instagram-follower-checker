@@ -371,6 +371,7 @@ button,
 .account-chip,
 .modal-close-btn,
 .action-star,
+.unfollow-starred-btn,
 .action-delete,
 .action-arrow,
 .action-dismiss,
@@ -391,6 +392,7 @@ button *,
 .account-chip *,
 .modal-close-btn *,
 .action-star *,
+.unfollow-starred-btn *,
 .action-delete *,
 .action-arrow *,
 .action-dismiss *,
@@ -1498,6 +1500,7 @@ body.hide-shortcuts #keyboard-hints {
  * Unified Row Actions & Dropdown Icons Sizing and Styling
  * ------------------------------------------------------------- */
 .action-star,
+.unfollow-starred-btn,
 .action-delete,
 .action-arrow,
 .action-dismiss,
@@ -1518,6 +1521,7 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 .action-star svg,
+.unfollow-starred-btn svg,
 .action-delete svg,
 .action-arrow svg,
 .action-dismiss svg,
@@ -1561,11 +1565,13 @@ body.hide-shortcuts #keyboard-hints {
   fill: #fbbf24 !important;
 }
 
+.unfollow-starred-btn,
 .action-delete,
 .remove-unfollowed-btn,
 .action-dismiss {
   color: #ef4444 !important;
 }
+.unfollow-starred-btn svg,
 .action-delete svg,
 .remove-unfollowed-btn svg,
 .action-dismiss svg {
@@ -1608,17 +1614,20 @@ body.hide-shortcuts #keyboard-hints {
     fill: #ffffff !important;
   }
 
+  .unfollow-starred-btn,
   .action-delete,
   .remove-unfollowed-btn,
   .action-dismiss {
     color: var(--text-muted) !important;
   }
+  .unfollow-starred-btn svg,
   .action-delete svg,
   .remove-unfollowed-btn svg,
   .action-dismiss svg {
     color: var(--text-main) !important;
     stroke: var(--text-main) !important;
   }
+  [data-theme="dark"] .unfollow-starred-btn svg,
   [data-theme="dark"] .action-delete svg,
   [data-theme="dark"] .remove-unfollowed-btn svg,
   [data-theme="dark"] .action-dismiss svg {
@@ -1653,12 +1662,14 @@ body.hide-shortcuts #keyboard-hints {
     fill: #f59e0b !important;
   }
 
+  .unfollow-starred-btn:hover,
   .action-delete:hover,
   .remove-unfollowed-btn:hover,
   .action-dismiss:hover {
     color: #ef4444 !important;
     transform: scale(1.15) !important;
   }
+  .unfollow-starred-btn:hover svg,
   .action-delete:hover svg,
   .remove-unfollowed-btn:hover svg,
   .action-dismiss:hover svg {
