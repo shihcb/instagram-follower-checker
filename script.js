@@ -920,6 +920,57 @@ function updateListUI(type) {
   }
 }
 
+function renderUnfollowerRowHtml(user, index) {
+  // Get display initials for profile avatar fallback
+  const initials = escapeHtml(user.originalUsername.substring(0, 2));
+  const profileHref = escapeHtml(safeProfileUrl(user));
+  const isSelected = index === state.selectedIndex;
+  
+  return `
+    <div class="user-row${isSelected ? ' selected' : ''}" data-username="${escapeHtml(user.username)}" data-index="${index}">
+      <div class="user-info">
+        <a href="${profileHref}" target="_blank" rel="noopener" class="user-avatar-link" title="Visit Instagram Profile">
+          <div class="user-avatar">${initials}</div>
+        </a>
+        <div class="user-details">
+          <a href="${profileHref}" target="_blank" rel="noopener" class="user-link">
+            @${escapeHtml(user.originalUsername)}
+          </a>
+          ${user.fullName ? `<span class="user-fullname">${escapeHtml(user.fullName)}</span>` : ''}
+        </div>
+      </div>
+      <div class="user-meta">
+        <div class="user-row-actions">
+          ${index < 10 ? `<span class="row-shortcut-key" title="Press key ${index === 9 ? 0 : index + 1} to open profile">${index === 9 ? 0 : index + 1}</span>` : ''}
+          <button class="action-star" aria-label="star user" title="star/favorite user to separate them from results">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+          </button>
+          <button class="action-delete" aria-label="delete user" title="unfollow user without opening profile">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+          <a href="${profileHref}" target="_blank" rel="noopener" class="action-arrow" aria-label="Visit Instagram Profile" title="Visit Instagram Profile">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </a>
+          <button class="action-dismiss" aria-label="remove user from list" title="remove from list without adding to unfollowed or starred">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 // Pass { animate: true } when list 3's contents change because of something
 // the user just did elsewhere (a username removed from the unfollowed/
 // starred submenus, list 1/2 edited or cleared): rows that weren't there
@@ -955,7 +1006,9 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
 
   const previousTops = new Map();
   const previousRows = new Map(); // row element -> its on-screen box before the re-render
-  if (flip && !listEl.classList.contains('hidden')) {
+  const renamedFrom = new Map(); // new username -> row element it's an edit of
+  const listWasHidden = listEl.classList.contains('hidden');
+  if (flip && !listWasHidden) {
     listEl.querySelectorAll('.user-row:not(.username-exit)').forEach(row => {
       const rect = row.getBoundingClientRect();
       previousTops.set(row.dataset.username, rect.top);
@@ -988,6 +1041,7 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
       });
       if (!match) return;
       previousTops.set(name, previousTops.get(match.dataset.username));
+      renamedFrom.set(name, match);
       previousRows.delete(match); // edited, not leaving
       gone.splice(gone.indexOf(match), 1);
     });
@@ -1009,60 +1063,13 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
     elements.emptyState.classList.add('hidden');
     elements.listUnfollowers.classList.remove('hidden');
     
-    elements.listUnfollowers.innerHTML = filtered.map((user, index) => {
-      // Get display initials for profile avatar fallback
-      const initials = escapeHtml(user.originalUsername.substring(0, 2));
-      const profileHref = escapeHtml(safeProfileUrl(user));
-      const isSelected = index === state.selectedIndex;
-      
-      return `
-        <div class="user-row${isSelected ? ' selected' : ''}" data-username="${escapeHtml(user.username)}" data-index="${index}">
-          <div class="user-info">
-            <a href="${profileHref}" target="_blank" rel="noopener" class="user-avatar-link" title="Visit Instagram Profile">
-              <div class="user-avatar">${initials}</div>
-            </a>
-            <div class="user-details">
-              <a href="${profileHref}" target="_blank" rel="noopener" class="user-link">
-                @${escapeHtml(user.originalUsername)}
-              </a>
-              ${user.fullName ? `<span class="user-fullname">${escapeHtml(user.fullName)}</span>` : ''}
-            </div>
-          </div>
-          <div class="user-meta">
-            <div class="user-row-actions">
-              ${index < 10 ? `<span class="row-shortcut-key" title="Press key ${index === 9 ? 0 : index + 1} to open profile">${index === 9 ? 0 : index + 1}</span>` : ''}
-              <button class="action-star" aria-label="star user" title="star/favorite user to separate them from results">
-                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
-              </button>
-              <button class="action-delete" aria-label="delete user" title="unfollow user without opening profile">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-              </button>
-              <a href="${profileHref}" target="_blank" rel="noopener" class="action-arrow" aria-label="Visit Instagram Profile" title="Visit Instagram Profile">
-                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                  <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
-              </a>
-              <button class="action-dismiss" aria-label="remove user from list" title="remove from list without adding to unfollowed or starred">
-                <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    keptExits.forEach(row => listEl.appendChild(row));
-    if (flip) animateResultsReentry(listEl, previousTops, resumeTops, { enter: animate });
-    if (animate) animateResultsExits(listEl, previousRows);
+    if (flip && !listWasHidden) {
+      reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, renamedFrom, keptExits });
+    } else {
+      listEl.innerHTML = filtered.map(renderUnfollowerRowHtml).join('');
+      keptExits.forEach(row => listEl.appendChild(row));
+      if (flip) animateResultsReentry(listEl, previousTops, resumeTops, { enter: animate });
+    }
   } else if ((animate && previousRows.size > 0) || keptExits.length > 0) {
     // Emptied out: keep the list visible just long enough for its rows to
     // slide out, then hide it as usual (unless something refilled it).
@@ -1081,6 +1088,120 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
     elements.listUnfollowers.classList.add('hidden');
     elements.emptyState.classList.add('hidden');
   }
+}
+
+// Updates list 3 in place for an animated change, keeping each row that
+// stays as the SAME element. A full innerHTML re-render replaced every row,
+// throwing away the motion each was in the middle of (including the clip
+// that tucks a row sliding in behind the one above it) — rows restarted
+// from wherever they were, unclipped, so rapid changes (e.g. usernames
+// coming back from the submenus one after another) looked choppy, with
+// rows overlapping. Kept rows are just moved into their new order and get
+// an extra shift (see the row motion engine) for how far that moved them,
+// on top of whatever they were already doing.
+function reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, renamedFrom, keptExits }) {
+  const DURATION = 800;
+  const live = new Map();
+  listEl.querySelectorAll('.user-row:not(.username-exit)').forEach(row => live.set(row.dataset.username, row));
+  if (getComputedStyle(listEl).position === 'static') listEl.style.position = 'relative';
+
+  const wanted = new Set(filtered.map(u => u.username));
+  const reused = new Set(filtered.filter(u => live.has(u.username)).map(u => u.username));
+
+  // A row still sliding out because of an earlier change whose username is
+  // back: drop it — a fresh row reverses in from where it was (resumeTops).
+  listEl.querySelectorAll('.user-row.username-exit').forEach(row => {
+    if (row.dataset.renderExit && wanted.has(row.dataset.username)) {
+      stopRowMotion(row);
+      row.remove();
+    }
+  });
+
+  // BEFORE: layout positions (transform-free) of every live row.
+  const oldTops = new Map();
+  live.forEach((row, name) => oldTops.set(name, row.offsetTop));
+
+  // Rows leaving: pinned out of flow at their layout slot (their motion
+  // keeps going), then slid out like a deleted row. Rows that were edited
+  // into a new username (typing) are replaced without a slide.
+  const renamedEls = new Set(renamedFrom.values());
+  const listRect = listEl.getBoundingClientRect();
+  const leaving = [];
+  live.forEach((row, name) => {
+    if (wanted.has(name)) return;
+    const rect = row.getBoundingClientRect();
+    const onScreen = !(rect.bottom <= listRect.top || rect.top >= listRect.bottom);
+    if (!animate || renamedEls.has(row) || !onScreen) {
+      stopRowMotion(row);
+      row.remove();
+      return;
+    }
+    leaving.push({
+      row,
+      top: row.offsetTop, left: row.offsetLeft, width: row.offsetWidth,
+      pitch: row.offsetHeight + (parseFloat(getComputedStyle(row).marginBottom) || 0)
+    });
+  });
+  leaving.forEach(({ row, top, left, width }) => {
+    row.classList.remove('selected');
+    row.classList.add('username-exit');
+    row.dataset.renderExit = '1';
+    row.style.position = 'absolute';
+    row.style.top = `${top}px`;
+    row.style.left = `${left}px`;
+    row.style.width = `${width}px`;
+    row.style.margin = '0';
+    row.style.zIndex = '1';
+  });
+
+  // New order: kept rows reused and moved, new ones created.
+  const template = document.createElement('template');
+  const ordered = filtered.map((user, index) => {
+    const existing = live.get(user.username);
+    if (existing) {
+      existing.classList.toggle('selected', index === state.selectedIndex);
+      return existing;
+    }
+    template.innerHTML = renderUnfollowerRowHtml(user, index).trim();
+    return template.content.firstElementChild;
+  });
+  ordered.forEach(row => listEl.appendChild(row));
+  // Still-sliding-out rows stay (out of flow, so order doesn't matter).
+  keptExits.forEach(row => { if (row.parentElement !== listEl) listEl.appendChild(row); });
+  leaving.forEach(({ row }) => listEl.appendChild(row));
+  reindexUnfollowerRows();
+
+  // AFTER: shift kept rows by how far they moved; slide new ones in.
+  const visualScale = (listRect.height / listEl.offsetHeight) || 1;
+  ordered.forEach(row => {
+    const name = row.dataset.username;
+    if (reused.has(name)) {
+      addRowShift(row, oldTops.get(name) - row.offsetTop, DURATION);
+      return;
+    }
+    const renamedSource = renamedFrom.get(name);
+    if (renamedSource) {
+      addRowShift(row, oldTops.get(renamedSource.dataset.username) - row.offsetTop, DURATION);
+      return;
+    }
+    const resumeTop = resumeTops.get(name);
+    if (resumeTop !== undefined) {
+      // Was mid-slide out and is back: reverse from exactly where it is.
+      const dy = (resumeTop - row.getBoundingClientRect().top) / visualScale;
+      if (dy < 0) slideRowIn(row, -dy, DURATION);
+      else addRowShift(row, dy, DURATION);
+      return;
+    }
+    if (!animate) return;
+    const rect = row.getBoundingClientRect();
+    if (rect.bottom <= listRect.top || rect.top >= listRect.bottom) return; // off screen
+    slideRowIn(row, row.offsetHeight + (parseFloat(getComputedStyle(row).marginBottom) || 0), DURATION);
+  });
+  leaving.forEach(({ row, pitch }) => {
+    slideRowOut(row, pitch, DURATION);
+    setTimeout(() => row.remove(), DURATION);
+  });
+  stepRowMotion();
 }
 
 // Rows the re-render above just replaced: any whose username is no longer
