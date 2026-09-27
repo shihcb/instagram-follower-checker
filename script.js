@@ -1118,10 +1118,10 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
   // Restore saved selected username state on page reload / filter update
   const savedSelectedUsername = state.selectedUsername || storageGet('selected_username');
   if (savedSelectedUsername && filtered.length > 0) {
-    const foundIdx = filtered.findIndex(u => u.username === savedSelectedUsername);
-    if (foundIdx !== -1) {
-      state.selectedIndex = foundIdx;
-    }
+    // Not in the list (removed, filtered out, another account's list):
+    // nothing is selected — the old index used to stay and outline
+    // whichever unrelated row now sat at that position.
+    state.selectedIndex = filtered.findIndex(u => u.username === savedSelectedUsername);
   } else if (!savedSelectedUsername) {
     state.selectedIndex = -1;
   }
@@ -1159,6 +1159,11 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
     };
     setTimeout(hideWhenDone, 800);
   } else {
+    // Empty the hidden list too: rows left in it still counted for the
+    // keyboard shortcuts (pressing 1 opened and unfollowed an invisible,
+    // stale username — e.g. the guest demo's after logging in).
+    listEl.querySelectorAll('.user-row').forEach(stopRowMotion);
+    listEl.innerHTML = '';
     elements.listUnfollowers.classList.add('hidden');
     elements.emptyState.classList.add('hidden');
   }
@@ -1380,6 +1385,16 @@ function debounce(fn, delay) {
   };
 }
 
+// Where list 1 ('following') / list 2 ('followers') are saved for whatever
+// is selected — the account's own key, or '_global_' with no account. Edits
+// used to go to one shared 'following_users' key whichever account was
+// selected, and logging in loaded that key over the selected account's own
+// list — showing (and then saving) another account's usernames in it.
+function listStorageKey(type) {
+  const acc = state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '_global_';
+  return `${type}_users_${acc}`;
+}
+
 const handleFollowingInput = debounce(function() {
   const searchFollowingInput = document.getElementById('search-following');
   if (searchFollowingInput && searchFollowingInput.value.trim() !== '') {
@@ -1397,7 +1412,7 @@ const handleFollowingInput = debounce(function() {
     return user;
   });
   state.following = deduplicateEntries(parsed);
-  storageSet('following_users', JSON.stringify(state.following));
+  storageSet(listStorageKey('following'), JSON.stringify(state.following));
   updateListUI('following');
   calculateUnfollowers({ animate: true, matchRenames: true });
 }, 250);
@@ -1410,7 +1425,7 @@ const handleFollowersInput = debounce(function() {
   const rawText = elements.inputFollowers.value;
   const parsed = parseInput(rawText);
   state.followers = deduplicateEntries(parsed);
-  storageSet('followers_users', JSON.stringify(state.followers));
+  storageSet(listStorageKey('followers'), JSON.stringify(state.followers));
   updateListUI('followers');
   calculateUnfollowers({ animate: true, matchRenames: true });
 }, 250);
@@ -1435,9 +1450,7 @@ function readAndProcessFile(file, type, append = false, isPending = false) {
       state[type] = deduplicated;
 
       // Save to the correct localStorage key (account-scoped if an account is selected)
-      const acc = state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : null;
-      const storageKey = acc ? `${type}_users_${acc}` : `${type}_users`;
-      storageSet(storageKey, JSON.stringify(deduplicated));
+      storageSet(listStorageKey(type), JSON.stringify(deduplicated));
       
       // Format clean list of usernames for visual display inside the textarea
       const usernamesText = deduplicated.map(user => `@${user.originalUsername}`).join('\n');
@@ -1498,9 +1511,9 @@ async function clearAllLists(animate = true) {
   }
 
   state.following = [];
-  storageRemove('following_users');
+  storageSet(listStorageKey('following'), '[]');
   state.followers = [];
-  storageRemove('followers_users');
+  storageSet(listStorageKey('followers'), '[]');
 
   state.selectedIndex = -1;
   updateListUI('following');
@@ -1589,7 +1602,7 @@ async function processImportFiles(files, isFolderUpload = false) {
       // all (only followers_1.html used to be read, and .json never was).
       if (/^following\.(html|json)$/.test(nameLower)) {
         validFilesToProcess.push({ file, type: 'following', isPending: false });
-      } else if (/^followers_\d+\.(html|json)$/.test(nameLower)) {
+      } else if (/^followers(_\d+)?\.(html|json)$/.test(nameLower)) {
         validFilesToProcess.push({ file, type: 'followers', isPending: false });
       } else if (/^pending_follow_requests\.(html|json)$/.test(nameLower)) {
         validFilesToProcess.push({ file, type: 'following', isPending: true });
@@ -1666,8 +1679,8 @@ function saveCurrentAccountData() {
     storageSet(`unfollowed_users_${currentAcc}`, JSON.stringify(state.unfollowed));
     storageSet(`starred_users_${currentAcc}`, JSON.stringify(state.starred));
   } else {
-    storageSet('following_users', JSON.stringify(state.following));
-    storageSet('followers_users', JSON.stringify(state.followers));
+    storageSet('following_users__global_', JSON.stringify(state.following));
+    storageSet('followers_users__global_', JSON.stringify(state.followers));
     // No account selected: its unfollowed/starred go under their own
     // '_global_' keys, like an account's. Writing them into the merged
     // all-accounts lists instead meant cloud sync — which rebuilds those
@@ -1736,10 +1749,16 @@ function loadAccountData(username, animate = false, animateResults = false) {
       elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername}`).join('\n');
     }
   } else {
-    state.following = [];
-    state.followers = [];
+    // Lists 1/2 as last left with no account selected (they used to be
+    // saved but never read back, so they vanished on reload).
+    // Data saved before these keys existed is in the old shared keys.
+    const ownFollowing = storageGet('following_users__global_');
+    const ownFollowers = storageGet('followers_users__global_');
+    state.following = JSON.parse((ownFollowing !== null ? ownFollowing : storageGet('following_users')) || '[]')
+      .filter(u => u && u.username !== GUEST_PREVIEW_USERNAME);
+    state.followers = JSON.parse((ownFollowers !== null ? ownFollowers : storageGet('followers_users')) || '[]');
     state.unfollowers = [];
-    
+
     // Own '_global_' keys first (see saveCurrentAccountData); the merged
     // lists only for data saved before those existed.
     const ownUnfollowed = storageGet('unfollowed_users__global_');
@@ -1750,8 +1769,8 @@ function loadAccountData(username, animate = false, animateResults = false) {
     state.unfollowed = mainUnfollowed.filter(u => !u.account || u.account === '_global_');
     state.starred = mainStarred.filter(u => !u.account || u.account === '_global_');
 
-    if (elements.inputFollowing) elements.inputFollowing.value = '';
-    if (elements.inputFollowers) elements.inputFollowers.value = '';
+    if (elements.inputFollowing) elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
+    if (elements.inputFollowers) elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername}`).join('\n');
   }
 
   updateListUI('following');
@@ -1762,12 +1781,21 @@ function loadAccountData(username, animate = false, animateResults = false) {
   updateResetReminderUI();
 }
 
+// 'last_active_instagram_account' remembers the selection across reloads
+// and logins. It used to keep naming an account after it was unselected —
+// or deleted — so the next reload selected it again. '' records "none on
+// purpose", as opposed to a missing key ("nothing known on this device").
+function rememberNoAccountSelected() {
+  storageSet('last_active_instagram_account', '');
+}
+
 function selectAccount(username) {
   if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === username.toLowerCase()) {
     // Clicked the currently active username chip -> UNSELECT IT!
     saveCurrentAccountData();
     state.selectedAccountUsername = null;
     storageRemove('selected_instagram_account');
+    rememberNoAccountSelected();
     loadAccountData(null, false, true);
   } else {
     // Select the clicked username chip!
@@ -2047,6 +2075,7 @@ function deleteAccountFromModal() {
       storageRemove(`followers_users_${acc}`);
       storageRemove(`unfollowed_users_${acc}`);
       storageRemove(`starred_users_${acc}`);
+      storageRemove(`import_date_${acc}`);
 
       // 2. Remove all unfollowed and starred entries belonging to this account from main storage
       const mainStarred = JSON.parse(storageGet('starred_users') || '[]');
@@ -2069,6 +2098,7 @@ function deleteAccountFromModal() {
       if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === acc) {
         state.selectedAccountUsername = null;
         storageRemove('selected_instagram_account');
+        rememberNoAccountSelected();
         loadAccountData(null, false, true); // its usernames slide out of list 3, like unselecting its chip
       } else {
         renderAccountChips(true);
@@ -2675,6 +2705,7 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
 // 10 or more it's already pinned at the cap, so startHeight === endHeight
 // there and this is a harmless no-op. Call with the panel's shown/height
 // state read *before* re-rendering it.
+const panelResizeTimers = new WeakMap();
 function animatePanelHeightChange(listEl, startedShown, startHeight) {
   if (!startedShown || startHeight === null) return;
   const endHeight = listEl.offsetHeight;
@@ -2690,10 +2721,14 @@ function animatePanelHeightChange(listEl, startedShown, startHeight) {
   listEl.style.transition = `height ${DURATION}ms cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)`;
   listEl.style.height = `${endHeight}px`;
 
-  setTimeout(() => {
+  // A newer resize takes over: an older one's cleanup used to fire in the
+  // middle of it and snap the panel to its final size.
+  clearTimeout(panelResizeTimers.get(listEl));
+  panelResizeTimers.set(listEl, setTimeout(() => {
+    panelResizeTimers.delete(listEl);
     listEl.style.transition = '';
     listEl.style.height = '';
-  }, DURATION);
+  }, DURATION));
 }
 
 // Matches the unfollowed/starred panel's width to its own toggle button's
@@ -2999,7 +3034,7 @@ function updateInstructionsStepUI() {
     if (searchFollowingInput) searchFollowingInput.value = '';
     smoothClearTextarea(elements.inputFollowing, () => {
       state.following = [];
-      storageRemove('following_users');
+      storageSet(listStorageKey('following'), '[]');
       state.selectedIndex = -1; // Reset selection index
       updateListUI('following');
       calculateUnfollowers({ animate: true });
@@ -3011,7 +3046,7 @@ function updateInstructionsStepUI() {
     if (searchFollowersInput) searchFollowersInput.value = '';
     smoothClearTextarea(elements.inputFollowers, () => {
       state.followers = [];
-      storageRemove('followers_users');
+      storageSet(listStorageKey('followers'), '[]');
       state.selectedIndex = -1; // Reset selection index
       updateListUI('followers');
       calculateUnfollowers({ animate: true });
@@ -3461,47 +3496,17 @@ function updateInstructionsStepUI() {
 
     try {
       const dirHandle = await window.showDirectoryPicker();
-      let followingFile = null;
-      let pendingFile = null;
-      let followersFile = null;
-
-      // Scan through all entries inside selected folder
+      // Same import as the upload buttons (account detection, JSON and
+      // HTML, every followers_N file, one file at a time). This used to
+      // start clearing the lists without waiting, so a file read in the
+      // meantime could be wiped, and read the files in parallel, so the
+      // pending-requests file could overwrite the following list.
+      const files = [];
       for await (const entry of dirHandle.values()) {
-        if (entry.kind === 'file') {
-          const nameLower = entry.name.toLowerCase();
-          if (nameLower === 'following.html' || nameLower === 'following.txt') {
-            followingFile = await entry.getFile();
-          } else if (nameLower.includes('pending_follow_requests') || nameLower.includes('pending_requests')) {
-            pendingFile = await entry.getFile();
-          } else if (nameLower === 'followers_1.html' || nameLower === 'followers_1.txt' || nameLower === 'followers.html' || nameLower === 'followers.txt') {
-            followersFile = await entry.getFile();
-          }
-        }
+        if (entry.kind === 'file') files.push(await entry.getFile());
       }
-
-      if (!followingFile && !pendingFile && !followersFile) {
-        await showSiteAlert("no files found", "no valid instagram export files ('following.html', 'pending_follow_requests.html', or 'followers_1.html') were found in the selected folder.");
-        return;
-      }
-
-      // Automatically clear List 1 and List 2 before syncing new files
-      clearAllLists();
-
-      let hasImportedFollowing = false;
-      const syncPromises = [];
-      if (followingFile) {
-        syncPromises.push(readAndProcessFile(followingFile, 'following', false, false));
-        hasImportedFollowing = true;
-      }
-      if (pendingFile) {
-        syncPromises.push(readAndProcessFile(pendingFile, 'following', hasImportedFollowing, true));
-      }
-      if (followersFile) {
-        syncPromises.push(readAndProcessFile(followersFile, 'followers', false, false));
-      }
-
-      await Promise.all(syncPromises);
-      await showSiteAlert("synced", "successfully synced files from your local folder!");
+      const importedAny = await processImportFiles(files, true);
+      if (importedAny) await showSiteAlert("synced", "successfully synced files from your local folder!");
     } catch (err) {
       if (err.name !== 'AbortError') {
         console.error(err);
@@ -3715,7 +3720,9 @@ function updateInstructionsStepUI() {
           const filtered = globalList.filter(u => !u.account || u.account.toLowerCase() !== currentAcc);
           storageSet('unfollowed_users', JSON.stringify(filtered));
         } else {
-          storageSet('unfollowed_users', JSON.stringify([]));
+          // Only the no-account entries (this used to wipe every account's).
+          const globalList = JSON.parse(storageGet('unfollowed_users') || '[]');
+          storageSet('unfollowed_users', JSON.stringify(globalList.filter(u => u.account && u.account !== '_global_')));
         }
         saveCurrentAccountData();
         calculateUnfollowers({ animate: true }); // usernames return to list 3 — slide them in
@@ -3742,7 +3749,8 @@ function updateInstructionsStepUI() {
           const filtered = globalList.filter(u => !u.account || u.account.toLowerCase() !== currentAcc);
           storageSet('starred_users', JSON.stringify(filtered));
         } else {
-          storageSet('starred_users', JSON.stringify([]));
+          const globalList = JSON.parse(storageGet('starred_users') || '[]');
+          storageSet('starred_users', JSON.stringify(globalList.filter(u => u.account && u.account !== '_global_')));
         }
         saveCurrentAccountData();
         calculateUnfollowers({ animate: true }); // usernames return to list 3 — slide them in
@@ -4017,8 +4025,11 @@ function applyGuestPreviewLock(isLoggedIn) {
     // cloud data. Their real accounts/lists load right after from the cloud.
     let accounts = [];
     try {
+      // (Old saves stored plain strings — normalize, or the filter threw
+      // and every saved account was dropped.)
       accounts = JSON.parse(storageGet('instagram_accounts') || '[]')
-        .filter(acc => acc.originalUsername.toLowerCase() !== GUEST_PREVIEW_USERNAME.toLowerCase());
+        .map(acc => typeof acc === 'string' ? { username: acc, originalUsername: acc } : acc)
+        .filter(acc => acc && acc.originalUsername && acc.originalUsername.toLowerCase() !== GUEST_PREVIEW_USERNAME.toLowerCase());
     } catch (e) {}
     state.instagramAccounts = accounts;
     const demoSelected = state.selectedAccountUsername
@@ -4191,24 +4202,25 @@ function initAuth() {
         // Unlock List 1 & 2 from the guest demo now that a real account is active
         applyGuestPreviewLock(true);
 
-        // Fetch cloud data and merge/sync
-        await pullFromCloud();
+        // Another user's data left on this device (e.g. their upload failed
+        // at logout, so it was kept): never show or upload it as this user's.
+        const owner = storageGet(LOCAL_DATA_OWNER_KEY);
+        if (owner && owner !== currentUser.id) clearLocalAccountData();
+        storageSet(LOCAL_DATA_OWNER_KEY, currentUser.id);
 
-        // Load saved Following/Followers lists if present in localStorage (filtering out guest preview entries)
-        const savedFollowing = storageGet('following_users');
-        const savedFollowers = storageGet('followers_users');
-        if (savedFollowing) {
-          const parsed = JSON.parse(savedFollowing).filter(u => u.username !== GUEST_PREVIEW_USERNAME);
-          state.following = parsed;
-          elements.inputFollowing.value = state.following.map(user => `@${user.originalUsername}`).join('\n');
-          updateListUI('following');
+        // Fetch cloud data and merge/sync. pullFromCloud loads the selected
+        // account's lists itself. (A shared 'following_users' copy used to
+        // be loaded over them here — another account's list.) If the cloud
+        // can't be reached (offline), carry on with this device's copy —
+        // this used to abort the login, leaving the landing page up.
+        try {
+          await pullFromCloud();
+        } catch (err) {
+          console.error('Error loading cloud data:', err);
+          const acc = state.selectedAccountUsername;
+          const exists = acc && state.instagramAccounts.some(a => a.originalUsername.toLowerCase() === acc.toLowerCase());
+          loadAccountData(exists ? acc : null);
         }
-        if (savedFollowers) {
-          state.followers = JSON.parse(savedFollowers);
-          elements.inputFollowers.value = state.followers.map(user => `@${user.originalUsername}`).join('\n');
-          updateListUI('followers');
-        }
-        calculateUnfollowers();
 
         // Always render chips instantly under the login screen before it fades out
         renderAccountChips(false);
@@ -4292,16 +4304,11 @@ function initAuth() {
           state.selectedAccountUsername = null;
           state.selectedIndex = -1;
           
-          Object.keys(localStorage).forEach(key => {
-            if (key.startsWith('following_users') || key.startsWith('followers_users')) {
-              storageRemove(key);
-            }
-          });
-          storageRemove('starred_users');
-          storageRemove('unfollowed_users');
-          storageRemove('instagram_accounts');
-          storageRemove('selected_instagram_account');
-          
+          // Unless the last upload never made it (offline at logout): then
+          // keep it for that user's next login here, which uploads it first
+          // (see pullFromCloud). Anyone else logging in clears it first.
+          if (!storageGet(CLOUD_DIRTY_KEY)) clearLocalAccountData();
+
           elements.inputFollowing.value = '';
           elements.inputFollowers.value = '';
           elements.searchUnfollowers.value = '';
@@ -4799,14 +4806,23 @@ async function pullFromCloud() {
       if (metaItem) {
         state.instagramAccounts = metaItem.instagram_accounts || [];
         normalizeInstagramAccounts();
-        const localSelected = storageGet('last_active_instagram_account') || storageGet('selected_instagram_account');
-        if (localSelected && state.instagramAccounts.some(acc => acc.originalUsername.toLowerCase() === localSelected.toLowerCase())) {
-          const match = state.instagramAccounts.find(acc => acc.originalUsername.toLowerCase() === localSelected.toLowerCase());
-          state.selectedAccountUsername = match ? match.originalUsername : localSelected;
-        } else if (metaItem.selected_account && state.instagramAccounts.some(acc => acc.originalUsername.toLowerCase() === metaItem.selected_account.toLowerCase())) {
-          state.selectedAccountUsername = metaItem.selected_account;
-        } else if (state.instagramAccounts.length > 0) {
-          state.selectedAccountUsername = state.instagramAccounts[0].originalUsername;
+        // This device's last choice first ('' = no account, on purpose),
+        // then the one saved with the cloud data (null = no account). Only
+        // an account that still exists; the first account only when
+        // nothing says otherwise. This used to pick the first account
+        // whenever none was selected, so "no account" never survived a
+        // reload, and an unselected/deleted account came back.
+        const findAccount = (name) => name
+          ? state.instagramAccounts.find(acc => acc.originalUsername.toLowerCase() === name.toLowerCase())
+          : null;
+        const localRaw = storageGet('last_active_instagram_account');
+        const localChoice = localRaw !== null ? localRaw : storageGet('selected_instagram_account');
+        if (localChoice !== null && (localChoice === '' || findAccount(localChoice))) {
+          state.selectedAccountUsername = localChoice === '' ? null : findAccount(localChoice).originalUsername;
+        } else if ('selected_account' in metaItem && (metaItem.selected_account === null || findAccount(metaItem.selected_account))) {
+          state.selectedAccountUsername = metaItem.selected_account ? findAccount(metaItem.selected_account).originalUsername : null;
+        } else {
+          state.selectedAccountUsername = state.instagramAccounts.length > 0 ? state.instagramAccounts[0].originalUsername : null;
         }
 
         storageSet('instagram_accounts', JSON.stringify(state.instagramAccounts));
@@ -4837,16 +4853,10 @@ async function pullFromCloud() {
       storageSet('unfollowed_users', JSON.stringify(data.unfollowed || []));
 
       // Restore account dataset if an account is selected, or default view if none
-      if (!state.selectedAccountUsername) {
-        const lastSaved = storageGet('last_active_instagram_account') || storageGet('selected_instagram_account');
-        if (lastSaved && state.instagramAccounts.some(acc => acc.originalUsername.toLowerCase() === lastSaved.toLowerCase())) {
-          const match = state.instagramAccounts.find(acc => acc.originalUsername.toLowerCase() === lastSaved.toLowerCase());
-          state.selectedAccountUsername = match ? match.originalUsername : lastSaved;
-        } else if (state.instagramAccounts.length > 0) {
-          state.selectedAccountUsername = state.instagramAccounts[0].originalUsername;
-        }
+      if (state.selectedAccountUsername && !state.instagramAccounts.some(acc =>
+        acc.originalUsername.toLowerCase() === state.selectedAccountUsername.toLowerCase())) {
+        state.selectedAccountUsername = null;
       }
-
       if (state.selectedAccountUsername) {
         loadAccountData(state.selectedAccountUsername);
       } else {
@@ -4872,6 +4882,10 @@ async function pullFromCloud() {
         });
 
       if (insertError) throw insertError;
+
+      const acc = state.selectedAccountUsername;
+      const exists = acc && state.instagramAccounts.some(a => a.originalUsername.toLowerCase() === acc.toLowerCase());
+      loadAccountData(exists ? acc : null);
     }
   } finally {
     isSyncingFromCloud = false;
@@ -4895,6 +4909,23 @@ let cloudPushWaiters = [];
 // upload goes out, the next login uploads these first instead of pulling
 // the older cloud copy over them.
 const CLOUD_DIRTY_KEY = 'cloud_unsynced_user';
+
+// Which user the account data on this device belongs to.
+const LOCAL_DATA_OWNER_KEY = 'local_data_owner';
+
+// Removes every saved account's lists, the no-account lists, the merged
+// lists and the selection from this device. Logging out used to leave the
+// per-account unfollowed/starred lists, the no-account lists and the
+// remembered selection behind, so the next person to log in on the device
+// could see (and upload into their own cloud data) the previous user's.
+function clearLocalAccountData() {
+  const prefixes = ['following_users', 'followers_users', 'unfollowed_users', 'starred_users', 'import_date_'];
+  Object.keys(localStorage).forEach(key => {
+    if (prefixes.some(prefix => key.startsWith(prefix))) storageRemove(key);
+  });
+  ['instagram_accounts', 'selected_instagram_account', 'last_active_instagram_account',
+   'selected_username', CLOUD_DIRTY_KEY, LOCAL_DATA_OWNER_KEY].forEach(storageRemove);
+}
 
 function pushToCloud() {
   if (!supabaseClient || !currentUser) return Promise.resolve();
@@ -5020,8 +5051,10 @@ function updateStorageProgressBar() {
     'selected_instagram_account',
     'unfollowed_users',
     'starred_users',
-    'following_users',
-    'followers_users'
+    'following_users__global_',
+    'followers_users__global_',
+    'unfollowed_users__global_',
+    'starred_users__global_'
   ];
   
   const accounts = JSON.parse(storageGet('instagram_accounts') || '[]');
