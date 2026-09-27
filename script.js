@@ -1,4 +1,35 @@
 // -------------------------------------------------------------
+// localStorage with change detection
+// -------------------------------------------------------------
+// Saving rewrites whole lists (thousands of usernames) on every delete,
+// star or account switch, and localStorage writes of big strings are slow —
+// ~30ms per delete and ~300ms per account switch with real-sized accounts,
+// blocking the page (and every animation) meanwhile. Most of those writes
+// store exactly what's already there, so skip them: remember what each key
+// holds (from our own reads/writes) and only write when it changes.
+const storageMirror = new Map();
+function storageGet(key) {
+  const value = localStorage.getItem(key);
+  storageMirror.set(key, value);
+  return value;
+}
+function storageSet(key, value) {
+  const str = String(value);
+  if (storageMirror.get(key) === str) return;
+  localStorage.setItem(key, str);
+  storageMirror.set(key, str);
+}
+function storageRemove(key) {
+  localStorage.removeItem(key);
+  storageMirror.set(key, null);
+}
+// Another tab changed storage: forget what we thought those keys held.
+window.addEventListener('storage', (e) => {
+  if (e.key === null) storageMirror.clear();
+  else storageMirror.delete(e.key);
+});
+
+// -------------------------------------------------------------
 // App State Configuration
 // -------------------------------------------------------------
 // -------------------------------------------------------------
@@ -36,11 +67,11 @@ const state = {
   following: [],  // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   followers: [],  // Array of { username, originalUsername, fullName, timestamp, profileUrl }
   unfollowers: [], // Array of { username, originalUsername, fullName, timestamp, profileUrl }
-  unfollowed: JSON.parse(localStorage.getItem('unfollowed_users') || '[]'),  // Array of { username, originalUsername, fullName, timestamp, profileUrl }
-  starred: JSON.parse(localStorage.getItem('starred_users') || '[]'), // Array of { username, originalUsername, fullName, timestamp, profileUrl }
-  instagramAccounts: JSON.parse(localStorage.getItem('instagram_accounts') || '[]'), // Saved account usernames
-  selectedAccountUsername: localStorage.getItem('last_active_instagram_account') || localStorage.getItem('selected_instagram_account') || null, // Currently active Instagram account
-  selectedUsername: localStorage.getItem('selected_username') || null, // Currently selected username
+  unfollowed: JSON.parse(storageGet('unfollowed_users') || '[]'),  // Array of { username, originalUsername, fullName, timestamp, profileUrl }
+  starred: JSON.parse(storageGet('starred_users') || '[]'), // Array of { username, originalUsername, fullName, timestamp, profileUrl }
+  instagramAccounts: JSON.parse(storageGet('instagram_accounts') || '[]'), // Saved account usernames
+  selectedAccountUsername: storageGet('last_active_instagram_account') || storageGet('selected_instagram_account') || null, // Currently active Instagram account
+  selectedUsername: storageGet('selected_username') || null, // Currently selected username
   editingAccountIndex: -1, // Current index of account being edited (-1 for new)
   selectedIndex: -1, // Current keyboard selection index (0-indexed) in the filtered list
   pendingAutoOpen: false, // Flag to track when a return to the tab should trigger opening the next user
@@ -160,7 +191,7 @@ const appGridLandingHome = elements.appGrid ? elements.appGrid.parentElement : n
 // Theme Management (Light/Dark)
 // -------------------------------------------------------------
 function initTheme() {
-  const savedTheme = localStorage.getItem('theme');
+  const savedTheme = storageGet('theme');
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
   const activeTheme = savedTheme || (prefersDark ? 'dark' : 'light');
   
@@ -168,7 +199,7 @@ function initTheme() {
   
   // Listen to system changes
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-    if (!localStorage.getItem('theme')) {
+    if (!storageGet('theme')) {
       setTheme(e.matches ? 'dark' : 'light');
     }
   });
@@ -176,7 +207,7 @@ function initTheme() {
   const toggleTheme = () => {
     const currentTheme = elements.html.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    localStorage.setItem('theme', newTheme);
+    storageSet('theme', newTheme);
     setTheme(newTheme);
   };
 
@@ -367,6 +398,16 @@ function isValidUsername(str) {
 /**
  * Attempts to parse text content as JSON and extract user entries recursively.
  */
+// "https://www.instagram.com/_u/name/" or "/name" -> "name" (null if none).
+function usernameFromProfileHref(href) {
+  if (typeof href !== 'string' || !href) return null;
+  let path = href;
+  try { path = new URL(href, 'https://www.instagram.com').pathname; } catch (e) { /* use as-is */ }
+  const parts = path.split('/').filter(Boolean).filter(part => part !== '_u');
+  const name = parts[0] || '';
+  return /^[A-Za-z0-9._]{1,30}$/.test(name) ? name : null;
+}
+
 function parseJSON(text) {
   try {
     const data = JSON.parse(text);
@@ -390,11 +431,14 @@ function parseJSON(text) {
         return;
       }
       
-      // Look for relationship lists containing string_list_data
+      // Look for relationship lists containing string_list_data. Older
+      // exports put the username in each item's `value`; newer ones (e.g.
+      // following.json) leave it out and give it as the entry's `title`,
+      // or only in the profile link.
       if (Array.isArray(obj.string_list_data)) {
         obj.string_list_data.forEach(item => {
-          if (item.value) {
-            const username = item.value;
+          const username = (item && item.value) || (typeof obj.title === 'string' && obj.title.trim()) || usernameFromProfileHref(item && item.href);
+          if (username) {
             const timestamp = item.timestamp ? new Date(item.timestamp * 1000) : null;
             results.push({
               username: normalizeUsername(username),
@@ -679,7 +723,12 @@ function getUnfollowedEmptyHtml(animate) {
 }
 
 function updateUnfollowedUI(enteringUsername) {
-  localStorage.setItem('unfollowed_users', JSON.stringify(state.unfollowed));
+  // Only the no-account view saves from here (to its own key — see
+  // saveCurrentAccountData). This used to overwrite the merged all-accounts
+  // list with just the current account's usernames on every redraw.
+  if (!state.selectedAccountUsername) {
+    storageSet('unfollowed_users__global_', JSON.stringify(state.unfollowed));
+  }
   const listData = state.unfollowed;
   const listEl = elements.listUnfollowed;
   const toggleBtn = elements.togglePreviewUnfollowed;
@@ -1008,15 +1057,33 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
   const previousRows = new Map(); // row element -> its on-screen box before the re-render
   const renamedFrom = new Map(); // new username -> row element it's an edit of
   const listWasHidden = listEl.classList.contains('hidden');
+  // Screen boxes are only needed if the list is about to empty out (its
+  // rows then slide out from exactly where they are — see
+  // animateResultsExits); measuring every row otherwise cost a noticeable
+  // chunk of each update with a few hundred rows.
+  // true/false when it's cheap to tell; null (so: measure) with a search
+  // filter active, where it depends on what matches.
+  const willEmpty = elements.searchUnfollowers.value.trim()
+    ? null
+    : state.unfollowers.every(u => pendingRemoval.has(u.username));
   if (flip && !listWasHidden) {
-    listEl.querySelectorAll('.user-row:not(.username-exit)').forEach(row => {
-      const rect = row.getBoundingClientRect();
-      previousTops.set(row.dataset.username, rect.top);
-      previousRows.set(row, {
-        top: rect.top, bottom: rect.bottom, left: rect.left, width: rect.width,
-        pitch: row.offsetHeight + (parseFloat(getComputedStyle(row).marginBottom) || 0)
-      });
+    const liveRows = listEl.querySelectorAll('.user-row:not(.username-exit)');
+    const firstRow = liveRows[0];
+    const rowGap = firstRow ? (parseFloat(getComputedStyle(firstRow).marginBottom) || 0) : 0;
+    liveRows.forEach(row => {
+      previousTops.set(row.dataset.username, null);
+      previousRows.set(row, null);
     });
+    if (willEmpty !== false) {
+      liveRows.forEach(row => {
+        const rect = row.getBoundingClientRect();
+        previousTops.set(row.dataset.username, rect.top);
+        previousRows.set(row, {
+          top: rect.top, bottom: rect.bottom, left: rect.left, width: rect.width,
+          pitch: row.offsetHeight + rowGap
+        });
+      });
+    }
   }
 
   const count = state.unfollowers.length;
@@ -1049,7 +1116,7 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
   const keptExits = exitingRows.filter(r => !r.dataset.renderExit || !filtered.some(u => u.username === r.dataset.username));
 
   // Restore saved selected username state on page reload / filter update
-  const savedSelectedUsername = state.selectedUsername || localStorage.getItem('selected_username');
+  const savedSelectedUsername = state.selectedUsername || storageGet('selected_username');
   if (savedSelectedUsername && filtered.length > 0) {
     const foundIdx = filtered.findIndex(u => u.username === savedSelectedUsername);
     if (foundIdx !== -1) {
@@ -1114,27 +1181,32 @@ function reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, rename
   const DURATION = 800;
   const live = new Map();
   listEl.querySelectorAll('.user-row:not(.username-exit)').forEach(row => live.set(row.dataset.username, row));
-  const listIsStatic = getComputedStyle(listEl).position === 'static';
+  // Rows' offsetTop is measured against the list, so it must be their
+  // offset parent before the first read (not only before the writes, which
+  // measured the first-ever update against a different parent).
+  if (getComputedStyle(listEl).position === 'static') listEl.style.position = 'relative';
 
   const wanted = new Set(filtered.map(u => u.username));
   const renamedEls = new Set(renamedFrom.values());
 
-  // --- READ: where everything is before the change.
+  // --- READ: where everything is before the change. Layout numbers only
+  // (offsetTop/offsetHeight — cheap once laid out); per-row
+  // getBoundingClientRect / getComputedStyle calls cost most of this
+  // function with a few hundred rows. Visibility is judged in the list's
+  // own scrolled viewport, in the same layout px.
   const listRect = listEl.getBoundingClientRect();
   const visualScale = (listRect.height / listEl.offsetHeight) || 1;
-  const offScreen = (top, bottom) => bottom <= listRect.top || top >= listRect.bottom;
-  const before = new Map(); // row -> { top, visTop, visBottom, left, width, pitch }
+  const viewTop = listEl.scrollTop;
+  const viewBottom = viewTop + listEl.clientHeight;
+  const offScreen = (top, height) => top + height <= viewTop || top >= viewBottom;
+  const anyRow = live.values().next().value || listEl.querySelector('.user-row');
+  const rowGap = anyRow ? (parseFloat(getComputedStyle(anyRow).marginBottom) || 0) : 0;
+  const before = new Map(); // row -> { top, height, left, width }
   live.forEach(row => {
-    const rect = row.getBoundingClientRect();
-    before.set(row, {
-      top: row.offsetTop, left: row.offsetLeft, width: row.offsetWidth,
-      visTop: rect.top, visBottom: rect.bottom,
-      pitch: row.offsetHeight + (parseFloat(getComputedStyle(row).marginBottom) || 0)
-    });
+    before.set(row, { top: row.offsetTop, height: row.offsetHeight, left: row.offsetLeft, width: row.offsetWidth });
   });
 
   // --- WRITE: remove / pin / reorder / create.
-  if (listIsStatic) listEl.style.position = 'relative';
   // A row still sliding out because of an earlier change whose username is
   // back: drop it — a fresh row reverses in from where it was (resumeTops).
   listEl.querySelectorAll('.user-row.username-exit').forEach(row => {
@@ -1150,7 +1222,7 @@ function reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, rename
   live.forEach((row, name) => {
     if (wanted.has(name)) return;
     const b = before.get(row);
-    if (!animate || renamedEls.has(row) || offScreen(b.visTop, b.visBottom)) {
+    if (!animate || renamedEls.has(row) || offScreen(b.top, b.height)) {
       stopRowMotion(row);
       row.remove();
       return;
@@ -1184,39 +1256,33 @@ function reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, rename
   reindexUnfollowerRows();
 
   // --- READ: where everything is after it.
-  const after = ordered.map(row => {
-    const rect = row.getBoundingClientRect();
-    return {
-      row, top: row.offsetTop, visTop: rect.top, visBottom: rect.bottom,
-      pitch: row.offsetHeight + (parseFloat(getComputedStyle(row).marginBottom) || 0)
-    };
-  });
+  const after = ordered.map(row => ({ row, top: row.offsetTop, height: row.offsetHeight }));
 
   // --- MOTION (queued; written on the next motion step, not here).
-  after.forEach(({ row, top, visTop, visBottom, pitch }) => {
+  after.forEach(({ row, top, height }) => {
     const name = row.dataset.username;
     const was = live.has(name) ? before.get(live.get(name))
       : (renamedFrom.has(name) ? before.get(renamedFrom.get(name)) : null);
     if (was) {
       // Kept (or edited) row: shift by how far it moved — unless it's off
       // screen both before and after, where nobody would see it.
-      if (offScreen(was.visTop, was.visBottom) && offScreen(visTop, visBottom)) return;
+      if (offScreen(was.top, was.height) && offScreen(top, height)) return;
       addRowShift(row, was.top - top, DURATION);
       return;
     }
     const resumeTop = resumeTops.get(name);
     if (resumeTop !== undefined) {
       // Was mid-slide out and is back: reverse from exactly where it is.
-      const dy = (resumeTop - visTop) / visualScale;
+      const dy = (resumeTop - row.getBoundingClientRect().top) / visualScale;
       if (dy < 0) slideRowIn(row, -dy, DURATION);
       else addRowShift(row, dy, DURATION);
       return;
     }
-    if (!animate || offScreen(visTop, visBottom)) return;
-    slideRowIn(row, pitch, DURATION);
+    if (!animate || offScreen(top, height)) return;
+    slideRowIn(row, height + rowGap, DURATION);
   });
   leaving.forEach(row => {
-    slideRowOut(row, before.get(row).pitch, DURATION, () => row.remove());
+    slideRowOut(row, before.get(row).height + rowGap, DURATION, () => row.remove());
   });
   stepRowMotion();
 }
@@ -1331,7 +1397,7 @@ const handleFollowingInput = debounce(function() {
     return user;
   });
   state.following = deduplicateEntries(parsed);
-  localStorage.setItem('following_users', JSON.stringify(state.following));
+  storageSet('following_users', JSON.stringify(state.following));
   updateListUI('following');
   calculateUnfollowers({ animate: true, matchRenames: true });
 }, 250);
@@ -1344,7 +1410,7 @@ const handleFollowersInput = debounce(function() {
   const rawText = elements.inputFollowers.value;
   const parsed = parseInput(rawText);
   state.followers = deduplicateEntries(parsed);
-  localStorage.setItem('followers_users', JSON.stringify(state.followers));
+  storageSet('followers_users', JSON.stringify(state.followers));
   updateListUI('followers');
   calculateUnfollowers({ animate: true, matchRenames: true });
 }, 250);
@@ -1371,7 +1437,7 @@ function readAndProcessFile(file, type, append = false, isPending = false) {
       // Save to the correct localStorage key (account-scoped if an account is selected)
       const acc = state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : null;
       const storageKey = acc ? `${type}_users_${acc}` : `${type}_users`;
-      localStorage.setItem(storageKey, JSON.stringify(deduplicated));
+      storageSet(storageKey, JSON.stringify(deduplicated));
       
       // Format clean list of usernames for visual display inside the textarea
       const usernamesText = deduplicated.map(user => `@${user.originalUsername}`).join('\n');
@@ -1432,9 +1498,9 @@ async function clearAllLists(animate = true) {
   }
 
   state.following = [];
-  localStorage.removeItem('following_users');
+  storageRemove('following_users');
   state.followers = [];
-  localStorage.removeItem('followers_users');
+  storageRemove('followers_users');
 
   state.selectedIndex = -1;
   updateListUI('following');
@@ -1486,7 +1552,7 @@ function ensureAccountSelected(username) {
         saveCurrentAccountData();
       }
       state.selectedAccountUsername = originalName;
-      localStorage.setItem('selected_instagram_account', state.selectedAccountUsername);
+      storageSet('selected_instagram_account', state.selectedAccountUsername);
       loadAccountData(state.selectedAccountUsername);
     }
   } else {
@@ -1496,9 +1562,9 @@ function ensureAccountSelected(username) {
     }
     const newAcc = { username: username, originalUsername: username };
     state.instagramAccounts.push(newAcc);
-    localStorage.setItem('instagram_accounts', JSON.stringify(state.instagramAccounts));
+    storageSet('instagram_accounts', JSON.stringify(state.instagramAccounts));
     state.selectedAccountUsername = username;
-    localStorage.setItem('selected_instagram_account', username);
+    storageSet('selected_instagram_account', username);
     loadAccountData(username);
   }
 
@@ -1517,15 +1583,21 @@ async function processImportFiles(files, isFolderUpload = false) {
     const nameLower = file.name.toLowerCase();
     
     if (isFolderUpload) {
-      // Folder upload: ONLY load exactly "following.html" and "followers_1.html"
-      if (nameLower === 'following.html') {
+      // Folder upload: only the export's own relationship files, in either
+      // of Instagram's export formats (HTML or JSON). Followers are split
+      // across followers_1, followers_2, … for large accounts — take them
+      // all (only followers_1.html used to be read, and .json never was).
+      if (/^following\.(html|json)$/.test(nameLower)) {
         validFilesToProcess.push({ file, type: 'following', isPending: false });
-      } else if (nameLower === 'followers_1.html') {
+      } else if (/^followers_\d+\.(html|json)$/.test(nameLower)) {
         validFilesToProcess.push({ file, type: 'followers', isPending: false });
+      } else if (/^pending_follow_requests\.(html|json)$/.test(nameLower)) {
+        validFilesToProcess.push({ file, type: 'following', isPending: true });
       }
     } else {
-      // Individual upload: keep the old matching logic
-      if (nameLower === 'following.html' || nameLower === 'following.txt' || nameLower.startsWith('following_')) {
+      // Individual upload (following.json used to be rejected, so a JSON
+      // export only ever loaded its followers).
+      if (/^following\.(html|txt|json)$/.test(nameLower) || nameLower.startsWith('following_')) {
         validFilesToProcess.push({ file, type: 'following', isPending: false });
       } else if (nameLower === 'pending_follow_requests.html' || nameLower === 'pending_follow_requests.txt' || nameLower.startsWith('pending_follow_requests')) {
         validFilesToProcess.push({ file, type: 'following', isPending: true });
@@ -1568,8 +1640,9 @@ async function processImportFiles(files, isFolderUpload = false) {
     saveCurrentAccountData();
   }
 
-  if (validFilesToProcess.length === 0 && invalidFiles.length > 0) {
-    await showSiteAlert('no valid files found', 'no valid follower or following HTML/TXT export files were found in the uploaded selection.');
+  // Also when a whole folder had nothing usable (that used to fail silently).
+  if (validFilesToProcess.length === 0 && (invalidFiles.length > 0 || isFolderUpload)) {
+    await showSiteAlert('no valid files found', 'no follower or following export files (HTML, JSON or TXT) were found in the uploaded selection.');
   }
 
   return importedFollowing || importedFollowers;
@@ -1588,15 +1661,20 @@ function saveCurrentAccountData() {
   state.unfollowed = (state.unfollowed || []).map(u => ({ ...u, account: u.account || currentAcc }));
 
   if (state.selectedAccountUsername) {
-    localStorage.setItem(`following_users_${currentAcc}`, JSON.stringify(state.following));
-    localStorage.setItem(`followers_users_${currentAcc}`, JSON.stringify(state.followers));
-    localStorage.setItem(`unfollowed_users_${currentAcc}`, JSON.stringify(state.unfollowed));
-    localStorage.setItem(`starred_users_${currentAcc}`, JSON.stringify(state.starred));
+    storageSet(`following_users_${currentAcc}`, JSON.stringify(state.following));
+    storageSet(`followers_users_${currentAcc}`, JSON.stringify(state.followers));
+    storageSet(`unfollowed_users_${currentAcc}`, JSON.stringify(state.unfollowed));
+    storageSet(`starred_users_${currentAcc}`, JSON.stringify(state.starred));
   } else {
-    localStorage.setItem('following_users', JSON.stringify(state.following));
-    localStorage.setItem('followers_users', JSON.stringify(state.followers));
-    localStorage.setItem('unfollowed_users', JSON.stringify(state.unfollowed));
-    localStorage.setItem('starred_users', JSON.stringify(state.starred));
+    storageSet('following_users', JSON.stringify(state.following));
+    storageSet('followers_users', JSON.stringify(state.followers));
+    // No account selected: its unfollowed/starred go under their own
+    // '_global_' keys, like an account's. Writing them into the merged
+    // all-accounts lists instead meant cloud sync — which rebuilds those
+    // lists from the per-account keys — dropped them the next time it ran
+    // with an account selected.
+    storageSet('unfollowed_users__global_', JSON.stringify(state.unfollowed));
+    storageSet('starred_users__global_', JSON.stringify(state.starred));
   }
 
   pushToCloud();
@@ -1608,19 +1686,26 @@ function saveCurrentAccountData() {
 function loadAccountData(username, animate = false, animateResults = false) {
   if (username) {
     state.selectedAccountUsername = username;
-    localStorage.setItem('selected_instagram_account', username);
-    localStorage.setItem('last_active_instagram_account', username);
+    storageSet('selected_instagram_account', username);
+    storageSet('last_active_instagram_account', username);
     const acc = username.toLowerCase();
 
     // Load account-specific following and followers lists
-    state.following = JSON.parse(localStorage.getItem(`following_users_${acc}`) || '[]');
-    state.followers = JSON.parse(localStorage.getItem(`followers_users_${acc}`) || '[]');
+    state.following = JSON.parse(storageGet(`following_users_${acc}`) || '[]');
+    state.followers = JSON.parse(storageGet(`followers_users_${acc}`) || '[]');
 
-    const accUnfollowed = JSON.parse(localStorage.getItem(`unfollowed_users_${acc}`) || '[]');
-    const mainUnfollowed = JSON.parse(localStorage.getItem('unfollowed_users') || '[]');
-
-    const accStarred = JSON.parse(localStorage.getItem(`starred_users_${acc}`) || '[]');
-    const mainStarred = JSON.parse(localStorage.getItem('starred_users') || '[]');
+    // The account's own saved lists are authoritative — they're written on
+    // every change. The merged all-accounts lists ('unfollowed_users' /
+    // 'starred_users') are only rebuilt by cloud sync, which is batched, so
+    // they can briefly still hold a username just removed here; merging them
+    // in would bring it back. They're only a fallback for older data that
+    // has no per-account list yet.
+    const accUnfollowedRaw = storageGet(`unfollowed_users_${acc}`);
+    const accStarredRaw = storageGet(`starred_users_${acc}`);
+    const accUnfollowed = JSON.parse(accUnfollowedRaw || '[]');
+    const accStarred = JSON.parse(accStarredRaw || '[]');
+    const mainUnfollowed = accUnfollowedRaw === null ? JSON.parse(storageGet('unfollowed_users') || '[]') : [];
+    const mainStarred = accStarredRaw === null ? JSON.parse(storageGet('starred_users') || '[]') : [];
 
     // Combine account-scoped and main lists, filtering strictly for items matching this account
     const combinedUnfollowed = [...accUnfollowed, ...mainUnfollowed];
@@ -1655,8 +1740,12 @@ function loadAccountData(username, animate = false, animateResults = false) {
     state.followers = [];
     state.unfollowers = [];
     
-    const mainUnfollowed = JSON.parse(localStorage.getItem('unfollowed_users') || '[]');
-    const mainStarred = JSON.parse(localStorage.getItem('starred_users') || '[]');
+    // Own '_global_' keys first (see saveCurrentAccountData); the merged
+    // lists only for data saved before those existed.
+    const ownUnfollowed = storageGet('unfollowed_users__global_');
+    const ownStarred = storageGet('starred_users__global_');
+    const mainUnfollowed = JSON.parse((ownUnfollowed !== null ? ownUnfollowed : storageGet('unfollowed_users')) || '[]');
+    const mainStarred = JSON.parse((ownStarred !== null ? ownStarred : storageGet('starred_users')) || '[]');
 
     state.unfollowed = mainUnfollowed.filter(u => !u.account || u.account === '_global_');
     state.starred = mainStarred.filter(u => !u.account || u.account === '_global_');
@@ -1678,7 +1767,7 @@ function selectAccount(username) {
     // Clicked the currently active username chip -> UNSELECT IT!
     saveCurrentAccountData();
     state.selectedAccountUsername = null;
-    localStorage.removeItem('selected_instagram_account');
+    storageRemove('selected_instagram_account');
     loadAccountData(null, false, true);
   } else {
     // Select the clicked username chip!
@@ -1686,7 +1775,7 @@ function selectAccount(username) {
       saveCurrentAccountData();
     }
     state.selectedAccountUsername = username;
-    localStorage.setItem('selected_instagram_account', username);
+    storageSet('selected_instagram_account', username);
     loadAccountData(username, false, true);
   }
 }
@@ -1931,11 +2020,11 @@ function saveAccountFromModal() {
     }
     // Auto-select newly added account!
     state.selectedAccountUsername = username;
-    localStorage.setItem('selected_instagram_account', username);
+    storageSet('selected_instagram_account', username);
     loadAccountData(username, true, true); // its new chip fades in; switching to it animates list 3, like selecting its chip
   }
 
-  localStorage.setItem('instagram_accounts', JSON.stringify(state.instagramAccounts));
+  storageSet('instagram_accounts', JSON.stringify(state.instagramAccounts));
   renderAccountChips(true);
   pushToCloud();
   closeAccountModal();
@@ -1954,19 +2043,19 @@ function deleteAccountFromModal() {
 
     const performDelete = () => {
       // 1. Remove account-specific local storage keys
-      localStorage.removeItem(`following_users_${acc}`);
-      localStorage.removeItem(`followers_users_${acc}`);
-      localStorage.removeItem(`unfollowed_users_${acc}`);
-      localStorage.removeItem(`starred_users_${acc}`);
+      storageRemove(`following_users_${acc}`);
+      storageRemove(`followers_users_${acc}`);
+      storageRemove(`unfollowed_users_${acc}`);
+      storageRemove(`starred_users_${acc}`);
 
       // 2. Remove all unfollowed and starred entries belonging to this account from main storage
-      const mainStarred = JSON.parse(localStorage.getItem('starred_users') || '[]');
+      const mainStarred = JSON.parse(storageGet('starred_users') || '[]');
       const filteredStarred = mainStarred.filter(u => !u.account || u.account.toLowerCase() !== acc);
-      localStorage.setItem('starred_users', JSON.stringify(filteredStarred));
+      storageSet('starred_users', JSON.stringify(filteredStarred));
 
-      const mainUnfollowed = JSON.parse(localStorage.getItem('unfollowed_users') || '[]');
+      const mainUnfollowed = JSON.parse(storageGet('unfollowed_users') || '[]');
       const filteredUnfollowed = mainUnfollowed.filter(u => !u.account || u.account.toLowerCase() !== acc);
-      localStorage.setItem('unfollowed_users', JSON.stringify(filteredUnfollowed));
+      storageSet('unfollowed_users', JSON.stringify(filteredUnfollowed));
 
       // 3. Remove from current state arrays
       state.starred = (state.starred || []).filter(u => !u.account || u.account.toLowerCase() !== acc);
@@ -1974,12 +2063,12 @@ function deleteAccountFromModal() {
 
       // 4. Remove account from accounts registry
       state.instagramAccounts.splice(state.editingAccountIndex, 1);
-      localStorage.setItem('instagram_accounts', JSON.stringify(state.instagramAccounts));
+      storageSet('instagram_accounts', JSON.stringify(state.instagramAccounts));
 
       // 5. Reset selection if the deleted account was selected
       if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === acc) {
         state.selectedAccountUsername = null;
-        localStorage.removeItem('selected_instagram_account');
+        storageRemove('selected_instagram_account');
         loadAccountData(null, false, true); // its usernames slide out of list 3, like unselecting its chip
       } else {
         renderAccountChips(true);
@@ -2910,7 +2999,7 @@ function updateInstructionsStepUI() {
     if (searchFollowingInput) searchFollowingInput.value = '';
     smoothClearTextarea(elements.inputFollowing, () => {
       state.following = [];
-      localStorage.removeItem('following_users');
+      storageRemove('following_users');
       state.selectedIndex = -1; // Reset selection index
       updateListUI('following');
       calculateUnfollowers({ animate: true });
@@ -2922,7 +3011,7 @@ function updateInstructionsStepUI() {
     if (searchFollowersInput) searchFollowersInput.value = '';
     smoothClearTextarea(elements.inputFollowers, () => {
       state.followers = [];
-      localStorage.removeItem('followers_users');
+      storageRemove('followers_users');
       state.selectedIndex = -1; // Reset selection index
       updateListUI('followers');
       calculateUnfollowers({ animate: true });
@@ -3620,13 +3709,13 @@ function updateInstructionsStepUI() {
       if (confirmed) {
         state.unfollowed = [];
         if (currentAcc) {
-          localStorage.setItem(`unfollowed_users_${currentAcc}`, JSON.stringify([]));
+          storageSet(`unfollowed_users_${currentAcc}`, JSON.stringify([]));
           // Clean global shared list matching this account
-          const globalList = JSON.parse(localStorage.getItem('unfollowed_users') || '[]');
+          const globalList = JSON.parse(storageGet('unfollowed_users') || '[]');
           const filtered = globalList.filter(u => !u.account || u.account.toLowerCase() !== currentAcc);
-          localStorage.setItem('unfollowed_users', JSON.stringify(filtered));
+          storageSet('unfollowed_users', JSON.stringify(filtered));
         } else {
-          localStorage.setItem('unfollowed_users', JSON.stringify([]));
+          storageSet('unfollowed_users', JSON.stringify([]));
         }
         saveCurrentAccountData();
         calculateUnfollowers({ animate: true }); // usernames return to list 3 — slide them in
@@ -3647,13 +3736,13 @@ function updateInstructionsStepUI() {
       if (confirmed) {
         state.starred = [];
         if (currentAcc) {
-          localStorage.setItem(`starred_users_${currentAcc}`, JSON.stringify([]));
+          storageSet(`starred_users_${currentAcc}`, JSON.stringify([]));
           // Clean global shared list matching this account
-          const globalList = JSON.parse(localStorage.getItem('starred_users') || '[]');
+          const globalList = JSON.parse(storageGet('starred_users') || '[]');
           const filtered = globalList.filter(u => !u.account || u.account.toLowerCase() !== currentAcc);
-          localStorage.setItem('starred_users', JSON.stringify(filtered));
+          storageSet('starred_users', JSON.stringify(filtered));
         } else {
-          localStorage.setItem('starred_users', JSON.stringify([]));
+          storageSet('starred_users', JSON.stringify([]));
         }
         saveCurrentAccountData();
         calculateUnfollowers({ animate: true }); // usernames return to list 3 — slide them in
@@ -3832,7 +3921,7 @@ function updateInstructionsStepUI() {
         const username = row.getAttribute('data-username');
         if (username) {
           state.selectedUsername = username;
-          localStorage.setItem('selected_username', username);
+          storageSet('selected_username', username);
           selectedFound = true;
         }
       } else {
@@ -3842,7 +3931,7 @@ function updateInstructionsStepUI() {
 
     if (!selectedFound || index === -1) {
       state.selectedUsername = null;
-      localStorage.setItem('selected_username', '');
+      storageSet('selected_username', '');
     }
   }
 
@@ -3921,12 +4010,28 @@ function applyGuestPreviewLock(isLoggedIn) {
   if (elements.btnAddAccount) elements.btnAddAccount.disabled = !isLoggedIn;
 
   if (isLoggedIn) {
-    const savedAccounts = localStorage.getItem('instagram_accounts');
-    if (savedAccounts) {
-      try {
-        const parsed = JSON.parse(savedAccounts).filter(acc => acc.originalUsername.toLowerCase() !== GUEST_PREVIEW_USERNAME.toLowerCase());
-        state.instagramAccounts = parsed;
-      } catch (e) {}
+    // Always drop the guest demo on login — not only when this device has
+    // saved accounts to replace it with. A brand-new user has none, so the
+    // demo @account (its chip, selected, and @username in list 2 / list 3)
+    // used to carry over into their real session and get saved to their
+    // cloud data. Their real accounts/lists load right after from the cloud.
+    let accounts = [];
+    try {
+      accounts = JSON.parse(storageGet('instagram_accounts') || '[]')
+        .filter(acc => acc.originalUsername.toLowerCase() !== GUEST_PREVIEW_USERNAME.toLowerCase());
+    } catch (e) {}
+    state.instagramAccounts = accounts;
+    const demoSelected = state.selectedAccountUsername
+      && state.selectedAccountUsername.toLowerCase() === GUEST_PREVIEW_USERNAME.toLowerCase();
+    if (demoSelected) {
+      state.selectedAccountUsername = null;
+      state.following = [];
+      state.followers = [];
+      elements.inputFollowing.value = '';
+      elements.inputFollowers.value = '';
+      updateListUI('following');
+      updateListUI('followers');
+      calculateUnfollowers();
     }
     renderAccountChips(false);
     return;
@@ -4090,8 +4195,8 @@ function initAuth() {
         await pullFromCloud();
 
         // Load saved Following/Followers lists if present in localStorage (filtering out guest preview entries)
-        const savedFollowing = localStorage.getItem('following_users');
-        const savedFollowers = localStorage.getItem('followers_users');
+        const savedFollowing = storageGet('following_users');
+        const savedFollowers = storageGet('followers_users');
         if (savedFollowing) {
           const parsed = JSON.parse(savedFollowing).filter(u => u.username !== GUEST_PREVIEW_USERNAME);
           state.following = parsed;
@@ -4189,13 +4294,13 @@ function initAuth() {
           
           Object.keys(localStorage).forEach(key => {
             if (key.startsWith('following_users') || key.startsWith('followers_users')) {
-              localStorage.removeItem(key);
+              storageRemove(key);
             }
           });
-          localStorage.removeItem('starred_users');
-          localStorage.removeItem('unfollowed_users');
-          localStorage.removeItem('instagram_accounts');
-          localStorage.removeItem('selected_instagram_account');
+          storageRemove('starred_users');
+          storageRemove('unfollowed_users');
+          storageRemove('instagram_accounts');
+          storageRemove('selected_instagram_account');
           
           elements.inputFollowing.value = '';
           elements.inputFollowers.value = '';
@@ -4527,6 +4632,8 @@ function initAuth() {
     }
 
     setTimeout(async () => {
+      // Upload any batched changes while still signed in.
+      try { await flushCloudPush(); } catch (err) { console.error('Error syncing before sign out:', err); }
       if (supabaseClient) {
         try {
           await supabaseClient.auth.signOut();
@@ -4666,6 +4773,14 @@ function showAuthSuccess(msg) {
 // Sync helpers
 async function pullFromCloud() {
   if (!supabaseClient || !currentUser) return;
+  // Local changes still waiting to be uploaded go first, or the pull would
+  // overwrite them with the older cloud copy — including ones left over
+  // from a previous visit whose upload never went out (tab closed first).
+  if (hasPendingCloudPush()) {
+    await flushCloudPush();
+  } else if (storageGet(CLOUD_DIRTY_KEY) === currentUser.id) {
+    await pushToCloudNow();
+  }
 
   isSyncingFromCloud = true;
   try {
@@ -4684,7 +4799,7 @@ async function pullFromCloud() {
       if (metaItem) {
         state.instagramAccounts = metaItem.instagram_accounts || [];
         normalizeInstagramAccounts();
-        const localSelected = localStorage.getItem('last_active_instagram_account') || localStorage.getItem('selected_instagram_account');
+        const localSelected = storageGet('last_active_instagram_account') || storageGet('selected_instagram_account');
         if (localSelected && state.instagramAccounts.some(acc => acc.originalUsername.toLowerCase() === localSelected.toLowerCase())) {
           const match = state.instagramAccounts.find(acc => acc.originalUsername.toLowerCase() === localSelected.toLowerCase());
           state.selectedAccountUsername = match ? match.originalUsername : localSelected;
@@ -4694,22 +4809,22 @@ async function pullFromCloud() {
           state.selectedAccountUsername = state.instagramAccounts[0].originalUsername;
         }
 
-        localStorage.setItem('instagram_accounts', JSON.stringify(state.instagramAccounts));
+        storageSet('instagram_accounts', JSON.stringify(state.instagramAccounts));
         if (state.selectedAccountUsername) {
-          localStorage.setItem('selected_instagram_account', state.selectedAccountUsername);
+          storageSet('selected_instagram_account', state.selectedAccountUsername);
         } else {
-          localStorage.removeItem('selected_instagram_account');
+          storageRemove('selected_instagram_account');
         }
 
         if (metaItem.accounts_data) {
           Object.keys(metaItem.accounts_data).forEach(key => {
             const itemData = metaItem.accounts_data[key];
-            if (itemData.following) localStorage.setItem(`following_users_${key}`, JSON.stringify(itemData.following));
-            if (itemData.followers) localStorage.setItem(`followers_users_${key}`, JSON.stringify(itemData.followers));
-            if (itemData.unfollowed) localStorage.setItem(`unfollowed_users_${key}`, JSON.stringify(itemData.unfollowed));
-            if (itemData.starred) localStorage.setItem(`starred_users_${key}`, JSON.stringify(itemData.starred));
+            if (itemData.following) storageSet(`following_users_${key}`, JSON.stringify(itemData.following));
+            if (itemData.followers) storageSet(`followers_users_${key}`, JSON.stringify(itemData.followers));
+            if (itemData.unfollowed) storageSet(`unfollowed_users_${key}`, JSON.stringify(itemData.unfollowed));
+            if (itemData.starred) storageSet(`starred_users_${key}`, JSON.stringify(itemData.starred));
             // Restore the weekly reset reminder's anchor date so it reflects real elapsed time on login.
-            if (itemData.importDate) localStorage.setItem(`import_date_${key}`, itemData.importDate);
+            if (itemData.importDate) storageSet(`import_date_${key}`, itemData.importDate);
           });
         }
 
@@ -4718,12 +4833,12 @@ async function pullFromCloud() {
       }
 
       // Save stripped starred list and unfollowed list to localStorage
-      localStorage.setItem('starred_users', JSON.stringify(rawStarred));
-      localStorage.setItem('unfollowed_users', JSON.stringify(data.unfollowed || []));
+      storageSet('starred_users', JSON.stringify(rawStarred));
+      storageSet('unfollowed_users', JSON.stringify(data.unfollowed || []));
 
       // Restore account dataset if an account is selected, or default view if none
       if (!state.selectedAccountUsername) {
-        const lastSaved = localStorage.getItem('last_active_instagram_account') || localStorage.getItem('selected_instagram_account');
+        const lastSaved = storageGet('last_active_instagram_account') || storageGet('selected_instagram_account');
         if (lastSaved && state.instagramAccounts.some(acc => acc.originalUsername.toLowerCase() === lastSaved.toLowerCase())) {
           const match = state.instagramAccounts.find(acc => acc.originalUsername.toLowerCase() === lastSaved.toLowerCase());
           state.selectedAccountUsername = match ? match.originalUsername : lastSaved;
@@ -4738,8 +4853,8 @@ async function pullFromCloud() {
         loadAccountData(null);
       }
     } else {
-      const initialStarred = JSON.parse(localStorage.getItem('starred_users') || '[]');
-      const initialAccounts = JSON.parse(localStorage.getItem('instagram_accounts') || '[]');
+      const initialStarred = JSON.parse(storageGet('starred_users') || '[]');
+      const initialAccounts = JSON.parse(storageGet('instagram_accounts') || '[]');
 
       const metaHeader = {
         __meta: true,
@@ -4764,7 +4879,56 @@ async function pullFromCloud() {
   }
 }
 
-async function pushToCloud() {
+// Cloud sync is batched: pushToCloud() schedules one upload for when
+// activity settles (CLOUD_PUSH_DELAY after the last change) instead of
+// running the whole sync — re-reading every account's lists, rebuilding the
+// merged lists, uploading — on every single delete/star/switch. Rapid
+// changes then cost one sync, after their animations, instead of one each,
+// mid-slide. Anything pending is sent right away when the page is hidden or
+// closed, before logging out, and before pulling from the cloud.
+const CLOUD_PUSH_DELAY = 1500;
+let cloudPushTimer = null;
+let cloudPushWaiters = [];
+
+// Marks this device as holding changes the cloud doesn't have yet (for this
+// user), until an upload succeeds. If the tab closes before the batched
+// upload goes out, the next login uploads these first instead of pulling
+// the older cloud copy over them.
+const CLOUD_DIRTY_KEY = 'cloud_unsynced_user';
+
+function pushToCloud() {
+  if (!supabaseClient || !currentUser) return Promise.resolve();
+  storageSet(CLOUD_DIRTY_KEY, currentUser.id);
+  return new Promise((resolve) => {
+    cloudPushWaiters.push(resolve);
+    clearTimeout(cloudPushTimer);
+    cloudPushTimer = setTimeout(flushCloudPush, CLOUD_PUSH_DELAY);
+  });
+}
+
+function hasPendingCloudPush() {
+  return cloudPushTimer !== null;
+}
+
+async function flushCloudPush() {
+  if (cloudPushTimer === null) return;
+  clearTimeout(cloudPushTimer);
+  cloudPushTimer = null;
+  const waiters = cloudPushWaiters;
+  cloudPushWaiters = [];
+  try {
+    await pushToCloudNow();
+  } finally {
+    waiters.forEach(resolve => resolve());
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushCloudPush();
+});
+window.addEventListener('pagehide', () => { flushCloudPush(); });
+
+async function pushToCloudNow() {
   if (!supabaseClient || !currentUser) return;
 
   try {
@@ -4777,18 +4941,18 @@ async function pushToCloud() {
     // Include current active state in accountDataMap
     if (state.selectedAccountUsername) {
       const currentKey = state.selectedAccountUsername.toLowerCase();
-      localStorage.setItem(`following_users_${currentKey}`, JSON.stringify(state.following));
-      localStorage.setItem(`followers_users_${currentKey}`, JSON.stringify(state.followers));
-      localStorage.setItem(`unfollowed_users_${currentKey}`, JSON.stringify(state.unfollowed));
-      localStorage.setItem(`starred_users_${currentKey}`, JSON.stringify(state.starred));
+      storageSet(`following_users_${currentKey}`, JSON.stringify(state.following));
+      storageSet(`followers_users_${currentKey}`, JSON.stringify(state.followers));
+      storageSet(`unfollowed_users_${currentKey}`, JSON.stringify(state.unfollowed));
+      storageSet(`starred_users_${currentKey}`, JSON.stringify(state.starred));
     }
 
     accounts.forEach(key => {
-      const following = JSON.parse(localStorage.getItem(`following_users_${key}`) || '[]');
-      const followers = JSON.parse(localStorage.getItem(`followers_users_${key}`) || '[]');
-      const unfollowed = JSON.parse(localStorage.getItem(`unfollowed_users_${key}`) || '[]');
-      const starred = JSON.parse(localStorage.getItem(`starred_users_${key}`) || '[]');
-      const importDate = localStorage.getItem(`import_date_${key}`) || null;
+      const following = JSON.parse(storageGet(`following_users_${key}`) || '[]');
+      const followers = JSON.parse(storageGet(`followers_users_${key}`) || '[]');
+      const unfollowed = JSON.parse(storageGet(`unfollowed_users_${key}`) || '[]');
+      const starred = JSON.parse(storageGet(`starred_users_${key}`) || '[]');
+      const importDate = storageGet(`import_date_${key}`) || null;
 
       accountDataMap[key] = { following, followers, unfollowed, starred, importDate };
 
@@ -4818,8 +4982,8 @@ async function pushToCloud() {
     const allStarredArray = Array.from(allStarredMap.values());
     const allUnfollowedArray = Array.from(allUnfollowedMap.values());
 
-    localStorage.setItem('starred_users', JSON.stringify(allStarredArray));
-    localStorage.setItem('unfollowed_users', JSON.stringify(allUnfollowedArray));
+    storageSet('starred_users', JSON.stringify(allStarredArray));
+    storageSet('unfollowed_users', JSON.stringify(allUnfollowedArray));
 
     const metaHeader = {
       __meta: true,
@@ -4840,6 +5004,9 @@ async function pushToCloud() {
       });
 
     if (error) throw error;
+    if (storageGet(CLOUD_DIRTY_KEY) === currentUser.id && !hasPendingCloudPush()) {
+      storageRemove(CLOUD_DIRTY_KEY);
+    }
   } catch (err) {
     console.error('Error syncing data to Supabase:', err);
   } finally {
@@ -4857,7 +5024,7 @@ function updateStorageProgressBar() {
     'followers_users'
   ];
   
-  const accounts = JSON.parse(localStorage.getItem('instagram_accounts') || '[]');
+  const accounts = JSON.parse(storageGet('instagram_accounts') || '[]');
   accounts.forEach(acc => {
     // If acc is an object (new schema), get originalUsername. Otherwise fallback to acc as string.
     const username = typeof acc === 'object' && acc !== null ? acc.originalUsername : acc;
@@ -4872,7 +5039,7 @@ function updateStorageProgressBar() {
 
   let totalBytes = 0;
   keysToMeasure.forEach(key => {
-    const val = localStorage.getItem(key);
+    const val = storageGet(key);
     if (val) {
       totalBytes += key.length + val.length;
     }
@@ -4897,12 +5064,12 @@ function updateStorageProgressBar() {
 // Settings Management (Inline in Auth Dropdown)
 // -------------------------------------------------------------
 function initSettings() {
-  if (localStorage.getItem('show_keyboard') === null) {
-    localStorage.setItem('show_keyboard', 'true');
+  if (storageGet('show_keyboard') === null) {
+    storageSet('show_keyboard', 'true');
   }
 
   if (elements.toggleShowKeyboard) {
-    elements.toggleShowKeyboard.checked = localStorage.getItem('show_keyboard') !== 'false';
+    elements.toggleShowKeyboard.checked = storageGet('show_keyboard') !== 'false';
   }
 
   applySettings();
@@ -4910,7 +5077,7 @@ function initSettings() {
 
   if (elements.toggleShowKeyboard) {
     elements.toggleShowKeyboard.addEventListener('change', (e) => {
-      localStorage.setItem('show_keyboard', e.target.checked ? 'true' : 'false');
+      storageSet('show_keyboard', e.target.checked ? 'true' : 'false');
       applySettings();
     });
   }
@@ -4918,7 +5085,7 @@ function initSettings() {
 
 function applySettings() {
   const keyboardHints = document.getElementById('keyboard-hints');
-  const showKeyboard = localStorage.getItem('show_keyboard') !== 'false';
+  const showKeyboard = storageGet('show_keyboard') !== 'false';
 
   document.documentElement.classList.toggle('hide-shortcuts', !showKeyboard);
   if (document.body) {
@@ -4953,7 +5120,7 @@ function getImportDateKey(accountUsername) {
 }
 
 function recordImportDate(accountUsername) {
-  localStorage.setItem(getImportDateKey(accountUsername), String(Date.now()));
+  storageSet(getImportDateKey(accountUsername), String(Date.now()));
   updateResetReminderUI();
 }
 
@@ -4964,7 +5131,7 @@ function updateResetReminderUI() {
   const fillEl = document.getElementById('reset-reminder-progress-fill');
   if (!box || !valueEl || !detailEl || !fillEl) return;
 
-  const importedAtRaw = localStorage.getItem(getImportDateKey(state.selectedAccountUsername));
+  const importedAtRaw = storageGet(getImportDateKey(state.selectedAccountUsername));
 
   if (!importedAtRaw) {
     box.classList.remove('overdue');
