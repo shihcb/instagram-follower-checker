@@ -1102,12 +1102,10 @@ function animateResultsExits(listEl, previousRows) {
   leaving.forEach(row => {
     const rect = previousRows.get(row);
     if (!rect || rect.bottom <= listRect.top || rect.top >= listRect.bottom) return;
-    row.getAnimations?.().forEach(anim => anim.cancel());
+    stopRowMotion(row);
     row.classList.remove('selected');
     row.classList.add('username-exit');
     row.dataset.renderExit = '1';
-    row.style.transition = 'none';
-    row.style.transform = '';
     row.style.position = 'absolute';
     row.style.top = `${(rect.top - listRect.top) / visualScale + listEl.scrollTop}px`;
     row.style.left = `${(rect.left - listRect.left) / visualScale + listEl.scrollLeft}px`;
@@ -1118,6 +1116,7 @@ function animateResultsExits(listEl, previousRows) {
     slideRowOut(row, rect.pitch, DURATION);
     setTimeout(() => row.remove(), DURATION);
   });
+  stepRowMotion();
 }
 
 function animateResultsReentry(listEl, previousTops, resumeTops = new Map(), { enter = true, rowSelector = '.user-row' } = {}) {
@@ -1131,7 +1130,7 @@ function animateResultsReentry(listEl, previousTops, resumeTops = new Map(), { e
   const visualScale = (listEl.getBoundingClientRect().height / listEl.offsetHeight) || 1;
 
   const listRect = listEl.getBoundingClientRect();
-  const shifted = [];
+  const offScreen = (top, height) => top + height <= listRect.top || top >= listRect.bottom;
   rows.forEach(row => {
     const previousTop = previousTops.get(row.dataset.username);
     const resumeTop = resumeTops.get(row.dataset.username);
@@ -1140,9 +1139,8 @@ function animateResultsReentry(listEl, previousTops, resumeTops = new Map(), { e
       const dy = (resumeTop - row.getBoundingClientRect().top) / visualScale;
       if (dy < 0) {
         slideRowIn(row, -dy, DURATION);
-      } else if (dy > 0 && typeof row.animate === 'function') {
-        row.animate([{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }],
-          { duration: DURATION, easing: ROW_SLIDE_EASING });
+      } else if (dy > 0) {
+        addRowShift(row, dy, DURATION);
       }
       return;
     }
@@ -1157,27 +1155,13 @@ function animateResultsReentry(listEl, previousTops, resumeTops = new Map(), { e
       slideRowIn(row, row.offsetHeight + marginBottom, DURATION);
       return;
     }
-    // Already here: FLIP from where it was to where it is now.
-    const dy = (previousTop - row.getBoundingClientRect().top) / visualScale;
-    if (Math.abs(dy) < 0.5) return;
-    row.style.transition = 'none';
-    row.style.transform = `translateY(${dy}px)`;
-    shifted.push(row);
+    // Already here: FLIP from where it was to where it is now (skipping
+    // rows that are off screen both before and after — nobody sees them).
+    const rect = row.getBoundingClientRect();
+    if (offScreen(previousTop, rect.height) && offScreen(rect.top, rect.height)) return;
+    addRowShift(row, (previousTop - rect.top) / visualScale, DURATION);
   });
-
-  if (shifted.length === 0) return;
-  void listEl.offsetWidth; // commit the inverted positions before animating away from them
-  shifted.forEach(row => {
-    row.style.transition = `transform ${DURATION}ms ${ROW_SLIDE_EASING}`;
-    row.style.transform = '';
-  });
-  setTimeout(() => {
-    shifted.forEach(row => {
-      if (row.isConnected && !row.classList.contains('username-exit')) {
-        row.style.transition = '';
-      }
-    });
-  }, DURATION);
+  stepRowMotion();
 }
 
 // -------------------------------------------------------------
@@ -2115,25 +2099,148 @@ function reindexUnfollowerRows() {
 // other.
 const ROW_SLIDE_EASING = 'cubic-bezier(0.4, 0, 0.2, 1)';
 
+// Row motion engine. Every row slide (out, in, and the shifts rows get when
+// a row above them leaves or arrives) and every list-height change is a
+// "piece" of motion with its own start time; one requestAnimationFrame loop
+// sums the active pieces for each element and writes the result as inline
+// transform / clip-path / height. Rapid deletes and stars therefore layer
+// cleanly: each click adds a piece, nothing in flight is cancelled or
+// restarted, and a leaving row keeps moving with its neighbours.
+// Done in JS rather than with layered Web Animations (composite: 'add'),
+// whose support/behaviour isn't reliable across Safari versions — on iOS
+// leaving rows lost their motion and lingered as fragments between the
+// rows sliding past them.
+function cubicBezierEasing(x1, y1, x2, y2) {
+  const sample = (a1, a2, t) => ((1 - 3 * a2 + 3 * a1) * t + (3 * a2 - 6 * a1)) * t * t + 3 * a1 * t;
+  const slope = (a1, a2, t) => 3 * (1 - 3 * a2 + 3 * a1) * t * t + 2 * (3 * a2 - 6 * a1) * t + 3 * a1;
+  return (x) => {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    let t = x;
+    for (let i = 0; i < 8; i++) {
+      const err = sample(x1, x2, t) - x;
+      const d = slope(x1, x2, t);
+      if (Math.abs(err) < 1e-5 || Math.abs(d) < 1e-6) break;
+      t -= err / d;
+    }
+    t = Math.min(1, Math.max(0, t));
+    return sample(y1, y2, t);
+  };
+}
+const rowEase = cubicBezierEasing(0.4, 0, 0.2, 1);
+
+const rowMotion = new Map(); // element -> its active motion pieces
+let rowMotionFrame = null;
+let rowMotionFlushQueued = false;
+
+// Applies newly added motion before the next paint (so nothing shows a
+// frame at its unshifted spot), batched: a re-render that shifts hundreds
+// of rows applies them all once, not once per row.
+function queueRowMotionFlush() {
+  if (rowMotionFlushQueued) return;
+  rowMotionFlushQueued = true;
+  queueMicrotask(() => {
+    rowMotionFlushQueued = false;
+    stepRowMotion();
+  });
+}
+
+// `kind`: what the engine will drive on el — 'transform' (row position +
+// clip) or 'height'. A stylesheet transition on that property (list 3's
+// rows have `transition: all`) would lag every frame's value behind, so
+// it's turned off while moving and restored after. Only for the driven
+// property: the submenu panel's own opacity/transform open-close fade must
+// keep working while the engine animates its height.
+function motionOf(el, kind = 'transform') {
+  let m = rowMotion.get(el);
+  if (!m) {
+    m = { shifts: [], heightShifts: [], heightTarget: null, heightExtra: 0, slide: null, savedTransition: null };
+    rowMotion.set(el, m);
+  }
+  if (m.savedTransition === null) {
+    const tp = getComputedStyle(el).transitionProperty || '';
+    const driven = kind === 'height' ? /\b(all|height)\b/ : /\b(all|transform|clip-path)\b/;
+    if (driven.test(tp)) {
+      m.savedTransition = el.style.transition;
+      el.style.transition = 'none';
+    }
+  }
+  return m;
+}
+
+function motionProgress(piece, now) {
+  return Math.min(1, Math.max(0, (now - piece.start) / piece.duration));
+}
+
+function stepRowMotion(fromFrame = false) {
+  if (fromFrame) rowMotionFrame = null;
+  const now = performance.now();
+  rowMotion.forEach((m, el) => {
+    m.shifts = m.shifts.filter(p => motionProgress(p, now) < 1);
+    m.heightShifts = m.heightShifts.filter(p => motionProgress(p, now) < 1);
+
+    let ty = 0;
+    m.shifts.forEach(p => { ty += p.offset * (1 - rowEase(motionProgress(p, now))); });
+    let clip = 0;
+    let slideActive = false;
+    if (m.slide) {
+      const raw = motionProgress(m.slide, now);
+      const e = rowEase(raw);
+      if (m.slide.dir === 'out') {
+        ty -= m.slide.distance * e;
+        clip = m.slide.distance * e;
+        // Stays applied (fully slid out) until the row is removed.
+        slideActive = el.isConnected || raw < 1;
+      } else {
+        ty -= m.slide.distance * (1 - e);
+        clip = m.slide.distance * (1 - e);
+        slideActive = raw < 1;
+        if (!slideActive) m.slide = null;
+      }
+    }
+
+    el.style.transform = Math.abs(ty) > 0.01 ? `translateY(${ty}px)` : '';
+    const clipValue = clip > 0.01 ? `inset(${clip}px 0px 0px 0px)` : '';
+    el.style.clipPath = clipValue;
+    el.style.webkitClipPath = clipValue;
+
+    if (m.heightTarget !== null) {
+      let dh = 0;
+      m.heightShifts.forEach(p => { dh += p.offset * (1 - rowEase(motionProgress(p, now))); });
+      el.style.height = `${m.heightTarget + dh - m.heightExtra}px`;
+    }
+
+    if (!m.shifts.length && !m.heightShifts.length && !slideActive) {
+      if (m.savedTransition !== null) el.style.transition = m.savedTransition;
+      rowMotion.delete(el);
+    }
+  });
+  // One frame callback at a time; an immediate apply (queueRowMotionFlush)
+  // leaves an already-scheduled one in place.
+  if (rowMotion.size > 0 && rowMotionFrame === null) {
+    rowMotionFrame = requestAnimationFrame(() => stepRowMotion(true));
+  }
+}
+
 function slideRowOut(rowEl, distance, duration) {
-  if (typeof rowEl.animate !== 'function') return;
-  // Transform layered on top of any shift the row is already doing (see
-  // addRowShift), so it keeps moving with its neighbours; the clip is its
-  // own animation since clip-path can't be layered.
-  rowEl.animate([{ transform: 'translateY(0px)' }, { transform: `translateY(${-distance}px)` }],
-    { duration, easing: ROW_SLIDE_EASING, fill: 'forwards', composite: SUPPORTS_ADDITIVE_ANIMATION ? 'add' : 'replace' });
-  rowEl.animate([
-    { clipPath: 'inset(0px 0px 0px 0px)', webkitClipPath: 'inset(0px 0px 0px 0px)' },
-    { clipPath: `inset(${distance}px 0px 0px 0px)`, webkitClipPath: `inset(${distance}px 0px 0px 0px)` }
-  ], { duration, easing: ROW_SLIDE_EASING, fill: 'forwards' });
+  motionOf(rowEl).slide = { dir: 'out', distance, start: performance.now(), duration };
+  queueRowMotionFlush();
 }
 
 function slideRowIn(rowEl, distance, duration) {
-  if (typeof rowEl.animate !== 'function') return;
-  rowEl.animate([
-    { transform: `translateY(${-distance}px)`, clipPath: `inset(${distance}px 0px 0px 0px)`, webkitClipPath: `inset(${distance}px 0px 0px 0px)` },
-    { transform: 'translateY(0)', clipPath: 'inset(0px 0px 0px 0px)', webkitClipPath: 'inset(0px 0px 0px 0px)' }
-  ], { duration, easing: ROW_SLIDE_EASING });
+  motionOf(rowEl).slide = { dir: 'in', distance, start: performance.now(), duration };
+  queueRowMotionFlush();
+}
+
+// Drops all motion from el and clears what it wrote.
+function stopRowMotion(el) {
+  const m = rowMotion.get(el);
+  if (!m) return;
+  if (m.savedTransition !== null) el.style.transition = m.savedTransition;
+  el.style.transform = '';
+  el.style.clipPath = '';
+  el.style.webkitClipPath = '';
+  rowMotion.delete(el);
 }
 
 // A list 3 row that starts leaving stops counting straight away: the
@@ -2146,53 +2253,27 @@ function onRowExitStarted(rowEl) {
   reindexUnfollowerRows();
 }
 
-// Whether this browser can layer Web Animations on top of each other
-// (composite: 'add'). Used so rapid removals each add their own motion on
-// top of the ones still running rather than cancelling and restarting
-// them — see exitListRow.
-const SUPPORTS_ADDITIVE_ANIMATION = (() => {
-  try {
-    const probe = document.createElement('div');
-    const anim = probe.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 1, composite: 'add' });
-    const ok = !!anim.effect && anim.effect.composite === 'add';
-    anim.cancel();
-    return ok;
-  } catch (e) {
-    return false;
-  }
-})();
-
-// Slides el from `offset` px back to where it is, on top of any slide it's
-// already doing. Several overlapping removals therefore sum into one
-// continuous motion: nothing is cancelled and restarted mid-flight, which
-// made rows stall and lurch on every click when deleting quickly.
+// Slides el from `offset` px back to where it is, on top of anything it's
+// already doing (see the row motion engine above).
 function addRowShift(el, offset, duration) {
-  if (Math.abs(offset) < 0.5 || typeof el.animate !== 'function') return;
-  if (SUPPORTS_ADDITIVE_ANIMATION) {
-    el.animate([{ transform: `translateY(${offset}px)` }, { transform: 'translateY(0px)' }],
-      { duration, easing: ROW_SLIDE_EASING, composite: 'add' });
-  } else {
-    el.animate([{ transform: `translateY(${offset}px)` }, { transform: 'translateY(0px)' }],
-      { duration, easing: ROW_SLIDE_EASING });
-  }
+  if (Math.abs(offset) < 0.5) return;
+  motionOf(el).shifts.push({ offset, start: performance.now(), duration });
+  queueRowMotionFlush();
 }
 
 // Sets el's height to `targetPx` (border-box) and animates the change from
-// `targetPx + offset`, likewise layered on top of any height change already
-// in flight.
+// `targetPx + offset`, likewise on top of any height change in flight.
 function setHeightWithShift(el, targetPx, offset, duration) {
   const cs = getComputedStyle(el);
   const extra = cs.boxSizing === 'border-box' ? 0
     : parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
-  el.style.height = `${targetPx - extra}px`;
-  if (Math.abs(offset) < 0.5 || typeof el.animate !== 'function') return;
-  if (SUPPORTS_ADDITIVE_ANIMATION) {
-    el.animate([{ height: `${offset}px` }, { height: '0px' }],
-      { duration, easing: ROW_SLIDE_EASING, composite: 'add' });
-  } else {
-    el.animate([{ height: `${targetPx + offset - extra}px` }, { height: `${targetPx - extra}px` }],
-      { duration, easing: ROW_SLIDE_EASING });
+  const m = motionOf(el, 'height');
+  m.heightTarget = targetPx;
+  m.heightExtra = extra;
+  if (Math.abs(offset) >= 0.5) {
+    m.heightShifts.push({ offset, start: performance.now(), duration });
   }
+  queueRowMotionFlush();
 }
 
 // The height (border-box) a row container takes when it just hugs the rows
@@ -2228,12 +2309,12 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   // after sliding back in). Shifts it's doing because of *other* rows'
   // removals are layered animations and keep running, so it stays exactly
   // in step with its neighbours while it leaves.
-  rowEl.style.transition = '';
-  rowEl.style.transform = '';
-  if (typeof rowEl.getAnimations === 'function') {
-    rowEl.getAnimations().forEach(anim => {
-      if (!anim.effect || anim.effect.composite !== 'add') anim.cancel();
-    });
+  const motion = rowMotion.get(rowEl);
+  if (motion && motion.slide && motion.slide.dir === 'in') {
+    const now = performance.now();
+    const left = motion.slide.distance * (1 - rowEase(motionProgress(motion.slide, now)));
+    motion.slide = null;
+    if (left > 0.5) motion.shifts.push({ offset: -left, start: now, duration: 800 });
   }
 
   // Slide distance: one full row pitch (its height plus the gap below it),
@@ -2304,20 +2385,20 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   rowEl.classList.add('username-exit');
   slideRowOut(rowEl, exitDistance, DURATION);
   onRowExitStarted(rowEl);
+  stepRowMotion(); // apply now, so anything measuring right after sees it
 
   setTimeout(() => {
     rowEl.remove();
     // Only the last overlapping removal to finish hands the list its
     // natural height back — by then every layered shrink has played out.
     if (shrinkBox && releaseExitLock(container)) {
-      // End the layered height animations first: this timer can fire a
-      // frame before the last one's own end, and a layered height on top of
-      // 'auto' collapses the list for that frame (the panel flickered down
-      // to just its header, then back).
-      container.getAnimations().forEach(anim => {
-        if (anim.effect && typeof anim.effect.getKeyframes === 'function'
-            && anim.effect.getKeyframes().some(k => 'height' in k)) anim.cancel();
-      });
+      // Stop driving its height first, so the next frame doesn't write a
+      // fixed height back over 'auto'.
+      const containerMotion = rowMotion.get(container);
+      if (containerMotion) {
+        containerMotion.heightShifts = [];
+        containerMotion.heightTarget = null;
+      }
       container.style.height = '';
     }
     onComplete();
