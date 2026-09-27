@@ -727,7 +727,10 @@ function getUnfollowedEmptyHtml(animate) {
 // .preview-toggle's opacity transition, .occupied-dot.on) — the label used
 // to be rebuilt on every change, so the dot just appeared or vanished.
 function setToggleOccupied(toggleBtn, occupied) {
-  toggleBtn.disabled = !occupied;
+  // Dimmed via .is-empty rather than `disabled`: a disabled button ignores
+  // taps, so an open empty panel couldn't be closed from its own button.
+  toggleBtn.classList.toggle('is-empty', !occupied);
+  toggleBtn.setAttribute('aria-disabled', occupied ? 'false' : 'true');
   const labelEl = toggleBtn.querySelector('.btn-label-content');
   if (!labelEl) return;
   let dot = labelEl.querySelector('.occupied-dot');
@@ -3159,6 +3162,9 @@ function updateInstructionsStepUI() {
 
   // Toggle preview unfollowed list dropdown
   elements.togglePreviewUnfollowed.addEventListener('click', (e) => {
+    // Empty list: nothing to open — a tap only closes its panel if open.
+    if (elements.togglePreviewUnfollowed.classList.contains('is-empty') &&
+        !elements.listUnfollowed.classList.contains('show')) return;
     e.stopPropagation();
     const isShown = elements.listUnfollowed.classList.toggle('show');
     elements.togglePreviewUnfollowed.classList.toggle('active', isShown);
@@ -3175,6 +3181,8 @@ function updateInstructionsStepUI() {
 
   // Toggle preview starred list dropdown
   elements.togglePreviewStarred.addEventListener('click', (e) => {
+    if (elements.togglePreviewStarred.classList.contains('is-empty') &&
+        !elements.listStarred.classList.contains('show')) return;
     e.stopPropagation();
     const isShown = elements.listStarred.classList.toggle('show');
     elements.togglePreviewStarred.classList.toggle('active', isShown);

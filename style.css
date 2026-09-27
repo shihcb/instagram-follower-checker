@@ -819,13 +819,25 @@ button:disabled *,
   -webkit-tap-highlight-color: transparent !important;
 }
 
-.preview-toggle:disabled {
-  opacity: 0.45 !important;
+/* Nothing to open: not-allowed, unless its panel is open (tap closes it). */
+.preview-toggle.is-empty:not(.active),
+.preview-toggle.is-empty:not(.active) * {
   cursor: not-allowed !important;
+}
+
+/* .is-empty: the unfollowed/starred toggles when their list is empty. Same
+   dimmed look as disabled, but still tappable — a tap on it closes its
+   open (empty) panel (see setToggleOccupied in script.js). */
+.preview-toggle:disabled,
+.preview-toggle.is-empty {
+  opacity: 0.45 !important;
   background-color: var(--input-bg) !important;
   background: var(--input-bg) !important;
   border-color: var(--input-border) !important;
   color: var(--text-muted) !important;
+}
+.preview-toggle:disabled {
+  cursor: not-allowed !important;
 }
 
 .preview-toggle .chevron-icon {
@@ -1502,7 +1514,8 @@ body.hide-shortcuts #keyboard-hints {
   stroke: currentColor !important;
 }
 
-[data-theme="dark"] .preview-toggle:disabled {
+[data-theme="dark"] .preview-toggle:disabled,
+[data-theme="dark"] .preview-toggle.is-empty {
   background-color: rgba(255, 255, 255, 0.03) !important;
   background: rgba(255, 255, 255, 0.03) !important;
   border-color: rgba(255, 255, 255, 0.07) !important;
