@@ -3547,6 +3547,10 @@ body.auth-logged-out #auth-form-view {
 .hero-right {
   display: flex;
   justify-content: center;
+  /* The card keeps its own height (not stretched): while switching log in /
+     sign up this box holds the taller tab's height (see switchTab), so the
+     card resizes inside it and nothing below it moves. */
+  align-items: flex-start;
   width: 100%;
 }
 
@@ -4483,14 +4487,16 @@ body.auth-logged-out.login-leaving .auth-dropdown {
   pointer-events: none !important;
 }
 
-/* The app's own header title/badge stay out of sight until the login page
+/* (.header-logo h1 — the app's title. Not `.app-header h1`: the login
+   page sits inside .app-header too, and that also hid its headline.)
+   The app's own header title/badge stay out of sight until the login page
    has gone (they showed through it, overlapping its header), then fade in
    with the rest of the app. */
-body.login-leaving .app-header h1,
+body.login-leaving .header-logo h1,
 body.login-leaving #auth-btn {
   opacity: 0 !important;
 }
-body.login-entering .app-header h1,
+body.login-entering .header-logo h1,
 body.login-entering #auth-btn {
   animation: login-header-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -4501,7 +4507,7 @@ body.login-entering #auth-btn {
 
 /* Logging out, the reverse: the app's header title/profile button fade
    out with the app (playAppExit in script.js). */
-body.logout-leaving .app-header h1,
+body.logout-leaving .header-logo h1,
 body.logout-leaving #auth-btn {
   opacity: 0 !important;
   transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;

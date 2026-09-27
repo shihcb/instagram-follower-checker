@@ -4510,6 +4510,13 @@ function initAuth() {
     if (card) {
       fromHeight = card.offsetHeight; // mid-resize if a previous switch is still animating
       endHeight = measureAuthCardHeightFor(signup);
+      // Only the card resizes: its container keeps the taller tab's height,
+      // so the page below doesn't slide up and down with it (it used to).
+      const holder = card.parentElement;
+      if (holder) {
+        const tallest = Math.max(endHeight, measureAuthCardHeightFor(!signup));
+        holder.style.minHeight = `${tallest}px`;
+      }
       card.style.transition = 'none';
       card.style.height = fromHeight + 'px';
       card.style.overflow = 'hidden';
@@ -4572,6 +4579,12 @@ function initAuth() {
       }
     }, 260);
   }
+
+  // Heights change with the width, so re-measure on the next switch.
+  window.addEventListener('resize', () => {
+    const holder = elements.authFormView && elements.authFormView.parentElement;
+    if (holder) holder.style.minHeight = '';
+  });
 
   elements.tabLogin.addEventListener('click', (e) => {
     e.preventDefault();
