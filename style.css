@@ -3983,15 +3983,49 @@ body:not(.auth-logged-out) #theme-toggle {
 }
 
 .auth-tab.active {
-  background-color: #ffffff;
   color: #000000;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 
-              0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 [data-theme="dark"] .auth-tab.active {
-  background-color: #27272a;
   color: #ffffff;
+}
+
+/* The white (dark: zinc) pill behind the active tab is one element that
+   slides between the two tabs, instead of each tab painting its own
+   background and the highlight jumping across. Sized to one tab: the bar
+   has 3px padding and a 4px gap between its two equal tabs. Same slow,
+   smooth curve and duration as the login card's height change when
+   switching (switchTab in script.js). */
+.auth-tabs {
+  position: relative;
+}
+
+.auth-tab {
+  position: relative;
+  z-index: 1;
+  transition: color 0.55s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.auth-tab-indicator {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 10px) / 2);
+  border-radius: 7px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08),
+              0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: transform 0.55s cubic-bezier(0.65, 0, 0.35, 1);
+  pointer-events: none;
+}
+
+.auth-tabs.signup-active .auth-tab-indicator {
+  transform: translateX(calc(100% + 4px));
+}
+
+[data-theme="dark"] .auth-tab-indicator {
+  background-color: #27272a;
 }
 
 /* Forms */

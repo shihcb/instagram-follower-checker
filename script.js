@@ -4065,7 +4065,7 @@ function initAuth() {
 
   // Wire up auth layout UI tab triggers with a smooth cross-fade transition
   // The tab a click asked for most recently — isSigningUp itself only
-  // flips 150ms later, so comparing against it let a quick second click
+  // flips once the form has slid out, so comparing against it let a quick second click
   // (sign up, then straight back to log in) get ignored and leave the
   // wrong tab showing.
   let requestedSigningUp = null;
@@ -4085,9 +4085,22 @@ function initAuth() {
       card.style.overflow = 'hidden';
     }
 
-    // Add fade-out state
-    elements.authForm.style.opacity = '0';
-    elements.authForm.style.transform = 'translateY(6px)';
+    // The tab switcher's pill and the tab labels move right away — the pill
+    // glides across (see .auth-tab-indicator in style.css).
+    elements.tabLogin.classList.toggle('active', !signup);
+    elements.tabSignup.classList.toggle('active', signup);
+    const tabsBar = elements.tabLogin.parentElement;
+    if (tabsBar) tabsBar.classList.toggle('signup-active', signup);
+
+    // The form slides out towards the side the pill is leaving from, and
+    // the other form slides in from the opposite side — a slow sideways
+    // slide in the same direction as the pill, with the site's easing.
+    const form = elements.authForm;
+    const SLIDE = 28;
+    const outX = signup ? -SLIDE : SLIDE;
+    form.style.transition = 'opacity 0.26s cubic-bezier(0.4, 0, 1, 1), transform 0.26s cubic-bezier(0.4, 0, 1, 1)';
+    form.style.opacity = '0';
+    form.style.transform = `translateX(${outX}px)`;
 
     setTimeout(() => {
       // A later click already asked for the other tab — let it win.
@@ -4095,21 +4108,28 @@ function initAuth() {
       requestedSigningUp = null;
       isSigningUp = signup;
       if (signup) {
-        elements.tabLogin.classList.remove('active');
-        elements.tabSignup.classList.add('active');
         elements.authSubmitBtn.textContent = 'sign up';
         if (elements.btnForgotPassword) elements.btnForgotPassword.classList.add('hidden');
       } else {
-        elements.tabLogin.classList.add('active');
-        elements.tabSignup.classList.remove('active');
         elements.authSubmitBtn.textContent = 'log in';
         if (elements.btnForgotPassword) elements.btnForgotPassword.classList.remove('hidden');
       }
       clearAuthAlerts();
 
-      // Fade back in
-      elements.authForm.style.opacity = '1';
-      elements.authForm.style.transform = 'translateY(0)';
+      // Slide the new form in from the other side.
+      form.style.transition = 'none';
+      form.style.transform = `translateX(${-outX}px)`;
+      void form.offsetWidth; // commit the start position before sliding from it
+      form.style.transition = 'opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
+      form.style.opacity = '1';
+      form.style.transform = 'translateX(0)';
+      setTimeout(() => {
+        if (requestedSigningUp === null) {
+          form.style.transition = '';
+          form.style.transform = '';
+          form.style.opacity = '';
+        }
+      }, 520);
 
       // Measure the new natural height, then animate from the locked
       // start height to it (a slow, deliberate slide).
@@ -4148,7 +4168,7 @@ function initAuth() {
           setTimeout(finish, 650); // in case the transition gets interrupted
         }
       }
-    }, 150);
+    }, 260);
   }
 
   elements.tabLogin.addEventListener('click', (e) => {
@@ -4224,7 +4244,6 @@ function initAuth() {
       if (error) {
         showAuthError(error.message);
       } else {
-        showAuthSuccess('login successful!');
         if (document.activeElement && typeof document.activeElement.blur === 'function') {
           document.activeElement.blur();
         }
