@@ -772,7 +772,7 @@ button:disabled *,
   -ms-user-select: none !important;
   user-select: none !important;
   -webkit-touch-callout: none !important;
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease !important;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.4s ease, box-shadow 0.25s ease, opacity 0.4s ease !important;
   background-color: var(--input-bg) !important;
   background: var(--input-bg) !important;
   border: 1px solid var(--input-border) !important;
@@ -1129,14 +1129,29 @@ button:disabled *,
 
 .occupied-dot {
   display: inline-block !important;
-  width: 6px !important;
   height: 6px !important;
   border-radius: 50% !important;
   background-color: #10b981 !important;
   box-shadow: 0 0 6px rgba(16, 185, 129, 0.5) !important;
-  margin-left: 5px !important;
   vertical-align: middle !important;
   flex-shrink: 0 !important;
+  /* Always in the label; .on (list not empty) grows it in with a small
+     pop, and it shrinks away when the list empties — the label eases
+     over to make/give back its room instead of jumping. */
+  width: 0 !important;
+  margin-left: 0 !important;
+  opacity: 0;
+  transform: scale(0);
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              margin-left 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.3s ease,
+              transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.occupied-dot.on {
+  width: 6px !important;
+  margin-left: 5px !important;
+  opacity: 1;
+  transform: scale(1);
 }
 
 @container card-unfollowers (max-width: 349px) {
@@ -4571,13 +4586,13 @@ body.auth-logged-out #auth-form-view.smooth-exit {
   justify-content: center;
 }
 
-/* Slow, bouncy fade-in for the empty-state message when the user removes
-   the panel's last row while it's open. */
+/* Smooth fade-in for the empty-state message when the user removes the
+   panel's last row while it's open — eases up into place without the
+   overshoot (it used to bounce past its spot and grow past full size,
+   which read as a jump). */
 @keyframes dropdown-empty-enter {
-  0%   { opacity: 0; transform: translateY(10px) scale(0.9); }
-  55%  { opacity: 1; transform: translateY(-3px) scale(1.04); }
-  78%  { transform: translateY(1px) scale(0.99); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* A single-row panel is slightly shorter than the empty state's natural
@@ -4590,7 +4605,7 @@ body.auth-logged-out #auth-form-view.smooth-exit {
 }
 
 .dropdown-empty-message.empty-enter {
-  animation: dropdown-empty-enter 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: dropdown-empty-enter 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .auth-settings-section {

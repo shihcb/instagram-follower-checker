@@ -722,6 +722,23 @@ function getUnfollowedEmptyHtml(animate) {
     `;
 }
 
+// The unfollowed/starred toggle's empty / not-empty status: enabled with
+// the green dot, or dimmed. Both change with an animation (style.css:
+// .preview-toggle's opacity transition, .occupied-dot.on) — the label used
+// to be rebuilt on every change, so the dot just appeared or vanished.
+function setToggleOccupied(toggleBtn, occupied) {
+  toggleBtn.disabled = !occupied;
+  const labelEl = toggleBtn.querySelector('.btn-label-content');
+  if (!labelEl) return;
+  let dot = labelEl.querySelector('.occupied-dot');
+  if (!dot) {
+    dot = document.createElement('span');
+    dot.className = 'occupied-dot';
+    labelEl.appendChild(dot);
+  }
+  dot.classList.toggle('on', occupied);
+}
+
 function updateUnfollowedUI(enteringUsername) {
   // Only the no-account view saves from here (to its own key — see
   // saveCurrentAccountData). This used to overwrite the merged all-accounts
@@ -754,10 +771,8 @@ function updateUnfollowedUI(enteringUsername) {
   // not for every later redraw while the panel stays open and empty.
   const wasAlreadyEmpty = !!listEl.querySelector('.dropdown-empty-message');
 
-  const labelEl = toggleBtn.querySelector('.btn-label-content');
   if (listData.length > 0) {
-    toggleBtn.removeAttribute('disabled');
-    if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span><span class="occupied-dot"></span>`;
+    setToggleOccupied(toggleBtn, true);
 
     // Render elements with a scroll container below
     listEl.innerHTML = `
@@ -794,8 +809,7 @@ function updateUnfollowedUI(enteringUsername) {
       if (scrollItems) animateResultsReentry(scrollItems, previousRowTops, new Map(), { rowSelector: '.parsed-item' });
     }
   } else {
-    toggleBtn.setAttribute('disabled', 'true');
-    if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">unfollowed</span><span class="btn-text-short">unflwd</span><span class="btn-text-compact">unflwd</span>`;
+    setToggleOccupied(toggleBtn, false);
     // Used to force-close the panel here the instant the list emptied
     // out, even if the user still had it open and was looking at it —
     // surprising and unwanted. Now it just shows an empty state and
@@ -854,10 +868,8 @@ function updateStarredUI(enteringUsername) {
   // not for every later redraw while the panel stays open and empty.
   const wasAlreadyEmpty = !!listEl.querySelector('.dropdown-empty-message');
 
-  const labelEl = toggleBtn.querySelector('.btn-label-content');
   if (listData.length > 0) {
-    toggleBtn.removeAttribute('disabled');
-    if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span><span class="occupied-dot"></span>`;
+    setToggleOccupied(toggleBtn, true);
 
     // Render elements (same layout as parsed-list)
     listEl.innerHTML = `
@@ -900,8 +912,7 @@ function updateStarredUI(enteringUsername) {
       if (scrollItems) animateResultsReentry(scrollItems, previousRowTops, new Map(), { rowSelector: '.parsed-item' });
     }
   } else {
-    toggleBtn.setAttribute('disabled', 'true');
-    if (labelEl) labelEl.innerHTML = `<span class="btn-text-full">starred</span><span class="btn-text-short">starred</span><span class="btn-text-compact">star</span>`;
+    setToggleOccupied(toggleBtn, false);
     // Used to force-close the panel here the instant the list emptied
     // out, even if the user still had it open and was looking at it —
     // surprising and unwanted. Now it just shows an empty state and
@@ -3994,6 +4005,56 @@ function updateInstructionsStepUI() {
 // Supabase Cloud Authentication & Data Sync (Option B)
 // -------------------------------------------------------------
 let currentUser = null;
+// Set while the user's own "log out" is in progress — any other report of
+// no session is treated as temporary (see handleAuthChange).
+let userRequestedLogout = false;
+
+// The sign-in Supabase keeps on the device (persistSession), if any.
+function storedAuthSession() {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key || !/^sb-.+-auth-token$/.test(key)) continue;
+      const value = JSON.parse(localStorage.getItem(key) || 'null');
+      const session = value && (value.currentSession || value);
+      if (session && session.refresh_token && session.user && session.user.id) return session;
+    }
+  } catch (e) { /* unreadable: treat as none */ }
+  return null;
+}
+
+// Keeps retrying the token refresh (with backoff, and whenever the phone
+// comes back online or the app is reopened) until it works — Supabase then
+// reports the session again — or Supabase discards the sign-in for good
+// (it then reports a sign-out, with nothing left on the device).
+let sessionRetryActive = false;
+function keepSessionThroughOutage() {
+  if (sessionRetryActive || !supabaseClient) return;
+  sessionRetryActive = true;
+  let delay = 3000;
+  let timer = null;
+  const stop = () => {
+    sessionRetryActive = false;
+    clearTimeout(timer);
+    window.removeEventListener('online', attempt);
+    document.removeEventListener('visibilitychange', onVisible);
+  };
+  async function attempt() {
+    clearTimeout(timer);
+    if (!storedAuthSession() || userRequestedLogout) return stop();
+    try {
+      const { data } = await supabaseClient.auth.refreshSession();
+      if (data && data.session) return stop();
+    } catch (err) { /* network — try again */ }
+    if (!storedAuthSession()) return stop();
+    timer = setTimeout(attempt, delay);
+    delay = Math.min(delay * 2, 60000);
+  }
+  const onVisible = () => { if (document.visibilityState === 'visible') attempt(); };
+  window.addEventListener('online', attempt);
+  document.addEventListener('visibilitychange', onVisible);
+  timer = setTimeout(attempt, 1000);
+}
 let isSigningUp = false;
 let isInitialAuthCheck = true;
 
@@ -4239,7 +4300,18 @@ function initAuth() {
   }
 
   // Subscribe to auth state updates
-  supabaseClient.auth.onAuthStateChange(async (event, session) => {
+  // Handled outside Supabase's callback, one event at a time: the callback
+  // can run while Supabase holds its auth lock, and cloud calls made from
+  // inside it (downloading the user's data) wait for that same lock —
+  // Supabase's docs warn this can deadlock, stalling token refreshes.
+  let authQueue = Promise.resolve();
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    setTimeout(() => {
+      authQueue = authQueue.then(() => handleAuthChange(event, session));
+    }, 0);
+  });
+
+  async function handleAuthChange(event, session) {
     try {
       if (document.activeElement && typeof document.activeElement.blur === 'function') {
         document.activeElement.blur();
@@ -4265,6 +4337,10 @@ function initAuth() {
 
         // Avoid list and layout flickering on focus/token refresh by skipping re-renders for the same user
         if (isSameUser && !isInitialAuthCheck) {
+          // A token refresh after a failed start (see keepSessionThroughOutage):
+          // finish loading the cloud data / upload what was saved meanwhile.
+          if (!cloudReady && pendingCloudRetry) pendingCloudRetry();
+          else if (cloudReady && storageGet(CLOUD_DIRTY_KEY) === currentUser.id) pushToCloud();
           return;
         }
 
@@ -4297,7 +4373,9 @@ function initAuth() {
           cloudReady = true;
         } catch (err) {
           console.error('Error loading cloud data:', err);
-          const acc = state.selectedAccountUsername;
+          // The account last chosen on this device ('' = none on purpose).
+          const lastRaw = storageGet('last_active_instagram_account');
+          const acc = (lastRaw !== null ? lastRaw : storageGet('selected_instagram_account')) || null;
           const exists = acc && state.instagramAccounts.some(a => a.originalUsername.toLowerCase() === acc.toLowerCase());
           loadAccountData(exists ? acc : null);
           if (localIsThisUsers) {
@@ -4354,6 +4432,20 @@ function initAuth() {
         // never seen — playAppEntrance brings its rows in instead.)
         finalizeLogin();
       } else {
+        // No session reported, but the user didn't log out and their saved
+        // sign-in is still on the device: Supabase couldn't refresh it just
+        // now (offline, or the phone just woke up), and says so this way at
+        // startup. That used to log the user out — and clear their data on
+        // the device. Stay logged in with it and keep retrying; only a
+        // sign-in Supabase itself has discarded (really expired or revoked)
+        // ends the session.
+        const stored = userRequestedLogout ? null : storedAuthSession();
+        if (stored) {
+          keepSessionThroughOutage();
+          if (!currentUser) await handleAuthChange(event, stored);
+          return;
+        }
+        userRequestedLogout = false;
         currentUser = null;
         cloudReady = false;
         document.documentElement.classList.remove('is-logged-in');
@@ -4405,10 +4497,17 @@ function initAuth() {
           applyGuestPreviewLock(false);
           cancelAppExit(500);
           if (elements.authPassword) elements.authPassword.value = '';
-          const body = document.body;
-          body.classList.add('login-leaving'); // start fully faded out…
-          void body.offsetWidth;
-          body.classList.remove('login-leaving'); // …and fade in (the overlay's own opacity transition)
+          // The login's fade-out played backwards: same length, same even
+          // ease. (This used the login page's own opacity transition, whose
+          // very fast ease-out is ~80% done in the first tenth of a second —
+          // it read as the page snapping back in.) Animated on the page's
+          // content: the overlay itself has a forced opacity that would
+          // override an animation.
+          const landing = document.getElementById('landing-page-container');
+          if (landing && typeof landing.animate === 'function') {
+            landing.animate([{ opacity: 0 }, { opacity: 1 }],
+              { duration: 500, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' });
+          }
         } else {
           clearData();
           applyGuestPreviewLock(false);
@@ -4419,7 +4518,7 @@ function initAuth() {
     } finally {
       isInitialAuthCheck = false;
     }
-  });
+  }
 
   // Wire up auth layout UI tab triggers with a smooth cross-fade transition
   // The tab a click asked for most recently — isSigningUp itself only
@@ -4718,9 +4817,13 @@ function initAuth() {
       await upload;
       if (supabaseClient) {
         try {
-          await supabaseClient.auth.signOut();
+          userRequestedLogout = true;
+          // Only this device: the default ('global') also signed the user
+          // out everywhere else they were logged in.
+          await supabaseClient.auth.signOut({ scope: 'local' });
         } catch (err) {
           console.error('Error signing out:', err);
+          userRequestedLogout = false;
           cancelAppExit(); // still signed in: bring the app back
           if (elements.authDropdown) elements.authDropdown.classList.remove('show');
         }
@@ -4855,6 +4958,7 @@ function showAuthSuccess(msg) {
 // Loading the cloud data failed at login (offline) with nothing of this
 // user's on the device: try again when the connection is back or the app
 // is reopened.
+let pendingCloudRetry = null;
 function retryCloudLoadWhenOnline() {
   const retry = async () => {
     if (!currentUser || cloudReady) return cleanup();
@@ -4868,9 +4972,11 @@ function retryCloudLoadWhenOnline() {
   };
   const onVisible = () => { if (document.visibilityState === 'visible') retry(); };
   const cleanup = () => {
+    pendingCloudRetry = null;
     window.removeEventListener('online', retry);
     document.removeEventListener('visibilitychange', onVisible);
   };
+  pendingCloudRetry = retry;
   window.addEventListener('online', retry);
   document.addEventListener('visibilitychange', onVisible);
 }
