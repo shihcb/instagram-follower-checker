@@ -2859,6 +2859,27 @@ html.hide-shortcuts .account-chip-badge {
   transform: rotate(-45deg) !important;
 }
 
+/* The selected-row outline (and tilted arrow) marks where arrow-key /
+   Enter navigation is — a keyboard feature with no use on a touchscreen,
+   where tapping a row just left it outlined. Touch devices show a
+   selected row exactly like any other row. */
+@media (hover: none) and (pointer: coarse) {
+  .user-row.selected,
+  [data-theme="dark"] .user-row.selected {
+    border-color: var(--card-border) !important;
+    box-shadow: none !important;
+  }
+  .user-row.selected {
+    background-color: var(--card-bg) !important;
+  }
+  [data-theme="dark"] .user-row.selected {
+    background-color: transparent !important;
+  }
+  .user-row.selected .action-arrow {
+    transform: none !important;
+  }
+}
+
 
 
 @keyframes chip-fade-in {
