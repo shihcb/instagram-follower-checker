@@ -4097,6 +4097,45 @@ function playAppEntrance() {
   }
 }
 
+// Logging out: playAppEntrance in reverse, over the same time the login
+// page takes to fade out when logging in.
+const APP_EXIT_MS = 450;
+let appExitAnimations = [];
+function playAppExit() {
+  const grid = elements.appGrid;
+  const easing = 'cubic-bezier(0.4, 0, 0.2, 1)';
+  document.body.classList.add('logout-leaving');
+  if (grid && typeof grid.animate === 'function') {
+    appExitAnimations.push(grid.animate([
+      { opacity: 1, transform: 'none' },
+      { opacity: 0, transform: 'translateY(16px) scale(0.97)' }
+    ], { duration: APP_EXIT_MS, easing, fill: 'forwards' }));
+  }
+  // The profile menu (where "log out" was tapped) fades out quickly ahead
+  // of the app instead of closing at its own slower pace on top of it — it's
+  // see-through, and the two half-faded layers' text showed through each
+  // other.
+  const menu = elements.authDropdown;
+  if (menu && menu.classList.contains('show') && typeof menu.animate === 'function') {
+    appExitAnimations.push(menu.animate([{ opacity: 1 }, { opacity: 0 }],
+      { duration: 250, easing, fill: 'forwards' }));
+  } else if (menu) {
+    menu.classList.remove('show');
+  }
+}
+// Drops the exit's end state (hidden grid, hidden header) — once the
+// login page is up, or if signing out failed. `headerDelay`: keep the
+// app's header title/profile button hidden until the login page has faded
+// back in over them, so the two headers never show on top of each other.
+function cancelAppExit(headerDelay = 0) {
+  clearTimeout(cancelAppExit.timer);
+  const showHeader = () => document.body.classList.remove('logout-leaving');
+  if (headerDelay > 0) cancelAppExit.timer = setTimeout(showHeader, headerDelay);
+  else showHeader();
+  appExitAnimations.forEach(animation => animation.cancel());
+  appExitAnimations = [];
+}
+
 // Physically relocate the live app grid so it isn't trapped inside
 // #landing-page-container (which is display:none once logged in).
 function relocateAppGridForAuthState(isLoggedIn) {
@@ -4357,34 +4396,19 @@ function initAuth() {
         };
 
         if (!isInitialAuthCheck) {
-          // Smoothly fade out account chips and results list before clearing
-          const fadeDuration = 700;
-          const chipsList = elements.accountChipsList;
-          const resultsList = elements.listUnfollowers;
-
-          if (chipsList) {
-            // Apply bounce-out to all active chips with staggered delay
-            const chips = Array.from(chipsList.querySelectorAll('.account-chip'));
-            chips.forEach((chip, idx) => {
-              chip.style.animationDelay = `${idx * 40}ms`;
-              chip.classList.add('bounce-out');
-            });
-
-            chipsList.style.transition = `opacity ${fadeDuration}ms ease`;
-            chipsList.style.opacity = '0';
-          }
-          if (resultsList) {
-            resultsList.style.transition = `opacity ${fadeDuration}ms ease`;
-            resultsList.style.opacity = '0';
-          }
-          
-          setTimeout(() => {
-            clearData();
-            applyGuestPreviewLock(false);
-            // Reset inline styles so they don't interfere on next login
-            if (chipsList) chipsList.removeAttribute('style');
-            if (resultsList) resultsList.removeAttribute('style');
-          }, fadeDuration + 50);
+          // The app has already faded out (playAppExit). Swap in the guest
+          // demo right away — the preview used to show the user's own
+          // chips and usernames on the login page for a moment, then
+          // swap — and fade the login page in (the reverse of the login's
+          // fade-out); its card rises in with its usual entrance.
+          clearData();
+          applyGuestPreviewLock(false);
+          cancelAppExit(500);
+          if (elements.authPassword) elements.authPassword.value = '';
+          const body = document.body;
+          body.classList.add('login-leaving'); // start fully faded out…
+          void body.offsetWidth;
+          body.classList.remove('login-leaving'); // …and fade in (the overlay's own opacity transition)
         } else {
           clearData();
           applyGuestPreviewLock(false);
@@ -4667,28 +4691,28 @@ function initAuth() {
       document.activeElement.blur();
     }
     
-    const appGrid = document.querySelector('.app-grid');
-    if (appGrid) {
-      appGrid.classList.add('app-grid-logout-fade');
-    }
-    if (elements.authDropdown) {
-      elements.authDropdown.classList.remove('show');
-    }
+    // The login transition in reverse (see playAppEntrance): the app sinks
+    // and fades out, and the header title/profile button fade with it;
+    // then the login page fades in (the SIGNED_OUT branch of
+    // onAuthStateChange). This used to blur the app away while the header
+    // stayed, then cut to the login page.
+    playAppExit();
+    // Upload any batched changes while still signed in — alongside the
+    // animation rather than after it.
+    const upload = flushCloudPush().catch(err => console.error('Error syncing before sign out:', err));
 
     setTimeout(async () => {
-      // Upload any batched changes while still signed in.
-      try { await flushCloudPush(); } catch (err) { console.error('Error syncing before sign out:', err); }
+      await upload;
       if (supabaseClient) {
         try {
           await supabaseClient.auth.signOut();
         } catch (err) {
           console.error('Error signing out:', err);
+          cancelAppExit(); // still signed in: bring the app back
+          if (elements.authDropdown) elements.authDropdown.classList.remove('show');
         }
       }
-      if (appGrid) {
-        appGrid.classList.remove('app-grid-logout-fade');
-      }
-    }, 700);
+    }, APP_EXIT_MS);
   });
 
   // Handle Import Files Selection
