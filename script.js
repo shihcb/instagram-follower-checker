@@ -1077,13 +1077,20 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
     elements.emptyState.classList.add('hidden');
     keptExits.forEach(row => listEl.appendChild(row));
     if (animate) animateResultsExits(listEl, previousRows);
-    setTimeout(() => {
+    const hideWhenDone = () => {
+      // Rows still sliding out (their slides start on the next frame, so
+      // they can finish a little after 800ms): check again shortly.
+      if (listEl.querySelector('.user-row.username-exit')) {
+        setTimeout(hideWhenDone, 100);
+        return;
+      }
       // Nothing was put back in the meantime (by any render, including a
       // search that simply matches nothing).
       if (!listEl.querySelector('.user-row:not(.username-exit)')) {
         listEl.classList.add('hidden');
       }
-    }, 800);
+    };
+    setTimeout(hideWhenDone, 800);
   } else {
     elements.listUnfollowers.classList.add('hidden');
     elements.emptyState.classList.add('hidden');
@@ -1100,14 +1107,34 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
 // an extra shift (see the row motion engine) for how far that moved them,
 // on top of whatever they were already doing.
 function reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, renamedFrom, keptExits }) {
+  // Reads and writes are kept in separate passes: interleaving them (read a
+  // row's position, change its style, read the next…) forces a full layout
+  // per row — ~100ms for a few hundred rows, all of it before the first
+  // frame of the animation can paint.
   const DURATION = 800;
   const live = new Map();
   listEl.querySelectorAll('.user-row:not(.username-exit)').forEach(row => live.set(row.dataset.username, row));
-  if (getComputedStyle(listEl).position === 'static') listEl.style.position = 'relative';
+  const listIsStatic = getComputedStyle(listEl).position === 'static';
 
   const wanted = new Set(filtered.map(u => u.username));
-  const reused = new Set(filtered.filter(u => live.has(u.username)).map(u => u.username));
+  const renamedEls = new Set(renamedFrom.values());
 
+  // --- READ: where everything is before the change.
+  const listRect = listEl.getBoundingClientRect();
+  const visualScale = (listRect.height / listEl.offsetHeight) || 1;
+  const offScreen = (top, bottom) => bottom <= listRect.top || top >= listRect.bottom;
+  const before = new Map(); // row -> { top, visTop, visBottom, left, width, pitch }
+  live.forEach(row => {
+    const rect = row.getBoundingClientRect();
+    before.set(row, {
+      top: row.offsetTop, left: row.offsetLeft, width: row.offsetWidth,
+      visTop: rect.top, visBottom: rect.bottom,
+      pitch: row.offsetHeight + (parseFloat(getComputedStyle(row).marginBottom) || 0)
+    });
+  });
+
+  // --- WRITE: remove / pin / reorder / create.
+  if (listIsStatic) listEl.style.position = 'relative';
   // A row still sliding out because of an earlier change whose username is
   // back: drop it — a fresh row reverses in from where it was (resumeTops).
   listEl.querySelectorAll('.user-row.username-exit').forEach(row => {
@@ -1116,45 +1143,29 @@ function reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, rename
       row.remove();
     }
   });
-
-  // BEFORE: layout positions (transform-free) of every live row.
-  const oldTops = new Map();
-  live.forEach((row, name) => oldTops.set(name, row.offsetTop));
-
   // Rows leaving: pinned out of flow at their layout slot (their motion
-  // keeps going), then slid out like a deleted row. Rows that were edited
-  // into a new username (typing) are replaced without a slide.
-  const renamedEls = new Set(renamedFrom.values());
-  const listRect = listEl.getBoundingClientRect();
+  // keeps going), then slid out like a deleted row. Rows edited into a new
+  // username (typing), or off screen, just go.
   const leaving = [];
   live.forEach((row, name) => {
     if (wanted.has(name)) return;
-    const rect = row.getBoundingClientRect();
-    const onScreen = !(rect.bottom <= listRect.top || rect.top >= listRect.bottom);
-    if (!animate || renamedEls.has(row) || !onScreen) {
+    const b = before.get(row);
+    if (!animate || renamedEls.has(row) || offScreen(b.visTop, b.visBottom)) {
       stopRowMotion(row);
       row.remove();
       return;
     }
-    leaving.push({
-      row,
-      top: row.offsetTop, left: row.offsetLeft, width: row.offsetWidth,
-      pitch: row.offsetHeight + (parseFloat(getComputedStyle(row).marginBottom) || 0)
-    });
-  });
-  leaving.forEach(({ row, top, left, width }) => {
     row.classList.remove('selected');
     row.classList.add('username-exit');
     row.dataset.renderExit = '1';
     row.style.position = 'absolute';
-    row.style.top = `${top}px`;
-    row.style.left = `${left}px`;
-    row.style.width = `${width}px`;
+    row.style.top = `${b.top}px`;
+    row.style.left = `${b.left}px`;
+    row.style.width = `${b.width}px`;
     row.style.margin = '0';
     row.style.zIndex = '1';
+    leaving.push(row);
   });
-
-  // New order: kept rows reused and moved, new ones created.
   const template = document.createElement('template');
   const ordered = filtered.map((user, index) => {
     const existing = live.get(user.username);
@@ -1165,41 +1176,47 @@ function reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, rename
     template.innerHTML = renderUnfollowerRowHtml(user, index).trim();
     return template.content.firstElementChild;
   });
-  ordered.forEach(row => listEl.appendChild(row));
+  const fragment = document.createDocumentFragment();
+  ordered.forEach(row => fragment.appendChild(row));
+  listEl.insertBefore(fragment, listEl.firstChild);
   // Still-sliding-out rows stay (out of flow, so order doesn't matter).
   keptExits.forEach(row => { if (row.parentElement !== listEl) listEl.appendChild(row); });
-  leaving.forEach(({ row }) => listEl.appendChild(row));
   reindexUnfollowerRows();
 
-  // AFTER: shift kept rows by how far they moved; slide new ones in.
-  const visualScale = (listRect.height / listEl.offsetHeight) || 1;
-  ordered.forEach(row => {
+  // --- READ: where everything is after it.
+  const after = ordered.map(row => {
+    const rect = row.getBoundingClientRect();
+    return {
+      row, top: row.offsetTop, visTop: rect.top, visBottom: rect.bottom,
+      pitch: row.offsetHeight + (parseFloat(getComputedStyle(row).marginBottom) || 0)
+    };
+  });
+
+  // --- MOTION (queued; written on the next motion step, not here).
+  after.forEach(({ row, top, visTop, visBottom, pitch }) => {
     const name = row.dataset.username;
-    if (reused.has(name)) {
-      addRowShift(row, oldTops.get(name) - row.offsetTop, DURATION);
-      return;
-    }
-    const renamedSource = renamedFrom.get(name);
-    if (renamedSource) {
-      addRowShift(row, oldTops.get(renamedSource.dataset.username) - row.offsetTop, DURATION);
+    const was = live.has(name) ? before.get(live.get(name))
+      : (renamedFrom.has(name) ? before.get(renamedFrom.get(name)) : null);
+    if (was) {
+      // Kept (or edited) row: shift by how far it moved — unless it's off
+      // screen both before and after, where nobody would see it.
+      if (offScreen(was.visTop, was.visBottom) && offScreen(visTop, visBottom)) return;
+      addRowShift(row, was.top - top, DURATION);
       return;
     }
     const resumeTop = resumeTops.get(name);
     if (resumeTop !== undefined) {
       // Was mid-slide out and is back: reverse from exactly where it is.
-      const dy = (resumeTop - row.getBoundingClientRect().top) / visualScale;
+      const dy = (resumeTop - visTop) / visualScale;
       if (dy < 0) slideRowIn(row, -dy, DURATION);
       else addRowShift(row, dy, DURATION);
       return;
     }
-    if (!animate) return;
-    const rect = row.getBoundingClientRect();
-    if (rect.bottom <= listRect.top || rect.top >= listRect.bottom) return; // off screen
-    slideRowIn(row, row.offsetHeight + (parseFloat(getComputedStyle(row).marginBottom) || 0), DURATION);
+    if (!animate || offScreen(visTop, visBottom)) return;
+    slideRowIn(row, pitch, DURATION);
   });
-  leaving.forEach(({ row, pitch }) => {
-    slideRowOut(row, pitch, DURATION);
-    setTimeout(() => row.remove(), DURATION);
+  leaving.forEach(row => {
+    slideRowOut(row, before.get(row).pitch, DURATION, () => row.remove());
   });
   stepRowMotion();
 }
@@ -1234,8 +1251,7 @@ function animateResultsExits(listEl, previousRows) {
     row.style.margin = '0';
     row.style.zIndex = '1';
     listEl.appendChild(row);
-    slideRowOut(row, rect.pitch, DURATION);
-    setTimeout(() => row.remove(), DURATION);
+    slideRowOut(row, rect.pitch, DURATION, () => row.remove());
   });
   stepRowMotion();
 }
@@ -2278,25 +2294,41 @@ function motionOf(el, kind = 'transform') {
     m = { shifts: [], heightShifts: [], heightTarget: null, heightExtra: 0, slide: null, savedTransition: null };
     rowMotion.set(el, m);
   }
-  if (m.savedTransition === null) {
+  if (!m.suppressTransition) {
+    // Only read here; the write happens in stepRowMotion. Callers add
+    // motion to many rows in a row between layout reads, and a style write
+    // per row would force a fresh layout for each of them.
     const tp = getComputedStyle(el).transitionProperty || '';
     const driven = kind === 'height' ? /\b(all|height)\b/ : /\b(all|transform|clip-path)\b/;
-    if (driven.test(tp)) {
-      m.savedTransition = el.style.transition;
-      el.style.transition = 'none';
-    }
+    if (driven.test(tp)) m.suppressTransition = true;
   }
   return m;
 }
 
+// A piece's clock starts on the first frame after it's added, not when it's
+// added: the code adding motion can be followed by a lot of other work
+// (switching accounts loads lists, redraws chips, …) before anything can be
+// painted, and counting that time skipped the start of every slide — the
+// motion looked faster and jumpier than the same slide elsewhere.
 function motionProgress(piece, now) {
+  if (piece.start === null) return 0;
   return Math.min(1, Math.max(0, (now - piece.start) / piece.duration));
 }
 
 function stepRowMotion(fromFrame = false) {
   if (fromFrame) rowMotionFrame = null;
   const now = performance.now();
+  const finished = [];
   rowMotion.forEach((m, el) => {
+    if (fromFrame) {
+      m.shifts.forEach(p => { if (p.start === null) p.start = now; });
+      m.heightShifts.forEach(p => { if (p.start === null) p.start = now; });
+      if (m.slide && m.slide.start === null) m.slide.start = now;
+    }
+    if (m.suppressTransition && m.savedTransition === null) {
+      m.savedTransition = el.style.transition;
+      el.style.transition = 'none';
+    }
     m.shifts = m.shifts.filter(p => motionProgress(p, now) < 1);
     m.heightShifts = m.heightShifts.filter(p => motionProgress(p, now) < 1);
 
@@ -2310,6 +2342,10 @@ function stepRowMotion(fromFrame = false) {
       if (m.slide.dir === 'out') {
         ty -= m.slide.distance * e;
         clip = m.slide.distance * e;
+        if (raw >= 1 && m.slide.onDone) {
+          finished.push(m.slide.onDone);
+          m.slide.onDone = null;
+        }
         // Stays applied (fully slid out) until the row is removed.
         slideActive = el.isConnected || raw < 1;
       } else {
@@ -2336,6 +2372,9 @@ function stepRowMotion(fromFrame = false) {
       rowMotion.delete(el);
     }
   });
+  // Run slide-out completions (removing the row, updating state) after the
+  // loop, since they may add or remove motion themselves.
+  finished.forEach(fn => fn());
   // One frame callback at a time; an immediate apply (queueRowMotionFlush)
   // leaves an already-scheduled one in place.
   if (rowMotion.size > 0 && rowMotionFrame === null) {
@@ -2343,13 +2382,26 @@ function stepRowMotion(fromFrame = false) {
   }
 }
 
-function slideRowOut(rowEl, distance, duration) {
-  motionOf(rowEl).slide = { dir: 'out', distance, start: performance.now(), duration };
+// `onDone` runs once the slide has actually played out (see motionProgress).
+function slideRowOut(rowEl, distance, duration, onDone = null) {
+  const slide = { dir: 'out', distance, start: null, duration, onDone };
+  motionOf(rowEl).slide = slide;
+  // Frames don't run in a background tab — make sure the completion (which
+  // saves state) still happens if the page stops painting.
+  if (onDone) {
+    setTimeout(() => {
+      if (slide.onDone) {
+        const fn = slide.onDone;
+        slide.onDone = null;
+        fn();
+      }
+    }, duration + 1000);
+  }
   queueRowMotionFlush();
 }
 
 function slideRowIn(rowEl, distance, duration) {
-  motionOf(rowEl).slide = { dir: 'in', distance, start: performance.now(), duration };
+  motionOf(rowEl).slide = { dir: 'in', distance, start: null, duration };
   queueRowMotionFlush();
 }
 
@@ -2358,6 +2410,7 @@ function stopRowMotion(el) {
   const m = rowMotion.get(el);
   if (!m) return;
   if (m.savedTransition !== null) el.style.transition = m.savedTransition;
+  if (m.slide && m.slide.onDone) m.slide.onDone();
   el.style.transform = '';
   el.style.clipPath = '';
   el.style.webkitClipPath = '';
@@ -2378,7 +2431,7 @@ function onRowExitStarted(rowEl) {
 // already doing (see the row motion engine above).
 function addRowShift(el, offset, duration) {
   if (Math.abs(offset) < 0.5) return;
-  motionOf(el).shifts.push({ offset, start: performance.now(), duration });
+  motionOf(el).shifts.push({ offset, start: null, duration });
   queueRowMotionFlush();
 }
 
@@ -2392,7 +2445,7 @@ function setHeightWithShift(el, targetPx, offset, duration) {
   m.heightTarget = targetPx;
   m.heightExtra = extra;
   if (Math.abs(offset) >= 0.5) {
-    m.heightShifts.push({ offset, start: performance.now(), duration });
+    m.heightShifts.push({ offset, start: null, duration });
   }
   queueRowMotionFlush();
 }
@@ -2435,7 +2488,7 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
     const now = performance.now();
     const left = motion.slide.distance * (1 - rowEase(motionProgress(motion.slide, now)));
     motion.slide = null;
-    if (left > 0.5) motion.shifts.push({ offset: -left, start: now, duration: 800 });
+    if (left > 0.5) motion.shifts.push({ offset: -left, start: null, duration: 800 });
   }
 
   // Slide distance: one full row pitch (its height plus the gap below it),
@@ -2448,12 +2501,11 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
 
   if (!container) {
     rowEl.classList.add('username-exit');
-    slideRowOut(rowEl, exitDistance, DURATION);
-    onRowExitStarted(rowEl);
-    setTimeout(() => {
+    slideRowOut(rowEl, exitDistance, DURATION, () => {
       rowEl.remove();
       onComplete();
-    }, DURATION);
+    });
+    onRowExitStarted(rowEl);
     return;
   }
 
@@ -2504,11 +2556,7 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   }
 
   rowEl.classList.add('username-exit');
-  slideRowOut(rowEl, exitDistance, DURATION);
-  onRowExitStarted(rowEl);
-  stepRowMotion(); // apply now, so anything measuring right after sees it
-
-  setTimeout(() => {
+  slideRowOut(rowEl, exitDistance, DURATION, () => {
     rowEl.remove();
     // Only the last overlapping removal to finish hands the list its
     // natural height back — by then every layered shrink has played out.
@@ -2523,7 +2571,9 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
       container.style.height = '';
     }
     onComplete();
-  }, DURATION);
+  });
+  onRowExitStarted(rowEl);
+  stepRowMotion(); // apply now, so anything measuring right after sees it
 }
 
 // Animates the unfollowed/starred panel's own height settling to match a
