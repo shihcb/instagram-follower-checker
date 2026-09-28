@@ -1862,8 +1862,9 @@ function slideChipsFromPreviousRects(previousRects) {
   });
 }
 
-function renderAccountChips(animate = false) {
+function renderAccountChips(animate = false, { force = false } = {}) {
   if (!elements.accountChipsList || !elements.btnAddAccount) return;
+  if (chipRenderHeld) return; // a chip is animating out (deleteAccountFromModal)
 
   normalizeInstagramAccounts();
 
@@ -1884,7 +1885,7 @@ function renderAccountChips(animate = false) {
       existingDisplayNames[i] === `@${acc.username}`
     );
 
-  if (accountsMatch) {
+  if (accountsMatch && !force) {
     // Just update active class smoothly on existing DOM nodes so CSS transition executes!
     existingChips.forEach((chip) => {
       const username = chip.getAttribute('data-account-name');
@@ -2084,62 +2085,113 @@ function saveAccountFromModal() {
   closeAccountModal();
 }
 
-function deleteAccountFromModal() {
-  if (state.editingAccountIndex >= 0 && state.editingAccountIndex < (state.instagramAccounts || []).length) {
-    const deletedAccount = state.instagramAccounts[state.editingAccountIndex];
-    const acc = deletedAccount.originalUsername.toLowerCase();
+// Deleting a chip, in three calm steps rather than all at once: the edit
+// window closes right away; as it clears, the chip fades and shrinks away
+// while the chips after it glide over (transform/opacity only, so they
+// stay smooth even while the data work runs); the chip row is only
+// rebuilt once they've settled, where nothing moves any more. It used to
+// bounce the chip out behind the still-open window, then switch list 3,
+// rebuild and re-slide every chip and close the window in one go.
+const CHIP_EXIT_DELAY = 220; // the window has mostly faded by then
+const CHIP_EXIT_MS = 500;
+let chipRenderHeld = false;
 
-    // Try to find the chip element in the DOM to animate it
-    let chipEl = null;
-    if (elements.accountChipsList) {
-      chipEl = elements.accountChipsList.querySelector(`.account-chip[data-account-name="${CSS.escape(acc)}"]`);
+function animateChipExit(chip) {
+  const list = elements.accountChipsList;
+  if (!chip || !list || typeof chip.animate !== 'function') return;
+  const others = Array.from(list.querySelectorAll('.account-chip')).filter(c => c !== chip);
+  const before = others.map(c => c.getBoundingClientRect().left);
+  if (getComputedStyle(list).position === 'static') list.style.position = 'relative';
+  const listRect = list.getBoundingClientRect();
+  const scale = (listRect.width / list.offsetWidth) || 1; // the guest preview is scaled down
+  // Out of the row, pinned where it is, so the others can close the gap.
+  const { offsetLeft: left, offsetTop: top, offsetWidth: width } = chip;
+  // (important: chips are `position: relative !important` in style.css)
+  chip.style.setProperty('position', 'absolute', 'important');
+  chip.style.setProperty('transition', 'none', 'important');
+  Object.assign(chip.style, { left: `${left}px`, top: `${top}px`, width: `${width}px`, margin: '0', pointerEvents: 'none' });
+  const ease = 'cubic-bezier(0.4, 0, 0.2, 1)'; // list 3's row easing
+  others.forEach((c, i) => {
+    const dx = (before[i] - c.getBoundingClientRect().left) / scale;
+    if (Math.abs(dx) > 0.5) {
+      c.animate([{ transform: `translateX(${dx}px)` }, { transform: 'translateX(0)' }], { duration: CHIP_EXIT_MS, easing: ease });
+    }
+  });
+  chip.animate([
+    { opacity: 1, transform: 'scale(1)' },
+    { opacity: 0, transform: 'scale(0.85)' }
+  ], { duration: CHIP_EXIT_MS * 0.7, easing: ease, fill: 'forwards' });
+}
+
+function deleteAccountFromModal() {
+  const index = state.editingAccountIndex;
+  if (!(index >= 0 && index < (state.instagramAccounts || []).length)) return;
+  // One delete per opening: a second tap while the window closes finds
+  // nothing to delete (it could otherwise have hit the next account).
+  state.editingAccountIndex = -1;
+  const deletedAccount = state.instagramAccounts[index];
+  const acc = deletedAccount.originalUsername.toLowerCase();
+  const chipEl = elements.accountChipsList
+    ? elements.accountChipsList.querySelector(`.account-chip[data-account-name="${CSS.escape(acc)}"]`)
+    : null;
+
+  const performDelete = () => {
+    if (isDemoAccount(deletedAccount)) clearDemoData(); // nothing of the demo is kept
+    // Its latest unfollowed/starred first, if it's the one on screen.
+    if (!isDemoAccount(deletedAccount) && state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === acc) {
+      saveCurrentAccountData();
+    }
+    // 1. Drop the account's imported lists (they come back with the next
+    //    import). Its unfollowed/starred history is KEPT — on this device
+    //    and in the cloud (pushToCloudNow saves every account that has
+    //    one) — and loads back in when the same username returns, by
+    //    importing its files again or adding it by hand (loadAccountData
+    //    reads it). Deleting a chip used to erase that history for good.
+    storageRemove(`following_users_${acc}`);
+    storageRemove(`followers_users_${acc}`);
+    storageRemove(`import_date_${acc}`);
+
+    // 2. Remove from current state arrays
+    state.starred = (state.starred || []).filter(u => !u.account || u.account.toLowerCase() !== acc);
+    state.unfollowed = (state.unfollowed || []).filter(u => !u.account || u.account.toLowerCase() !== acc);
+
+    // 3. Remove account from accounts registry
+    const at = state.instagramAccounts.indexOf(deletedAccount);
+    if (at >= 0) state.instagramAccounts.splice(at, 1);
+    saveAccountsList();
+
+    // 4. Reset selection if the deleted account was selected
+    if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === acc) {
+      state.selectedAccountUsername = null;
+      storageRemove('selected_instagram_account');
+      rememberNoAccountSelected();
+      loadAccountData(null, false, true); // its usernames slide out of list 3, like unselecting its chip
     }
 
-    const performDelete = () => {
-      if (isDemoAccount(deletedAccount)) clearDemoData(); // nothing of the demo is kept
-      // Its latest unfollowed/starred first, if it's the one on screen.
-      if (!isDemoAccount(deletedAccount) && state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === acc) {
-        saveCurrentAccountData();
-      }
-      // 1. Drop the account's imported lists (they come back with the next
-      //    import). Its unfollowed/starred history is KEPT — on this device
-      //    and in the cloud (pushToCloudNow saves every account that has
-      //    one) — and loads back in when the same username returns, by
-      //    importing its files again or adding it by hand (loadAccountData
-      //    reads it). Deleting a chip used to erase that history for good.
-      storageRemove(`following_users_${acc}`);
-      storageRemove(`followers_users_${acc}`);
-      storageRemove(`import_date_${acc}`);
+    pushToCloud();
+  };
 
-      // 2. Remove from current state arrays
-      state.starred = (state.starred || []).filter(u => !u.account || u.account.toLowerCase() !== acc);
-      state.unfollowed = (state.unfollowed || []).filter(u => !u.account || u.account.toLowerCase() !== acc);
-
-      // 3. Remove account from accounts registry
-      state.instagramAccounts.splice(state.editingAccountIndex, 1);
-      saveAccountsList();
-
-      // 4. Reset selection if the deleted account was selected
-      if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === acc) {
-        state.selectedAccountUsername = null;
-        storageRemove('selected_instagram_account');
-        rememberNoAccountSelected();
-        loadAccountData(null, false, true); // its usernames slide out of list 3, like unselecting its chip
-      } else {
-        renderAccountChips(true);
-      }
-
-      pushToCloud();
-      closeAccountModal();
-    };
-
-    if (chipEl) {
-      chipEl.classList.add('bounce-out');
-      setTimeout(performDelete, 400);
+  closeAccountModal();
+  setTimeout(() => {
+    if (chipEl && chipEl.isConnected) {
+      // The chip row waits (chipRenderHeld) until the exit has played out.
+      chipRenderHeld = true;
+      animateChipExit(chipEl);
+      requestAnimationFrame(() => {
+        performDelete();
+        setTimeout(() => {
+          chipRenderHeld = false;
+          chipEl.remove();
+          // Rebuilt (renumbered: each chip's shortcut badge and the account
+          // its double-tap opens), with every chip already in place.
+          renderAccountChips(false, { force: true });
+        }, CHIP_EXIT_MS);
+      });
     } else {
       performDelete();
+      renderAccountChips(true);
     }
-  }
+  }, CHIP_EXIT_DELAY);
 }
 
 function closeAllSubMenusAndPopups() {
