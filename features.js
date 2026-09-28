@@ -679,13 +679,21 @@
           ${action ? `<button class="insights-row-btn" data-ins="${action.id}" data-username="${esc(u.username)}">${action.label}</button>` : ''}
         </div>`).join('')}${users.length > 500 ? `<div class="insights-more">+ ${users.length - 500} more</div>` : ''}</div>`
     : `<div class="dropdown-empty-message">${empty}</div>`;
-  // No imports yet: a greyed-out example of what the chart will look like.
-  const MOCK_TREND = `<div class="trend-chart trend-mock" aria-hidden="true">${[45, 70, 55, 85, 60, 40, 65].map((h, i) => `<div class="trend-bar" style="height:${h}%;animation-delay:${i * 30}ms"></div>`).join('')}</div>`;
+  // Stats: six boxes, each with its own color, and a bar per box in the
+  // graph below in the same color. No data yet: a greyed-out example graph.
+  const STAT_COLORS = ['#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#ef4444', '#f59e0b'];
+  const MOCK_HEIGHTS = [60, 85, 70, 40, 55, 30];
+  const chartHtml = (heights, mock) => `<div class="trend-chart${mock ? ' trend-mock' : ''}"${mock ? ' aria-hidden="true"' : ''}>${heights.map((h, i) =>
+    `<div class="trend-bar" style="height:${h}%;--bar:${STAT_COLORS[i]}"></div>`).join('')}</div>`;
   const asUsers = (names) => names.map(n => ({ username: n, originalUsername: n }));
-  const stat = (value, label) => `<div class="insights-stat"><div class="insights-stat-value">${value}</div><div class="insights-stat-label">${label}</div></div>`;
+  const stat = (value, label, i) => `<div class="insights-stat" style="--stat:${STAT_COLORS[i]}"><div class="insights-stat-value">${value}</div><div class="insights-stat-label">${label}</div></div>`;
 
   function renderView() {
     const body = altView;
+    // The graph's frame survives the redraw (see updateChart), so a slide
+    // that's playing carries on through quick back-to-back redraws.
+    const oldWrap = body.querySelector('.trend-wrap');
+    if (oldWrap) oldWrap.remove();
     const key = accKey();
     const who = state.selectedAccountUsername ? `@${esc((state.instagramAccounts.find(a => a.originalUsername.toLowerCase() === key) || {}).username || key)}` : 'this view';
     let html = '';
@@ -707,18 +715,16 @@
       const fset = followersSet();
       const mutual = state.following.filter(u => fset.has(u.username)).length;
       const ratio = following ? Math.round((mutual / following) * 100) : 0;
-      const history = readJSON(`import_history_${key}`, []);
-      const max = Math.max(1, ...history.map(h => h.unfollowers || 0));
-      const bars = history.map((h, i) => {
-        const hgt = Math.max(4, Math.round(((h.unfollowers || 0) / max) * 100));
-        return `<div class="trend-bar" style="height:${hgt}%;animation-delay:${i * 30}ms" title="${esc(new Date(h.date).toLocaleDateString())}: ${h.unfollowers || 0}"></div>`;
-      }).join('');
+      const counts = [following, followers, null, state.unfollowers.length, state.unfollowed.length, state.starred.length];
+      const hasData = following > 0 || followers > 0;
+      const maxCount = Math.max(1, ...counts.filter(c => c !== null));
+      const heights = counts.map(c => c === null ? Math.max(4, ratio) : Math.max(4, Math.round((c / maxCount) * 100)));
       html = `<div class="insights-sub">accounts that don't follow you back, per import</div>
         <div class="insights-stats">
-          ${stat(following, 'following')}${stat(followers, 'followers')}${stat(`${ratio}%`, 'follow you back')}
-          ${stat(state.unfollowers.length, "don't follow you back")}${stat(state.unfollowed.length, 'unfollowed')}${stat(state.starred.length, 'starred')}
+          ${stat(following, 'following', 0)}${stat(followers, 'followers', 1)}${stat(`${ratio}%`, 'follow you back', 2)}
+          ${stat(state.unfollowers.length, "don't follow you back", 3)}${stat(state.unfollowed.length, 'unfollowed', 4)}${stat(state.starred.length, 'starred', 5)}
         </div>
-        ${history.length ? `<div class="trend-chart">${bars}</div>` : MOCK_TREND}`;
+        <div class="trend-wrap">${hasData ? chartHtml(heights, false) : chartHtml(MOCK_HEIGHTS, true)}</div>`;
     } else if (currentView === 'mutuals') {
       const fset = followersSet();
       html = userRowsHtml(state.following.filter(u => fset.has(u.username)), 'no mutual accounts yet');
@@ -743,6 +749,52 @@
     }
     body.innerHTML = `<div class="insights-pane">${html}</div>`;
     placeChangesIndicator();
+    const newWrap = body.querySelector('.trend-wrap');
+    if (newWrap && oldWrap) { newWrap.replaceWith(oldWrap); updateChart(oldWrap, newWrap); }
+    else if (newWrap) growChart(newWrap.querySelector('.trend-chart'));
+  }
+
+  // The stats graph. First time in: the bars grow up. Switching between
+  // the example and real data: the one showing slides down out of sight,
+  // then the new one slides up into place (slowly). New numbers, same kind:
+  // each bar eases to its new height.
+  const kindOf = (chart) => chart.classList.contains('trend-mock') ? 'mock' : 'real';
+  function growChart(chart) {
+    if (!chart || typeof chart.animate !== 'function') return;
+    chart.querySelectorAll('.trend-bar').forEach((bar, i) => bar.animate(
+      [{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }],
+      { duration: 700, delay: i * 50, easing: EASE, fill: 'backwards' }));
+  }
+  function updateChart(wrap, fresh) {
+    const cur = wrap.querySelector('.trend-chart:not(.trend-leaving)');
+    const next = fresh.querySelector('.trend-chart');
+    if (!next) return;
+    if (!cur) { wrap.appendChild(next); growChart(next); return; }
+    if (kindOf(cur) === kindOf(next)) {
+      const newBars = [...next.querySelectorAll('.trend-bar')];
+      cur.querySelectorAll('.trend-bar').forEach((bar, i) => {
+        const to = newBars[i] && newBars[i].style.height;
+        if (!to || to === bar.style.height) return;
+        const from = `${bar.getBoundingClientRect().height}px`;
+        bar.style.height = to;
+        if (typeof bar.animate === 'function') bar.animate([{ height: from }, { height: to }], { duration: 600, easing: EASE });
+      });
+      return;
+    }
+    // Swap: an earlier one still leaving goes now; this one leaves from
+    // wherever it is (even mid-slide), the new one follows it in.
+    wrap.querySelectorAll('.trend-leaving').forEach(el => el.remove());
+    const fromY = cur.getBoundingClientRect().top - wrap.getBoundingClientRect().top;
+    cur.getAnimations().forEach(a => a.cancel());
+    cur.classList.add('trend-leaving');
+    wrap.appendChild(next);
+    if (typeof cur.animate !== 'function') { cur.remove(); return; }
+    const h = wrap.clientHeight || 1;
+    cur.animate([{ transform: `translateY(${fromY}px)`, opacity: 1 - Math.min(1, fromY / h) }, { transform: 'translateY(105%)', opacity: 0 }],
+      { duration: 650, easing: 'cubic-bezier(0.55, 0, 0.45, 1)', fill: 'forwards' })
+      .finished.then(() => cur.remove(), () => {});
+    next.animate([{ transform: 'translateY(105%)', opacity: 0 }, { transform: 'translateY(0)', opacity: 1 }],
+      { duration: 750, delay: 520, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' });
   }
 
   // ---------- changes view: its own tab switcher ----------

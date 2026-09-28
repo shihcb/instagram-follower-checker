@@ -5195,30 +5195,42 @@ button:focus-visible,
   color: var(--text-muted);
   margin-top: 2px;
 }
-/* Fills the space left under the numbers (bar heights are % of it). */
-.trend-chart {
-  display: flex;
-  align-items: flex-end;
-  gap: 6px;
+/* The graph fills the space left under the numbers (bar heights are % of
+   it); the example and the real one swap inside this clipped frame. */
+.trend-wrap {
+  position: relative;
   flex: 1 1 auto;
   min-height: 60px;
   margin-top: 14px;
-  padding: 6px 4px 0;
+  display: flex;
+  overflow: hidden;
   border-bottom: 1px solid var(--card-border);
 }
-/* The example shown before there's any history: greyed out. */
+.trend-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  flex: 1 1 auto;
+  padding: 6px 4px 0;
+}
+.trend-chart.trend-leaving {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+/* The example shown before there's any data: greyed out. */
 .trend-chart.trend-mock .trend-bar {
-  background: var(--text-muted);
+  background: var(--text-muted) !important;
   opacity: 0.22;
 }
+/* One bar per stat box, in that box's color. */
 .trend-bar {
   flex: 1 1 0;
-  max-width: 28px;
   border-radius: 6px 6px 2px 2px;
-  background: #10b981;
-  opacity: 0.85;
+  background: var(--bar, #10b981);
+  opacity: 0.9;
   transform-origin: bottom;
-  animation: trend-grow 0.52s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 @keyframes trend-grow {
   from { transform: scaleY(0); }
@@ -5534,4 +5546,13 @@ select,
   inset: 0;
   padding: 0 24px !important;
   pointer-events: none;
+}
+
+/* Each stat box in its own color (the same as its bar in the graph). */
+.insights-stat[style*="--stat"] {
+  border-color: color-mix(in srgb, var(--stat) 40%, transparent) !important;
+  background: color-mix(in srgb, var(--stat) 8%, transparent) !important;
+}
+.insights-stat[style*="--stat"] .insights-stat-value {
+  color: var(--stat);
 }
