@@ -396,6 +396,9 @@
         bulkAction(btn.dataset.bulk);
       });
     }
+    // Commit its hidden starting state first — on the very first use the bar
+    // was created and shown in the same frame, so it just appeared.
+    void selectBar.offsetWidth;
     selectBar.classList.toggle('show', on);
     updateSelectCount();
     refreshToolbar();
