@@ -76,6 +76,8 @@ html, body {
   --grad-instagram: linear-gradient(135deg, var(--grad-1), var(--grad-2), var(--grad-3));
 
   /* Light Theme variables (Fallback / Active under light mode) */
+  /* One roundness for the whole app: the unfollowed / starred buttons'. */
+  --radius: 12px;
   --logo-color: #000000;
   --bg-color: #ffffff;
   --bg-gradient: none;
@@ -5380,4 +5382,78 @@ button:focus-visible,
 }
 .list3-alt-view .insights-row {
   contain-intrinsic-size: auto 36px;
+}
+
+
+/* -------------------------------------------------------------
+ * One roundness everywhere (--radius, the unfollowed / starred buttons')
+ * Circles (avatars, dots, the round profile button, the switch) stay
+ * round; tiny inline marks (code, key hints, the card numbers) keep theirs.
+ * ------------------------------------------------------------- */
+.glass,
+.card,
+body.auth-logged-out #auth-form-view,
+.feature-card,
+.step-card,
+.step-number,
+.landing-security-banner,
+.security-icon,
+.landing-logo-icon,
+.landing-version-badge,
+.landing-theme-btn,
+.landing-cta-btn,
+.hero-tag,
+.privacy-badge,
+.badge,
+.love-card,
+.btn,
+.preview-toggle,
+.search-box,
+.search-box input,
+textarea,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+select,
+.results-container,
+.user-row,
+.parsed-item,
+.dropdown-menu,
+#add-account-dropdown-menu .dropdown-item-btn,
+.account-chip,
+.keyboard-hints,
+.account-modal-card,
+.confirm-modal-box,
+.account-modal-input-group input,
+.account-modal-actions button,
+.auth-warning,
+.auth-error,
+.auth-success,
+.auth-tabs,
+.auth-tab,
+.auth-tab-indicator,
+.instructions-steps-nav,
+.instructions-nav-indicator,
+.instructions-tab,
+.insights-tab,
+.step-image-container,
+.step-guide-img,
+.export-mockup-options,
+.export-pill,
+.toolbar-pill,
+.row-tag,
+.row-select-bar,
+.row-select-count,
+.row-select-bar button,
+.feature-toast,
+.feature-toast-btn,
+.feature-note-card textarea,
+.insights-list,
+.insights-stat,
+.insights-row-btn,
+.compare-select,
+.export-option,
+.list3-alt-view,
+#auth-config-warning {
+  border-radius: var(--radius) !important;
 }
