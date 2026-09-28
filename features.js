@@ -2,8 +2,8 @@
 // Extra features, layered on top of script.js (loaded after it):
 //  - changes since your last import (+ a toast after importing)
 //  - how long ago you followed each account, and sort by it
-//  - insights: mutuals, fans, stats with a trend, compare accounts,
-//    export (CSV) and a share card
+//  - list 3 views: changes, stats with a trend, mutuals, fans, compare,
+//  - export (CSV)
 //  - undo after unfollowing / starring / removing
 //  - select several rows and act on them at once
 //  - notes and tags per username (long-press or right-click a row)
@@ -71,6 +71,7 @@
     refreshUndo(); // the steps belong to the account on screen
     const result = baseUpdateResultsUI.call(this, opts);
     refreshToolbar();
+    refreshView();
     return result;
   };
 
@@ -264,7 +265,7 @@
       writeJSON(`import_diff_${key}`, diff);
       const total = diff.lostFollowers.length + diff.newFollowers.length + diff.stoppedFollowing.length + diff.startedFollowing.length;
       setTimeout(() => showToast(total ? `${total} change${total === 1 ? '' : 's'} since your last import` : 'no changes since your last import',
-        total ? 'view' : null, () => openInsights('changes')), 900);
+        total ? 'view' : null, () => { showView('changes'); viewNav && viewNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }), 900);
     }
     // Full lists only for the latest import (for the next comparison);
     // counts for the trend.
@@ -358,7 +359,8 @@
     const sortText = win.querySelector('.sort-current');
     if (!sortText.textContent) sortText.textContent = SORT_LABELS[sortMode]; // first time only; changes slide (slideSortLabel)
     toolbar.querySelector('[data-act="sort"]').classList.toggle('on', sortMode !== 'default');
-    const hasRows = state.unfollowers.length > 0;
+    // Sort and select only work on the results view.
+    const hasRows = state.unfollowers.length > 0 && currentView === 'results';
     toolbar.querySelector('[data-act="sort"]').disabled = !hasRows;
     toolbar.querySelector('[data-act="select"]').disabled = !hasRows && !selectMode;
     toolbar.querySelector('[data-act="select"]').classList.toggle('on', selectMode);
@@ -545,72 +547,94 @@
     openNote(row.dataset.username);
   });
 
-  // ---------- insights window ----------
-  const TABS = [
-    ['changes', 'changes'], ['stats', 'stats'], ['mutuals', 'mutuals'], ['fans', 'fans'],
-    ['compare', 'compare']
+  // ---------- list 3 views: a tab switcher above list 3's box ----------
+  // Same bar and sliding highlight as the instructions window. Switching
+  // only swaps what's inside list 3's box: the old view slides out, the new
+  // one slides in, in the direction of the tab.
+  const VIEWS = [
+    ['results', 'results'], ['changes', 'changes'], ['stats', 'stats'], ['mutuals', 'mutuals'],
+    ['fans', 'fans'], ['compare', 'compare']
   ];
-  let insights = null;
-  let insightsTab = 'changes';
-  function buildInsights() {
-    insights = document.createElement('div');
-    insights.className = 'modal-overlay hidden';
-    insights.id = 'insights-modal-overlay';
-    insights.innerHTML = `
-      <div class="account-modal-card glass instructions-modal-card insights-card">
-        <div class="account-modal-header insights-header">
-          <h3>insights</h3>
-          <button class="modal-close-btn" data-ins="close" aria-label="close">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          </button>
-        </div>
-        <div class="instructions-steps-nav insights-nav">
-          <div class="instructions-nav-indicator insights-indicator"></div>
-          ${TABS.map(([id, label]) => `<button class="insights-tab" data-tab="${id}">${label}</button>`).join('')}
-        </div>
-        <div class="insights-body"></div>
-      </div>`;
-    document.body.appendChild(insights);
-    insights.addEventListener('click', (e) => {
-      if (e.target === insights || e.target.closest('[data-ins="close"]')) return closeInsights();
-      const tab = e.target.closest('.insights-tab');
-      if (tab) return showTab(tab.dataset.tab);
-      const act = e.target.closest('[data-ins]');
-      if (act) insightsAction(act);
+  let viewNav = null;
+  let altView = null;
+  let currentView = 'results';
+  let viewToken = 0;
+  function buildViewSwitcher() {
+    const box = document.querySelector('#card-unfollowers .results-container');
+    if (!box || viewNav) return;
+    viewNav = document.createElement('div');
+    viewNav.className = 'instructions-steps-nav list3-views';
+    viewNav.innerHTML = `<div class="instructions-nav-indicator list3-views-indicator"></div>
+      ${VIEWS.map(([id, label]) => `<button class="insights-tab${id === 'results' ? ' active' : ''}" data-view="${id}">${label}</button>`).join('')}`;
+    box.parentNode.insertBefore(viewNav, box);
+    altView = document.createElement('div');
+    altView.className = 'list3-alt-view hidden';
+    box.appendChild(altView);
+    viewNav.addEventListener('click', (e) => {
+      const tab = e.target.closest('[data-view]');
+      if (!tab) return;
+      e.stopPropagation();
+      showView(tab.dataset.view);
     });
-    insights.addEventListener('change', (e) => { if (e.target.matches('.compare-select')) renderTab(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !insights.classList.contains('hidden')) closeInsights(); });
+    altView.addEventListener('change', (e) => { if (e.target.matches('.compare-select')) renderView(); });
+    // Park the highlight under "results" once the bar has a size.
+    const place = () => {
+      const active = viewNav.querySelector('.insights-tab.active');
+      if (!active || !active.offsetWidth) return;
+      const indicator = viewNav.querySelector('.list3-views-indicator');
+      indicator._pos = null;
+      moveInstructionsIndicator(indicator, active);
+    };
+    requestAnimationFrame(place);
+    window.addEventListener('resize', place);
+    if (window.ResizeObserver) new ResizeObserver(place).observe(viewNav);
   }
-  function openInsights(tab = insightsTab) {
-    if (!insights) buildInsights();
-    insightsTab = tab;
-    showModalOverlay(insights);
-    lockPageScroll();
-    const indicator = insights.querySelector('.insights-indicator');
-    indicator.classList.add('no-transition');
-    requestAnimationFrame(() => {
-      showTab(tab, true);
-      requestAnimationFrame(() => indicator.classList.remove('no-transition'));
-    });
-  }
-  function closeInsights() {
-    insights.classList.remove('show');
-    unlockPageScroll();
-    scheduleOverlayHide(insights, () => insights.classList.add('hidden'));
-  }
-  function showTab(tab, instant = false) {
-    insightsTab = tab;
-    const tabs = [...insights.querySelectorAll('.insights-tab')];
-    const active = tabs.find(t => t.dataset.tab === tab);
+  // What's showing in the box for a view.
+  const viewEls = (view) => view === 'results'
+    ? [elements.listUnfollowers, document.getElementById('unfollowers-empty-state')].filter(el => el && !el.classList.contains('hidden'))
+    : [altView];
+  function showView(view) {
+    if (!viewNav || view === currentView) return;
+    const ids = VIEWS.map(v => v[0]);
+    const dir = ids.indexOf(view) > ids.indexOf(currentView) ? 1 : -1;
+    const tabs = [...viewNav.querySelectorAll('[data-view]')];
+    const active = tabs.find(t => t.dataset.view === view);
     tabs.forEach(t => t.classList.toggle('active', t === active));
-    const nav = insights.querySelector('.insights-nav');
-    const indicator = insights.querySelector('.insights-indicator');
-    if (instant) indicator._pos = null;
-    moveInstructionsIndicator(indicator, active);
+    moveInstructionsIndicator(viewNav.querySelector('.list3-views-indicator'), active);
     const left = active.offsetLeft - 12, right = active.offsetLeft + active.offsetWidth + 38;
-    if (left < nav.scrollLeft) scrollInstructionsNav(nav, Math.max(0, left));
-    else if (right > nav.scrollLeft + nav.clientWidth) scrollInstructionsNav(nav, right - nav.clientWidth);
-    renderTab();
+    if (left < viewNav.scrollLeft) scrollInstructionsNav(viewNav, Math.max(0, left));
+    else if (right > viewNav.scrollLeft + viewNav.clientWidth) scrollInstructionsNav(viewNav, right - viewNav.clientWidth);
+
+    if (view !== 'results' && selectMode) setSelectMode(false);
+    // A quick second tap: settle whatever the last switch left mid-slide.
+    [...viewEls('results'), elements.listUnfollowers, altView].forEach(el => el && el.getAnimations && el.getAnimations().forEach(a => a.cancel()));
+    const outgoing = viewEls(currentView).filter(el => el.getClientRects().length);
+    currentView = view;
+    const token = ++viewToken;
+    const swap = () => {
+      if (token !== viewToken) return;
+      outgoing.forEach(el => { el.getAnimations && el.getAnimations().forEach(a => a.cancel()); });
+      const box = altView.parentNode;
+      box.classList.toggle('showing-alt', view !== 'results');
+      altView.classList.toggle('hidden', view === 'results');
+      if (view !== 'results') { renderView(); altView.scrollTop = 0; }
+      refreshToolbar();
+      if (typeof altView.animate !== 'function') return;
+      viewEls(view).forEach(el => el.animate(
+        [{ opacity: 0, transform: `translateX(${dir * 28}px)` }, { opacity: 1, transform: 'translateX(0)' }],
+        { duration: 260, easing: EASE }));
+    };
+    if (typeof altView.animate !== 'function' || !outgoing.length) return swap();
+    let pending = outgoing.length;
+    outgoing.forEach(el => el.animate(
+      [{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: `translateX(${-dir * 28}px)` }],
+      { duration: 170, easing: EASE, fill: 'forwards' }
+    ).finished.then(() => { if (--pending === 0) swap(); }, () => { if (--pending === 0) swap(); }));
+  }
+  // Keep the open view current as the data changes (imports, account
+  // switches, unfollows).
+  function refreshView() {
+    if (currentView !== 'results' && altView) renderView();
   }
 
   const followingSet = () => new Set(state.following.map(u => u.username));
@@ -625,12 +649,12 @@
   const asUsers = (names) => names.map(n => ({ username: n, originalUsername: n }));
   const stat = (value, label) => `<div class="insights-stat"><div class="insights-stat-value">${value}</div><div class="insights-stat-label">${label}</div></div>`;
 
-  function renderTab() {
-    const body = insights.querySelector('.insights-body');
+  function renderView() {
+    const body = altView;
     const key = accKey();
     const who = state.selectedAccountUsername ? `@${esc((state.instagramAccounts.find(a => a.originalUsername.toLowerCase() === key) || {}).username || key)}` : 'this view';
     let html = '';
-    if (insightsTab === 'changes') {
+    if (currentView === 'changes') {
       const d = readJSON(`import_diff_${key}`, null);
       if (!d) html = `<div class="dropdown-empty-message">import your files again later to see who unfollowed you, who followed you, and more since the last time.</div>`;
       else {
@@ -641,7 +665,7 @@
           ${section('you stopped following', d.stoppedFollowing)}
           ${section('you started following', d.startedFollowing)}`;
       }
-    } else if (insightsTab === 'stats') {
+    } else if (currentView === 'stats') {
       const following = state.following.length, followers = state.followers.length;
       const fset = followersSet();
       const mutual = state.following.filter(u => fset.has(u.username)).length;
@@ -659,17 +683,17 @@
         </div>
         <div class="insights-section-title">don't follow back, per import</div>
         ${history.length ? `<div class="trend-chart">${bars}</div>` : `<div class="dropdown-empty-message">import your files to start the trend</div>`}`;
-    } else if (insightsTab === 'mutuals') {
+    } else if (currentView === 'mutuals') {
       const fset = followersSet();
       html = userRowsHtml(state.following.filter(u => fset.has(u.username)), 'no mutuals yet');
-    } else if (insightsTab === 'fans') {
+    } else if (currentView === 'fans') {
       const fset = followingSet();
       html = `<div class="insights-sub">follow you, but you don't follow back</div>${userRowsHtml(state.followers.filter(u => !fset.has(u.username)), 'no fans yet')}`;
-    } else if (insightsTab === 'compare') {
+    } else if (currentView === 'compare') {
       const accounts = state.instagramAccounts.filter(a => !isDemoAccount(a));
       if (accounts.length < 2) html = `<div class="dropdown-empty-message">add a second account to compare who follows each</div>`;
       else {
-        const sel = [...insights.querySelectorAll('.compare-select')].map(s => s.value);
+        const sel = [...altView.querySelectorAll('.compare-select')].map(s => s.value);
         const a = sel[0] || accounts[0].originalUsername.toLowerCase();
         const b = sel[1] || accounts[1].originalUsername.toLowerCase();
         const opts = (v) => accounts.map(x => `<option value="${esc(x.originalUsername.toLowerCase())}"${x.originalUsername.toLowerCase() === v ? ' selected' : ''}>@${esc(x.username)}</option>`).join('');
@@ -683,8 +707,6 @@
     }
     body.innerHTML = `<div class="insights-pane">${html}</div>`;
   }
-
-  function insightsAction() {}
 
   const EXPORT_LISTS = [
     ['list3', "list 3 · don't follow back"], ['unfollowed', 'unfollowed'], ['starred', 'starred'],
@@ -796,7 +818,7 @@
     const info = document.getElementById('btn-instructions-info');
     if (!info || document.getElementById('btn-export-list3')) return;
     const b3 = makeIconButton('btn-export-list3', 'export lists');
-    info.parentNode.insertBefore(b3, info.parentNode.querySelector('#btn-insights') || info);
+    info.parentNode.insertBefore(b3, info);
     b3.addEventListener('click', (e) => { e.stopPropagation(); openExport(); });
     [['search-following', 'following', 'export list 1'], ['search-followers', 'followers', 'export list 2']].forEach(([inputId, kind, title]) => {
       const box = document.getElementById(inputId)?.closest('.search-box');
@@ -840,19 +862,6 @@
     return result;
   };
   [elements.inputFollowing, elements.inputFollowers].forEach(ta => ta && ta.addEventListener('input', () => refreshListExports()));
-  // Insights button, next to list 3's info button (same style).
-  function buildInsightsButton() {
-    const info = document.getElementById('btn-instructions-info');
-    if (!info || document.getElementById('btn-insights')) return;
-    const btn = info.cloneNode(false);
-    btn.id = 'btn-insights';
-    btn.title = 'insights';
-    btn.setAttribute('aria-label', 'insights');
-    btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>';
-    info.parentNode.insertBefore(btn, info);
-    btn.addEventListener('click', (e) => { e.stopPropagation(); openInsights(); });
-  }
-
   // ---------- installable app ----------
   function setupInstall() {
     if (!document.querySelector('link[rel="manifest"]')) {
@@ -866,13 +875,13 @@
     }
   }
 
-  // List 3's search row, in order: search, undo, export, insights, info.
+  // List 3's search row, in order: search, undo, export, info.
   function arrangeList3Buttons() {
     const row = document.querySelector('#card-unfollowers .search-row');
     const search = row && row.querySelector('.search-box');
     if (!row || !search) return;
     let after = search;
-    ['btn-undo', 'btn-export-list3', 'btn-insights', 'btn-instructions-info'].forEach(id => {
+    ['btn-undo', 'btn-export-list3', 'btn-instructions-info'].forEach(id => {
       const btn = document.getElementById(id);
       if (!btn) return;
       row.insertBefore(btn, after.nextSibling);
@@ -882,7 +891,7 @@
 
   function init() {
     buildToolbar();
-    buildInsightsButton();
+    buildViewSwitcher();
     buildExportButtons();
     buildUndoButton();
     arrangeList3Buttons();
@@ -893,5 +902,5 @@
   else init();
 
   // For the rest of the app (and tests).
-  window.igFeatures = { openInsights, showToast, setSelectMode, openNote, refreshToolbar };
+  window.igFeatures = { showView, showToast, setSelectMode, openNote, refreshToolbar };
 })();

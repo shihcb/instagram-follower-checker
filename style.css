@@ -4852,6 +4852,8 @@ button:focus-visible,
   background: rgba(16, 185, 129, 0.08) !important;
   box-shadow: 0 0 0 1px #10b981 inset;
 }
+/* Bulk bar: the instructions tab switcher's bar and tabs; the count sits
+   on the white highlight, star amber, unfollow red. */
 .row-select-bar {
   position: fixed;
   left: 50%;
@@ -4859,12 +4861,12 @@ button:focus-visible,
   z-index: 9000;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px;
+  gap: 6px;
+  padding: 4px;
   max-width: calc(100vw - 24px);
-  border-radius: 16px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  background: linear-gradient(var(--input-bg), var(--input-bg)), var(--bg-color, #fff);
+  border: 1px solid var(--input-border);
   box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.35);
   opacity: 0;
   pointer-events: none;
@@ -4877,42 +4879,44 @@ button:focus-visible,
   transform: translate(-50%, 0) scale(1);
 }
 .row-select-count {
-  font-size: 0.74rem;
+  padding: 7px 12px;
+  font-size: 0.78rem;
   font-weight: 600;
-  color: var(--text-muted);
-  padding: 0 4px;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #000000;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
   white-space: nowrap;
 }
+[data-theme="dark"] .row-select-count {
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.22);
+}
 .row-select-bar button {
-  height: 32px;
-  padding: 0 9px;
+  padding: 7px 12px;
   white-space: nowrap;
-  border-radius: 10px;
-  border: 1px solid var(--input-border);
-  background: var(--input-bg);
-  color: var(--text-main);
-  font-size: 0.74rem;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.25s ease;
+  transition: color 0.3s ease, opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
 }
 .row-select-bar button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
-.row-select-bar button.muted {
-  color: var(--text-muted);
-}
-/* Same colors as the row actions: star amber, unfollow (trash) red. */
 .row-select-bar button[data-bulk="star"] {
-  border-color: #f59e0b;
   color: #d97706;
-  background: rgba(245, 158, 11, 0.08);
 }
 .row-select-bar button[data-bulk="unfollow"] {
-  border-color: #ef4444;
   color: #ef4444;
-  background: rgba(239, 68, 68, 0.07);
+}
+@media (hover: hover) {
+  .row-select-bar button:not(:disabled):hover {
+    background: rgba(127, 127, 127, 0.1);
+  }
 }
 
 /* Toast (undo, messages) */
@@ -4987,16 +4991,28 @@ button:focus-visible,
   flex-basis: 100%;
 }
 
-/* Insights window (same window, tab bar and highlight as instructions) */
-.insights-card {
-  display: flex;
-  flex-direction: column;
-  max-height: min(80vh, 720px);
+/* List 3's view switcher (same bar, tabs and highlight as instructions) */
+.list3-views {
+  margin-bottom: 10px;
 }
-.insights-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.list3-alt-view {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 12px;
+}
+.list3-alt-view.hidden,
+.results-container.showing-alt > #list-unfollowers,
+.results-container.showing-alt > #unfollowers-empty-state {
+  display: none !important;
+}
+.list3-alt-view .insights-pane {
+  animation: none;
+}
+.toolbar-pill:disabled {
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .insights-tab {
   flex: 0 0 auto;
