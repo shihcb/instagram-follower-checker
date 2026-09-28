@@ -870,22 +870,17 @@
     }
   }
 
-  // List 3: the search row is just search + undo; export, insights and
-  // info sit at the right end of the toolbar row below.
+  // List 3's search row, in order: search, undo, export, insights, info.
   function arrangeList3Buttons() {
     const row = document.querySelector('#card-unfollowers .search-row');
     const search = row && row.querySelector('.search-box');
-    if (!row || !search || !toolbar || !undoBtn) return;
-    row.insertBefore(undoBtn, search.nextSibling);
-    let icons = toolbar.querySelector('.toolbar-icons');
-    if (!icons) {
-      icons = document.createElement('div');
-      icons.className = 'toolbar-icons';
-      toolbar.appendChild(icons);
-    }
-    ['btn-export-list3', 'btn-insights', 'btn-instructions-info'].forEach(id => {
+    if (!row || !search) return;
+    let after = search;
+    ['btn-undo', 'btn-export-list3', 'btn-insights', 'btn-instructions-info'].forEach(id => {
       const btn = document.getElementById(id);
-      if (btn) icons.appendChild(btn);
+      if (!btn) return;
+      row.insertBefore(btn, after.nextSibling);
+      after = btn;
     });
   }
 

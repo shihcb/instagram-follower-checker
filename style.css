@@ -5257,22 +5257,3 @@ button:focus-visible,
 .list-search-row > .preview-toggle.no-anim {
   transition: none !important;
 }
-
-/* List 3 toolbar: export / insights / info at its right end, sized to the
-   pills beside them. */
-.list-toolbar .toolbar-icons {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-}
-.list-toolbar .toolbar-icons > .preview-toggle {
-  width: 28px !important;
-  height: 28px !important;
-  min-width: 28px !important;
-  border-radius: 999px !important;
-}
-.list-toolbar .toolbar-icons svg {
-  width: 13px;
-  height: 13px;
-}
