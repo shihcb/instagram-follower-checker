@@ -727,7 +727,7 @@
       const hasData = following > 0 || followers > 0;
       const maxCount = Math.max(1, ...counts.filter(c => c !== null));
       const heights = counts.map(c => c === null ? Math.max(4, ratio) : Math.max(4, Math.round((c / maxCount) * 100)));
-      html = `<div class="insights-sub">accounts that don't follow you back, per import</div>
+      html = `<div class="insights-sub">accounts that don't follow you back</div>
         <div class="insights-stats">
           ${stat(following, 'following', 0)}${stat(followers, 'followers', 1)}${stat(`${ratio}%`, 'follow you back', 2)}
           ${stat(state.unfollowers.length, "don't follow you back", 3)}${stat(state.unfollowed.length, 'unfollowed', 4)}${stat(state.starred.length, 'starred', 5)}
@@ -750,7 +750,10 @@
         const fol = (k) => readJSON(`followers_users_${k}`, []);
         const fa = fol(a), fb = fol(b);
         const sa = new Set(fa.map(u => u.username)), sb = new Set(fb.map(u => u.username));
-        html = `<div class="compare-pickers"><select class="compare-select">${opts(a)}</select><span>vs</span><select class="compare-select">${opts(b)}</select></div>
+        const nameOf = (v) => `@${esc((accounts.find(x => x.originalUsername.toLowerCase() === v) || {}).username || v)}`;
+        const chevron = '<svg class="compare-pick-chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+        const pick = (v) => `<label class="compare-pick"><span class="compare-pick-label">${nameOf(v)}</span>${chevron}<select class="compare-select" aria-label="account">${opts(v)}</select></label>`;
+        html = `<div class="compare-pickers">${pick(a)}<span>vs</span>${pick(b)}</div>
           <div class="insights-section"><div class="insights-section-title">follows the first account but not the second account</div>${userRowsHtml(fa.filter(u => !sb.has(u.username)), 'no accounts here')}</div>
           <div class="insights-section"><div class="insights-section-title">follows the second account but not the first account</div>${userRowsHtml(fb.filter(u => !sa.has(u.username)), 'no accounts here')}</div>`;
       }

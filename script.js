@@ -3343,7 +3343,7 @@ window.scrollInstructionsNav = scrollInstructionsNav;
 // easing. The browser's own smooth scroll starts much faster than the
 // highlight's ease-in, so the highlight was first dragged back with the
 // tabs and then swung forward — the choppy part of the switch.
-const instructionsEase = cubicBezierEasing(0.65, 0, 0.35, 1);
+const instructionsEase = cubicBezierEasing(0.32, 0.72, 0, 1); // the highlight's (IND_EASE)
 let instructionsInstant = false; // opening: jump straight there
 function scrollInstructionsNav(nav, target) {
   const start = nav.scrollLeft;
@@ -3356,41 +3356,62 @@ function scrollInstructionsNav(nav, target) {
   const step = (now) => {
     if (nav._scrollToken !== token) return; // a newer switch took over
     if (t0 === null) t0 = now;
-    const p = Math.min(1, (now - t0) / 550);
+    const p = Math.min(1, (now - t0) / 520);
     nav.scrollLeft = start + (end - start) * instructionsEase(p);
     if (p < 1) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
 }
 
+// The highlight is an outline, and animating its width ran on the main
+// thread (it stuttered on phones); scaling it would stretch its border.
+// So it's drawn as three pieces that only ever move by transform (on the
+// GPU): a left cap, a middle that stretches (only its top and bottom
+// edges, which don't distort when stretched sideways) and a right cap.
+// All three share one timing, so they stay joined the whole way.
+const IND_CAP = 9;       // cap width (a little over the corner radius)
+const IND_MID_BASE = 100; // the middle's unscaled width
+const IND_MS = 520;
+const IND_EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
+function indicatorParts(indicator) {
+  if (indicator._parts) return indicator._parts;
+  indicator.classList.add('ind-split');
+  indicator.innerHTML = '<span class="ind-l"></span><span class="ind-m"></span><span class="ind-r"></span>';
+  const [l, m, r] = indicator.children;
+  indicator._parts = { l, m, r };
+  return indicator._parts;
+}
+function indicatorFrames(x, w) {
+  const mid = Math.max(0, w - IND_CAP * 2) / IND_MID_BASE;
+  return {
+    l: `translateX(${x}px)`,
+    m: `translateX(${x + IND_CAP}px) scaleX(${mid})`,
+    r: `translateX(${x + w - IND_CAP}px)`
+  };
+}
 function moveInstructionsIndicator(indicator, tab) {
   const x = tab.offsetLeft;
   const w = tab.offsetWidth;
+  const parts = indicatorParts(indicator);
   let from = indicator._pos || null;
-  if (indicator._anim && indicator._anim.playState === 'running' && from) {
-    const nav = indicator.offsetParent;
-    const navRect = nav.getBoundingClientRect();
-    const scale = (navRect.width / nav.offsetWidth) || 1;
-    const r = indicator.getBoundingClientRect();
-    from = {
-      x: (r.left - navRect.left) / scale - nav.clientLeft + nav.scrollLeft,
-      w: r.width / scale
-    };
+  // Mid-slide: start from where the pieces are right now.
+  if (indicator._anims && indicator._anims.some(an => an.playState === 'running') && from) {
+    const tx = (el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).m41;
+    const lx = tx(parts.l), rx = tx(parts.r);
+    from = { x: lx, w: rx - lx + IND_CAP };
   }
-  if (indicator._anim) indicator._anim.cancel();
-  indicator._anim = null;
-  indicator.style.width = `${w}px`;
-  indicator.style.transform = `translateX(${x}px)`;
+  if (indicator._anims) indicator._anims.forEach(an => an.cancel());
+  indicator._anims = null;
+  const to = indicatorFrames(x, w);
+  parts.l.style.transform = to.l;
+  parts.m.style.transform = to.m;
+  parts.r.style.transform = to.r;
   indicator._pos = { x, w };
   const moved = from && (Math.abs(from.x - x) > 0.5 || Math.abs(from.w - w) > 0.5);
-  if (!moved || indicator.classList.contains('no-transition') || typeof indicator.animate !== 'function') return;
-  // Width rather than scaleX: the highlight is an outline now, and scaling
-  // it would stretch its border mid-slide. Both in one animation, so the
-  // slide and the resize stay in step.
-  indicator._anim = indicator.animate([
-    { transform: `translateX(${from.x}px)`, width: `${from.w}px` },
-    { transform: `translateX(${x}px)`, width: `${w}px` }
-  ], { duration: 550, easing: 'cubic-bezier(0.65, 0, 0.35, 1)' });
+  if (!moved || indicator.classList.contains('no-transition') || typeof parts.l.animate !== 'function') return;
+  const f = indicatorFrames(from.x, from.w);
+  const timing = { duration: IND_MS, easing: IND_EASE };
+  indicator._anims = ['l', 'm', 'r'].map(k => parts[k].animate([{ transform: f[k] }, { transform: to[k] }], timing));
 }
 
 function updateInstructionsStepUI() {

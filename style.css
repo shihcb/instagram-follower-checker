@@ -5243,8 +5243,6 @@ button:focus-visible,
 /* Its box tapped: popped out and stays out. */
 .trend-bar.bar-on {
   transform: translateY(-8px) scaleX(1.06);
-  background: color-mix(in srgb, var(--bar) 45%, transparent);
-  box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--bar) 70%, transparent);
 }
 @keyframes trend-grow {
   from { transform: scaleY(0); }
@@ -5258,15 +5256,45 @@ button:focus-visible,
   font-size: 0.76rem;
   color: var(--text-muted);
 }
-.compare-select {
+/* The chosen account shows as a centered label; the (invisible) native
+   picker sits on top of it, so tapping still opens it. */
+.compare-pick {
+  position: relative;
   flex: 1;
+  min-width: 0;
   height: 34px;
-  border-radius: 10px;
+  border-radius: var(--radius);
   border: 1px solid var(--input-border);
   background: var(--input-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 22px;
+}
+.compare-pick-label {
   color: var(--text-main);
-  padding: 0 8px;
   font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.compare-pick-chevron {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.compare-select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 16px; /* no zoom-in on iOS */
 }
 .insights-buttons {
   display: flex;
@@ -5570,8 +5598,43 @@ select,
 }
 .insights-stat[style*="--stat"].stat-on {
   box-shadow: 0 0 0 1.5px var(--stat) inset;
-  background: color-mix(in srgb, var(--stat) 36%, transparent) !important;
 }
 .insights-stat[style*="--stat"] .insights-stat-value {
   color: var(--stat);
+}
+
+/* The tab highlight in three pieces (see moveInstructionsIndicator): the
+   caps carry the rounded ends, the middle only its top and bottom edges. */
+.instructions-nav-indicator.ind-split {
+  border: none !important;
+  background: none !important;
+  width: 0 !important;
+  transform: none !important;
+  overflow: visible;
+}
+.instructions-nav-indicator.ind-split > span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid var(--text-main);
+  will-change: transform;
+  transform-origin: left center;
+}
+.instructions-nav-indicator.ind-split > .ind-l {
+  width: 9px;
+  border-right: none;
+  border-radius: calc(var(--radius) - 5px) 0 0 calc(var(--radius) - 5px);
+}
+.instructions-nav-indicator.ind-split > .ind-m {
+  width: 100px;
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+}
+.instructions-nav-indicator.ind-split > .ind-r {
+  width: 9px;
+  border-left: none;
+  border-radius: 0 calc(var(--radius) - 5px) calc(var(--radius) - 5px) 0;
 }
