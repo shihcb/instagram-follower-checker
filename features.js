@@ -601,7 +601,7 @@
     box.appendChild(altView);
     if (saved !== 'results') {
       box.classList.add('showing-alt');
-      renderView();
+      settleRender(); // drawn once the data has loaded (see below)
     }
     viewNav.addEventListener('click', (e) => {
       const tab = e.target.closest('[data-view]');
@@ -642,6 +642,8 @@
     : [altView];
   function showView(view) {
     if (!viewNav || view === currentView) return;
+    clearTimeout(settleTimer); // a switch takes over from the load-time draw
+    if (altView) altView.style.opacity = '';
     const ids = VIEWS.map(v => v[0]);
     const dir = ids.indexOf(view) > ids.indexOf(currentView) ? 1 : -1;
     const tabs = [...viewNav.querySelectorAll('[data-view]')];
@@ -683,8 +685,28 @@
   // The data behind a view changed (an account picked or dropped, files
   // imported): the old content fades up and away while the new comes in
   // piece by piece. Stats animates its own numbers and graph instead.
+  // While the page loads, the data arrives in steps (nothing, this device's
+  // copy, the cloud's), and drawing each one made the view's text flicker.
+  // So for the first few seconds (or until you touch the page) the view
+  // waits for the data to settle, then draws once and fades in.
+  let pageLoading = true;
+  setTimeout(() => { pageLoading = false; }, 3000);
+  ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, () => { pageLoading = false; }, { once: true, capture: true }));
+  let settleTimer = null;
+  function settleRender() {
+    if (!altView) return;
+    altView.style.opacity = '0';
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(() => {
+      if (currentView === 'results') { altView.style.opacity = ''; return; }
+      renderView();
+      altView.style.opacity = '';
+      if (typeof altView.animate === 'function') altView.animate([{ opacity: 0, transform: `translateY(${-SLIDE_Y}px)` }, { opacity: 1, transform: 'none' }], ARRIVE);
+    }, 350);
+  }
   function refreshView() {
     if (currentView === 'results' || !altView) return;
+    if (pageLoading) { settleRender(); return; }
     if (currentView === 'stats') { renderView(); return; }
     if (renderView(true) === altView._html) return; // nothing changed
     const oldPane = altView.querySelector('.insights-pane:not(.pane-leaving)');
