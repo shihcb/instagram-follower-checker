@@ -773,14 +773,13 @@
       const d = readJSON(`import_diff_${key}`, null);
       {
         // Its own switcher, same design as the one above list 3 — always
-        // there; before there's anything to compare, each tab says so.
-        const none = 'import your files again later to see who has unfollowed you, who has followed you, and more since last time';
+        // there, each tab with its own empty text.
         const lists = d ? { lost: d.lostFollowers, new: d.newFollowers, stopped: d.stoppedFollowing, started: d.startedFollowing } : { lost: [], new: [], stopped: [], started: [] };
         html = `<div class="instructions-steps-nav changes-nav">
             <div class="instructions-nav-indicator changes-indicator"></div>
             ${CHANGE_TABS.map(([id, label]) => `<button class="insights-tab${id === changesTab ? ' active' : ''}" data-change="${id}">${label}</button>`).join('')}
           </div>
-          ${CHANGE_TABS.map(([id]) => `<div class="changes-pane${id === changesTab ? ' active' : ''}" data-pane="${id}">${userRowsHtml(asUsers(lists[id]), d ? CHANGE_EMPTY[id] : none)}</div>`).join('')}`;
+          ${CHANGE_TABS.map(([id]) => `<div class="changes-pane${id === changesTab ? ' active' : ''}" data-pane="${id}">${userRowsHtml(asUsers(lists[id]), CHANGE_EMPTY[id])}</div>`).join('')}`;
       }
     } else if (currentView === 'stats') {
       const following = state.following.length, followers = state.followers.length;
