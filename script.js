@@ -1871,6 +1871,12 @@ function renderAccountChips(animate = false, { force = false } = {}) {
   const accounts = state.instagramAccounts || [];
   const accountMgmtRow = document.getElementById('account-mgmt-row');
   if (accountMgmtRow) {
+    // Closing: it animates down from the height it has now (style.css,
+    // --chip-row-height). Opening: from 0 to its height with the new chips,
+    // set further down once they're rendered.
+    if (accounts.length === 0 && !accountMgmtRow.classList.contains('empty-chips')) {
+      accountMgmtRow.style.setProperty('--chip-row-height', `${accountMgmtRow.offsetHeight}px`);
+    }
     accountMgmtRow.classList.toggle('empty-chips', accounts.length === 0);
   }
   const existingChips = Array.from(elements.accountChipsList.querySelectorAll('.account-chip'));
@@ -1989,6 +1995,12 @@ function renderAccountChips(animate = false, { force = false } = {}) {
     slideChipsFromPreviousRects(previousChipRects);
   }
 
+  if (accountMgmtRow && accounts.length > 0) {
+    // Opening (or already open): the height of the row with these chips.
+    const chipsHeight = elements.accountChipsList.offsetHeight;
+    accountMgmtRow.style.setProperty('--chip-row-height', `${chipsHeight + 8}px`); // + its 4px top/bottom padding
+  }
+
   if (accounts.length > 0) {
     elements.btnAddAccount.classList.add('compact');
   } else {
@@ -2104,6 +2116,10 @@ function animateChipExit(chip) {
   if (getComputedStyle(list).position === 'static') list.style.position = 'relative';
   const listRect = list.getBoundingClientRect();
   const scale = (listRect.width / list.offsetWidth) || 1; // the guest preview is scaled down
+  // Keep the row its height while the chip leaves: with no other chip
+  // holding it open, taking this one out of the row collapsed it at once
+  // and everything below jumped up. It closes smoothly afterwards.
+  list.style.minHeight = `${list.offsetHeight}px`;
   // Out of the row, pinned where it is, so the others can close the gap.
   const { offsetLeft: left, offsetTop: top, offsetWidth: width } = chip;
   // (important: chips are `position: relative !important` in style.css)
@@ -2183,8 +2199,11 @@ function deleteAccountFromModal() {
           chipRenderHeld = false;
           chipEl.remove();
           // Rebuilt (renumbered: each chip's shortcut badge and the account
-          // its double-tap opens), with every chip already in place.
+          // its double-tap opens), with every chip already in place. If it
+          // was the last chip, the row now closes — still held at its
+          // height (minHeight) so it eases shut instead of snapping.
           renderAccountChips(false, { force: true });
+          setTimeout(() => { elements.accountChipsList.style.minHeight = ''; }, 550);
         }, CHIP_EXIT_MS);
       });
     } else {
