@@ -689,7 +689,7 @@
     let html = '';
     if (currentView === 'changes') {
       const d = readJSON(`import_diff_${key}`, null);
-      if (!d) html = `<div class="dropdown-empty-message">import your files again later to see who has unfollowed you, who has followed you, and more since last time.</div>`;
+      if (!d) html = `<div class="dropdown-empty-message">import your files again later to see who has unfollowed you, who has followed you, and more since last time</div>`;
       else {
         // Its own switcher, same design as the one above list 3.
         const lists = { lost: d.lostFollowers, new: d.newFollowers, stopped: d.stoppedFollowing, started: d.startedFollowing };
