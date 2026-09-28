@@ -905,15 +905,37 @@
     stopped: "no accounts you've stopped following", started: "no accounts you've started following"
   };
   let changesTab = 'lost';
-  function placeChangesIndicator() {
-    const nav = altView && altView.querySelector('.changes-nav');
+  // Places the outline on the active tab. On a reload the view is drawn
+  // before its tabs have their real size (the font, the layout), which
+  // left only the outline's left end showing — so it waits for a measured
+  // tab, and re-places itself whenever the tabs change size.
+  function placeChangesIndicator(tries = 0) {
+    const nav = altView && altView.querySelector('.insights-pane:not(.pane-leaving) .changes-nav');
     if (!nav) return;
     const active = nav.querySelector('.insights-tab.active');
+    if (!active) return;
+    if (!active.offsetWidth) {
+      if (tries < 30) requestAnimationFrame(() => placeChangesIndicator(tries + 1));
+      return;
+    }
     const indicator = nav.querySelector('.changes-indicator');
     indicator._pos = null;
     moveInstructionsIndicator(indicator, active);
     const left = active.offsetLeft - 12;
     if (left > 0) nav.scrollLeft = left;
+    if (!nav._sizeWatch && window.ResizeObserver) {
+      let last = active.offsetWidth;
+      nav._sizeWatch = new ResizeObserver(() => {
+        const cur = nav.querySelector('.insights-tab.active');
+        if (!cur || !cur.offsetWidth || !nav.isConnected) return;
+        const running = indicator._anims && indicator._anims.some(an => an.playState === 'running');
+        if (running || cur.offsetWidth === last && indicator._pos && Math.abs(indicator._pos.w - cur.offsetWidth) < 0.5) return;
+        last = cur.offsetWidth;
+        indicator._pos = null;
+        moveInstructionsIndicator(indicator, cur);
+      });
+      nav.querySelectorAll('.insights-tab').forEach(t => nav._sizeWatch.observe(t));
+    }
   }
   function showChangesTab(id) {
     const nav = altView.querySelector('.changes-nav');

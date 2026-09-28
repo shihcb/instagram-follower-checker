@@ -3392,6 +3392,9 @@ function indicatorFrames(x, w) {
 function moveInstructionsIndicator(indicator, tab) {
   const x = tab.offsetLeft;
   const w = tab.offsetWidth;
+  // A tab with no size yet (not laid out, fonts still loading): drawing the
+  // outline from it left only its left end. Whoever placed it retries.
+  if (!w) return;
   const parts = indicatorParts(indicator);
   let from = indicator._pos || null;
   // Mid-slide: start from where the pieces are right now.
