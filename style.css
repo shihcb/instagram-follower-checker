@@ -5494,3 +5494,11 @@ select,
 .row-select-bar button {
   border-radius: calc(var(--radius) - 5px) !important; /* 4px padding + the bar's 1px border */
 }
+
+/* List 3's views: the explanation lines and section headings sit centered
+   and grey, like the empty text (usernames keep their own look). */
+.list3-alt-view .insights-sub,
+.list3-alt-view .insights-section-title {
+  text-align: center;
+  color: var(--text-muted);
+}
