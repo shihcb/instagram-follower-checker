@@ -488,10 +488,8 @@
     noteOverlay.querySelector('.feature-note-title').textContent = `@${user.originalUsername}`;
     noteOverlay.querySelector('.feature-note-text').value = note.text || '';
     noteOverlay.querySelector('.feature-note-tags').value = (note.tags || []).join(', ');
-    cancelOverlayHide(noteOverlay);
-    noteOverlay.classList.remove('hidden');
+    showModalOverlay(noteOverlay);
     lockPageScroll();
-    requestAnimationFrame(() => noteOverlay.classList.add('show'));
   }
   function closeNote() {
     if (!noteOverlay) return;
@@ -586,13 +584,11 @@
   function openInsights(tab = insightsTab) {
     if (!insights) buildInsights();
     insightsTab = tab;
-    cancelOverlayHide(insights);
-    insights.classList.remove('hidden');
+    showModalOverlay(insights);
     lockPageScroll();
     const indicator = insights.querySelector('.insights-indicator');
     indicator.classList.add('no-transition');
     requestAnimationFrame(() => {
-      insights.classList.add('show');
       showTab(tab, true);
       requestAnimationFrame(() => indicator.classList.remove('no-transition'));
     });
@@ -769,10 +765,8 @@
         <span class="export-count">${listFor(kind).length}</span>
       </button>`).join('');
     updateExportButton();
-    cancelOverlayHide(exportOverlay);
-    exportOverlay.classList.remove('hidden');
+    showModalOverlay(exportOverlay);
     lockPageScroll();
-    requestAnimationFrame(() => exportOverlay.classList.add('show'));
   }
   function updateExportButton() {
     const n = exportOverlay.querySelectorAll('.export-option.on').length;

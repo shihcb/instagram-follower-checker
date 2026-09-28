@@ -1955,11 +1955,12 @@ body.hide-shortcuts #keyboard-hints {
   z-index: 10000;
   opacity: 0;
   pointer-events: none;
-  will-change: opacity, backdrop-filter;
-  -webkit-transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                      -webkit-backdrop-filter 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              backdrop-filter 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  /* Only the fade animates (the blur itself stays put): animating the
+     blur was costly in Safari and made pop-ups stutter where the
+     submenus — same fade and motion, no backdrop — stay smooth. */
+  will-change: opacity;
+  -webkit-transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .modal-overlay.show {

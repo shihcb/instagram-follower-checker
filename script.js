@@ -258,6 +258,17 @@ function cancelOverlayHide(overlay) {
   }
 }
 
+// Shows a pop-up (.modal-overlay) with the same enter animation as the
+// submenus. Its hidden starting state is committed first: showing it and
+// starting the animation in the same frame let Safari skip straight to the
+// end, so pop-ups often just appeared.
+function showModalOverlay(overlay) {
+  cancelOverlayHide(overlay);
+  overlay.classList.remove('hidden');
+  void overlay.offsetWidth;
+  overlay.classList.add('show');
+}
+
 function showSiteConfirm(title, message, confirmText = 'confirm', cancelText = 'cancel') {
   return new Promise((resolve) => {
     const overlay = document.getElementById('confirm-modal-overlay');
@@ -2152,10 +2163,8 @@ function openAccountModal(index = -1) {
     }
   }
 
-  cancelOverlayHide(elements.accountModalOverlay);
-  elements.accountModalOverlay.classList.remove('hidden');
+  showModalOverlay(elements.accountModalOverlay);
   requestAnimationFrame(() => {
-    elements.accountModalOverlay.classList.add('show');
     if (elements.accountUsernameInput) elements.accountUsernameInput.focus();
   });
 }
@@ -3251,11 +3260,9 @@ function openInstructionsModal(step = 1) {
     indicator.classList.add('no-transition');
   }
 
-  cancelOverlayHide(elements.instructionsModalOverlay);
-  elements.instructionsModalOverlay.classList.remove('hidden');
+  showModalOverlay(elements.instructionsModalOverlay);
   lockPageScroll();
   requestAnimationFrame(() => {
-    elements.instructionsModalOverlay.classList.add('show');
     updateInstructionsStepUI();
     setTimeout(() => {
       if (indicator) {
