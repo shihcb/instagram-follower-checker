@@ -5510,3 +5510,20 @@ select,
   padding: 16px 12px !important;
   text-wrap: balance;
 }
+
+/* The views fill list 3's box exactly (something else in the box held 4px
+   of it, so their centered text sat a few px high). */
+.results-container.showing-alt > .list3-alt-view {
+  position: absolute;
+  inset: 0;
+}
+
+/* A view's own empty text (mutuals, fans, compare, "import your files
+   again…") is centered in the whole box, whatever else the view shows
+   above it — exactly, not just in the space left over. */
+.results-container.showing-alt > .list3-alt-view .insights-pane > .dropdown-empty-message {
+  position: absolute;
+  inset: 0;
+  padding: 0 24px !important;
+  pointer-events: none;
+}
