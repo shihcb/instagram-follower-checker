@@ -659,7 +659,6 @@
       box.classList.toggle('showing-alt', view !== 'results');
       altView.classList.toggle('hidden', view === 'results');
       if (view !== 'results') { renderView(); altView.scrollTop = 0; }
-      if (view === 'changes') { const pane = altView.querySelector('.changes-pane.active'); if (pane) staggerIn(pane, dir); }
       refreshToolbar();
       if (typeof altView.animate !== 'function') return;
       viewEls(view).forEach(el => el.animate(
@@ -699,22 +698,16 @@
       .finished.then(() => oldPane.remove(), () => {});
     contentIn(altView.querySelector('.insights-pane:not(.pane-leaving)'), 150);
   }
-  // A view's pieces (its tab switcher, headings, rows, empty text) come in
-  // one after another; only the ones in sight take part.
+  // The new content comes in as one block, the exit played backwards
+  // (the changes view's switcher stays put, only what's under it moves).
   function contentIn(pane, delay = 0) {
-    if (!pane) return;
-    const pieces = [];
-    [...pane.children].forEach(ch => {
-      if (ch.matches('.changes-pane')) { if (ch.classList.contains('active')) pieces.push(...ch.querySelectorAll('.insights-row, .dropdown-empty-message')); }
-      else if (ch.matches('.insights-section')) pieces.push(...ch.querySelectorAll('.insights-section-title, .insights-row, .dropdown-empty-message'));
-      else if (ch.matches('.insights-list')) pieces.push(...ch.querySelectorAll('.insights-row'));
-      else if (!ch.matches('.changes-nav')) pieces.push(ch);
-    });
-    const box = altView.getBoundingClientRect();
-    pieces.filter(el => { const r = el.getBoundingClientRect(); return r.bottom > box.top && r.top < box.bottom; }).slice(0, 16)
-      .forEach((el, i) => el.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }],
-        { duration: 460, delay: delay + i * 35, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' }));
+    if (!pane || typeof pane.animate !== 'function') return;
+    [...pane.children]
+      .filter(ch => !ch.matches('.changes-nav') && !(ch.matches('.changes-pane') && !ch.classList.contains('active')))
+      .forEach(el => el.animate([{ opacity: 0, transform: 'translateY(-10px)' }, { opacity: 1, transform: 'none' }],
+        { duration: 280, delay, easing: 'cubic-bezier(0, 0, 0.2, 1)', fill: 'backwards' }));
   }
+
 
   const followingSet = () => new Set(state.following.map(u => u.username));
   const followersSet = () => new Set(state.followers.map(u => u.username));
@@ -934,40 +927,30 @@
     else if (right > nav.scrollLeft + nav.clientWidth) scrollInstructionsNav(nav, right - nav.clientWidth);
     // The list you're leaving: its rows slide and fade out one after
     // another; then the new list's rows slide in one after another.
-    altView.querySelectorAll('.changes-pane').forEach(p => p.querySelectorAll('.insights-row, .dropdown-empty-message').forEach(el => el.getAnimations && el.getAnimations().forEach(an => an.cancel())));
+    altView.querySelectorAll('.changes-pane').forEach(p => p.getAnimations && p.getAnimations().forEach(an => an.cancel()));
     const token = (altView._changesToken = {});
     const swap = () => {
       if (altView._changesToken !== token) return;
       oldPane.classList.remove('active');
-      oldPane.querySelectorAll('.insights-row, .dropdown-empty-message').forEach(el => el.getAnimations && el.getAnimations().forEach(an => an.cancel()));
+      oldPane.getAnimations && oldPane.getAnimations().forEach(an => an.cancel());
       newPane.classList.add('active');
-      staggerIn(newPane, dir);
+      paneIn(newPane, dir);
     };
-    staggerOut(oldPane, dir).then(swap);
+    paneOut(oldPane, dir).then(swap);
   }
-  // A list's rows (or its empty text) come in / go out one after another;
-  // only the ones in view take part, so a long list isn't slow.
-  function paneItems(pane) {
-    const box = altView.getBoundingClientRect();
-    return [...pane.querySelectorAll('.insights-row, .dropdown-empty-message')]
-      .filter(el => { const r = el.getBoundingClientRect(); return r.bottom > box.top && r.top < box.bottom; })
-      .slice(0, 14);
+  // Switching changes tabs: the whole list box slides out, the new one
+  // slides in the same way (in the direction of the tab).
+  function paneIn(pane, dir = 1) {
+    if (typeof pane.animate !== 'function') return;
+    pane.animate([{ opacity: 0, transform: `translateX(${dir * 18}px)` }, { opacity: 1, transform: 'none' }],
+      { duration: 280, easing: 'cubic-bezier(0, 0, 0.2, 1)' });
   }
-  function staggerIn(pane, dir = 1) {
-    const items = paneItems(pane);
-    if (!items.length || typeof items[0].animate !== 'function') return;
-    items.forEach((el, i) => el.animate(
-      [{ opacity: 0, transform: `translate(${dir * 18}px, 6px)` }, { opacity: 1, transform: 'none' }],
-      { duration: 420, delay: i * 35, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' }));
+  function paneOut(pane, dir = 1) {
+    if (typeof pane.animate !== 'function') return Promise.resolve();
+    return pane.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: `translateX(${-dir * 18}px)` }],
+      { duration: 200, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' }).finished.catch(() => {});
   }
-  function staggerOut(pane, dir = 1) {
-    const items = paneItems(pane);
-    if (!items.length || typeof items[0].animate !== 'function') return Promise.resolve();
-    const anims = items.map((el, i) => el.animate(
-      [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: `translate(${-dir * 18}px, 0)` }],
-      { duration: 200, delay: i * 18, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' }));
-    return Promise.all(anims.map(an => an.finished.catch(() => {})));
-  }
+
 
   const EXPORT_LISTS = [
     ['list3', "list 3 · don't follow you back"], ['unfollowed', 'unfollowed'], ['starred', 'starred'],
