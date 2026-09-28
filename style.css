@@ -5638,3 +5638,13 @@ select,
   border-left: none;
   border-radius: 0 calc(var(--radius) - 5px) calc(var(--radius) - 5px) 0;
 }
+
+/* A view's old content while it fades away over the new. */
+.list3-alt-view > .insights-pane.pane-leaving {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 12px;
+  bottom: 12px;
+  pointer-events: none;
+}

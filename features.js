@@ -661,8 +661,41 @@
   }
   // Keep the open view current as the data changes (imports, account
   // switches, unfollows).
+  // The data behind a view changed (an account picked or dropped, files
+  // imported): the old content fades up and away while the new comes in
+  // piece by piece. Stats animates its own numbers and graph instead.
   function refreshView() {
-    if (currentView !== 'results' && altView) renderView();
+    if (currentView === 'results' || !altView) return;
+    if (currentView === 'stats') { renderView(); return; }
+    if (renderView(true) === altView._html) return; // nothing changed
+    const oldPane = altView.querySelector('.insights-pane:not(.pane-leaving)');
+    const scroll = altView.scrollTop;
+    renderView();
+    altView.scrollTop = 0;
+    if (!oldPane || typeof oldPane.animate !== 'function') return;
+    oldPane.classList.add('pane-leaving');
+    oldPane.style.top = `${12 - scroll}px`;
+    altView.appendChild(oldPane);
+    oldPane.animate([{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(-10px)' }],
+      { duration: 280, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' })
+      .finished.then(() => oldPane.remove(), () => {});
+    contentIn(altView.querySelector('.insights-pane:not(.pane-leaving)'), 150);
+  }
+  // A view's pieces (its tab switcher, headings, rows, empty text) come in
+  // one after another; only the ones in sight take part.
+  function contentIn(pane, delay = 0) {
+    if (!pane) return;
+    const pieces = [];
+    [...pane.children].forEach(ch => {
+      if (ch.matches('.changes-pane')) { if (ch.classList.contains('active')) pieces.push(...ch.querySelectorAll('.insights-row, .dropdown-empty-message')); }
+      else if (ch.matches('.insights-section')) pieces.push(...ch.querySelectorAll('.insights-section-title, .insights-row, .dropdown-empty-message'));
+      else if (ch.matches('.insights-list')) pieces.push(...ch.querySelectorAll('.insights-row'));
+      else pieces.push(ch);
+    });
+    const box = altView.getBoundingClientRect();
+    pieces.filter(el => { const r = el.getBoundingClientRect(); return r.bottom > box.top && r.top < box.bottom; }).slice(0, 16)
+      .forEach((el, i) => el.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }],
+        { duration: 460, delay: delay + i * 35, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' }));
   }
 
   const followingSet = () => new Set(state.following.map(u => u.username));
@@ -685,18 +718,10 @@
   const asUsers = (names) => names.map(n => ({ username: n, originalUsername: n }));
   const stat = (value, label, i) => `<div class="insights-stat" style="--stat:${STAT_COLORS[i]}"><div class="insights-stat-value">${value}</div><div class="insights-stat-label">${label}</div></div>`;
 
-  function renderView() {
+  // dry: just return what the view would show (to tell if it changed).
+  function renderView(dry = false) {
     const body = altView;
-    // The graph's frame survives the redraw (see updateChart), so a slide
-    // that's playing carries on through quick back-to-back redraws.
-    const oldWrap = body.querySelector('.trend-wrap');
-    if (oldWrap) oldWrap.remove();
-    // Same for the stat boxes: kept, and their numbers count to the new
-    // values (rebuilding them re-ran their fade-in: a flicker).
-    const oldStats = body.querySelector('.insights-stats');
-    if (oldStats) oldStats.remove();
     const key = accKey();
-    const who = state.selectedAccountUsername ? `@${esc((state.instagramAccounts.find(a => a.originalUsername.toLowerCase() === key) || {}).username || key)}` : 'this view';
     let html = '';
     if (currentView === 'changes') {
       const d = readJSON(`import_diff_${key}`, null);
@@ -704,8 +729,7 @@
       else {
         // Its own switcher, same design as the one above list 3.
         const lists = { lost: d.lostFollowers, new: d.newFollowers, stopped: d.stoppedFollowing, started: d.startedFollowing };
-        html = `<div class="insights-sub">${who} · since ${esc(new Date(d.since).toLocaleDateString())}</div>
-          <div class="instructions-steps-nav changes-nav">
+        html = `<div class="instructions-steps-nav changes-nav">
             <div class="instructions-nav-indicator changes-indicator"></div>
             ${CHANGE_TABS.map(([id, label]) => `<button class="insights-tab${id === changesTab ? ' active' : ''}" data-change="${id}">${label}</button>`).join('')}
           </div>
@@ -754,6 +778,17 @@
           <div class="insights-section"><div class="insights-section-title">follows the second account but not the first account</div>${userRowsHtml(fb.filter(u => !sa.has(u.username)), 'no accounts here')}</div>`;
       }
     }
+    if (dry) return html;
+    body._html = html;
+    // The graph's frame survives the redraw (see updateChart), so a slide
+    // that's playing carries on through quick back-to-back redraws.
+    const oldWrap = body.querySelector('.insights-pane:not(.pane-leaving) .trend-wrap');
+    if (oldWrap) oldWrap.remove();
+    // Same for the stat boxes: kept, and their numbers count to the new
+    // values (rebuilding them re-ran their fade-in: a flicker).
+    const oldStats = body.querySelector('.insights-pane:not(.pane-leaving) .insights-stats');
+    if (oldStats) oldStats.remove();
+    body.querySelectorAll('.pane-leaving').forEach(el => el.remove());
     body.innerHTML = `<div class="insights-pane">${html}</div>`;
     placeChangesIndicator();
     const newStats = body.querySelector('.insights-stats');
