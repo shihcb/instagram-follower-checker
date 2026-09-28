@@ -5502,3 +5502,11 @@ select,
   text-align: center;
   color: var(--text-muted);
 }
+
+/* Empty text in list 3's views: even padding (the menus' version is taller
+   at the bottom, which sat it a few px above the middle) and balanced
+   lines, so a long message is centered as a block, not just line by line. */
+.list3-alt-view .dropdown-empty-message {
+  padding: 16px 12px !important;
+  text-wrap: balance;
+}
