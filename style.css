@@ -5482,3 +5482,15 @@ select,
   -webkit-backdrop-filter: blur(var(--glass-blur));
   backdrop-filter: blur(var(--glass-blur));
 }
+
+/* Things sitting inside a 12px bar with 4px padding (the tab highlights and
+   tabs, the bulk bar's count and buttons) take the bar's radius minus the
+   gap, so their corners run parallel to the bar's instead of looking
+   rounder. */
+.instructions-steps-nav .instructions-nav-indicator,
+.instructions-steps-nav .instructions-tab,
+.instructions-steps-nav .insights-tab,
+.row-select-bar .row-select-count,
+.row-select-bar button {
+  border-radius: calc(var(--radius) - 5px) !important; /* 4px padding + the bar's 1px border */
+}
