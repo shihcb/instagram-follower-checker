@@ -5648,3 +5648,20 @@ select,
   bottom: 12px;
   pointer-events: none;
 }
+
+/* A view on its way out while the new one slides in: kept on screen, laid
+   over the box (list 3's rows, or a view going back to the results). */
+#card-unfollowers .results-container > .view-leaving {
+  display: flex !important;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+#card-unfollowers .results-container > #unfollowers-empty-state.view-leaving {
+  display: flex !important;
+}
+.changes-pane.pane-out {
+  pointer-events: none;
+  z-index: 1;
+}

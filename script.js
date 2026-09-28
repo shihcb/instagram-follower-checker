@@ -3343,7 +3343,7 @@ window.scrollInstructionsNav = scrollInstructionsNav;
 // easing. The browser's own smooth scroll starts much faster than the
 // highlight's ease-in, so the highlight was first dragged back with the
 // tabs and then swung forward — the choppy part of the switch.
-const instructionsEase = cubicBezierEasing(0.32, 0.72, 0, 1); // the highlight's (IND_EASE)
+const instructionsEase = cubicBezierEasing(0.16, 1, 0.3, 1); // the highlight's (IND_EASE)
 let instructionsInstant = false; // opening: jump straight there
 function scrollInstructionsNav(nav, target) {
   const start = nav.scrollLeft;
@@ -3356,7 +3356,7 @@ function scrollInstructionsNav(nav, target) {
   const step = (now) => {
     if (nav._scrollToken !== token) return; // a newer switch took over
     if (t0 === null) t0 = now;
-    const p = Math.min(1, (now - t0) / 520);
+    const p = Math.min(1, (now - t0) / 600);
     nav.scrollLeft = start + (end - start) * instructionsEase(p);
     if (p < 1) requestAnimationFrame(step);
   };
@@ -3371,8 +3371,8 @@ function scrollInstructionsNav(nav, target) {
 // All three share one timing, so they stay joined the whole way.
 const IND_CAP = 9;       // cap width (a little over the corner radius)
 const IND_MID_BASE = 100; // the middle's unscaled width
-const IND_MS = 520;
-const IND_EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
+const IND_MS = 600;  // the instructions window's opening timing
+const IND_EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
 function indicatorParts(indicator) {
   if (indicator._parts) return indicator._parts;
   indicator.classList.add('ind-split');
