@@ -68,7 +68,7 @@
       }).map(x => x[0]);
     }
     state.unfollowers = list;
-    if (lastSnap && lastSnap.acc !== accKey()) { lastSnap = null; setUndoReady(false); }
+    refreshUndo(); // the steps belong to the account on screen
     const result = baseUpdateResultsUI.call(this, opts);
     refreshToolbar();
     return result;
@@ -142,15 +142,21 @@
   // The undo button (right of list 3's info button) lights up once the
   // action's slide has finished (its completion updates the lists) and
   // undoes the latest action.
-  let lastSnap = null;
+  // A stack: each tap undoes one more action, back until there's none left
+  // (up to 50, for the account on screen).
+  const undoStack = [];
   let undoBtn = null;
+  const undoable = () => undoStack.filter(x => x.snap.acc === accKey());
+  function refreshUndo() {
+    const list = undoable();
+    setUndoReady(list.length > 0);
+    if (undoBtn && list.length) undoBtn.title = `undo: ${list[list.length - 1].message}${list.length > 1 ? ` (${list.length} steps)` : ''}`;
+  }
   function offerUndo(snap, message) {
-    lastSnap = null;
-    setUndoReady(false);
     setTimeout(() => {
-      lastSnap = snap;
-      if (undoBtn) undoBtn.title = `undo: ${message}`;
-      setUndoReady(true);
+      undoStack.push({ snap, message });
+      if (undoStack.length > 50) undoStack.shift();
+      refreshUndo();
     }, ROW_MOTION_MS + 60);
   }
   function setUndoReady(ready) {
@@ -174,11 +180,13 @@
     info.parentNode.insertBefore(undoBtn, info.nextSibling);
     undoBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (!lastSnap) return;
-      const snap = lastSnap;
-      lastSnap = null;
-      setUndoReady(false);
-      restore(snap);
+      for (let i = undoStack.length - 1; i >= 0; i--) {
+        if (undoStack[i].snap.acc !== accKey()) continue;
+        const [{ snap }] = undoStack.splice(i, 1);
+        restore(snap);
+        break;
+      }
+      refreshUndo();
     });
     setUndoReady(false);
   }
