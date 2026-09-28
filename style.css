@@ -4867,7 +4867,7 @@ button:focus-visible,
   border-radius: 10px;
   background: linear-gradient(var(--input-bg), var(--input-bg)), var(--bg-color, #fff);
   border: 1px solid var(--input-border);
-  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.22);
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, 16px) scale(0.96);
@@ -4885,11 +4885,11 @@ button:focus-visible,
   border-radius: 7px;
   background: #ffffff;
   color: #000000;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   white-space: nowrap;
 }
 [data-theme="dark"] .row-select-count {
-  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.22);
+  box-shadow: none;
 }
 .row-select-bar button {
   padding: 7px 12px;
@@ -4994,6 +4994,13 @@ button:focus-visible,
 /* List 3's view switcher (same bar, tabs and highlight as instructions) */
 .list3-views {
   margin-bottom: 10px;
+}
+/* A lighter highlight shadow than the instructions window's. */
+.list3-views .instructions-nav-indicator {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+[data-theme="dark"] .list3-views .instructions-nav-indicator {
+  box-shadow: none;
 }
 .list3-alt-view {
   flex: 1;
