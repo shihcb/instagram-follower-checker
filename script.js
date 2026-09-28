@@ -5496,17 +5496,6 @@ async function pullFromCloud(uploadLocalFirst = false) {
         }
 
         if (metaItem.notes) storageSet('user_notes', JSON.stringify(metaItem.notes));
-        // Today's unfollow tally.
-        if (metaItem.tally && Array.isArray(metaItem.tally.names)) {
-          let local = null;
-          try { local = JSON.parse(storageGet('unfollow_tally') || 'null'); } catch (e) {}
-          // Whichever changed last wins (combining them brought back a name
-          // that had been undone on this device).
-          const cloud = metaItem.tally;
-          const newer = !local || cloud.date > local.date || (cloud.date === local.date && (cloud.updated || 0) > (local.updated || 0));
-          if (newer) storageSet('unfollow_tally', JSON.stringify(cloud));
-        }
-
         // Clean meta header from raw starred list
         rawStarred = rawStarred.filter(item => !item.__meta);
       }
@@ -5704,8 +5693,7 @@ async function pushToCloudNow() {
       instagram_accounts: (state.instagramAccounts || []).filter(acc => !isDemoAccount(acc)),
       selected_account: (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() !== DEMO_ID) ? state.selectedAccountUsername : null,
       accounts_data: accountDataMap,
-      notes: JSON.parse(storageGet('user_notes') || '{}'),
-      tally: JSON.parse(storageGet('unfollow_tally') || 'null')
+      notes: JSON.parse(storageGet('user_notes') || '{}')
     };
 
     const cloudStarred = [metaHeader, ...allStarredArray];

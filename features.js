@@ -36,51 +36,6 @@
     if (!notesMemo) { notesMemo = getNotes(); setTimeout(() => { notesMemo = null; }, 0); }
     return notesMemo;
   };
-  // ---------- today's unfollow tally ----------
-  // Every account unfollowed today (from list 3, the starred menu, several
-  // at once), kept as "account:username" so an undo can take exactly that
-  // one back off. Your own calendar day (not UTC's): it starts again at
-  // midnight. Saved on the device and in the cloud with the rest.
-  const localDay = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
-  const readTally = () => {
-    const t = readJSON('unfollow_tally', null);
-    return t && t.date === localDay() && Array.isArray(t.names) ? t.names : [];
-  };
-  // `updated` lets the cloud copy and this device's settle on the latest.
-  const writeTally = (names) => { writeJSON('unfollow_tally', { date: localDay(), names, updated: Date.now() }); pushToCloud(); refreshToolbar(); };
-  const getToday = () => readTally().length;
-  function tallyAdd(usernames) {
-    const acc = accKey();
-    if (acc === DEMO_ID || !usernames.length) return;
-    const names = readTally();
-    usernames.forEach(u => { const id = `${acc}:${u}`; if (!names.includes(id)) names.push(id); });
-    writeTally(names);
-  }
-  // Back to list 3 (the x in the unfollowed menu) or moved to starred: no
-  // longer unfollowed, so it comes off today's count.
-  function tallyRemove(usernames) {
-    const acc = accKey();
-    const drop = new Set(usernames.map(u => `${acc}:${u}`));
-    const names = readTally();
-    const kept = names.filter(id => !drop.has(id));
-    if (kept.length !== names.length) writeTally(kept);
-  }
-  // Undo: this account's part of the count goes back to exactly what it was
-  // before that step (an undone unfollow comes off, an undone "back to list
-  // 3" goes back on); other accounts' are left alone.
-  function tallyUndo(snap) {
-    if (!snap.tally) return;
-    const mine = (id) => id.startsWith(`${snap.acc}:`);
-    const names = readTally();
-    const next = names.filter(id => !mine(id)).concat(snap.tally.filter(mine));
-    if (next.length !== names.length || next.some(id => !names.includes(id))) writeTally(next);
-  }
-  // Midnight: the tally starts over even with the page left open.
-  (function atMidnight() {
-    const now = new Date();
-    const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1);
-    setTimeout(() => { refreshToolbar(); atMidnight(); }, next - now);
-  })();
 
   let sortMode = 'default'; // 'default' | 'oldest' | 'newest'
   try { sortMode = localStorage.getItem('list3_sort') || 'default'; } catch (e) {}
@@ -175,8 +130,7 @@
       acc: accKey(),
       following: state.following.slice(),
       unfollowed: state.unfollowed.slice(),
-      starred: state.starred.slice(),
-      tally: readTally().slice()
+      starred: state.starred.slice()
     };
   }
   function restore(snap) {
@@ -184,7 +138,6 @@
     state.following = snap.following;
     state.unfollowed = snap.unfollowed;
     state.starred = snap.starred;
-    tallyUndo(snap);
     elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
     updateListUI('following');
     saveCurrentAccountData();
@@ -262,7 +215,6 @@
         if (row && row.classList.contains('username-exit')) return;
         const name = row ? row.querySelector('.user-link, .parsed-username') : null;
         offerUndo(snapshot(), `${name ? name.textContent.trim() : 'account'} ${verb}`);
-        if (row && sel.startsWith('#list-unfollowed ')) tallyRemove([row.dataset.username]);
         return;
       }
     }
@@ -273,16 +225,6 @@
       offerUndo(snapshot(), `${name ? name.textContent.trim() : 'account'} unfollowed`);
     }
   }, true);
-
-  // ---------- daily unfollow counter ----------
-  const baseUpdateUnfollowedUI = updateUnfollowedUI;
-  updateUnfollowedUI = function (enteringUsername) {
-    if (enteringUsername) {
-      tallyAdd([enteringUsername]);
-      refreshToolbar();
-    }
-    return baseUpdateUnfollowedUI.call(this, enteringUsername);
-  };
 
   // ---------- import history & changes ----------
   // At the end of every import (recordImportDate), compare the new lists
@@ -328,8 +270,8 @@
     if (!wrapper || toolbar) return;
     toolbar = document.createElement('div');
     toolbar.className = 'list-toolbar';
-    // Sort, select and today's tally share one row; the re-import
-    // reminder, when it shows, sits on its own line under them.
+    // Sort and select share one row; the re-import reminder, when it
+    // shows, sits on its own line under them.
     toolbar.innerHTML = `
       <div class="toolbar-row">
       <button class="toolbar-pill" data-act="sort" title="sort list 3">
@@ -340,7 +282,6 @@
         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         <span class="toolbar-pill-text">select</span>
       </button>
-      <span class="toolbar-pill toolbar-count" data-act="count" title="accounts unfollowed today"></span>
       </div>
       <button class="toolbar-pill toolbar-reminder" data-act="reminder" title="import your files again"></button>`;
     wrapper.parentNode.insertBefore(toolbar, wrapper);
@@ -415,40 +356,9 @@
     toolbar.querySelector('[data-act="select"]').disabled = !hasRows && !selectMode;
     toolbar.querySelector('[data-act="select"]').classList.toggle('on', selectMode);
 
-    const count = getToday();
-    const countEl = toolbar.querySelector('[data-act="count"]');
-    setPill(countEl, count > 0, `${count} unfollowed today`);
-    fitCount();
-    watchCountFit();
-
     const importedAt = +(storageGet(`import_date_${accKey()}`) || 0);
     const due = importedAt && Date.now() - importedAt > 7 * DAY && accKey() !== DEMO_ID;
     setPill(toolbar.querySelector('[data-act="reminder"]'), !!due, due ? `imported ${plural(Math.floor((Date.now() - importedAt) / DAY), 'day')} ago · import again` : '');
-  }
-  // The tally shares a row with sort and select: on a narrow phone, where
-  // "unfollowed today" doesn't fit beside them, it drops the "today" (the
-  // pill says so when you hover or long-press it) rather than cutting off.
-  function fitCount() {
-    const el = toolbar && toolbar.querySelector('[data-act="count"]');
-    if (!el || el.classList.contains('pill-hidden')) return;
-    const n = getToday();
-    const row = el.parentElement;
-    const tooWide = () => el.scrollWidth > el.clientWidth + 1;
-    row.classList.remove('tight');
-    el.textContent = `${n} unfollowed today`;
-    if (tooWide()) el.textContent = `${n} unfollowed`;
-    // The smallest phones: sort and select drop their little icons too.
-    if (tooWide()) row.classList.add('tight');
-  }
-  // Re-check whenever the row changes size (the window, the font loading,
-  // the sort label growing or shrinking).
-  window.addEventListener('resize', () => fitCount());
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitCount());
-  let fitObserver = null;
-  function watchCountFit() {
-    if (fitObserver || !window.ResizeObserver || !toolbar) return;
-    fitObserver = new ResizeObserver(() => fitCount());
-    toolbar.querySelectorAll('.toolbar-row > *').forEach(el => fitObserver.observe(el));
   }
   // Shows/hides a pill with the chips' fade (in) / a quick fade (out).
   function setPill(el, show, text) {
@@ -541,7 +451,6 @@
     } else if (kind === 'unfollow') {
       const have = new Set(state.unfollowed.map(u => u.username));
       users.forEach(u => { if (!have.has(u.username)) state.unfollowed.unshift({ ...u, account: acc }); });
-      tallyAdd(users.map(u => u.username));
     }
     const n = users.length;
     setSelectMode(false);
@@ -1056,7 +965,15 @@
     });
   }
 
+  // The daily unfollow tally was removed: clear what it left on the device.
+  function clearOldTally() {
+    try {
+      Object.keys(localStorage).forEach(k => { if (k === 'unfollow_tally' || k.startsWith('unfollow_count_')) localStorage.removeItem(k); });
+    } catch (e) {}
+  }
+
   function init() {
+    clearOldTally();
     buildToolbar();
     buildViewSwitcher();
     buildExportButtons();
