@@ -328,7 +328,10 @@
     if (!wrapper || toolbar) return;
     toolbar = document.createElement('div');
     toolbar.className = 'list-toolbar';
+    // Sort, select and today's tally share one row; the re-import
+    // reminder, when it shows, sits on its own line under them.
     toolbar.innerHTML = `
+      <div class="toolbar-row">
       <button class="toolbar-pill" data-act="sort" title="sort list 3">
         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg>
         <span class="sort-window"><span class="toolbar-pill-text sort-current"></span><span class="toolbar-pill-text sort-probe" aria-hidden="true"></span></span>
@@ -338,6 +341,7 @@
         <span class="toolbar-pill-text">select</span>
       </button>
       <span class="toolbar-pill toolbar-count" data-act="count" title="accounts unfollowed today"></span>
+      </div>
       <button class="toolbar-pill toolbar-reminder" data-act="reminder" title="import your files again"></button>`;
     wrapper.parentNode.insertBefore(toolbar, wrapper);
     toolbar.addEventListener('click', (e) => {
@@ -413,11 +417,38 @@
 
     const count = getToday();
     const countEl = toolbar.querySelector('[data-act="count"]');
-    setPill(countEl, count > 0, `${plural(count, 'account')} unfollowed today`);
+    setPill(countEl, count > 0, `${count} unfollowed today`);
+    fitCount();
+    watchCountFit();
 
     const importedAt = +(storageGet(`import_date_${accKey()}`) || 0);
     const due = importedAt && Date.now() - importedAt > 7 * DAY && accKey() !== DEMO_ID;
     setPill(toolbar.querySelector('[data-act="reminder"]'), !!due, due ? `imported ${plural(Math.floor((Date.now() - importedAt) / DAY), 'day')} ago · import again` : '');
+  }
+  // The tally shares a row with sort and select: on a narrow phone, where
+  // "unfollowed today" doesn't fit beside them, it drops the "today" (the
+  // pill says so when you hover or long-press it) rather than cutting off.
+  function fitCount() {
+    const el = toolbar && toolbar.querySelector('[data-act="count"]');
+    if (!el || el.classList.contains('pill-hidden')) return;
+    const n = getToday();
+    const row = el.parentElement;
+    const tooWide = () => el.scrollWidth > el.clientWidth + 1;
+    row.classList.remove('tight');
+    el.textContent = `${n} unfollowed today`;
+    if (tooWide()) el.textContent = `${n} unfollowed`;
+    // The smallest phones: sort and select drop their little icons too.
+    if (tooWide()) row.classList.add('tight');
+  }
+  // Re-check whenever the row changes size (the window, the font loading,
+  // the sort label growing or shrinking).
+  window.addEventListener('resize', () => fitCount());
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitCount());
+  let fitObserver = null;
+  function watchCountFit() {
+    if (fitObserver || !window.ResizeObserver || !toolbar) return;
+    fitObserver = new ResizeObserver(() => fitCount());
+    toolbar.querySelectorAll('.toolbar-row > *').forEach(el => fitObserver.observe(el));
   }
   // Shows/hides a pill with the chips' fade (in) / a quick fade (out).
   function setPill(el, show, text) {

@@ -4764,6 +4764,33 @@ button:focus-visible,
   flex-wrap: wrap;
   margin: 0; /* the card's own gap: same spacing as under the chips */
 }
+/* Sort, select and the tally: always one row. */
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 100%;
+  min-width: 0;
+}
+.toolbar-row .toolbar-pill {
+  flex-shrink: 0;
+}
+.toolbar-row .toolbar-count {
+  padding: 0 10px;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  line-height: 26px;
+  cursor: default;
+}
+.toolbar-row .toolbar-count.pill-hidden {
+  display: none;
+}
+.toolbar-row.tight .toolbar-pill > svg {
+  display: none;
+}
 .toolbar-pill {
   position: relative;
   overflow: hidden;
