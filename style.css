@@ -4691,3 +4691,18 @@ button:focus-visible,
   box-shadow: none !important;
 }
 
+
+/* List 3's rows added in batches after the first screenful
+   (appendRowTail in script.js — hundreds for a big account): the browser
+   skips laying out and painting them while they're scrolled out of view
+   (and remembers each one's size once shown), so adding them never
+   stalls the page. Not on the first screenful: those are measured right
+   away for their slide, before the browser knows they're on screen, and
+   would be measured at the placeholder size. */
+.results-list .user-row.row-tail {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 41px; /* + padding + border = a 63px row */
+  /* A skipped row has no content size, so the list (a flex column) would
+     squeeze it to its padding while it's out of view. */
+  flex-shrink: 0;
+}

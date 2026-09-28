@@ -1047,6 +1047,7 @@ function renderUnfollowerRowHtml(user, index) {
 // after every pause in typing.
 function updateResultsUI({ animate = false, matchRenames = false } = {}) {
   const listEl = elements.listUnfollowers;
+  listEl._rowTailToken = null; // this render decides the rows now
 
   // Rows still sliding out from an earlier change survive this re-render
   // instead of being wiped mid-slide:
@@ -1144,12 +1145,20 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
     elements.emptyState.classList.add('hidden');
     elements.listUnfollowers.classList.remove('hidden');
     
+    // Only the rows that can be on screen are built now; the rest are
+    // added in small batches once the slide has played (appendRowTail).
+    // Building every row of a big account at once (hundreds) stalled the
+    // page before the first frame of the slide could paint, so the list
+    // appeared already in place instead of sliding in.
     if (flip && !listWasHidden) {
-      reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, renamedFrom, keptExits });
+      const tail = reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, renamedFrom, keptExits });
+      appendRowTail(listEl, filtered, tail, ROW_TAIL_DELAY);
     } else {
-      listEl.innerHTML = filtered.map(renderUnfollowerRowHtml).join('');
+      const cut = Math.min(filtered.length, initialRowBudget(listEl));
+      listEl.innerHTML = filtered.slice(0, cut).map(renderUnfollowerRowHtml).join('');
       keptExits.forEach(row => listEl.appendChild(row));
       if (flip) animateResultsReentry(listEl, previousTops, resumeTops, { enter: animate });
+      appendRowTail(listEl, filtered, cut, flip ? ROW_TAIL_DELAY : 0);
     }
   } else if ((animate && previousRows.size > 0) || keptExits.length > 0) {
     // Emptied out: keep the list visible just long enough for its rows to
@@ -1183,6 +1192,39 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
   }
 }
 
+// How many of list 3's rows to build straight away: enough to fill what
+// can be on screen (the list's own scrolled view, or the window when the
+// list grows with the page), plus a margin. Rows are ~62px apart; 44 is
+// a safe underestimate.
+const ROW_TAIL_DELAY = 850; // after list 3's 800ms slide
+function initialRowBudget(listEl) {
+  const view = Math.min(listEl.clientHeight || Infinity, window.innerHeight);
+  return Math.ceil((listEl.scrollTop + view) / 44) + 20;
+}
+
+// Builds list 3's rows from `from` onwards in batches, one per frame,
+// after `delay` — so they never compete with the slide. A newer render
+// cancels it (it builds its own).
+function appendRowTail(listEl, filtered, from, delay) {
+  if (from >= filtered.length) return;
+  const token = (listEl._rowTailToken = {});
+  let index = from;
+  const run = () => {
+    if (listEl._rowTailToken !== token) return;
+    const end = Math.min(filtered.length, index + 150);
+    listEl.insertAdjacentHTML('beforeend', filtered.slice(index, end)
+      .map((user, i) => renderUnfollowerRowHtml(user, index + i).replace('class="user-row', 'class="user-row row-tail'))
+      .join(''));
+    index = end;
+    if (index < filtered.length) requestAnimationFrame(run);
+    else {
+      listEl._rowTailToken = null;
+      reindexUnfollowerRows();
+    }
+  };
+  setTimeout(() => requestAnimationFrame(run), delay);
+}
+
 // Updates list 3 in place for an animated change, keeping each row that
 // stays as the SAME element. A full innerHTML re-render replaced every row,
 // throwing away the motion each was in the middle of (including the clip
@@ -1204,6 +1246,19 @@ function reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, rename
   // offset parent before the first read (not only before the writes, which
   // measured the first-ever update against a different parent).
   if (getComputedStyle(listEl).position === 'static') listEl.style.position = 'relative';
+
+  // Build only up to what can be on screen (+ margin) now: past that, the
+  // first username without a row yet is where the rest is left to
+  // appendRowTail. Rows already there before it are kept as usual.
+  const viewBottomEstimate = listEl.scrollTop + Math.min(listEl.clientHeight || Infinity, window.innerHeight);
+  let onScreenRows = 0;
+  live.forEach(row => { if (row.offsetTop < viewBottomEstimate) onScreenRows++; });
+  const budget = Math.max(initialRowBudget(listEl), onScreenRows + 20);
+  let cut = filtered.length;
+  for (let i = budget; i < filtered.length; i++) {
+    if (!live.has(filtered[i].username)) { cut = i; break; }
+  }
+  filtered = filtered.slice(0, cut);
 
   const wanted = new Set(filtered.map(u => u.username));
   const renamedEls = new Set(renamedFrom.values());
@@ -1304,6 +1359,7 @@ function reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, rename
     slideRowOut(row, before.get(row).height + rowGap, DURATION, () => row.remove());
   });
   stepRowMotion();
+  return cut; // where the rest of the rows start (appendRowTail)
 }
 
 // Rows the re-render above just replaced: any whose username is no longer
@@ -1444,7 +1500,9 @@ const handleFollowersInput = debounce(function() {
   calculateUnfollowers({ animate: true, matchRenames: true });
 }, 250);
 
-function readAndProcessFile(file, type, append = false, isPending = false) {
+// `render: false` (imports): list 3 isn't redrawn per file — the import
+// redraws it once, animated, when every file is in (processImportFiles).
+function readAndProcessFile(file, type, append = false, isPending = false, { render = true } = {}) {
   return new Promise((resolve) => {
     if (!file) {
       resolve();
@@ -1471,10 +1529,12 @@ function readAndProcessFile(file, type, append = false, isPending = false) {
       const inputEl = elements[`input${type.charAt(0).toUpperCase() + type.slice(1)}`];
       inputEl.value = usernamesText;
       
-      // Update UI and recalculate list
       updateListUI(type);
+      if (!render) {
+        resolve();
+        return;
+      }
       calculateUnfollowers();
-      
       // Debounce delay buffer to ensure recalculation finishes before next file
       setTimeout(resolve, 300);
     };
@@ -1501,7 +1561,7 @@ function smoothClearTextarea(textareaEl, callback) {
   }
 }
 
-async function clearAllLists(animate = true) {
+async function clearAllLists(animate = true, { render = true } = {}) {
   if (animate) {
     const promises = [];
     if (elements.inputFollowing && elements.inputFollowing.value.trim() !== '') {
@@ -1532,7 +1592,7 @@ async function clearAllLists(animate = true) {
   state.selectedIndex = -1;
   updateListUI('following');
   updateListUI('followers');
-  calculateUnfollowers();
+  if (render) calculateUnfollowers();
 }
 
 /**
@@ -1592,7 +1652,7 @@ function ensureAccountSelected(username) {
       }
       state.selectedAccountUsername = originalName;
       storageSet('selected_instagram_account', state.selectedAccountUsername);
-      loadAccountData(state.selectedAccountUsername);
+      loadAccountData(state.selectedAccountUsername, true, true); // like selecting its chip
     }
   } else {
     // Account doesn't exist — create it and select it
@@ -1604,7 +1664,7 @@ function ensureAccountSelected(username) {
     saveAccountsList();
     state.selectedAccountUsername = username;
     storageSet('selected_instagram_account', username);
-    loadAccountData(username);
+    loadAccountData(username, true, true); // its chip fades in, like adding one by hand
   }
 
   renderAccountChips();
@@ -1661,18 +1721,23 @@ async function processImportFiles(files, isFolderUpload = false) {
       ensureAccountSelected(extractedUsername);
     }
 
-    // Automatically clear List 1 and List 2 smoothly before importing new files into their respective spaces
-    await clearAllLists(true);
+    // Clear List 1 and List 2 smoothly, read every file, then update list 3
+    // once, with list 3's slide: usernames that stay stay put, new ones
+    // slide in, gone ones slide out. It used to redraw list 3 without
+    // animation after the clear and after every file (with a 0.3s pause
+    // each), so it snapped from one state to the next.
+    await clearAllLists(true, { render: false });
 
     for (const item of validFilesToProcess) {
       if (item.type === 'following') {
-        await readAndProcessFile(item.file, 'following', importedFollowing, item.isPending);
+        await readAndProcessFile(item.file, 'following', importedFollowing, item.isPending, { render: false });
         importedFollowing = true;
       } else if (item.type === 'followers') {
-        await readAndProcessFile(item.file, 'followers', importedFollowers, item.isPending);
+        await readAndProcessFile(item.file, 'followers', importedFollowers, item.isPending, { render: false });
         importedFollowers = true;
       }
     }
+    calculateUnfollowers({ animate: true });
 
     // Restart the weekly reset reminder from this fresh import.
     recordImportDate(state.selectedAccountUsername);
