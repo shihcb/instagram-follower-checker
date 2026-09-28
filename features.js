@@ -562,7 +562,8 @@
   // ---------- list 3 views: a tab switcher above list 3's box ----------
   // Same bar and sliding highlight as the instructions window. Switching
   // only swaps what's inside list 3's box: the old view slides out, the new
-  // one slides in, in the direction of the tab.
+  // one slides in, in the direction of the tab — together 550ms on the
+  // highlight's easing, so the content lands as the highlight does.
   const VIEWS = [
     ['results', 'results'], ['changes', 'changes'], ['stats', 'stats'], ['mutuals', 'mutuals'],
     ['fans', 'fans'], ['compare', 'compare']
@@ -613,7 +614,8 @@
     const active = tabs.find(t => t.dataset.view === view);
     tabs.forEach(t => t.classList.toggle('active', t === active));
     moveInstructionsIndicator(viewNav.querySelector('.list3-views-indicator'), active);
-    const left = active.offsetLeft - 12, right = active.offsetLeft + active.offsetWidth + 38;
+    // Same scroll rule as the instructions bar: peek at the next tab.
+    const left = active.offsetLeft - 12, right = active.offsetLeft + active.offsetWidth + (active.nextElementSibling ? 38 : 12);
     if (left < viewNav.scrollLeft) scrollInstructionsNav(viewNav, Math.max(0, left));
     else if (right > viewNav.scrollLeft + viewNav.clientWidth) scrollInstructionsNav(viewNav, right - viewNav.clientWidth);
 
@@ -634,13 +636,13 @@
       if (typeof altView.animate !== 'function') return;
       viewEls(view).forEach(el => el.animate(
         [{ opacity: 0, transform: `translateX(${dir * 28}px)` }, { opacity: 1, transform: 'translateX(0)' }],
-        { duration: 260, easing: EASE }));
+        { duration: 350, easing: 'cubic-bezier(0.65, 0, 0.35, 1)' }));
     };
     if (typeof altView.animate !== 'function' || !outgoing.length) return swap();
     let pending = outgoing.length;
     outgoing.forEach(el => el.animate(
       [{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: `translateX(${-dir * 28}px)` }],
-      { duration: 170, easing: EASE, fill: 'forwards' }
+      { duration: 200, easing: 'cubic-bezier(0.65, 0, 0.35, 1)', fill: 'forwards' }
     ).finished.then(() => { if (--pending === 0) swap(); }, () => { if (--pending === 0) swap(); }));
   }
   // Keep the open view current as the data changes (imports, account

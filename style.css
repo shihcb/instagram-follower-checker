@@ -4995,16 +4995,7 @@ button:focus-visible,
 }
 
 /* List 3's view switcher (same bar, tabs and highlight as instructions) */
-.list3-views {
-  margin-bottom: 10px;
-}
-/* A lighter highlight shadow than the instructions window's. */
-.list3-views .instructions-nav-indicator {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-}
-[data-theme="dark"] .list3-views .instructions-nav-indicator {
-  box-shadow: none;
-}
+/* Exactly the instructions window's bar (.instructions-steps-nav). */
 .list3-alt-view {
   flex: 1;
   min-height: 0;
