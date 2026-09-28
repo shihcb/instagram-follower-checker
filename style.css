@@ -2084,8 +2084,9 @@ body.hide-shortcuts #keyboard-hints {
 .instructions-steps-nav {
   display: flex;
   gap: 6px;
-  /* A solid bar; the view it's on is outlined (the highlight below). */
-  background-color: var(--btn-secondary-bg);
+  /* White (black in dark mode) with just an outline marking the bar; the
+     view it's on is outlined in the text color (the highlight below). */
+  background-color: var(--bg-color);
   border: 1px solid var(--input-border);
   padding: 4px;
   border-radius: 10px;
@@ -4884,7 +4885,7 @@ button:focus-visible,
   padding: 4px;
   max-width: calc(100vw - 24px);
   border-radius: 10px;
-  background: var(--btn-secondary-bg);
+  background: var(--bg-color);
   border: 1px solid var(--input-border);
   box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.22);
   opacity: 0;

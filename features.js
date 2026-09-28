@@ -683,7 +683,7 @@
             <div class="instructions-nav-indicator changes-indicator"></div>
             ${CHANGE_TABS.map(([id, label]) => `<button class="insights-tab${id === changesTab ? ' active' : ''}" data-change="${id}">${label} <span class="changes-count">${lists[id].length}</span></button>`).join('')}
           </div>
-          ${CHANGE_TABS.map(([id]) => `<div class="changes-pane${id === changesTab ? ' active' : ''}" data-pane="${id}">${userRowsHtml(asUsers(lists[id]), 'nobody')}</div>`).join('')}`;
+          ${CHANGE_TABS.map(([id]) => `<div class="changes-pane${id === changesTab ? ' active' : ''}" data-pane="${id}">${userRowsHtml(asUsers(lists[id]), CHANGE_EMPTY[id])}</div>`).join('')}`;
       }
     } else if (currentView === 'stats') {
       const following = state.following.length, followers = state.followers.length;
@@ -705,10 +705,10 @@
         ${history.length ? `<div class="trend-chart">${bars}</div>` : `<div class="dropdown-empty-message">import your files to start the trend</div>`}`;
     } else if (currentView === 'mutuals') {
       const fset = followersSet();
-      html = userRowsHtml(state.following.filter(u => fset.has(u.username)), 'no mutuals yet');
+      html = userRowsHtml(state.following.filter(u => fset.has(u.username)), 'no mutual accounts yet');
     } else if (currentView === 'fans') {
       const fset = followingSet();
-      html = `<div class="insights-sub">follow you, but you don't follow back</div>${userRowsHtml(state.followers.filter(u => !fset.has(u.username)), 'no fans yet')}`;
+      html = `<div class="insights-sub">follow you, but you don't follow back</div>${userRowsHtml(state.followers.filter(u => !fset.has(u.username)), 'no fan accounts yet')}`;
     } else if (currentView === 'compare') {
       const accounts = state.instagramAccounts.filter(a => !isDemoAccount(a));
       if (accounts.length < 2) html = `<div class="dropdown-empty-message">add a second account to compare who follows each</div>`;
@@ -721,8 +721,8 @@
         const fa = fol(a), fb = fol(b);
         const sa = new Set(fa.map(u => u.username)), sb = new Set(fb.map(u => u.username));
         html = `<div class="compare-pickers"><select class="compare-select">${opts(a)}</select><span>vs</span><select class="compare-select">${opts(b)}</select></div>
-          <div class="insights-section"><div class="insights-section-title">follow the first, not the second <span>${fa.filter(u => !sb.has(u.username)).length}</span></div>${userRowsHtml(fa.filter(u => !sb.has(u.username)), 'nobody')}</div>
-          <div class="insights-section"><div class="insights-section-title">follow the second, not the first <span>${fb.filter(u => !sa.has(u.username)).length}</span></div>${userRowsHtml(fb.filter(u => !sa.has(u.username)), 'nobody')}</div>`;
+          <div class="insights-section"><div class="insights-section-title">follow the first, not the second <span>${fa.filter(u => !sb.has(u.username)).length}</span></div>${userRowsHtml(fa.filter(u => !sb.has(u.username)), 'no accounts')}</div>
+          <div class="insights-section"><div class="insights-section-title">follow the second, not the first <span>${fb.filter(u => !sa.has(u.username)).length}</span></div>${userRowsHtml(fb.filter(u => !sa.has(u.username)), 'no accounts')}</div>`;
       }
     }
     body.innerHTML = `<div class="insights-pane">${html}</div>`;
@@ -734,6 +734,11 @@
     ['lost', 'unfollowed you'], ['new', 'new followers'],
     ['stopped', 'you stopped following'], ['started', 'you started following']
   ];
+  // Worded like the unfollowed / starred submenus' empty lines.
+  const CHANGE_EMPTY = {
+    lost: 'no accounts unfollowed you', new: 'no new followers',
+    stopped: 'no accounts you stopped following', started: 'no accounts you started following'
+  };
   let changesTab = 'lost';
   function placeChangesIndicator() {
     const nav = altView && altView.querySelector('.changes-nav');
