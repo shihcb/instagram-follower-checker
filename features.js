@@ -688,6 +688,10 @@
     altView.scrollTop = 0;
     if (!oldPane || typeof oldPane.animate !== 'function') return;
     oldPane.classList.add('pane-leaving');
+    // The changes view's switcher stays put (the new one sits exactly where
+    // the old one was); only what's under it swaps.
+    const oldNav = oldPane.querySelector('.changes-nav');
+    if (oldNav) oldNav.style.visibility = 'hidden';
     oldPane.style.top = `${12 - scroll}px`;
     altView.appendChild(oldPane);
     oldPane.animate([{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(-10px)' }],
@@ -704,7 +708,7 @@
       if (ch.matches('.changes-pane')) { if (ch.classList.contains('active')) pieces.push(...ch.querySelectorAll('.insights-row, .dropdown-empty-message')); }
       else if (ch.matches('.insights-section')) pieces.push(...ch.querySelectorAll('.insights-section-title, .insights-row, .dropdown-empty-message'));
       else if (ch.matches('.insights-list')) pieces.push(...ch.querySelectorAll('.insights-row'));
-      else pieces.push(ch);
+      else if (!ch.matches('.changes-nav')) pieces.push(ch);
     });
     const box = altView.getBoundingClientRect();
     pieces.filter(el => { const r = el.getBoundingClientRect(); return r.bottom > box.top && r.top < box.bottom; }).slice(0, 16)
@@ -739,15 +743,16 @@
     let html = '';
     if (currentView === 'changes') {
       const d = readJSON(`import_diff_${key}`, null);
-      if (!d) html = `<div class="dropdown-empty-message">import your files again later to see who has unfollowed you, who has followed you, and more since last time</div>`;
-      else {
-        // Its own switcher, same design as the one above list 3.
-        const lists = { lost: d.lostFollowers, new: d.newFollowers, stopped: d.stoppedFollowing, started: d.startedFollowing };
+      {
+        // Its own switcher, same design as the one above list 3 — always
+        // there; before there's anything to compare, each tab says so.
+        const none = 'import your files again later to see who has unfollowed you, who has followed you, and more since last time';
+        const lists = d ? { lost: d.lostFollowers, new: d.newFollowers, stopped: d.stoppedFollowing, started: d.startedFollowing } : { lost: [], new: [], stopped: [], started: [] };
         html = `<div class="instructions-steps-nav changes-nav">
             <div class="instructions-nav-indicator changes-indicator"></div>
             ${CHANGE_TABS.map(([id, label]) => `<button class="insights-tab${id === changesTab ? ' active' : ''}" data-change="${id}">${label}</button>`).join('')}
           </div>
-          ${CHANGE_TABS.map(([id]) => `<div class="changes-pane${id === changesTab ? ' active' : ''}" data-pane="${id}">${userRowsHtml(asUsers(lists[id]), CHANGE_EMPTY[id])}</div>`).join('')}`;
+          ${CHANGE_TABS.map(([id]) => `<div class="changes-pane${id === changesTab ? ' active' : ''}" data-pane="${id}">${userRowsHtml(asUsers(lists[id]), d ? CHANGE_EMPTY[id] : none)}</div>`).join('')}`;
       }
     } else if (currentView === 'stats') {
       const following = state.following.length, followers = state.followers.length;
