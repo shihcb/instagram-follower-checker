@@ -690,8 +690,9 @@
   // So for the first few seconds (or until you touch the page) the view
   // waits for the data to settle, then draws once and fades in.
   let pageLoading = true;
-  setTimeout(() => { pageLoading = false; }, 3000);
-  ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, () => { pageLoading = false; }, { once: true, capture: true }));
+  setTimeout(() => { pageLoading = false; }, 4000);
+  // A tap or a key ends it (not a scroll: touching to scroll ended it early).
+  ['click', 'keydown'].forEach(ev => window.addEventListener(ev, () => { pageLoading = false; }, { once: true, capture: true }));
   let settleTimer = null;
   function settleRender() {
     if (!altView) return;
@@ -728,7 +729,9 @@
     oldPane.animate([{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: `translateY(${-SLIDE_Y}px)` }], LEAVE)
       .finished.then(drop, drop);
     setTimeout(drop, LEAVE.duration + 400);
-    contentIn(altView.querySelector('.insights-pane:not(.pane-leaving)'), 120);
+    // The new content only comes in once the old has gone, so the two never
+    // show on top of each other (two texts in the same spot did).
+    contentIn(altView.querySelector('.insights-pane:not(.pane-leaving)'), LEAVE.duration);
   }
   // The new content comes in as one block, the exit played backwards
   // (the changes view's switcher stays put, only what's under it moves).
