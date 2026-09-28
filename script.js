@@ -1937,6 +1937,83 @@ function slideChipsFromPreviousRects(previousRects) {
   });
 }
 
+// One account chip. Its handlers look the account up when tapped (by the
+// chip's data-account-name), not from when the chip was made — chips are
+// kept across renders while accounts are added, removed or renamed.
+function createAccountChip(name) {
+  const chip = document.createElement('div');
+  chip.className = 'account-chip';
+  chip.setAttribute('data-account-name', name);
+  const textSpan = document.createElement('span');
+  textSpan.className = 'chip-text';
+  chip.appendChild(textSpan);
+
+  const current = () => {
+    const index = (state.instagramAccounts || []).findIndex(a => a.originalUsername.toLowerCase() === name);
+    return index >= 0 ? { acc: state.instagramAccounts[index], index } : null;
+  };
+  const isSelected = () => !!state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === name;
+  const openEditor = () => {
+    const found = current();
+    if (!found) return;
+    if (!isSelected()) selectAccount(found.acc.originalUsername);
+    openAccountModal(found.index);
+  };
+
+  let lastChipTapTime = 0;
+  function handleChipInteraction(e) {
+    e.stopPropagation();
+    const now = Date.now();
+    const timeDiff = now - lastChipTapTime;
+
+    if (timeDiff > 0 && timeDiff < 350) {
+      chip.classList.add('no-active');
+      if (chipClickTimer) {
+        clearTimeout(chipClickTimer);
+        chipClickTimer = null;
+      }
+      openEditor();
+      lastChipTapTime = 0;
+      return;
+    }
+
+    lastChipTapTime = now;
+
+    if (chipClickTimer) {
+      clearTimeout(chipClickTimer);
+      chipClickTimer = null;
+    }
+
+    chipClickTimer = setTimeout(() => {
+      const found = current();
+      if (found) selectAccount(found.acc.originalUsername);
+      chipClickTimer = null;
+      lastChipTapTime = 0;
+    }, 240);
+  }
+
+  // The entrance only ever plays once (moving a chip would replay it).
+  chip.addEventListener('animationend', (e) => {
+    if (e.animationName === 'chip-fade-in') chip.classList.remove('fade-in', 'after-row');
+  });
+  chip.addEventListener('touchend', (e) => handleChipInteraction(e));
+  chip.addEventListener('click', (e) => {
+    if (Date.now() - lastChipTapTime < 50) return;
+    handleChipInteraction(e);
+  });
+  chip.addEventListener('dblclick', (e) => {
+    chip.classList.add('no-active');
+    e.stopPropagation();
+    e.preventDefault();
+    if (chipClickTimer) {
+      clearTimeout(chipClickTimer);
+      chipClickTimer = null;
+    }
+    openEditor();
+  });
+  return chip;
+}
+
 function renderAccountChips(animate = false, { force = false } = {}) {
   if (!elements.accountChipsList || !elements.btnAddAccount) return;
   if (chipRenderHolds > 0 && !force) return; // a chip is animating out (deleteAccountFromModal)
@@ -1955,122 +2032,59 @@ function renderAccountChips(animate = false, { force = false } = {}) {
     accountMgmtRow.classList.toggle('empty-chips', accounts.length === 0);
   }
   const rowOpening = !!accountMgmtRow && accountMgmtRow.classList.contains('empty-chips') && accounts.length > 0;
-  const existingChips = Array.from(elements.accountChipsList.querySelectorAll('.account-chip'));
-  
-  // Check if existing chips match current accounts list length and names
-  const existingUsernames = existingChips.map(c => c.getAttribute('data-account-name'));
-  const existingDisplayNames = existingChips.map(c => c.querySelector('.chip-text')?.textContent || c.textContent);
-  
-  const accountsMatch = existingUsernames.length === accounts.length && 
-    accounts.every((acc, i) => 
-      existingUsernames[i] === acc.originalUsername.toLowerCase() &&
-      existingDisplayNames[i] === `@${acc.username}`
-    );
 
-  if (accountsMatch && !force) {
-    // Just update active class smoothly on existing DOM nodes so CSS transition executes!
-    existingChips.forEach((chip) => {
-      const username = chip.getAttribute('data-account-name');
-      const isSelected = state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === username;
-      chip.classList.toggle('active', isSelected);
-    });
-  } else {
-    // Full re-render when accounts are added or deleted -> Layout shifts!
-    // Remember where each surviving chip is so they can slide to their new
-    // spots afterwards instead of jumping (e.g. into a deleted chip's gap).
-    const previousChipRects = new Map();
-    existingChips.forEach(c => {
-      if (!c.classList.contains('bounce-out')) previousChipRects.set(c.getAttribute('data-account-name'), c.getBoundingClientRect());
-    });
-    elements.accountChipsList.innerHTML = '';
+  // Updated in place: chips that stay keep their element — only the chips
+  // that are new are created (and fade in), gone ones are removed, and a
+  // change of selection just moves the .active highlight, which fades.
+  // Rebuilding every chip whenever the list changed (e.g. the first "try a
+  // demo") made the previously selected chip lose its highlight instantly.
+  const list = elements.accountChipsList;
+  const existing = new Map();
+  Array.from(list.querySelectorAll('.account-chip')).forEach(c => existing.set(c.getAttribute('data-account-name'), c));
+  const previousChipRects = new Map();
+  existing.forEach((c, name) => previousChipRects.set(name, c.getBoundingClientRect()));
 
-    accounts.forEach((acc, index) => {
-      const chip = document.createElement('div');
-      chip.className = 'account-chip';
-      // Only chips that weren't already there fade in — renaming or adding
-      // one account used to re-fade every existing chip as well.
-      if (animate && !existingUsernames.includes(acc.originalUsername.toLowerCase())) {
+  const wanted = new Set(accounts.map(acc => acc.originalUsername.toLowerCase()));
+  existing.forEach((c, name) => { if (!wanted.has(name)) c.remove(); });
+
+  const selected = state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : null;
+  accounts.forEach((acc, index) => {
+    const name = acc.originalUsername.toLowerCase();
+    let chip = existing.get(name);
+    if (!chip) {
+      chip = createAccountChip(name);
+      if (animate) {
         chip.classList.add('fade-in');
         if (rowOpening) chip.classList.add('after-row');
       }
-      chip.setAttribute('data-account-name', acc.originalUsername.toLowerCase());
-      chip.setAttribute('data-index', index);
-      
-      const textSpan = document.createElement('span');
-      textSpan.className = 'chip-text';
-      textSpan.textContent = `@${acc.username}`;
-      chip.appendChild(textSpan);
-
-      if (index < 10) {
-        const badge = document.createElement('span');
+    }
+    chip.setAttribute('data-index', index);
+    const text = chip.querySelector('.chip-text');
+    if (text.textContent !== `@${acc.username}`) text.textContent = `@${acc.username}`;
+    let badge = chip.querySelector('.account-chip-badge');
+    if (index < 10) {
+      if (!badge) {
+        badge = document.createElement('span');
         badge.className = 'account-chip-badge';
-        badge.textContent = `cmd ${index === 9 ? 0 : index + 1}`;
         chip.appendChild(badge);
       }
+      const key = `cmd ${index === 9 ? 0 : index + 1}`;
+      if (badge.textContent !== key) badge.textContent = key;
+    } else if (badge) {
+      badge.remove();
+    }
+    chip.classList.toggle('active', name === selected);
+    // In order; only moved when it isn't already in place (moving an
+    // element restarts its animations and transitions).
+    if (list.children[index] !== chip) {
+      list.insertBefore(chip, list.children[index] || null);
+    }
+  });
 
-      if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === acc.originalUsername.toLowerCase()) {
-        chip.classList.add('active');
-      }
-
-      let lastChipTapTime = 0;
-
-      function handleChipInteraction(e) {
-        e.stopPropagation();
-        const now = Date.now();
-        const timeDiff = now - lastChipTapTime;
-
-        if (timeDiff > 0 && timeDiff < 350) {
-          chip.classList.add('no-active');
-          if (chipClickTimer) {
-            clearTimeout(chipClickTimer);
-            chipClickTimer = null;
-          }
-          if (!state.selectedAccountUsername || state.selectedAccountUsername.toLowerCase() !== acc.originalUsername.toLowerCase()) {
-            selectAccount(acc.originalUsername);
-          }
-          openAccountModal(index);
-          lastChipTapTime = 0;
-          return;
-        }
-
-        lastChipTapTime = now;
-
-        if (chipClickTimer) {
-          clearTimeout(chipClickTimer);
-          chipClickTimer = null;
-        }
-
-        chipClickTimer = setTimeout(() => {
-          selectAccount(acc.originalUsername);
-          chipClickTimer = null;
-          lastChipTapTime = 0;
-        }, 240);
-      }
-
-      chip.addEventListener('touchend', (e) => handleChipInteraction(e));
-      chip.addEventListener('click', (e) => {
-        if (Date.now() - lastChipTapTime < 50) return;
-        handleChipInteraction(e);
-      });
-      chip.addEventListener('dblclick', (e) => {
-        chip.classList.add('no-active');
-        e.stopPropagation();
-        e.preventDefault();
-        if (chipClickTimer) {
-          clearTimeout(chipClickTimer);
-          chipClickTimer = null;
-        }
-        if (!state.selectedAccountUsername || state.selectedAccountUsername.toLowerCase() !== acc.originalUsername.toLowerCase()) {
-          selectAccount(acc.originalUsername);
-        }
-        openAccountModal(index);
-      });
-
-      elements.accountChipsList.appendChild(chip);
-    });
-
-    slideChipsFromPreviousRects(previousChipRects);
-  }
+  // Chips that ended up somewhere else (a rename changed a width, one was
+  // removed or reordered) slide there instead of jumping. (Only ones that
+  // actually moved are animated.)
+  slideChipsFromPreviousRects(previousChipRects);
 
   if (accountMgmtRow && accounts.length > 0) {
     // Opening (or already open): the height of the row with these chips.
