@@ -5665,3 +5665,16 @@ select,
   pointer-events: none;
   z-index: 1;
 }
+
+/* The push slides content sideways past the edges: clip it, don't let it
+   make the view scroll sideways. */
+.list3-alt-view {
+  overflow-x: hidden !important;
+}
+#card-unfollowers .results-container > .view-leaving,
+.list3-alt-view,
+.list3-alt-view > .insights-pane,
+.changes-pane {
+  will-change: auto;
+  backface-visibility: hidden;
+}

@@ -21,21 +21,17 @@
   const LEAVE = { duration: 200, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' };
   const ARRIVE = { duration: 320, easing: GLIDE };
   const SLIDE_X = 24; // tab switches slide sideways
-  // Switching tabs: the instructions window's own timing. What you leave
-  // goes like the window closing (450ms, an even ease), what you open comes
-  // like it opening (600ms, fast then settling) — and they move at the same
-  // time, one sliding away as the other slides in, with no gap.
-  const SWITCH_OUT = { duration: 450, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' };
-  const SWITCH_IN = { duration: 600, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' };
-  const SWITCH_X = 32;
-  // Leaving fades a little sooner than it slides, so the two never read as
-  // text on top of text.
-  const outFrames = (dx) => [
-    { opacity: 1, transform: 'translateX(0)' },
-    { opacity: 0, transform: `translateX(${dx * 0.55}px)`, offset: 0.55 },
-    { opacity: 0, transform: `translateX(${dx}px)` }
-  ];
-  const inFrames = (dx) => [{ opacity: 0, transform: `translateX(${dx}px)` }, { opacity: 1, transform: 'translateX(0)' }];
+  // Switching tabs: a push, like iOS navigation. The view you leave slides
+  // fully out one side while the new one slides fully in from the other,
+  // edge to edge and both solid (no see-through overlap to blend, which
+  // was costly on phones and looked messy) — on the instructions window's
+  // opening timing (600ms, fast then settling), the tab highlight's too.
+  const SWITCH = { duration: 600, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' };
+  const SWITCH_OUT = { ...SWITCH, fill: 'forwards' };
+  const SWITCH_IN = SWITCH;
+  const outFrames = (dx) => [{ transform: 'translateX(0)' }, { transform: `translateX(${dx}px)` }];
+  const inFrames = (dx) => [{ transform: `translateX(${dx}px)` }, { transform: 'translateX(0)' }];
+  const boxWidth = () => (altView && altView.parentNode ? altView.parentNode.clientWidth : 320);
   const SLIDE_Y = 12; // data changes lift away and settle
   const DAY = 24 * 60 * 60 * 1000;
 
@@ -711,8 +707,9 @@
       : [from === 'results' ? altView : altView.querySelector('.insights-pane:not(.pane-leaving)')].filter(Boolean);
     const token = ++viewToken;
     switchLeftovers = leaving;
-    leaving.forEach(el => el.animate(outFrames(-dir * SWITCH_X), SWITCH_OUT));
-    incoming.forEach(el => el.animate(inFrames(dir * SWITCH_X), SWITCH_IN));
+    const w = boxWidth();
+    leaving.forEach(el => el.animate(outFrames(-dir * w), SWITCH_OUT));
+    incoming.forEach(el => el.animate(inFrames(dir * w), SWITCH_IN));
     setTimeout(() => { if (token === viewToken) finishSwitch(); }, SWITCH_OUT.duration + 20);
   }
   // Whatever the last switch left on screen: put away, animations cleared.
@@ -1036,8 +1033,9 @@
     Object.assign(oldPane.style, { position: 'absolute', top: `${r.top - av.top + altView.scrollTop}px`, left: `${r.left - av.left}px`, width: `${r.width}px` });
     oldPane.classList.add('pane-out');
     newPane.classList.add('active');
-    oldPane.animate(outFrames(-dir * SWITCH_X), SWITCH_OUT).finished.then(() => settlePaneOut(oldPane), () => settlePaneOut(oldPane));
-    newPane.animate(inFrames(dir * SWITCH_X), SWITCH_IN);
+    const w = altView.clientWidth;
+    oldPane.animate(outFrames(-dir * w), SWITCH_OUT).finished.then(() => settlePaneOut(oldPane), () => settlePaneOut(oldPane));
+    newPane.animate(inFrames(dir * w), SWITCH_IN);
   }
   function settlePaneOut(pane) {
     pane.getAnimations && pane.getAnimations().forEach(an => an.cancel());
