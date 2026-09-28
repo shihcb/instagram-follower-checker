@@ -5441,3 +5441,23 @@ select,
 #auth-config-warning {
   border-radius: var(--radius) !important;
 }
+
+/* -------------------------------------------------------------
+ * Dark mode: nothing near-black as a button or bar background — tab
+ * switchers, sort / select, the bulk bar, and every button use the chips'
+ * background (--card-bg). Light mode is unchanged.
+ * ------------------------------------------------------------- */
+[data-theme="dark"] .instructions-steps-nav,
+[data-theme="dark"] .toolbar-pill,
+[data-theme="dark"] .export-option,
+[data-theme="dark"] #settings-reset-unfollowed-btn,
+[data-theme="dark"] #settings-reset-starred-btn {
+  background: var(--card-bg) !important;
+}
+/* It floats over the list: the chips' blur too, so rows don't show
+   through its translucent background. */
+[data-theme="dark"] .row-select-bar {
+  background: var(--card-bg) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+}
