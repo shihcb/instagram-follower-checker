@@ -5268,8 +5268,8 @@ button:focus-visible,
   background: var(--input-bg);
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 0 22px;
+  justify-content: flex-start;
+  padding: 0 26px 0 12px;
 }
 .compare-pick-label {
   color: var(--text-main);

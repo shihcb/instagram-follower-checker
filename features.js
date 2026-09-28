@@ -726,7 +726,10 @@
       const counts = [following, followers, null, state.unfollowers.length, state.unfollowed.length, state.starred.length];
       const hasData = following > 0 || followers > 0;
       const maxCount = Math.max(1, ...counts.filter(c => c !== null));
-      const heights = counts.map(c => c === null ? Math.max(4, ratio) : Math.max(4, Math.round((c / maxCount) * 100)));
+      // Log scale: next to 1,574 followers a count of 1, 12 or 50 was a
+      // sliver on a straight scale; this keeps the order and shows them.
+      const logScale = (c) => Math.round((Math.log1p(c) / Math.log1p(maxCount)) * 100);
+      const heights = counts.map(c => c === null ? Math.max(4, ratio) : Math.max(4, logScale(c)));
       html = `<div class="insights-sub">accounts that don't follow you back</div>
         <div class="insights-stats">
           ${stat(following, 'following', 0)}${stat(followers, 'followers', 1)}${stat(`${ratio}%`, 'follow you back', 2)}
