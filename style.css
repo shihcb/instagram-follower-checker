@@ -5681,3 +5681,62 @@ select,
   will-change: auto;
   backface-visibility: hidden;
 }
+
+/* Instructions: no tab bar on top; two arrows at the bottom move between
+   steps, and on the last step the next arrow widens into "close". */
+#instructions-modal-overlay .instructions-steps-nav {
+  display: none !important;
+}
+.instructions-arrows {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.instructions-arrow-btn {
+  height: 36px !important;
+  min-width: 36px;
+  padding: 0 !important;
+  border-radius: var(--radius) !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: opacity 0.3s ease, background-color 0.25s ease !important;
+}
+#btn-instructions-back {
+  width: 36px;
+}
+#btn-instructions-back:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+#btn-instructions-next {
+  width: 36px;
+  position: relative;
+}
+#btn-instructions-next.is-close {
+  width: auto;
+  padding: 0 18px !important;
+}
+#btn-instructions-next .btn-next-icon,
+#btn-instructions-next .btn-next-text-span {
+  display: inline-flex;
+  align-items: center;
+  transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+#btn-instructions-next .btn-next-text-span {
+  position: absolute;
+  opacity: 0;
+  transform: translateX(10px);
+}
+#btn-instructions-next.is-close .btn-next-icon {
+  position: absolute;
+  opacity: 0;
+  transform: translateX(-10px);
+}
+#btn-instructions-next.is-close .btn-next-text-span {
+  position: static;
+  opacity: 1;
+  transform: none;
+}

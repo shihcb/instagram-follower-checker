@@ -84,7 +84,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=343">
+  <link rel="stylesheet" href="style.css?v=344">
   <!-- Supabase Client Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -692,7 +692,15 @@
           <span class="dot" data-step="4"></span>
           <span class="dot" data-step="5"></span>
         </div>
-        <button id="btn-instructions-next" class="btn btn-sm btn-primary instructions-next-btn"><span id="btn-next-text-span" class="btn-next-text-span">next step</span></button>
+        <div class="instructions-arrows">
+          <button id="btn-instructions-back" class="btn btn-sm btn-secondary instructions-arrow-btn" aria-label="previous step" disabled>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          </button>
+          <button id="btn-instructions-next" class="btn btn-sm btn-primary instructions-next-btn instructions-arrow-btn" aria-label="next step">
+            <span class="btn-next-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
+            <span id="btn-next-text-span" class="btn-next-text-span">close</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -716,7 +724,7 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="script.js?v=330"></script>
+  <script src="script.js?v=331"></script>
   <script src="features.js?v=59"></script>
 </body>
 </html>

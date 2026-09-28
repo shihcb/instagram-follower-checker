@@ -177,6 +177,7 @@ const elements = {
   btnInstructionsModalClose: document.getElementById('btn-instructions-modal-close'),
   btnInstructionsPrev: document.getElementById('btn-instructions-prev'),
   btnInstructionsNext: document.getElementById('btn-instructions-next'),
+  btnInstructionsBack: document.getElementById('btn-instructions-back'),
   instructionsNavIndicator: document.getElementById('instructions-nav-indicator'),
 
   appGrid: document.querySelector('.app-grid'),
@@ -3248,6 +3249,14 @@ function setupEventListeners() {
       }
     });
   }
+  if (elements.btnInstructionsBack) {
+    elements.btnInstructionsBack.addEventListener('click', () => {
+      if (currentInstructionStep > 1) {
+        currentInstructionStep--;
+        updateInstructionsStepUI();
+      }
+    });
+  }
 
   // Instructions step tabs & dots click handlers
   document.querySelectorAll('.instructions-tab').forEach((tab) => {
@@ -3513,29 +3522,21 @@ function updateInstructionsStepUI() {
     dot.classList.toggle('active', s === currentInstructionStep);
   });
 
+  // The arrows: back is dimmed on the first step; on the last step the
+  // next arrow widens into a "close" button (and back into an arrow).
+  if (elements.btnInstructionsBack) elements.btnInstructionsBack.disabled = currentInstructionStep <= 1;
   if (elements.btnInstructionsNext) {
-    const textSpan = document.getElementById('btn-next-text-span') || elements.btnInstructionsNext;
-    const targetText = (currentInstructionStep === 5) ? 'close' : 'next step';
-    const currentText = textSpan.textContent.trim();
-
-    if (currentText !== targetText) {
-      const btn = elements.btnInstructionsNext;
-      const startWidth = btn.offsetWidth;
-      btn.style.width = `${startWidth}px`;
-
-      textSpan.classList.add('fade-out');
-
-      setTimeout(() => {
-        textSpan.textContent = targetText;
-        btn.style.width = 'auto';
-        const targetWidth = btn.offsetWidth;
-        btn.style.width = `${startWidth}px`;
-
-        requestAnimationFrame(() => {
-          btn.style.width = `${targetWidth}px`;
-          textSpan.classList.remove('fade-out');
-        });
-      }, 140);
+    const btn = elements.btnInstructionsNext;
+    const toClose = currentInstructionStep === 5;
+    btn.setAttribute('aria-label', toClose ? 'close' : 'next step');
+    if (btn.classList.contains('is-close') !== toClose) {
+      const from = btn.getBoundingClientRect().width;
+      btn.classList.toggle('is-close', toClose);
+      btn.style.width = '';
+      const to = btn.getBoundingClientRect().width;
+      if (!instructionsInstant && typeof btn.animate === 'function' && from && Math.abs(from - to) > 0.5) {
+        btn.animate([{ width: `${from}px` }, { width: `${to}px` }], TAB_MOTION.slide);
+      }
     }
   }
 }
