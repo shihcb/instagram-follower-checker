@@ -1999,9 +1999,10 @@ body.hide-shortcuts #keyboard-hints {
 
 .modal-overlay.fade-out-bounce .account-modal-card,
 .modal-overlay.fade-out-bounce .confirm-modal-box {
+  /* The same closed state every popup closes to (see above). */
   opacity: 0 !important;
-  -webkit-transform: translateY(16px) scale(0.92) !important;
-  transform: translateY(16px) scale(0.92) !important;
+  -webkit-transform: translateY(14px) scale(0.95) !important;
+  transform: translateY(14px) scale(0.95) !important;
 }
 
 .account-modal-header {
@@ -2917,19 +2918,29 @@ html.hide-shortcuts .account-chip-badge {
 
 
 
+/* A new chip comes in exactly as a deleted one leaves (animateChipExit in
+   script.js), reversed: fade + 0.85 -> 1 scale, 0.38s, list 3's easing.
+   `scale` rather than `transform`, which the hover/pressed styles force
+   (!important) and which would otherwise cancel the grow. */
 @keyframes chip-fade-in {
   from {
     opacity: 0;
-    transform: scale(0.96);
+    scale: 0.85;
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    scale: 1;
   }
 }
 
 .account-chip.fade-in {
-  animation: chip-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: chip-fade-in 0.38s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* The first chip: its row is still opening (0.38s, clipped), so the chip
+   comes in as the row makes room for it rather than finishing unseen. */
+.account-chip.fade-in.after-row {
+  animation-delay: 0.16s;
 }
 
 @keyframes chip-bounce-out {

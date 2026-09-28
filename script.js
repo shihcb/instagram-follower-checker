@@ -1887,6 +1887,10 @@ function rememberNoAccountSelected() {
 }
 
 function selectAccount(username) {
+  // Only an account that still exists — a tap on a chip just before it was
+  // deleted fires after (single taps wait for a possible double tap), and
+  // would select an account with no chip.
+  if (!username || !(state.instagramAccounts || []).some(acc => acc.originalUsername.toLowerCase() === username.toLowerCase())) return;
   if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === username.toLowerCase()) {
     // Clicked the currently active username chip -> UNSELECT IT!
     saveCurrentAccountData();
@@ -1929,13 +1933,13 @@ function slideChipsFromPreviousRects(previousRects) {
     chip.animate([
       { transform: `translate(${dx}px, ${dy}px)` },
       { transform: 'translate(0, 0)' }
-    ], { duration: 450, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' });
+    ], { duration: CHIP_EXIT_MS, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }); // as when a chip is deleted
   });
 }
 
 function renderAccountChips(animate = false, { force = false } = {}) {
   if (!elements.accountChipsList || !elements.btnAddAccount) return;
-  if (chipRenderHeld) return; // a chip is animating out (deleteAccountFromModal)
+  if (chipRenderHolds > 0 && !force) return; // a chip is animating out (deleteAccountFromModal)
 
   normalizeInstagramAccounts();
 
@@ -1950,6 +1954,7 @@ function renderAccountChips(animate = false, { force = false } = {}) {
     }
     accountMgmtRow.classList.toggle('empty-chips', accounts.length === 0);
   }
+  const rowOpening = !!accountMgmtRow && accountMgmtRow.classList.contains('empty-chips') && accounts.length > 0;
   const existingChips = Array.from(elements.accountChipsList.querySelectorAll('.account-chip'));
   
   // Check if existing chips match current accounts list length and names
@@ -1986,6 +1991,7 @@ function renderAccountChips(animate = false, { force = false } = {}) {
       // one account used to re-fade every existing chip as well.
       if (animate && !existingUsernames.includes(acc.originalUsername.toLowerCase())) {
         chip.classList.add('fade-in');
+        if (rowOpening) chip.classList.add('after-row');
       }
       chip.setAttribute('data-account-name', acc.originalUsername.toLowerCase());
       chip.setAttribute('data-index', index);
@@ -2177,7 +2183,7 @@ function saveAccountFromModal() {
 // rebuild and re-slide every chip and close the window in one go.
 const CHIP_EXIT_DELAY = 160; // the window has mostly faded by then
 const CHIP_EXIT_MS = 380;
-let chipRenderHeld = false;
+let chipRenderHolds = 0; // chips still animating out (the row waits for all of them)
 
 function animateChipExit(chip) {
   const list = elements.accountChipsList;
@@ -2204,10 +2210,11 @@ function animateChipExit(chip) {
       c.animate([{ transform: `translateX(${dx}px)` }, { transform: 'translateX(0)' }], { duration: CHIP_EXIT_MS, easing: ease });
     }
   });
+  // `scale`, not `transform` (forced by the hover/pressed styles).
   chip.animate([
-    { opacity: 1, transform: 'scale(1)' },
-    { opacity: 0, transform: 'scale(0.85)' }
-  ], { duration: CHIP_EXIT_MS * 0.7, easing: ease, fill: 'forwards' });
+    { opacity: 1, scale: 1 },
+    { opacity: 0, scale: 0.85 }
+  ], { duration: CHIP_EXIT_MS, easing: ease, fill: 'forwards' });
 }
 
 function deleteAccountFromModal() {
@@ -2261,14 +2268,16 @@ function deleteAccountFromModal() {
   closeAccountModal();
   setTimeout(() => {
     if (chipEl && chipEl.isConnected) {
-      // The chip row waits (chipRenderHeld) until the exit has played out.
-      chipRenderHeld = true;
+      // The chip row waits until the exit has played out — every exit, if
+      // a second chip is deleted while the first is still leaving.
+      chipRenderHolds++;
       animateChipExit(chipEl);
       requestAnimationFrame(() => {
-        performDelete();
+        try { performDelete(); } catch (err) { console.error('Error deleting account:', err); }
         setTimeout(() => {
-          chipRenderHeld = false;
+          chipRenderHolds = Math.max(0, chipRenderHolds - 1);
           chipEl.remove();
+          if (chipRenderHolds > 0) return; // the last exit to finish rebuilds the row
           // Rebuilt (renumbered: each chip's shortcut badge and the account
           // its double-tap opens), with every chip already in place. If it
           // was the last chip, the row now closes — still held at its
