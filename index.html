@@ -84,7 +84,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=292">
+  <link rel="stylesheet" href="style.css?v=294">
   <!-- Supabase Client Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -192,7 +192,17 @@
                     </div>
                   </div>
 
-                  <div class="setting-item-row desktop-only">
+                  <div class="setting-item-row">
+                    <div class="setting-label-group">
+                      <span class="setting-label">auto-open next profile</span>
+                      <span class="setting-desc">opens the next username in list 3 when you come back to this page</span>
+                    </div>
+                    <label class="switch">
+                      <input type="checkbox" id="auto-open-toggle">
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+                  <div class="setting-item-row desktop-only" style="margin-top: 8px;">
                     <div class="setting-label-group">
                       <span class="setting-label">show keyboard shortcuts</span>
                       <span class="setting-desc">display key tips for unfollowers list</span>
@@ -420,14 +430,6 @@
                                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                                   </svg>
                                   <input type="text" id="search-unfollowers" placeholder="search">
-                                </div>
-
-                                <div class="auto-open-wrapper" title="auto-open next username when returning to this page">
-                                  <label class="switch">
-                                    <input type="checkbox" id="auto-open-toggle">
-                                    <span class="slider"></span>
-                                  </label>
-                                  <span id="auto-open-label">auto</span>
                                 </div>
 
                                 <button id="btn-instructions-info" class="preview-toggle btn-sm" title="instructions" style="width: 32px; height: 32px; min-width: 32px; padding: 0; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px;">
@@ -714,7 +716,7 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="script.js?v=312"></script>
-  <script src="features.js?v=3"></script>
+  <script src="script.js?v=313"></script>
+  <script src="features.js?v=6"></script>
 </body>
 </html>

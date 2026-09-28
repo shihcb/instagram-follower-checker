@@ -68,6 +68,7 @@
       }).map(x => x[0]);
     }
     state.unfollowers = list;
+    if (lastSnap && lastSnap.acc !== accKey()) { lastSnap = null; setUndoReady(false); }
     const result = baseUpdateResultsUI.call(this, opts);
     refreshToolbar();
     return result;
@@ -80,7 +81,7 @@
     const t = timeOf(user);
     const note = getNotes()[user.username];
     const extras = [];
-    if (t !== null) extras.push(`<span class="row-age" title="followed ${esc(new Date(t).toLocaleDateString())}">followed ${ago(t)} ago</span>`);
+    if (t !== null) extras.push(`<span class="row-age" title="followed ${esc(new Date(t).toLocaleDateString())}">followed ${ago(t) === 'today' ? 'today' : `${ago(t)} ago`}</span>`);
     if (note && note.tags && note.tags.length) extras.push(note.tags.map(tag => `<span class="row-tag">${esc(tag)}</span>`).join(''));
     if (note && note.text) extras.push(`<span class="row-note">${esc(note.text)}</span>`);
     if (extras.length) {
@@ -138,9 +139,48 @@
     saveCurrentAccountData();
     calculateUnfollowers({ animate: true });
   }
+  // The undo button (right of list 3's info button) lights up once the
+  // action's slide has finished (its completion updates the lists) and
+  // undoes the latest action.
+  let lastSnap = null;
+  let undoBtn = null;
   function offerUndo(snap, message) {
-    // After the row has finished sliding (its completion updates the lists).
-    setTimeout(() => showToast(message, 'undo', () => restore(snap)), ROW_MOTION_MS + 60);
+    lastSnap = null;
+    setUndoReady(false);
+    setTimeout(() => {
+      lastSnap = snap;
+      if (undoBtn) undoBtn.title = `undo: ${message}`;
+      setUndoReady(true);
+    }, ROW_MOTION_MS + 60);
+  }
+  function setUndoReady(ready) {
+    if (!undoBtn) return;
+    const was = undoBtn.classList.contains('ready');
+    undoBtn.classList.toggle('ready', ready);
+    undoBtn.setAttribute('aria-disabled', ready ? 'false' : 'true');
+    if (!ready) undoBtn.title = 'nothing to undo';
+    if (ready && !was && typeof undoBtn.animate === 'function') {
+      undoBtn.animate([{ scale: 0.85 }, { scale: 1 }], { duration: 380, easing: EASE });
+    }
+  }
+  function buildUndoButton() {
+    const info = document.getElementById('btn-instructions-info');
+    if (!info || document.getElementById('btn-undo')) return;
+    undoBtn = info.cloneNode(false);
+    undoBtn.id = 'btn-undo';
+    undoBtn.classList.add('undo-btn');
+    undoBtn.setAttribute('aria-label', 'undo');
+    undoBtn.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"></path></svg>';
+    info.parentNode.insertBefore(undoBtn, info.nextSibling);
+    undoBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!lastSnap) return;
+      const snap = lastSnap;
+      lastSnap = null;
+      setUndoReady(false);
+      restore(snap);
+    });
+    setUndoReady(false);
   }
 
   const ACTIONS = [
@@ -236,7 +276,7 @@
     toolbar.innerHTML = `
       <button class="toolbar-pill" data-act="sort" title="sort list 3">
         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg>
-        <span class="toolbar-pill-text"></span>
+        <span class="sort-window"><span class="toolbar-pill-text sort-current"></span><span class="toolbar-pill-text sort-probe" aria-hidden="true"></span></span>
       </button>
       <button class="toolbar-pill" data-act="select" title="select several usernames">
         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
@@ -253,9 +293,10 @@
       if (act === 'sort') {
         sortMode = sortMode === 'default' ? 'oldest' : sortMode === 'oldest' ? 'newest' : 'default';
         try { localStorage.setItem('list3_sort', sortMode); } catch (err) {}
-        slideSortLabel(btn);
-        // Rows slide to their new order.
+        // List 3 first (its rows slide to the new order), then the label —
+        // on the next frame, once that work is done, so neither stutters.
         calculateUnfollowers({ animate: true });
+        requestAnimationFrame(() => slideSortLabel(btn));
       } else if (act === 'select') {
         setSelectMode(!selectMode);
       } else if (act === 'reminder') {
@@ -265,30 +306,47 @@
     refreshToolbar();
   }
 
-  // The sort pill's label slides to the next option: the old one out to
-  // the left, the new one in from the right (list 3's easing), while the
-  // pill eases to its new width.
+  const SORT_LABELS = { default: 'sort', oldest: 'oldest first', newest: 'newest first' };
+  // The pill resizes to its label smoothly (the label window's width
+  // transitions, style.css) while the old label slides out left and the
+  // new one slides in from the right. The window only ever holds one label
+  // in flow (the old one is laid over it), and the label text is only ever
+  // changed here — refreshToolbar used to rewrite it too, which could swap
+  // it a frame early and flicker.
+  function textWidth(win, label) {
+    const probe = win.querySelector('.sort-probe');
+    probe.textContent = label;
+    return Math.ceil(probe.offsetWidth);
+  }
   function slideSortLabel(btn) {
-    const text = btn.querySelector('.toolbar-pill-text');
-    const label = sortMode === 'default' ? 'sort' : sortMode === 'oldest' ? 'oldest first' : 'newest first';
-    if (typeof text.animate !== 'function') { text.textContent = label; return; }
-    const startWidth = btn.offsetWidth;
+    const win = btn.querySelector('.sort-window');
+    const text = win.querySelector('.sort-current');
+    const label = SORT_LABELS[sortMode];
+    if (text.textContent === label) return;
+    win.querySelectorAll('.toolbar-pill-text-old').forEach(el => el.remove());
+    win.style.width = `${win.offsetWidth}px`; // from exactly where it is now
+    void win.offsetWidth;
     const old = text.cloneNode(true);
+    old.classList.remove('sort-current');
     old.classList.add('toolbar-pill-text-old');
+    win.appendChild(old);
     text.textContent = label;
-    const endWidth = btn.offsetWidth;
-    btn.appendChild(old);
-    btn.animate([{ width: `${startWidth}px` }, { width: `${endWidth}px` }], { duration: 300, easing: EASE });
-    old.animate([{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: 'translateX(-14px)' }], { duration: 220, easing: EASE, fill: 'forwards' })
+    win.style.width = `${textWidth(win, label)}px`;
+    if (typeof text.animate !== 'function') { old.remove(); return; }
+    const timing = { duration: 320, easing: EASE };
+    old.animate([{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: 'translateX(-16px)' }], { ...timing, fill: 'forwards' })
       .finished.then(() => old.remove(), () => old.remove());
-    text.animate([{ opacity: 0, transform: 'translateX(14px)' }, { opacity: 1, transform: 'translateX(0)' }], { duration: 300, easing: EASE });
+    text.animate([{ opacity: 0, transform: 'translateX(16px)' }, { opacity: 1, transform: 'translateX(0)' }], timing);
   }
 
   function refreshToolbar() {
     if (!toolbar) return;
-    const sortText = toolbar.querySelector('[data-act="sort"] .toolbar-pill-text');
-    const label = sortMode === 'default' ? 'sort' : sortMode === 'oldest' ? 'oldest first' : 'newest first';
-    if (sortText.textContent !== label) sortText.textContent = label;
+    const win = toolbar.querySelector('.sort-window');
+    const sortText = win.querySelector('.sort-current');
+    if (!sortText.textContent) { // first time only; changes slide (slideSortLabel)
+      sortText.textContent = SORT_LABELS[sortMode];
+      win.style.width = `${textWidth(win, SORT_LABELS[sortMode])}px`;
+    }
     toolbar.querySelector('[data-act="sort"]').classList.toggle('on', sortMode !== 'default');
     const hasRows = state.unfollowers.length > 0;
     toolbar.querySelector('[data-act="sort"]').disabled = !hasRows;
@@ -479,7 +537,7 @@
   // ---------- insights window ----------
   const TABS = [
     ['changes', 'changes'], ['stats', 'stats'], ['mutuals', 'mutuals'], ['fans', 'fans'],
-    ['compare', 'compare'], ['export', 'export & share']
+    ['compare', 'compare']
   ];
   let insights = null;
   let insightsTab = 'changes';
@@ -510,7 +568,7 @@
       if (act) insightsAction(act);
     });
     insights.addEventListener('change', (e) => { if (e.target.matches('.compare-select')) renderTab(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && insights.classList.contains('show')) closeInsights(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !insights.classList.contains('hidden')) closeInsights(); });
   }
   function openInsights(tab = insightsTab) {
     if (!insights) buildInsights();
@@ -613,31 +671,19 @@
           <div class="insights-section"><div class="insights-section-title">follow the first, not the second <span>${fa.filter(u => !sb.has(u.username)).length}</span></div>${userRowsHtml(fa.filter(u => !sb.has(u.username)), 'nobody')}</div>
           <div class="insights-section"><div class="insights-section-title">follow the second, not the first <span>${fb.filter(u => !sa.has(u.username)).length}</span></div>${userRowsHtml(fb.filter(u => !sa.has(u.username)), 'nobody')}</div>`;
       }
-    } else if (insightsTab === 'export') {
-      html = `<div class="insights-sub">download a list as a spreadsheet (csv)</div>
-        <div class="insights-buttons">
-          <button class="btn btn-secondary" data-ins="csv" data-list="list3">list 3</button>
-          <button class="btn btn-secondary" data-ins="csv" data-list="unfollowed">unfollowed</button>
-          <button class="btn btn-secondary" data-ins="csv" data-list="starred">starred</button>
-          <button class="btn btn-secondary" data-ins="csv" data-list="mutuals">mutuals</button>
-          <button class="btn btn-secondary" data-ins="csv" data-list="fans">fans</button>
-        </div>
-        <div class="insights-section-title">share your results</div>
-        <button class="btn btn-primary insights-share" data-ins="share">create share card</button>`;
     }
     body.innerHTML = `<div class="insights-pane">${html}</div>`;
   }
 
-  function insightsAction(btn) {
-    const act = btn.dataset.ins;
-    if (act === 'csv') {
-      exportCsv(btn.dataset.list);
-    } else if (act === 'share') {
-      shareCard();
-    }
-  }
+  function insightsAction() {}
 
+  const EXPORT_LISTS = [
+    ['list3', "list 3 · don't follow back"], ['unfollowed', 'unfollowed'], ['starred', 'starred'],
+    ['following', 'list 1 · following'], ['followers', 'list 2 · followers'], ['mutuals', 'mutuals'], ['fans', 'fans']
+  ];
   function listFor(kind) {
+    if (kind === 'following') return state.following;
+    if (kind === 'followers') return state.followers;
     if (kind === 'list3') return state.unfollowers;
     if (kind === 'unfollowed') return state.unfollowed;
     if (kind === 'starred') return state.starred;
@@ -656,39 +702,111 @@
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
-  function exportCsv(kind) {
+  // One list: its own file. Several: one file with a 'list' column.
+  function exportCsv(kinds) {
     const notes = getNotes();
     const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const rows = [['username', 'full name', 'followed', 'profile', 'note', 'tags']].concat(listFor(kind).map(u => {
-      const t = timeOf(u); const n = notes[u.username] || {};
-      return [u.originalUsername || u.username, u.fullName || '', t ? new Date(t).toISOString().slice(0, 10) : '', safeProfileUrl(u), n.text || '', (n.tags || []).join(' ')];
-    }));
-    saveFile(`ig-checker-${kind}.csv`, new Blob([rows.map(r => r.map(cell).join(',')).join('\n')], { type: 'text/csv' }));
-    showToast(`${kind === 'list3' ? 'list 3' : kind} exported`);
-  }
-  function shareCard() {
-    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-    const c = document.createElement('canvas');
-    c.width = 1080; c.height = 1080;
-    const g = c.getContext('2d');
-    g.fillStyle = dark ? '#09090b' : '#fafafa'; g.fillRect(0, 0, 1080, 1080);
-    g.fillStyle = dark ? '#18181b' : '#ffffff';
-    g.beginPath(); g.roundRect ? g.roundRect(90, 90, 900, 900, 48) : g.rect(90, 90, 900, 900); g.fill();
-    const fg = dark ? '#fafafa' : '#09090b', muted = dark ? '#a1a1aa' : '#71717a';
-    g.textAlign = 'center';
-    g.fillStyle = muted; g.font = '600 44px "Plus Jakarta Sans", system-ui, sans-serif';
-    g.fillText('i checked', 540, 330);
-    g.fillStyle = fg; g.font = '800 150px "Outfit", system-ui, sans-serif';
-    g.fillText(String(state.followers.length || state.following.length), 540, 490);
-    g.fillStyle = muted; g.font = '600 44px "Plus Jakarta Sans", system-ui, sans-serif';
-    g.fillText(state.followers.length ? 'followers' : 'accounts', 540, 560);
-    g.fillStyle = '#10b981'; g.font = '800 92px "Outfit", system-ui, sans-serif';
-    g.fillText(`${state.unfollowers.length} don't follow back`, 540, 720);
-    g.fillStyle = muted; g.font = '600 36px "Plus Jakarta Sans", system-ui, sans-serif';
-    g.fillText('ig checker', 540, 900);
-    c.toBlob(blob => { if (blob) saveFile('ig-checker-results.png', blob); }, 'image/png');
+    const multi = kinds.length > 1;
+    const head = ['username', 'full name', 'followed', 'profile', 'note', 'tags'];
+    const rows = [multi ? ['list'].concat(head) : head];
+    kinds.forEach(kind => {
+      const name = (EXPORT_LISTS.find(x => x[0] === kind) || [kind, kind])[1];
+      listFor(kind).forEach(u => {
+        const t = timeOf(u); const n = notes[u.username] || {};
+        const row = [u.originalUsername || u.username, u.fullName || '', t ? new Date(t).toISOString().slice(0, 10) : '', safeProfileUrl(u), n.text || '', (n.tags || []).join(' ')];
+        rows.push(multi ? [name].concat(row) : row);
+      });
+    });
+    const file = multi ? 'ig-checker-lists.csv' : `ig-checker-${kinds[0]}.csv`;
+    saveFile(file, new Blob([rows.map(r => r.map(cell).join(',')).join('\n')], { type: 'text/csv' }));
   }
 
+  let exportOverlay = null;
+  function openExport() {
+    if (!exportOverlay) {
+      exportOverlay = document.createElement('div');
+      exportOverlay.className = 'modal-overlay hidden';
+      exportOverlay.innerHTML = `
+        <div class="account-modal-card glass export-card">
+          <div class="account-modal-header"><h3>export</h3></div>
+          <div class="insights-sub">choose the lists to download as a spreadsheet (csv)</div>
+          <div class="export-options"></div>
+          <div class="account-modal-actions">
+            <button class="btn btn-secondary" data-exp="cancel">cancel</button>
+            <button class="btn btn-primary" data-exp="go">export</button>
+          </div>
+        </div>`;
+      document.body.appendChild(exportOverlay);
+      exportOverlay.addEventListener('click', (e) => {
+        if (e.target === exportOverlay || e.target.closest('[data-exp="cancel"]')) return closeExport();
+        if (e.target.closest('[data-exp="go"]')) {
+          const kinds = [...exportOverlay.querySelectorAll('.export-option.on')].map(o => o.dataset.kind);
+          if (kinds.length) { exportCsv(kinds); closeExport(); }
+          return;
+        }
+        const opt = e.target.closest('.export-option');
+        if (opt) { opt.classList.toggle('on'); updateExportButton(); }
+      });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !exportOverlay.classList.contains('hidden')) closeExport(); });
+    }
+    exportOverlay.querySelector('.export-options').innerHTML = EXPORT_LISTS.map(([kind, label], i) => `
+      <button class="export-option${i === 0 ? ' on' : ''}" data-kind="${kind}">
+        <span class="export-check"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+        <span class="export-label">${esc(label)}</span>
+        <span class="export-count">${listFor(kind).length}</span>
+      </button>`).join('');
+    updateExportButton();
+    cancelOverlayHide(exportOverlay);
+    exportOverlay.classList.remove('hidden');
+    lockPageScroll();
+    requestAnimationFrame(() => exportOverlay.classList.add('show'));
+  }
+  function updateExportButton() {
+    const n = exportOverlay.querySelectorAll('.export-option.on').length;
+    const go = exportOverlay.querySelector('[data-exp="go"]');
+    go.disabled = n === 0;
+    go.textContent = n > 1 ? `export ${n} lists` : 'export';
+  }
+  function closeExport() {
+    exportOverlay.classList.remove('show');
+    unlockPageScroll();
+    scheduleOverlayHide(exportOverlay, () => exportOverlay.classList.add('hidden'));
+  }
+
+  // An export icon in every list's search row (the search box shrinks to
+  // make room): lists 1 and 2 download themselves, list 3 opens the window.
+  const EXPORT_ICON = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>';
+  function makeIconButton(id, title) {
+    const info = document.getElementById('btn-instructions-info');
+    const btn = info.cloneNode(false);
+    btn.id = id;
+    btn.title = title;
+    btn.setAttribute('aria-label', title);
+    btn.innerHTML = EXPORT_ICON;
+    return btn;
+  }
+  function buildExportButtons() {
+    const info = document.getElementById('btn-instructions-info');
+    if (!info || document.getElementById('btn-export-list3')) return;
+    const b3 = makeIconButton('btn-export-list3', 'export lists');
+    info.parentNode.insertBefore(b3, info.parentNode.querySelector('#btn-insights') || info);
+    b3.addEventListener('click', (e) => { e.stopPropagation(); openExport(); });
+    [['search-following', 'following', 'export list 1'], ['search-followers', 'followers', 'export list 2']].forEach(([inputId, kind, title]) => {
+      const box = document.getElementById(inputId)?.closest('.search-box');
+      if (!box) return;
+      const row = document.createElement('div');
+      row.className = 'list-search-row';
+      box.parentNode.insertBefore(row, box);
+      row.appendChild(box);
+      const btn = makeIconButton(`btn-export-${kind}`, title);
+      row.appendChild(btn);
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!listFor(kind).length) return;
+        exportCsv([kind]);
+      });
+    });
+  }
   // Insights button, next to list 3's info button (same style).
   function buildInsightsButton() {
     const info = document.getElementById('btn-instructions-info');
@@ -718,6 +836,8 @@
   function init() {
     buildToolbar();
     buildInsightsButton();
+    buildExportButtons();
+    buildUndoButton();
     setupInstall();
     refreshToolbar();
   }
