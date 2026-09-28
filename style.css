@@ -4729,7 +4729,16 @@ button:focus-visible,
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  margin: 2px 0 10px;
+  margin: 0; /* the card's own gap: same spacing as under the chips */
+}
+.toolbar-pill {
+  position: relative;
+  overflow: hidden;
+}
+.toolbar-pill-text-old {
+  position: absolute;
+  left: 28px;
+  pointer-events: none;
 }
 .toolbar-pill {
   display: inline-flex;
@@ -4871,6 +4880,17 @@ button:focus-visible,
 }
 .row-select-bar button.muted {
   color: var(--text-muted);
+}
+/* Same colors as the row actions: star amber, unfollow (trash) red. */
+.row-select-bar button[data-bulk="star"] {
+  border-color: #f59e0b;
+  color: #d97706;
+  background: rgba(245, 158, 11, 0.08);
+}
+.row-select-bar button[data-bulk="unfollow"] {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.07);
 }
 
 /* Toast (undo, messages) */

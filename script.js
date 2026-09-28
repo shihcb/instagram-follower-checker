@@ -5426,7 +5426,6 @@ async function pullFromCloud(uploadLocalFirst = false) {
             if (itemData.starred) storageSet(`starred_users_${key}`, JSON.stringify(itemData.starred));
             // Restore the weekly reset reminder's anchor date so it reflects real elapsed time on login.
             if (itemData.importDate) storageSet(`import_date_${key}`, itemData.importDate);
-            if (itemData.hidden) storageSet(`hidden_users_${key}`, JSON.stringify(itemData.hidden));
             if (itemData.history) storageSet(`import_history_${key}`, JSON.stringify(itemData.history));
             if (itemData.diff) storageSet(`import_diff_${key}`, JSON.stringify(itemData.diff));
           });
@@ -5590,13 +5589,12 @@ async function pushToCloudNow() {
       const unfollowed = JSON.parse(storageGet(`unfollowed_users_${key}`) || '[]');
       const starred = JSON.parse(storageGet(`starred_users_${key}`) || '[]');
       const importDate = storageGet(`import_date_${key}`) || null;
-      // Extras (features.js): hidden usernames, import history and the
-      // changes since the last import.
-      const hidden = JSON.parse(storageGet(`hidden_users_${key}`) || '[]');
+      // Extras (features.js): import history and the changes since the
+      // last import.
       const history = JSON.parse(storageGet(`import_history_${key}`) || '[]');
       const diff = JSON.parse(storageGet(`import_diff_${key}`) || 'null');
 
-      accountDataMap[key] = { following, followers, unfollowed, starred, importDate, hidden, history, diff };
+      accountDataMap[key] = { following, followers, unfollowed, starred, importDate, history, diff };
 
       unfollowed.forEach(u => {
         const itemAcc = u.account || key;

@@ -1,10 +1,9 @@
 // -------------------------------------------------------------
 // Extra features, layered on top of script.js (loaded after it):
 //  - changes since your last import (+ a toast after importing)
-//  - hide accounts from list 3 for good (celebrities, brands…)
 //  - how long ago you followed each account, and sort by it
 //  - insights: mutuals, fans, stats with a trend, compare accounts,
-//    hidden accounts, export (CSV) and a share card
+//    export (CSV) and a share card
 //  - undo after unfollowing / starring / removing
 //  - select several rows and act on them at once
 //  - notes and tags per username (long-press or right-click a row)
@@ -31,9 +30,6 @@
   };
 
   // ---------- data ----------
-  const hiddenKey = () => `hidden_users_${accKey()}`;
-  const getHidden = () => readJSON(hiddenKey(), []);
-  const setHidden = (list) => { writeJSON(hiddenKey(), list); pushToCloud(); };
   const getNotes = () => readJSON('user_notes', {});
   const setNotes = (notes) => { writeJSON('user_notes', notes); pushToCloud(); };
   const todayKey = () => `unfollow_count_${new Date().toISOString().slice(0, 10)}`;
@@ -55,13 +51,12 @@
     return `${Math.floor(d / 365)}y`;
   };
 
-  // ---------- list 3: hidden accounts, sorting ----------
-  // Every path that changes list 3 ends in updateResultsUI, so hidden
-  // usernames are left out and the sort applied right there.
+  // ---------- list 3: sorting ----------
+  // Every path that changes list 3 ends in updateResultsUI, so the sort is
+  // applied right there.
   const baseUpdateResultsUI = updateResultsUI;
   updateResultsUI = function (opts) {
-    const hidden = new Set(getHidden().map(u => u.username));
-    let list = state.unfollowers.filter(u => !hidden.has(u.username));
+    let list = state.unfollowers;
     if (sortMode !== 'default') {
       const dir = sortMode === 'oldest' ? 1 : -1;
       list = list.map((u, i) => [u, i]).sort((a, b) => {
@@ -130,8 +125,7 @@
       acc: accKey(),
       following: state.following.slice(),
       unfollowed: state.unfollowed.slice(),
-      starred: state.starred.slice(),
-      hidden: getHidden().slice()
+      starred: state.starred.slice()
     };
   }
   function restore(snap) {
@@ -139,7 +133,6 @@
     state.following = snap.following;
     state.unfollowed = snap.unfollowed;
     state.starred = snap.starred;
-    writeJSON(hiddenKey(), snap.hidden);
     elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
     updateListUI('following');
     saveCurrentAccountData();
@@ -260,6 +253,7 @@
       if (act === 'sort') {
         sortMode = sortMode === 'default' ? 'oldest' : sortMode === 'oldest' ? 'newest' : 'default';
         try { localStorage.setItem('list3_sort', sortMode); } catch (err) {}
+        slideSortLabel(btn);
         // Rows slide to their new order.
         calculateUnfollowers({ animate: true });
       } else if (act === 'select') {
@@ -269,6 +263,25 @@
       }
     });
     refreshToolbar();
+  }
+
+  // The sort pill's label slides to the next option: the old one out to
+  // the left, the new one in from the right (list 3's easing), while the
+  // pill eases to its new width.
+  function slideSortLabel(btn) {
+    const text = btn.querySelector('.toolbar-pill-text');
+    const label = sortMode === 'default' ? 'sort' : sortMode === 'oldest' ? 'oldest first' : 'newest first';
+    if (typeof text.animate !== 'function') { text.textContent = label; return; }
+    const startWidth = btn.offsetWidth;
+    const old = text.cloneNode(true);
+    old.classList.add('toolbar-pill-text-old');
+    text.textContent = label;
+    const endWidth = btn.offsetWidth;
+    btn.appendChild(old);
+    btn.animate([{ width: `${startWidth}px` }, { width: `${endWidth}px` }], { duration: 300, easing: EASE });
+    old.animate([{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: 'translateX(-14px)' }], { duration: 220, easing: EASE, fill: 'forwards' })
+      .finished.then(() => old.remove(), () => old.remove());
+    text.animate([{ opacity: 0, transform: 'translateX(14px)' }, { opacity: 1, transform: 'translateX(0)' }], { duration: 300, easing: EASE });
   }
 
   function refreshToolbar() {
@@ -316,7 +329,6 @@
         <span class="row-select-count">0 selected</span>
         <button data-bulk="star">star</button>
         <button data-bulk="unfollow">unfollow</button>
-        <button data-bulk="hide">hide</button>
         <button data-bulk="cancel" class="muted">cancel</button>`;
       document.body.appendChild(selectBar);
       selectBar.addEventListener('click', (e) => {
@@ -358,17 +370,12 @@
       const have = new Set(state.unfollowed.map(u => u.username));
       users.forEach(u => { if (!have.has(u.username)) state.unfollowed.unshift({ ...u, account: acc }); });
       storageSet(todayKey(), String(getToday() + users.length));
-    } else if (kind === 'hide') {
-      const hidden = getHidden();
-      const have = new Set(hidden.map(u => u.username));
-      users.forEach(u => { if (!have.has(u.username)) hidden.unshift({ username: u.username, originalUsername: u.originalUsername, profileUrl: u.profileUrl }); });
-      writeJSON(hiddenKey(), hidden);
     }
     const n = users.length;
     setSelectMode(false);
     saveCurrentAccountData();
     calculateUnfollowers({ animate: true }); // they slide out of list 3
-    offerUndo(snap, `${n} username${n === 1 ? '' : 's'} ${kind === 'star' ? 'starred' : kind === 'hide' ? 'hidden' : 'unfollowed'}`);
+    offerUndo(snap, `${n} username${n === 1 ? '' : 's'} ${kind === 'star' ? 'starred' : 'unfollowed'}`);
   }
 
   // ---------- notes & tags (long-press / right-click a row) ----------
@@ -392,7 +399,6 @@
             <input type="text" class="feature-note-tags" placeholder="close friend, brand">
           </div>
           <div class="account-modal-actions feature-note-footer">
-            <button class="btn btn-secondary btn-danger-soft" data-note="hide">hide from list 3</button>
             <button class="btn btn-secondary" data-note="cancel">cancel</button>
             <button class="btn btn-primary" data-note="save">save</button>
           </div>
@@ -404,7 +410,6 @@
         if (!btn) return;
         if (btn.dataset.note === 'cancel') return closeNote();
         if (btn.dataset.note === 'save') return saveNote();
-        if (btn.dataset.note === 'hide') return hideUsers([noteFor]);
       });
       noteOverlay.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeNote(); });
     }
@@ -442,18 +447,6 @@
       if (fresh) { row.querySelector('.user-details').appendChild(fresh); animateIn(fresh); }
     }
   }
-  function hideUsers(users) {
-    const snap = snapshot();
-    const hidden = getHidden();
-    const have = new Set(hidden.map(u => u.username));
-    users.forEach(u => { if (!have.has(u.username)) hidden.unshift({ username: u.username, originalUsername: u.originalUsername, profileUrl: u.profileUrl }); });
-    setHidden(hidden);
-    closeNote();
-    setTimeout(() => {
-      calculateUnfollowers({ animate: true });
-      offerUndo(snap, `@${users[0].originalUsername}${users.length > 1 ? ` +${users.length - 1}` : ''} hidden`);
-    }, OVERLAY_CLEAR_MS);
-  }
   // Long-press (touch) or right-click (mouse) on a list 3 row.
   let pressTimer = null, pressStart = null, suppressClick = false;
   elements.listUnfollowers.addEventListener('touchstart', (e) => {
@@ -486,7 +479,7 @@
   // ---------- insights window ----------
   const TABS = [
     ['changes', 'changes'], ['stats', 'stats'], ['mutuals', 'mutuals'], ['fans', 'fans'],
-    ['compare', 'compare'], ['hidden', 'hidden'], ['export', 'export & share']
+    ['compare', 'compare'], ['export', 'export & share']
   ];
   let insights = null;
   let insightsTab = 'changes';
@@ -620,8 +613,6 @@
           <div class="insights-section"><div class="insights-section-title">follow the first, not the second <span>${fa.filter(u => !sb.has(u.username)).length}</span></div>${userRowsHtml(fa.filter(u => !sb.has(u.username)), 'nobody')}</div>
           <div class="insights-section"><div class="insights-section-title">follow the second, not the first <span>${fb.filter(u => !sa.has(u.username)).length}</span></div>${userRowsHtml(fb.filter(u => !sa.has(u.username)), 'nobody')}</div>`;
       }
-    } else if (insightsTab === 'hidden') {
-      html = `<div class="insights-sub">never shown in list 3 — long-press (or right-click) a username to hide it</div>${userRowsHtml(getHidden(), 'nothing hidden', { id: 'unhide', label: 'show again' })}`;
     } else if (insightsTab === 'export') {
       html = `<div class="insights-sub">download a list as a spreadsheet (csv)</div>
         <div class="insights-buttons">
@@ -639,15 +630,7 @@
 
   function insightsAction(btn) {
     const act = btn.dataset.ins;
-    if (act === 'unhide') {
-      const name = btn.dataset.username;
-      const row = btn.closest('.insights-row');
-      setHidden(getHidden().filter(u => u.username !== name));
-      if (row && typeof exitListRow === 'function') {
-        exitListRow(row, () => { if (insightsTab === 'hidden') renderTab(); });
-      }
-      calculateUnfollowers({ animate: true }); // it slides back into list 3
-    } else if (act === 'csv') {
+    if (act === 'csv') {
       exportCsv(btn.dataset.list);
     } else if (act === 'share') {
       shareCard();
