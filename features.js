@@ -590,6 +590,10 @@
       showView(tab.dataset.view);
     });
     altView.addEventListener('change', (e) => { if (e.target.matches('.compare-select')) renderView(); });
+    altView.addEventListener('click', (e) => {
+      const tab = e.target.closest('[data-change]');
+      if (tab) { e.stopPropagation(); showChangesTab(tab.dataset.change); }
+    });
     // Park the highlight under "results" once the bar has a size.
     const place = () => {
       const active = viewNav.querySelector('.insights-tab.active');
@@ -672,12 +676,14 @@
       const d = readJSON(`import_diff_${key}`, null);
       if (!d) html = `<div class="dropdown-empty-message">import your files again later to see who unfollowed you, who followed you, and more since the last time.</div>`;
       else {
-        const section = (title, names) => `<div class="insights-section"><div class="insights-section-title">${title} <span>${names.length}</span></div>${userRowsHtml(asUsers(names), 'nobody')}</div>`;
+        // Its own switcher, same design as the one above list 3.
+        const lists = { lost: d.lostFollowers, new: d.newFollowers, stopped: d.stoppedFollowing, started: d.startedFollowing };
         html = `<div class="insights-sub">${who} · since ${esc(new Date(d.since).toLocaleDateString())}</div>
-          ${section('unfollowed you', d.lostFollowers)}
-          ${section('new followers', d.newFollowers)}
-          ${section('you stopped following', d.stoppedFollowing)}
-          ${section('you started following', d.startedFollowing)}`;
+          <div class="instructions-steps-nav changes-nav">
+            <div class="instructions-nav-indicator changes-indicator"></div>
+            ${CHANGE_TABS.map(([id, label]) => `<button class="insights-tab${id === changesTab ? ' active' : ''}" data-change="${id}">${label} <span class="changes-count">${lists[id].length}</span></button>`).join('')}
+          </div>
+          ${CHANGE_TABS.map(([id]) => `<div class="changes-pane${id === changesTab ? ' active' : ''}" data-pane="${id}">${userRowsHtml(asUsers(lists[id]), 'nobody')}</div>`).join('')}`;
       }
     } else if (currentView === 'stats') {
       const following = state.following.length, followers = state.followers.length;
@@ -720,6 +726,57 @@
       }
     }
     body.innerHTML = `<div class="insights-pane">${html}</div>`;
+    placeChangesIndicator();
+  }
+
+  // ---------- changes view: its own tab switcher ----------
+  const CHANGE_TABS = [
+    ['lost', 'unfollowed you'], ['new', 'new followers'],
+    ['stopped', 'you stopped following'], ['started', 'you started following']
+  ];
+  let changesTab = 'lost';
+  function placeChangesIndicator() {
+    const nav = altView && altView.querySelector('.changes-nav');
+    if (!nav) return;
+    const active = nav.querySelector('.insights-tab.active');
+    const indicator = nav.querySelector('.changes-indicator');
+    indicator._pos = null;
+    moveInstructionsIndicator(indicator, active);
+    const left = active.offsetLeft - 12;
+    if (left > 0) nav.scrollLeft = left;
+  }
+  function showChangesTab(id) {
+    const nav = altView.querySelector('.changes-nav');
+    if (!nav || id === changesTab) return;
+    const ids = CHANGE_TABS.map(t => t[0]);
+    const dir = ids.indexOf(id) > ids.indexOf(changesTab) ? 1 : -1;
+    const oldPane = altView.querySelector(`.changes-pane[data-pane="${changesTab}"]`);
+    const newPane = altView.querySelector(`.changes-pane[data-pane="${id}"]`);
+    changesTab = id;
+    const tabs = [...nav.querySelectorAll('[data-change]')];
+    const active = tabs.find(t => t.dataset.change === id);
+    tabs.forEach(t => t.classList.toggle('active', t === active));
+    moveInstructionsIndicator(nav.querySelector('.changes-indicator'), active);
+    const left = active.offsetLeft - 12, right = active.offsetLeft + active.offsetWidth + (active.nextElementSibling ? 38 : 12);
+    if (left < nav.scrollLeft) scrollInstructionsNav(nav, Math.max(0, left));
+    else if (right > nav.scrollLeft + nav.clientWidth) scrollInstructionsNav(nav, right - nav.clientWidth);
+    // Same swap as list 3's views: out, then in, 550ms together.
+    altView.querySelectorAll('.changes-pane').forEach(p => p.getAnimations && p.getAnimations().forEach(a => a.cancel()));
+    const token = (altView._changesToken = {});
+    const swap = () => {
+      if (altView._changesToken !== token) return;
+      oldPane.getAnimations && oldPane.getAnimations().forEach(a => a.cancel());
+      oldPane.classList.remove('active');
+      newPane.classList.add('active');
+      if (typeof newPane.animate === 'function') newPane.animate(
+        [{ opacity: 0, transform: `translateX(${dir * 28}px)` }, { opacity: 1, transform: 'translateX(0)' }],
+        { duration: 350, easing: 'cubic-bezier(0.65, 0, 0.35, 1)' });
+    };
+    if (typeof oldPane.animate !== 'function') return swap();
+    oldPane.animate(
+      [{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: `translateX(${-dir * 28}px)` }],
+      { duration: 200, easing: 'cubic-bezier(0.65, 0, 0.35, 1)', fill: 'forwards' }
+    ).finished.then(swap, swap);
   }
 
   const EXPORT_LISTS = [

@@ -3349,9 +3349,12 @@ function moveInstructionsIndicator(indicator, tab) {
   indicator._pos = { x, w };
   const moved = from && (Math.abs(from.x - x) > 0.5 || Math.abs(from.w - w) > 0.5);
   if (!moved || indicator.classList.contains('no-transition') || typeof indicator.animate !== 'function') return;
+  // Width rather than scaleX: the highlight is an outline now, and scaling
+  // it would stretch its border mid-slide. Both in one animation, so the
+  // slide and the resize stay in step.
   indicator._anim = indicator.animate([
-    { transform: `translateX(${from.x}px) scaleX(${from.w / w})` },
-    { transform: `translateX(${x}px) scaleX(1)` }
+    { transform: `translateX(${from.x}px)`, width: `${from.w}px` },
+    { transform: `translateX(${x}px)`, width: `${w}px` }
   ], { duration: 550, easing: 'cubic-bezier(0.65, 0, 0.35, 1)' });
 }
 

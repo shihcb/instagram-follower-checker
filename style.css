@@ -2084,7 +2084,8 @@ body.hide-shortcuts #keyboard-hints {
 .instructions-steps-nav {
   display: flex;
   gap: 6px;
-  background-color: var(--input-bg);
+  /* A solid bar; the view it's on is outlined (the highlight below). */
+  background-color: var(--btn-secondary-bg);
   border: 1px solid var(--input-border);
   padding: 4px;
   border-radius: 10px;
@@ -2108,9 +2109,11 @@ body.hide-shortcuts #keyboard-hints {
   left: 0;
   height: calc(100% - 8px);
   width: 0;
-  background: #ffffff;
+  background: transparent;
+  border: 1.5px solid var(--text-main);
+  box-sizing: border-box;
   border-radius: 7px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+  box-shadow: none;
   /* Moved and resized by one transform-only animation (see
      updateInstructionsStepUI in script.js) with the log in / sign up
      switch's easing — animating width alongside transform ran the resize
@@ -2126,8 +2129,8 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 [data-theme="dark"] .instructions-nav-indicator {
-  background: #ffffff;
-  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.22);
+  background: transparent;
+  box-shadow: none;
 }
 
 .instructions-tab {
@@ -2149,14 +2152,14 @@ body.hide-shortcuts #keyboard-hints {
 
 .instructions-tab.active {
   background: transparent !important;
-  color: #000000 !important;
+  color: var(--text-main) !important;
   border-color: transparent !important;
   font-weight: 600 !important;
   box-shadow: none !important;
 }
 
 [data-theme="dark"] .instructions-tab.active {
-  color: #000000 !important;
+  color: var(--text-main) !important;
   background: transparent !important;
   border-color: transparent !important;
   box-shadow: none !important;
@@ -4881,7 +4884,7 @@ button:focus-visible,
   padding: 4px;
   max-width: calc(100vw - 24px);
   border-radius: 10px;
-  background: linear-gradient(var(--input-bg), var(--input-bg)), var(--bg-color, #fff);
+  background: var(--btn-secondary-bg);
   border: 1px solid var(--input-border);
   box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.22);
   opacity: 0;
@@ -4898,17 +4901,16 @@ button:focus-visible,
   padding: 7px 12px;
   font-size: 0.78rem;
   font-weight: 600;
+  padding: 6.5px 11.5px; /* the buttons' 7px 12px + 1px border, with this 1.5px outline */
   border-radius: 7px;
-  background: #ffffff;
-  color: #000000;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  background: transparent;
+  color: var(--text-main);
+  border: 1.5px solid var(--text-main);
+  box-shadow: none;
   white-space: nowrap;
   overflow: hidden;
   box-sizing: border-box;
   flex-shrink: 0;
-}
-[data-theme="dark"] .row-select-count {
-  box-shadow: none;
 }
 .row-select-bar button {
   padding: 7px 12px;
@@ -5019,6 +5021,19 @@ button:focus-visible,
 
 /* List 3's view switcher (same bar, tabs and highlight as instructions) */
 /* Exactly the instructions window's bar (.instructions-steps-nav). */
+.changes-nav {
+  margin-bottom: 12px;
+}
+.changes-count {
+  margin-left: 3px;
+  opacity: 0.6;
+}
+.changes-pane {
+  display: none;
+}
+.changes-pane.active {
+  display: block;
+}
 .list3-alt-view {
   flex: 1;
   min-height: 0;
@@ -5056,7 +5071,7 @@ button:focus-visible,
 }
 .insights-tab.active,
 [data-theme="dark"] .insights-tab.active {
-  color: #000000 !important;
+  color: var(--text-main) !important;
 }
 .insights-body {
   overflow-y: auto;
