@@ -4931,7 +4931,9 @@ button:focus-visible,
   display: flex;
   align-items: center;
   gap: 12px;
+  width: max-content; /* left: 50% would otherwise cap it at half the screen and wrap */
   max-width: calc(100vw - 32px);
+  box-sizing: border-box;
   padding: 10px 10px 10px 16px;
   border-radius: 14px;
   background: var(--text-main);
@@ -4944,6 +4946,15 @@ button:focus-visible,
   transform: translate(-50%, 16px) scale(0.96);
   transition: opacity 0.38s cubic-bezier(0.4, 0, 0.2, 1), transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
 }
+.feature-toast.no-action {
+  padding: 10px 16px;
+}
+.feature-toast-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
 .feature-toast.show {
   opacity: 1;
   pointer-events: auto;
@@ -4952,10 +4963,6 @@ button:focus-visible,
 .feature-toast.warn {
   background: #d97706;
   color: #ffffff;
-}
-.feature-toast-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .feature-toast-btn {
   flex-shrink: 0;

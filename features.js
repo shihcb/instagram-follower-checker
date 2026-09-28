@@ -101,7 +101,7 @@
       document.body.appendChild(toastEl);
     }
     clearTimeout(toastTimer);
-    toastEl.className = `feature-toast ${tone}`;
+    toastEl.className = `feature-toast ${tone}${action ? '' : ' no-action'}`;
     toastEl.innerHTML = `<span class="feature-toast-text">${esc(message)}</span>${action ? `<button class="feature-toast-btn">${esc(action)}</button>` : ''}`;
     if (action) {
       toastEl.querySelector('.feature-toast-btn').addEventListener('click', (e) => {
