@@ -262,6 +262,11 @@ function cancelOverlayHide(overlay) {
 // submenus. Its hidden starting state is committed first: showing it and
 // starting the animation in the same frame let Safari skip straight to the
 // end, so pop-ups often just appeared.
+// "1 day", "3 days": words spelled out, never "3d".
+function plural(n, word) {
+  return `${n} ${word}${n === 1 ? '' : 's'}`;
+}
+
 function showModalOverlay(overlay) {
   cancelOverlayHide(overlay);
   overlay.classList.remove('hidden');
@@ -800,12 +805,12 @@ function updateUnfollowedUI(enteringUsername) {
             <div style="display: flex; align-items: center; gap: 6px;">
               <span>${escapeHtml(user.fullName || '')}</span>
               <div class="dropdown-actions-group">
-                <button class="star-unfollowed-btn" data-username="${escapeHtml(user.username)}" aria-label="star user" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-main); padding: 2px;" title="move to starred list">
+                <button class="star-unfollowed-btn" data-username="${escapeHtml(user.username)}" aria-label="star this account" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-main); padding: 2px;" title="move to the starred list">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                   </svg>
                 </button>
-                <button class="remove-unfollowed-btn" data-username="${escapeHtml(user.username)}" aria-label="remove from unfollowed" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px;" title="remove from history">
+                <button class="remove-unfollowed-btn" data-username="${escapeHtml(user.username)}" aria-label="remove from the unfollowed list" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px;" title="remove and put back in list 3">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -897,18 +902,18 @@ function updateStarredUI(enteringUsername) {
             <div style="display: flex; align-items: center; gap: 6px;">
               <span>${escapeHtml(user.fullName || '')}</span>
               <div class="dropdown-actions-group">
-                <button class="unstar-btn" data-username="${escapeHtml(user.username)}" aria-label="unstar user" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px;" title="unstar user">
+                <button class="unstar-btn" data-username="${escapeHtml(user.username)}" aria-label="unstar this account" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px;" title="unstar this account">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                   </svg>
                 </button>
-                <button class="unfollow-starred-btn" data-username="${escapeHtml(user.username)}" aria-label="move to unfollowed" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px;" title="move to unfollowed list">
+                <button class="unfollow-starred-btn" data-username="${escapeHtml(user.username)}" aria-label="move to the unfollowed list" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px;" title="move to the unfollowed list">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="3 6 5 6 21 6"></polyline>
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                   </svg>
                 </button>
-                <button class="remove-unfollowed-btn" data-username="${escapeHtml(user.username)}" aria-label="remove from starred" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px;" title="remove from history">
+                <button class="remove-unfollowed-btn" data-username="${escapeHtml(user.username)}" aria-label="remove from the starred list" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px;" title="remove and put back in list 3">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -1003,7 +1008,7 @@ function renderUnfollowerRowHtml(user, index) {
   return `
     <div class="user-row${isSelected ? ' selected' : ''}" data-username="${escapeHtml(user.username)}" data-index="${index}">
       <div class="user-info">
-        <a href="${profileHref}" target="_blank" rel="noopener" class="user-avatar-link" title="Visit Instagram Profile">
+        <a href="${profileHref}" target="_blank" rel="noopener" class="user-avatar-link" title="visit instagram profile">
           <div class="user-avatar">${initials}</div>
         </a>
         <div class="user-details">
@@ -1015,25 +1020,25 @@ function renderUnfollowerRowHtml(user, index) {
       </div>
       <div class="user-meta">
         <div class="user-row-actions">
-          ${index < 10 ? `<span class="row-shortcut-key" title="Press key ${index === 9 ? 0 : index + 1} to open profile">${index === 9 ? 0 : index + 1}</span>` : ''}
-          <button class="action-star" aria-label="star user" title="star/favorite user to separate them from results">
+          ${index < 10 ? `<span class="row-shortcut-key" title="press ${index === 9 ? 0 : index + 1} to open this profile">${index === 9 ? 0 : index + 1}</span>` : ''}
+          <button class="action-star" aria-label="star this account" title="star this account to keep it out of the results">
             <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
             </svg>
           </button>
-          <button class="action-delete" aria-label="delete user" title="unfollow user without opening profile">
+          <button class="action-delete" aria-label="unfollow this account" title="unfollow without opening the profile">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="3 6 5 6 21 6"></polyline>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             </svg>
           </button>
-          <a href="${profileHref}" target="_blank" rel="noopener" class="action-arrow" aria-label="Visit Instagram Profile" title="Visit Instagram Profile">
+          <a href="${profileHref}" target="_blank" rel="noopener" class="action-arrow" aria-label="visit instagram profile" title="visit instagram profile">
             <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
               <line x1="5" y1="12" x2="19" y2="12"></line>
               <polyline points="12 5 19 12 12 19"></polyline>
             </svg>
           </a>
-          <button class="action-dismiss" aria-label="remove user from list" title="remove from list without adding to unfollowed or starred">
+          <button class="action-dismiss" aria-label="remove from list 3" title="remove from the list without adding it to unfollowed or starred">
             <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -1723,7 +1728,7 @@ async function processImportFiles(files, isFolderUpload = false) {
     // Extract username from the first valid file's "Generated by X on ..." header
     let extractedUsername = await extractUsernameFromFile(validFilesToProcess[0].file);
     if (!extractedUsername) {
-      const fallback = prompt("could not automatically detect your username from the file. please enter your instagram username manually:");
+      const fallback = prompt("we couldn't find your username in the file. please enter your instagram username:");
       if (fallback && fallback.trim() !== '') {
         extractedUsername = fallback.trim();
       }
@@ -1760,7 +1765,7 @@ async function processImportFiles(files, isFolderUpload = false) {
 
   // Also when a whole folder had nothing usable (that used to fail silently).
   if (validFilesToProcess.length === 0 && (invalidFiles.length > 0 || isFolderUpload)) {
-    await showSiteAlert('no valid files found', 'no follower or following export files (HTML, JSON or TXT) were found in the uploaded selection.');
+    await showSiteAlert('no valid files found', 'no followers or following files (html, json, or txt) were found in what you uploaded.');
   }
 
   return importedFollowing || importedFollowers;
@@ -2562,7 +2567,7 @@ function reindexUnfollowerRows() {
       }
       if (badge) {
         badge.textContent = String(key);
-        badge.title = `Press key ${key} to open profile`;
+        badge.title = `press ${key} to open this profile`;
       }
     } else if (badge) {
       badge.remove();
@@ -3927,7 +3932,7 @@ function updateInstructionsStepUI() {
     } catch (err) {
       if (err.name !== 'AbortError') {
         console.error(err);
-        await showSiteAlert("error", "error reading directory: " + err.message);
+        await showSiteAlert("error", "couldn't read the folder: " + err.message);
       }
     }
   }
@@ -3938,7 +3943,7 @@ function updateInstructionsStepUI() {
     const card = header.closest('.card');
     if (card && card.id !== 'card-unfollowers') {
       header.style.cursor = 'pointer';
-      header.title = 'Double-click header to sync files automatically from a folder';
+      header.title = 'double-click the header to sync files from a folder automatically';
       header.addEventListener('dblclick', scanLocalDirectory);
     }
   });
@@ -4368,7 +4373,7 @@ function updateInstructionsStepUI() {
 
       // Check if we've already automatically opened 5 profiles
       if (state.autoOpenCount >= 5) {
-        const proceed = await showSiteConfirm('auto open', 'you have automatically opened 5 profiles. do you want to continue auto-opening the next 5 profiles?', 'continue', 'stop');
+        const proceed = await showSiteConfirm('auto open', '5 profiles have been opened automatically. do you want to open the next 5?', 'continue', 'stop');
         if (!proceed) {
           autoOpenToggle.checked = false;
           state.pendingAutoOpen = false;
@@ -5156,7 +5161,7 @@ function initAuth() {
       if (error) {
         showAuthError(error.message);
       } else {
-        showAuthSuccess('account created! check your email if confirmation is required, or try logging in.');
+        showAuthSuccess('account created! check your email to confirm it, or try logging in.');
       }
     } else {
       // Supabase Log In
@@ -5717,7 +5722,7 @@ function updateStorageProgressBar() {
   const percentage = (totalBytes / quotaBytes) * 100;
   
   const percentageText = `${percentage.toFixed(2)}%`;
-  const usedText = totalBytes > 1024 ? `${(totalBytes / 1024).toFixed(1)} KB` : `${totalBytes} B`;
+  const usedText = totalBytes > 1024 ? `${(totalBytes / 1024).toFixed(1)} kb` : `${totalBytes} bytes`;
 
   const percentageEl = document.getElementById('storage-percentage');
   const fillEl = document.getElementById('storage-progress-fill');
@@ -5818,15 +5823,16 @@ function updateResetReminderUI() {
   if (remainingMs <= 0) {
     const overdueDays = Math.floor(-remainingMs / dayMs);
     box.classList.add('overdue');
-    valueEl.textContent = overdueDays > 0 ? `overdue by ${overdueDays}d` : 'overdue';
-    detailEl.textContent = `imported ${importedDateText} — time to reset your unfollowed & starred lists`;
+    valueEl.textContent = overdueDays > 0 ? `overdue by ${plural(overdueDays, 'day')}` : 'overdue';
+    detailEl.textContent = `imported ${importedDateText} — time to reset your unfollowed and starred lists`;
     fillEl.style.width = '100%';
   } else {
     box.classList.remove('overdue');
     const remainingDays = Math.floor(remainingMs / dayMs);
     const remainingHours = Math.floor((remainingMs % dayMs) / (60 * 60 * 1000));
-    valueEl.textContent = remainingDays > 0 ? `${remainingDays}d left` : `${remainingHours}h left`;
-    detailEl.textContent = `imported ${importedDateText} — reset lists in ${remainingDays > 0 ? remainingDays + 'd' : remainingHours + 'h'}`;
+    const remainingText = remainingDays > 0 ? plural(remainingDays, 'day') : plural(remainingHours, 'hour');
+    valueEl.textContent = `${remainingText} left`;
+    detailEl.textContent = `imported ${importedDateText} — reset your lists in ${remainingText}`;
     fillEl.style.width = `${Math.min(100, Math.max(0, ((now - importedAt) / RESET_REMINDER_MS) * 100))}%`;
   }
 }

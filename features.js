@@ -46,9 +46,9 @@
   const ago = (t) => {
     const d = Math.max(0, Date.now() - t) / DAY;
     if (d < 1) return 'today';
-    if (d < 30) return `${Math.floor(d)}d`;
-    if (d < 365) return `${Math.floor(d / 30)}mo`;
-    return `${Math.floor(d / 365)}y`;
+    if (d < 30) return plural(Math.floor(d), 'day');
+    if (d < 365) return plural(Math.floor(d / 30), 'month');
+    return plural(Math.floor(d / 365), 'year');
   };
 
   // ---------- list 3: sorting ----------
@@ -151,7 +151,7 @@
   function refreshUndo() {
     const list = undoable();
     setUndoReady(list.length > 0);
-    if (undoBtn && list.length) undoBtn.title = `undo: ${list[list.length - 1].message}${list.length > 1 ? ` (${list.length} steps)` : ''}`;
+    if (undoBtn && list.length) undoBtn.title = `undo: ${list[list.length - 1].message}${list.length > 1 ? ` (${list.length} steps to undo)` : ''}`;
   }
   function offerUndo(snap, message) {
     setTimeout(() => {
@@ -197,10 +197,10 @@
     ['#list-unfollowers .action-delete', 'unfollowed'],
     ['#list-unfollowers .action-dismiss', 'removed from list 3'],
     ['#list-unfollowed .star-unfollowed-btn', 'moved to starred'],
-    ['#list-unfollowed .remove-unfollowed-btn', 'put back in list 3'],
+    ['#list-unfollowed .remove-unfollowed-btn', 'moved back to list 3'],
     ['#list-starred .unstar-btn', 'unstarred'],
     ['#list-starred .unfollow-starred-btn', 'moved to unfollowed'],
-    ['#list-starred .remove-unfollowed-btn', 'put back in list 3'],
+    ['#list-starred .remove-unfollowed-btn', 'moved back to list 3'],
   ];
   document.addEventListener('click', (e) => {
     if (selectMode || e.target.closest('.row-select-bar')) return;
@@ -210,7 +210,7 @@
         const row = btn.closest('[data-username]');
         if (row && row.classList.contains('username-exit')) return;
         const name = row ? row.querySelector('.user-link, .parsed-username') : null;
-        offerUndo(snapshot(), `${name ? name.textContent.trim() : 'username'} ${verb}`);
+        offerUndo(snapshot(), `${name ? name.textContent.trim() : 'account'} ${verb}`);
         return;
       }
     }
@@ -218,7 +218,7 @@
     const row = e.target.closest('#list-unfollowers .user-row');
     if (row && !row.classList.contains('username-exit') && !e.target.closest('.action-arrow, .user-row-actions')) {
       const name = row.querySelector('.user-link');
-      offerUndo(snapshot(), `${name ? name.textContent.trim() : 'username'} unfollowed`);
+      offerUndo(snapshot(), `${name ? name.textContent.trim() : 'account'} unfollowed`);
     }
   }, true);
 
@@ -230,8 +230,8 @@
       storageSet(todayKey(), String(count));
       if (count === DAILY_WARN || count === DAILY_LIMIT) {
         setTimeout(() => showToast(count >= DAILY_LIMIT
-          ? `${count} unfollows today — instagram may limit your account. take a break until tomorrow.`
-          : `${count} unfollows today — slow down to stay under instagram's limits`, null, null, { tone: 'warn', duration: 7000 }), ROW_MOTION_MS + 900);
+          ? `${count} unfollows today — instagram may limit your account, so take a break until tomorrow.`
+          : `${count} unfollows today — slow down to stay under instagram's limits.`, null, null, { tone: 'warn', duration: 7000 }), ROW_MOTION_MS + 900);
       }
       refreshToolbar();
     }
@@ -287,12 +287,12 @@
         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg>
         <span class="sort-window"><span class="toolbar-pill-text sort-current"></span><span class="toolbar-pill-text sort-probe" aria-hidden="true"></span></span>
       </button>
-      <button class="toolbar-pill" data-act="select" title="select several usernames">
+      <button class="toolbar-pill" data-act="select" title="select several accounts">
         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         <span class="toolbar-pill-text">select</span>
       </button>
-      <span class="toolbar-pill toolbar-count" data-act="count" title="unfollows today"></span>
-      <button class="toolbar-pill toolbar-reminder" data-act="reminder" title="re-import your files"></button>`;
+      <span class="toolbar-pill toolbar-count" data-act="count" title="accounts unfollowed today"></span>
+      <button class="toolbar-pill toolbar-reminder" data-act="reminder" title="import your files again"></button>`;
     wrapper.parentNode.insertBefore(toolbar, wrapper);
     toolbar.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-act]');
@@ -367,12 +367,12 @@
 
     const count = getToday();
     const countEl = toolbar.querySelector('[data-act="count"]');
-    setPill(countEl, count > 0, `${count}/${DAILY_LIMIT} today`);
+    setPill(countEl, count > 0, `${count} of ${DAILY_LIMIT} unfollows today`);
     countEl.classList.toggle('warn', count >= DAILY_WARN);
 
     const importedAt = +(storageGet(`import_date_${accKey()}`) || 0);
     const due = importedAt && Date.now() - importedAt > 7 * DAY && accKey() !== DEMO_ID;
-    setPill(toolbar.querySelector('[data-act="reminder"]'), !!due, due ? `imported ${Math.floor((Date.now() - importedAt) / DAY)}d ago · re-import` : '');
+    setPill(toolbar.querySelector('[data-act="reminder"]'), !!due, due ? `imported ${plural(Math.floor((Date.now() - importedAt) / DAY), 'day')} ago · import again` : '');
   }
   // Shows/hides a pill with the chips' fade (in) / a quick fade (out).
   function setPill(el, show, text) {
@@ -460,7 +460,7 @@
     setSelectMode(false);
     saveCurrentAccountData();
     calculateUnfollowers({ animate: true }); // they slide out of list 3
-    offerUndo(snap, `${n} username${n === 1 ? '' : 's'} ${kind === 'star' ? 'starred' : 'unfollowed'}`);
+    offerUndo(snap, `${plural(n, 'account')} ${kind === 'star' ? 'starred' : 'unfollowed'}`);
   }
 
   // ---------- notes & tags (long-press / right-click a row) ----------
@@ -477,11 +477,11 @@
           <div class="account-modal-header"><h3 class="feature-note-title"></h3></div>
           <div class="account-modal-input-group">
             <label>note</label>
-            <textarea class="feature-note-text" rows="3" placeholder="e.g. met at work"></textarea>
+            <textarea class="feature-note-text" rows="3" placeholder="for example, met at work"></textarea>
           </div>
           <div class="account-modal-input-group">
             <label>tags</label>
-            <input type="text" class="feature-note-tags" placeholder="close friend, brand">
+            <input type="text" class="feature-note-tags" placeholder="for example, close friend, brand">
           </div>
           <div class="account-modal-actions feature-note-footer">
             <button class="btn btn-secondary" data-note="cancel">cancel</button>
@@ -674,7 +674,7 @@
     let html = '';
     if (currentView === 'changes') {
       const d = readJSON(`import_diff_${key}`, null);
-      if (!d) html = `<div class="dropdown-empty-message">import your files again later to see who unfollowed you, who followed you, and more since the last time.</div>`;
+      if (!d) html = `<div class="dropdown-empty-message">import your files again later to see who has unfollowed you, who has followed you, and more since last time.</div>`;
       else {
         // Its own switcher, same design as the one above list 3.
         const lists = { lost: d.lostFollowers, new: d.newFollowers, stopped: d.stoppedFollowing, started: d.startedFollowing };
@@ -699,19 +699,19 @@
       html = `<div class="insights-sub">${who}</div>
         <div class="insights-stats">
           ${stat(following, 'following')}${stat(followers, 'followers')}${stat(`${ratio}%`, 'follow you back')}
-          ${stat(state.unfollowers.length, "don't follow back")}${stat(state.unfollowed.length, 'unfollowed')}${stat(state.starred.length, 'starred')}
+          ${stat(state.unfollowers.length, "don't follow you back")}${stat(state.unfollowed.length, 'unfollowed')}${stat(state.starred.length, 'starred')}
         </div>
-        <div class="insights-section-title">don't follow back, per import</div>
-        ${history.length ? `<div class="trend-chart">${bars}</div>` : `<div class="dropdown-empty-message">import your files to start the trend</div>`}`;
+        <div class="insights-section-title">accounts that don't follow you back, per import</div>
+        ${history.length ? `<div class="trend-chart">${bars}</div>` : `<div class="dropdown-empty-message">import your files to start tracking this</div>`}`;
     } else if (currentView === 'mutuals') {
       const fset = followersSet();
       html = userRowsHtml(state.following.filter(u => fset.has(u.username)), 'no mutual accounts yet');
     } else if (currentView === 'fans') {
       const fset = followingSet();
-      html = `<div class="insights-sub">follow you, but you don't follow back</div>${userRowsHtml(state.followers.filter(u => !fset.has(u.username)), 'no fan accounts yet')}`;
+      html = `<div class="insights-sub">they follow you, but you don't follow them back</div>${userRowsHtml(state.followers.filter(u => !fset.has(u.username)), 'no fan accounts yet')}`;
     } else if (currentView === 'compare') {
       const accounts = state.instagramAccounts.filter(a => !isDemoAccount(a));
-      if (accounts.length < 2) html = `<div class="dropdown-empty-message">add a second account to compare who follows each</div>`;
+      if (accounts.length < 2) html = `<div class="dropdown-empty-message">add a second account to compare who follows each one</div>`;
       else {
         const sel = [...altView.querySelectorAll('.compare-select')].map(s => s.value);
         const a = sel[0] || accounts[0].originalUsername.toLowerCase();
@@ -721,8 +721,8 @@
         const fa = fol(a), fb = fol(b);
         const sa = new Set(fa.map(u => u.username)), sb = new Set(fb.map(u => u.username));
         html = `<div class="compare-pickers"><select class="compare-select">${opts(a)}</select><span>vs</span><select class="compare-select">${opts(b)}</select></div>
-          <div class="insights-section"><div class="insights-section-title">follow the first, not the second <span>${fa.filter(u => !sb.has(u.username)).length}</span></div>${userRowsHtml(fa.filter(u => !sb.has(u.username)), 'no accounts')}</div>
-          <div class="insights-section"><div class="insights-section-title">follow the second, not the first <span>${fb.filter(u => !sa.has(u.username)).length}</span></div>${userRowsHtml(fb.filter(u => !sa.has(u.username)), 'no accounts')}</div>`;
+          <div class="insights-section"><div class="insights-section-title">follow the first account but not the second <span>${fa.filter(u => !sb.has(u.username)).length}</span></div>${userRowsHtml(fa.filter(u => !sb.has(u.username)), 'no accounts here')}</div>
+          <div class="insights-section"><div class="insights-section-title">follow the second account but not the first <span>${fb.filter(u => !sa.has(u.username)).length}</span></div>${userRowsHtml(fb.filter(u => !sa.has(u.username)), 'no accounts here')}</div>`;
       }
     }
     body.innerHTML = `<div class="insights-pane">${html}</div>`;
@@ -736,7 +736,7 @@
   ];
   // Worded like the unfollowed / starred submenus' empty lines.
   const CHANGE_EMPTY = {
-    lost: 'no accounts unfollowed you', new: 'no new followers',
+    lost: 'no accounts have unfollowed you', new: 'no new followers',
     stopped: "no accounts you've stopped following", started: "no accounts you've started following"
   };
   let changesTab = 'lost';
@@ -785,7 +785,7 @@
   }
 
   const EXPORT_LISTS = [
-    ['list3', "list 3 · don't follow back"], ['unfollowed', 'unfollowed'], ['starred', 'starred'],
+    ['list3', "list 3 · don't follow you back"], ['unfollowed', 'unfollowed'], ['starred', 'starred'],
     ['following', 'list 1 · following'], ['followers', 'list 2 · followers'], ['mutuals', 'mutuals'], ['fans', 'fans']
   ];
   function listFor(kind) {
@@ -836,7 +836,7 @@
       exportOverlay.innerHTML = `
         <div class="account-modal-card glass export-card">
           <div class="account-modal-header"><h3>export</h3></div>
-          <div class="insights-sub">choose the lists to download as a spreadsheet (csv)</div>
+          <div class="insights-sub">choose the lists you want to download as a spreadsheet (csv)</div>
           <div class="export-options"></div>
           <div class="account-modal-actions">
             <button class="btn btn-secondary" data-exp="cancel">cancel</button>
