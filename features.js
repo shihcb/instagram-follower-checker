@@ -598,7 +598,7 @@
     altView.addEventListener('change', (e) => { if (e.target.matches('.compare-select')) renderView(); });
     altView.addEventListener('click', (e) => {
       const box = e.target.closest('.insights-stat');
-      if (box) { popBar([...box.parentNode.children].indexOf(box)); return; }
+      if (box) { setPopped([...box.parentNode.children].indexOf(box)); return; }
       const tab = e.target.closest('[data-change]');
       if (tab) { e.stopPropagation(); showChangesTab(tab.dataset.change); }
     });
@@ -683,8 +683,9 @@
     : `<div class="dropdown-empty-message">${empty}</div>`;
   // Stats: six boxes, each with its own color, and a bar per box in the
   // graph below in the same color. No data yet: a greyed-out example graph.
-  // Soft, muted tones; a box and its bar share one.
-  const STAT_COLORS = ['#7d95c4', '#7fae98', '#9d92c4', '#c28fa8', '#c48784', '#c4a574'];
+  // A calm, professional palette; a box and its bar share one.
+  const STAT_COLORS = ['#4f7fe8', '#2f9e7e', '#7b6ee6', '#d6588f', '#e0604f', '#dd9a2b'];
+  let poppedStat = -1; // the box tapped: its bar stays popped out
   const MOCK_HEIGHTS = [60, 85, 70, 40, 55, 30];
   const chartHtml = (heights, mock) => `<div class="trend-chart${mock ? ' trend-mock' : ''}"${mock ? ' aria-hidden="true"' : ''}>${heights.map((h, i) =>
     `<div class="trend-bar" style="height:${h}%;--bar:${STAT_COLORS[i]}"></div>`).join('')}</div>`;
@@ -765,6 +766,7 @@
     const newWrap = body.querySelector('.trend-wrap');
     if (newWrap && oldWrap) { newWrap.replaceWith(oldWrap); updateChart(oldWrap, newWrap); }
     else if (newWrap) growChart(newWrap.querySelector('.trend-chart'));
+    applyPopped();
   }
 
   // The stats graph. First time in: the bars grow up. Switching between
@@ -791,17 +793,16 @@
       requestAnimationFrame(step);
     });
   }
-  // Tapping a stat box pops its bar up a little.
-  function popBar(index) {
-    const chart = altView.querySelector('.trend-wrap .trend-chart:not(.trend-leaving)');
-    const bar = chart && chart.querySelectorAll('.trend-bar')[index];
-    if (!bar || typeof bar.animate !== 'function') return;
-    if (bar._pop) bar._pop.cancel();
-    bar._pop = bar.animate([
-      { transform: 'translateY(0) scale(1)', filter: 'brightness(1)' },
-      { transform: 'translateY(-6px) scale(1.06, 1.03)', filter: 'brightness(1.25)', offset: 0.4 },
-      { transform: 'translateY(0) scale(1)', filter: 'brightness(1)' }
-    ], { duration: 650, easing: EASE });
+  // Tapping a stat box pops its bar out and keeps it there (tap it again,
+  // or another box, to change that); the box gets a matching outline.
+  function setPopped(index) {
+    poppedStat = poppedStat === index ? -1 : index;
+    applyPopped();
+  }
+  function applyPopped() {
+    if (!altView) return;
+    altView.querySelectorAll('.insights-stat').forEach((box, i) => box.classList.toggle('stat-on', i === poppedStat));
+    altView.querySelectorAll('.trend-wrap .trend-chart:not(.trend-leaving) .trend-bar').forEach((bar, i) => bar.classList.toggle('bar-on', i === poppedStat));
   }
   const kindOf = (chart) => chart.classList.contains('trend-mock') ? 'mock' : 'real';
   function growChart(chart) {

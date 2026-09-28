@@ -5209,7 +5209,6 @@ button:focus-visible,
   margin-top: 14px;
   display: flex;
   overflow: hidden;
-  border-bottom: 1px solid var(--card-border);
 }
 .trend-chart {
   display: flex;
@@ -5217,7 +5216,7 @@ button:focus-visible,
   justify-content: space-between;
   gap: 8px;
   flex: 1 1 auto;
-  padding: 6px 4px 0;
+  padding: 10px 4px 0; /* room for a bar to pop up */
 }
 .trend-chart.trend-leaving {
   position: absolute;
@@ -5234,11 +5233,18 @@ button:focus-visible,
 .trend-bar {
   flex: 1 1 0;
   border-radius: 7px 7px 3px 3px;
-  background: color-mix(in srgb, var(--bar, #7fae98) 16%, transparent);
-  border: 1px solid color-mix(in srgb, var(--bar, #7fae98) 50%, transparent);
+  background: color-mix(in srgb, var(--bar, #2f9e7e) 26%, transparent);
+  border: 1px solid color-mix(in srgb, var(--bar, #2f9e7e) 70%, transparent);
   border-bottom: none;
   box-sizing: border-box;
   transform-origin: bottom;
+  transition: transform 0.45s cubic-bezier(0.34, 1.4, 0.64, 1), background-color 0.3s ease, box-shadow 0.3s ease;
+}
+/* Its box tapped: popped out and stays out. */
+.trend-bar.bar-on {
+  transform: translateY(-8px) scaleX(1.06);
+  background: color-mix(in srgb, var(--bar) 45%, transparent);
+  box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--bar) 70%, transparent);
 }
 @keyframes trend-grow {
   from { transform: scaleY(0); }
@@ -5558,8 +5564,13 @@ select,
 
 /* Each stat box in its own color (the same as its bar in the graph). */
 .insights-stat[style*="--stat"] {
-  border-color: color-mix(in srgb, var(--stat) 50%, transparent) !important;
-  background: color-mix(in srgb, var(--stat) 16%, transparent) !important;
+  border-color: color-mix(in srgb, var(--stat) 70%, transparent) !important;
+  background: color-mix(in srgb, var(--stat) 26%, transparent) !important;
+  transition: box-shadow 0.3s ease, background-color 0.3s ease;
+}
+.insights-stat[style*="--stat"].stat-on {
+  box-shadow: 0 0 0 1.5px var(--stat) inset;
+  background: color-mix(in srgb, var(--stat) 36%, transparent) !important;
 }
 .insights-stat[style*="--stat"] .insights-stat-value {
   color: var(--stat);
