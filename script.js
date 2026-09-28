@@ -3044,8 +3044,8 @@ function saveAccountsList() {
 
 // Removes every trace of the demo's data from this device.
 function clearDemoData() {
-  ['following', 'followers', 'unfollowed', 'starred'].forEach(type => storageRemove(`${type}_users_${DEMO_ID}`));
-  storageRemove(`import_date_${DEMO_ID}`);
+  ['following', 'followers', 'unfollowed', 'starred', 'hidden'].forEach(type => storageRemove(`${type}_users_${DEMO_ID}`));
+  ['import_date_', 'import_history_', 'import_diff_'].forEach(prefix => storageRemove(`${prefix}${DEMO_ID}`));
   ['last_active_instagram_account', 'selected_instagram_account'].forEach(key => {
     if (storageGet(key) === DEMO_ID) storageRemove(key);
   });
@@ -3276,6 +3276,9 @@ function closeInstructionsModal() {
   });
 }
 window.closeInstructionsModal = closeInstructionsModal;
+// Shared with the insights window (features.js): same tab highlight/scroll.
+window.moveInstructionsIndicator = moveInstructionsIndicator;
+window.scrollInstructionsNav = scrollInstructionsNav;
 
 // Slides the highlight to `tab` like the log in / sign up switch does:
 // same duration and easing, transform only (FLIP: it takes its new size at
@@ -5423,8 +5426,13 @@ async function pullFromCloud(uploadLocalFirst = false) {
             if (itemData.starred) storageSet(`starred_users_${key}`, JSON.stringify(itemData.starred));
             // Restore the weekly reset reminder's anchor date so it reflects real elapsed time on login.
             if (itemData.importDate) storageSet(`import_date_${key}`, itemData.importDate);
+            if (itemData.hidden) storageSet(`hidden_users_${key}`, JSON.stringify(itemData.hidden));
+            if (itemData.history) storageSet(`import_history_${key}`, JSON.stringify(itemData.history));
+            if (itemData.diff) storageSet(`import_diff_${key}`, JSON.stringify(itemData.diff));
           });
         }
+
+        if (metaItem.notes) storageSet('user_notes', JSON.stringify(metaItem.notes));
 
         // Clean meta header from raw starred list
         rawStarred = rawStarred.filter(item => !item.__meta);
@@ -5501,7 +5509,8 @@ const LOCAL_DATA_OWNER_KEY = 'local_data_owner';
 // remembered selection behind, so the next person to log in on the device
 // could see (and upload into their own cloud data) the previous user's.
 function clearLocalAccountData() {
-  const prefixes = ['following_users', 'followers_users', 'unfollowed_users', 'starred_users', 'import_date_'];
+  const prefixes = ['following_users', 'followers_users', 'unfollowed_users', 'starred_users', 'import_date_',
+    'hidden_users_', 'import_history_', 'import_diff_', 'user_notes', 'unfollow_count_'];
   Object.keys(localStorage).forEach(key => {
     if (prefixes.some(prefix => key.startsWith(prefix))) storageRemove(key);
   });
@@ -5581,8 +5590,13 @@ async function pushToCloudNow() {
       const unfollowed = JSON.parse(storageGet(`unfollowed_users_${key}`) || '[]');
       const starred = JSON.parse(storageGet(`starred_users_${key}`) || '[]');
       const importDate = storageGet(`import_date_${key}`) || null;
+      // Extras (features.js): hidden usernames, import history and the
+      // changes since the last import.
+      const hidden = JSON.parse(storageGet(`hidden_users_${key}`) || '[]');
+      const history = JSON.parse(storageGet(`import_history_${key}`) || '[]');
+      const diff = JSON.parse(storageGet(`import_diff_${key}`) || 'null');
 
-      accountDataMap[key] = { following, followers, unfollowed, starred, importDate };
+      accountDataMap[key] = { following, followers, unfollowed, starred, importDate, hidden, history, diff };
 
       unfollowed.forEach(u => {
         const itemAcc = u.account || key;
@@ -5617,7 +5631,8 @@ async function pushToCloudNow() {
       __meta: true,
       instagram_accounts: (state.instagramAccounts || []).filter(acc => !isDemoAccount(acc)),
       selected_account: (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() !== DEMO_ID) ? state.selectedAccountUsername : null,
-      accounts_data: accountDataMap
+      accounts_data: accountDataMap,
+      notes: JSON.parse(storageGet('user_notes') || '{}')
     };
 
     const cloudStarred = [metaHeader, ...allStarredArray];

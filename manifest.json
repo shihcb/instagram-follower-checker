@@ -1,0 +1,13 @@
+{
+  "name": "IG checker",
+  "short_name": "IG checker",
+  "description": "see who doesn't follow you back on instagram",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#fafafa",
+  "icons": [
+    { "src": "images/app-icon.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
+  ]
+}
