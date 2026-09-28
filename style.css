@@ -5235,3 +5235,25 @@ button:focus-visible,
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* Lists 1/2 export button: collapses away (and the search box eases back
+   to full width) while its text box is empty. */
+.list-search-row > .preview-toggle {
+  overflow: hidden;
+  transition: width 0.32s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+              margin-left 0.32s cubic-bezier(0.4, 0, 0.2, 1), padding 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.25s ease, border-width 0.32s ease !important;
+}
+.list-search-row > .preview-toggle.export-off {
+  width: 0 !important;
+  min-width: 0 !important;
+  margin-left: -8px; /* the row's gap closes with it */
+  opacity: 0;
+  border-width: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  pointer-events: none;
+}
+.list-search-row > .preview-toggle.no-anim {
+  transition: none !important;
+}

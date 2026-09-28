@@ -817,7 +817,33 @@
         exportCsv([kind]);
       });
     });
+    refreshListExports(false);
   }
+
+  // Lists 1/2: the export button only shows while its text box has
+  // something in it; the search box eases wider/narrower as it comes and
+  // goes (style.css, .export-off).
+  function refreshListExports(animate = true) {
+    [['following', elements.inputFollowing], ['followers', elements.inputFollowers]].forEach(([kind, ta]) => {
+      const btn = document.getElementById(`btn-export-${kind}`);
+      if (!btn || !ta) return;
+      const off = ta.value.trim() === '';
+      if (btn.classList.contains('export-off') === off) return;
+      if (!animate) btn.classList.add('no-anim');
+      btn.classList.toggle('export-off', off);
+      btn.tabIndex = off ? -1 : 0;
+      if (!animate) { void btn.offsetWidth; btn.classList.remove('no-anim'); }
+    });
+  }
+  // updateListUI runs whenever list 1 or 2 changes (typing, import,
+  // switching accounts, clearing).
+  const baseUpdateListUI = updateListUI;
+  updateListUI = function (type) {
+    const result = baseUpdateListUI.call(this, type);
+    refreshListExports();
+    return result;
+  };
+  [elements.inputFollowing, elements.inputFollowers].forEach(ta => ta && ta.addEventListener('input', () => refreshListExports()));
   // Insights button, next to list 3's info button (same style).
   function buildInsightsButton() {
     const info = document.getElementById('btn-instructions-info');
