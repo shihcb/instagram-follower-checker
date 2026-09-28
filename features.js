@@ -699,8 +699,13 @@
     if (oldNav) oldNav.style.visibility = 'hidden';
     oldPane.style.top = `${12 - scroll}px`;
     altView.appendChild(oldPane);
+    // Gone once it has faded — and also if the fade gets interrupted (a
+    // phone can while the page is still loading), with a backup timer: a
+    // leftover used to sit on top of the new content after a reload.
+    const drop = () => oldPane.remove();
     oldPane.animate([{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: `translateY(${-SLIDE_Y}px)` }], LEAVE)
-      .finished.then(() => oldPane.remove(), () => {});
+      .finished.then(drop, drop);
+    setTimeout(drop, LEAVE.duration + 400);
     contentIn(altView.querySelector('.insights-pane:not(.pane-leaving)'), 120);
   }
   // The new content comes in as one block, the exit played backwards
@@ -889,7 +894,8 @@
     const h = wrap.clientHeight || 1;
     cur.animate([{ transform: `translateY(${fromY}px)`, opacity: 1 - Math.min(1, fromY / h) }, { transform: 'translateY(105%)', opacity: 0 }],
       { duration: 650, easing: 'cubic-bezier(0.55, 0, 0.45, 1)', fill: 'forwards' })
-      .finished.then(() => cur.remove(), () => {});
+      .finished.then(() => cur.remove(), () => cur.remove());
+    setTimeout(() => cur.remove(), 1100); // never left behind
     next.animate([{ transform: 'translateY(105%)', opacity: 0 }, { transform: 'translateY(0)', opacity: 1 }],
       { duration: 750, delay: 520, easing: GLIDE, fill: 'backwards' });
   }
