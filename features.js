@@ -16,6 +16,13 @@
   const EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
   const DAY = 24 * 60 * 60 * 1000;
 
+  // Everything here hooks into the app's own updates (loading your data at
+  // log in among them). A mistake in one of these extras must never stop
+  // that: it's caught and logged, and the app carries on without it.
+  function safe(fn, what) {
+    try { return fn(); } catch (err) { console.error(`[features] ${what || 'extra'} failed:`, err); return undefined; }
+  }
+
   const accKey = () => (state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '_global_');
   const readJSON = (key, fallback) => { try { const v = JSON.parse(storageGet(key) || 'null'); return v == null ? fallback : v; } catch (e) { return fallback; } };
   const writeJSON = (key, value) => storageSet(key, JSON.stringify(value));
@@ -51,6 +58,7 @@
   // applied right there.
   const baseUpdateResultsUI = updateResultsUI;
   updateResultsUI = function (opts) {
+    safe(() => {
     let list = state.unfollowers;
     if (sortMode !== 'default') {
       const dir = sortMode === 'oldest' ? 1 : -1;
@@ -63,19 +71,22 @@
       }).map(x => x[0]);
     }
     state.unfollowers = list;
-    refreshUndo(); // the steps belong to the account on screen
+    }, 'sort');
+    safe(refreshUndo, 'undo'); // the steps belong to the account on screen
     const result = baseUpdateResultsUI.call(this, opts);
-    keepSelection();
-    refreshToolbar();
-    refreshView();
+    safe(keepSelection, 'selection');
+    safe(refreshToolbar, 'toolbar');
+    safe(refreshView, 'view');
     return result;
   };
 
   // Rows: how long ago you followed them, your note and tags.
   const baseRowHtml = renderUnfollowerRowHtml;
   renderUnfollowerRowHtml = function (user, index) {
-    let html = baseRowHtml.call(this, user, index);
-    const t = timeOf(user);
+    const base = baseRowHtml.call(this, user, index);
+    return safe(() => withExtras(base, user), 'row') || base;
+  };
+  function withExtras(html, user) {
     const note = notesForRender()[user.username];
     const extras = [];
     if (note && note.tags && note.tags.length) extras.push(note.tags.map(tag => `<span class="row-tag">${esc(tag)}</span>`).join(''));
@@ -84,7 +95,7 @@
       html = html.replace(/(<div class="user-details">[\s\S]*?)(\n\s*<\/div>\n\s*<\/div>\n\s*<div class="user-meta">)/, `$1<div class="row-extras">${extras.join('')}</div>$2`);
     }
     return html;
-  };
+  }
 
   // ---------- toast (undo, messages) ----------
   let toastEl = null;
@@ -224,8 +235,12 @@
   const baseRecordImportDate = recordImportDate;
   recordImportDate = function (accountUsername) {
     const result = baseRecordImportDate.call(this, accountUsername);
+    safe(() => recordChanges(accountUsername), 'import history');
+    return result;
+  };
+  function recordChanges(accountUsername) {
     const key = accountUsername ? accountUsername.toLowerCase() : '_global_';
-    if (key === DEMO_ID) return result;
+    if (key === DEMO_ID) return;
     const history = readJSON(`import_history_${key}`, []);
     const prev = history[history.length - 1];
     const following = state.following.map(u => u.username);
@@ -252,8 +267,7 @@
     history.forEach(h => { delete h.followingList; delete h.followersList; });
     history.push({ date: Date.now(), following: following.length, followers: followers.length, unfollowers, followingList: following, followersList: followers });
     writeJSON(`import_history_${key}`, history.slice(-24));
-    return result;
-  };
+  }
 
   // ---------- list 3 toolbar: sort, select, today's count, reminder ----------
   let toolbar = null;
@@ -1100,7 +1114,7 @@
   const baseUpdateListUI = updateListUI;
   updateListUI = function (type) {
     const result = baseUpdateListUI.call(this, type);
-    refreshListExports();
+    safe(refreshListExports, 'list export');
     return result;
   };
   [elements.inputFollowing, elements.inputFollowers].forEach(ta => ta && ta.addEventListener('input', () => refreshListExports()));
@@ -1139,14 +1153,16 @@
   }
 
   function init() {
-    clearOldTally();
-    buildToolbar();
-    buildViewSwitcher();
-    buildExportButtons();
-    buildUndoButton();
-    arrangeList3Buttons();
-    setupInstall();
-    refreshToolbar();
+    // Each part on its own: one failing can't take the rest (or the app)
+    // down with it.
+    safe(clearOldTally, 'cleanup');
+    safe(buildToolbar, 'toolbar');
+    safe(buildViewSwitcher, 'views');
+    safe(buildExportButtons, 'export');
+    safe(buildUndoButton, 'undo');
+    safe(arrangeList3Buttons, 'buttons');
+    safe(setupInstall, 'install');
+    safe(refreshToolbar, 'toolbar');
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();

@@ -4844,7 +4844,7 @@ function initAuth() {
           const lastRaw = storageGet('last_active_instagram_account');
           const acc = (lastRaw !== null ? lastRaw : storageGet('selected_instagram_account')) || null;
           const exists = acc && state.instagramAccounts.some(a => a.originalUsername.toLowerCase() === acc.toLowerCase());
-          loadAccountData(exists ? acc : null);
+          try { loadAccountData(exists ? acc : null); } catch (loadErr) { console.error('Error loading account data:', loadErr); }
           if (localIsThisUsers) {
             // This device's copy is this user's latest: keep saving it.
             cloudReady = true;
@@ -4855,8 +4855,10 @@ function initAuth() {
           }
         }
 
-        // Always render chips instantly under the login screen before it fades out
-        renderAccountChips(false);
+        // Always render chips instantly under the login screen before it fades out.
+        // Nothing here may stop the app from being revealed below: a failure
+        // used to leave the page blank (logged-in header, nothing under it).
+        try { renderAccountChips(false); } catch (chipErr) { console.error('Error rendering account chips:', chipErr); }
 
         // Smoothly fade out login page if there are accounts, otherwise hide instantly
         const finalizeLogin = () => {
