@@ -2211,7 +2211,10 @@ body.hide-shortcuts #keyboard-hints {
 
 .instructions-step-pane.active {
   display: flex;
-  animation: paneFadeIn 0.2s ease-out;
+}
+.instructions-step-pane.pane-out {
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* Opening: the step is already there, the window's own fade is enough. */
@@ -4134,7 +4137,7 @@ body:not(.auth-logged-out) #theme-toggle {
   background-color: #ffffff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08),
               0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: transform 0.55s cubic-bezier(0.65, 0, 0.35, 1);
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); /* the tab switchers' timing */
   pointer-events: none;
 }
 

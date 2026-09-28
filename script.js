@@ -262,6 +262,27 @@ function cancelOverlayHide(overlay) {
 // submenus. Its hidden starting state is committed first: showing it and
 // starting the animation in the same frame let Safari skip straight to the
 // end, so pop-ups often just appeared.
+// Every tab switcher in the app (list 3's views, the changes tabs, the
+// instructions steps, log in / sign up) moves its content the same way: a
+// sideways slide on the instructions window's opening timing (600ms, fast
+// then settling) with a soft fade on its own gentler timing.
+const TAB_MOTION = {
+  slide: { duration: 600, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' },
+  fadeOut: { duration: 420, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' },
+  fadeIn: { duration: 560, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }
+};
+function tabSlideOut(el, dx) {
+  el.animate([{ opacity: 1 }, { opacity: 0 }], { ...TAB_MOTION.fadeOut, fill: 'forwards' });
+  return el.animate([{ transform: 'translateX(0)' }, { transform: `translateX(${dx}px)` }], { ...TAB_MOTION.slide, fill: 'forwards' });
+}
+function tabSlideIn(el, dx) {
+  el.animate([{ opacity: 0 }, { opacity: 1 }], TAB_MOTION.fadeIn);
+  return el.animate([{ transform: `translateX(${dx}px)` }, { transform: 'translateX(0)' }], TAB_MOTION.slide);
+}
+window.TAB_MOTION = TAB_MOTION;
+window.tabSlideOut = tabSlideOut;
+window.tabSlideIn = tabSlideIn;
+
 // "1 day", "3 days": words spelled out, never "3d".
 function plural(n, word) {
   return `${n} ${word}${n === 1 ? '' : 's'}`;
@@ -3417,6 +3438,13 @@ function moveInstructionsIndicator(indicator, tab) {
   indicator._anims = ['l', 'm', 'r'].map(k => parts[k].animate([{ transform: f[k] }, { transform: to[k] }], timing));
 }
 
+function settleStepOut(pane) {
+  pane.getAnimations && pane.getAnimations().forEach(an => an.cancel());
+  pane.classList.remove('pane-out');
+  if (parseInt(pane.id.replace('instructions-step-', ''), 10) !== currentInstructionStep) pane.classList.remove('active');
+  pane.style.position = pane.style.top = pane.style.left = pane.style.width = pane.style.height = '';
+}
+
 function updateInstructionsStepUI() {
   const tabs = document.querySelectorAll('.instructions-tab');
   const panes = document.querySelectorAll('.instructions-step-pane');
@@ -3455,10 +3483,30 @@ function updateInstructionsStepUI() {
   const indicator = elements.instructionsNavIndicator || document.getElementById('instructions-nav-indicator');
   if (indicator && activeTab) moveInstructionsIndicator(indicator, activeTab);
 
+  // Changing steps: the step you leave slides and fades out while the new
+  // one slides and fades in (the same motion as every tab switcher).
+  const oldPane = [...panes].find(p => p.classList.contains('active') && !p.classList.contains('pane-out'));
+  const newPane = [...panes].find(p => parseInt(p.id.replace('instructions-step-', ''), 10) === currentInstructionStep);
+  panes.forEach(p => { if (p.classList.contains('pane-out')) settleStepOut(p); });
   panes.forEach((pane) => {
     const s = parseInt(pane.id.replace('instructions-step-', ''), 10);
-    pane.classList.toggle('active', s === currentInstructionStep);
+    pane.classList.toggle('active', s === currentInstructionStep || (pane === oldPane && oldPane !== newPane));
   });
+  if (oldPane && newPane && oldPane !== newPane && !instructionsInstant && typeof newPane.animate === 'function') {
+    const oldStep = parseInt(oldPane.id.replace('instructions-step-', ''), 10);
+    const dir = currentInstructionStep > oldStep ? 1 : -1;
+    const parent = newPane.parentElement;
+    if (getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
+    const pr = parent.getBoundingClientRect(), r = oldPane.getBoundingClientRect();
+    const scale = (pr.width / parent.offsetWidth) || 1;
+    Object.assign(oldPane.style, { position: 'absolute', top: `${(r.top - pr.top) / scale}px`, left: `${(r.left - pr.left) / scale}px`, width: `${r.width / scale}px`, height: `${r.height / scale}px` });
+    oldPane.classList.add('pane-out');
+    const w = parent.clientWidth;
+    tabSlideOut(oldPane, -dir * w).finished.then(() => settleStepOut(oldPane), () => settleStepOut(oldPane));
+    tabSlideIn(newPane, dir * w);
+  } else if (oldPane && oldPane !== newPane) {
+    oldPane.classList.remove('active');
+  }
 
   dots.forEach((dot) => {
     const s = parseInt(dot.getAttribute('data-step'), 10);
@@ -5111,7 +5159,7 @@ function initAuth() {
     const form = elements.authForm;
     const SLIDE = 28;
     const outX = signup ? -SLIDE : SLIDE;
-    form.style.transition = 'opacity 0.26s cubic-bezier(0.4, 0, 1, 1), transform 0.26s cubic-bezier(0.4, 0, 1, 1)';
+    form.style.transition = 'opacity 0.26s cubic-bezier(0.4, 0, 0.2, 1), transform 0.26s cubic-bezier(0.4, 0, 0.2, 1)';
     form.style.opacity = '0';
     form.style.transform = `translateX(${outX}px)`;
 
@@ -5133,7 +5181,8 @@ function initAuth() {
       form.style.transition = 'none';
       form.style.transform = `translateX(${-outX}px)`;
       void form.offsetWidth; // commit the start position before sliding from it
-      form.style.transition = 'opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
+      // The tab switchers' motion (TAB_MOTION): 600ms slide, softer fade.
+      form.style.transition = 'opacity 0.56s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
       form.style.opacity = '1';
       form.style.transform = 'translateX(0)';
       setTimeout(() => {
@@ -5142,7 +5191,7 @@ function initAuth() {
           form.style.transform = '';
           form.style.opacity = '';
         }
-      }, 520);
+      }, 620);
 
       // Shrinking (or unchanged): resize now that the smaller form is in.
       if (card && endHeight !== null && endHeight <= fromHeight + 0.5) {

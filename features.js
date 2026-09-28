@@ -21,30 +21,13 @@
   const LEAVE = { duration: 200, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' };
   const ARRIVE = { duration: 320, easing: GLIDE };
   const SLIDE_X = 24; // tab switches slide sideways
-  // Switching tabs: a push, like iOS navigation. The view you leave slides
-  // fully out one side while the new one slides fully in from the other,
-  // edge to edge and both solid (no see-through overlap to blend, which
-  // was costly on phones and looked messy) — on the instructions window's
-  // opening timing (600ms, fast then settling), the tab highlight's too.
-  const SWITCH = { duration: 600, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' };
-  const SWITCH_OUT = { ...SWITCH, fill: 'forwards' };
-  const SWITCH_IN = SWITCH;
-  // With a fade on top, on its own gentler timing (sharing the slide's
-  // fast start, the old view vanished almost at once): the one leaving
-  // fades out over about a third of a second, the one arriving fades in
-  // over about half a second, while they slide.
-  const outFrames = (dx) => [{ transform: 'translateX(0)' }, { transform: `translateX(${dx}px)` }];
-  const inFrames = (dx) => [{ transform: `translateX(${dx}px)` }, { transform: 'translateX(0)' }];
-  const FADE_OUT = { duration: 340, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' };
-  const FADE_IN = { duration: 480, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' };
-  function slideOut(el, dx) {
-    el.animate([{ opacity: 1 }, { opacity: 0 }], FADE_OUT);
-    return el.animate(outFrames(dx), SWITCH_OUT);
-  }
-  function slideIn(el, dx) {
-    el.animate([{ opacity: 0 }, { opacity: 1 }], FADE_IN);
-    return el.animate(inFrames(dx), SWITCH_IN);
-  }
+  // Switching tabs: a push, like iOS navigation — the view you leave slides
+  // fully out one side while the new one slides in from the other, edge to
+  // edge, with a soft fade. The same motion as every tab switcher in the
+  // app (script.js: TAB_MOTION, tabSlideOut/In).
+  const SWITCH_OUT = { ...TAB_MOTION.slide, fill: 'forwards' };
+  const slideOut = (el, dx) => tabSlideOut(el, dx);
+  const slideIn = (el, dx) => tabSlideIn(el, dx);
   const boxWidth = () => (altView && altView.parentNode ? altView.parentNode.clientWidth : 320);
   const SLIDE_Y = 12; // data changes lift away and settle
   const DAY = 24 * 60 * 60 * 1000;
