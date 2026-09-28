@@ -597,6 +597,8 @@
     });
     altView.addEventListener('change', (e) => { if (e.target.matches('.compare-select')) renderView(); });
     altView.addEventListener('click', (e) => {
+      const box = e.target.closest('.insights-stat');
+      if (box) { popBar([...box.parentNode.children].indexOf(box)); return; }
       const tab = e.target.closest('[data-change]');
       if (tab) { e.stopPropagation(); showChangesTab(tab.dataset.change); }
     });
@@ -681,7 +683,8 @@
     : `<div class="dropdown-empty-message">${empty}</div>`;
   // Stats: six boxes, each with its own color, and a bar per box in the
   // graph below in the same color. No data yet: a greyed-out example graph.
-  const STAT_COLORS = ['#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#ef4444', '#f59e0b'];
+  // Soft, muted tones; a box and its bar share one.
+  const STAT_COLORS = ['#7d95c4', '#7fae98', '#9d92c4', '#c28fa8', '#c48784', '#c4a574'];
   const MOCK_HEIGHTS = [60, 85, 70, 40, 55, 30];
   const chartHtml = (heights, mock) => `<div class="trend-chart${mock ? ' trend-mock' : ''}"${mock ? ' aria-hidden="true"' : ''}>${heights.map((h, i) =>
     `<div class="trend-bar" style="height:${h}%;--bar:${STAT_COLORS[i]}"></div>`).join('')}</div>`;
@@ -694,6 +697,10 @@
     // that's playing carries on through quick back-to-back redraws.
     const oldWrap = body.querySelector('.trend-wrap');
     if (oldWrap) oldWrap.remove();
+    // Same for the stat boxes: kept, and their numbers count to the new
+    // values (rebuilding them re-ran their fade-in: a flicker).
+    const oldStats = body.querySelector('.insights-stats');
+    if (oldStats) oldStats.remove();
     const key = accKey();
     const who = state.selectedAccountUsername ? `@${esc((state.instagramAccounts.find(a => a.originalUsername.toLowerCase() === key) || {}).username || key)}` : 'this view';
     let html = '';
@@ -749,6 +756,12 @@
     }
     body.innerHTML = `<div class="insights-pane">${html}</div>`;
     placeChangesIndicator();
+    const newStats = body.querySelector('.insights-stats');
+    if (newStats && oldStats) { newStats.replaceWith(oldStats); updateStats(oldStats, newStats); }
+    else if (newStats) {
+      newStats.classList.add('stats-enter');
+      setTimeout(() => newStats.classList.remove('stats-enter'), 500); // so moving it later can't replay it
+    }
     const newWrap = body.querySelector('.trend-wrap');
     if (newWrap && oldWrap) { newWrap.replaceWith(oldWrap); updateChart(oldWrap, newWrap); }
     else if (newWrap) growChart(newWrap.querySelector('.trend-chart'));
@@ -758,6 +771,38 @@
   // the example and real data: the one showing slides down out of sight,
   // then the new one slides up into place (slowly). New numbers, same kind:
   // each bar eases to its new height.
+  // A stat box's number counts from its old value to the new one.
+  function updateStats(stats, fresh) {
+    const newVals = [...fresh.querySelectorAll('.insights-stat-value')].map(e => e.textContent);
+    stats.querySelectorAll('.insights-stat-value').forEach((el, i) => {
+      const to = newVals[i];
+      if (to === undefined || el.textContent === to) return;
+      const pct = to.endsWith('%');
+      const a = parseInt(el.textContent, 10) || 0, b = parseInt(to, 10) || 0;
+      const token = (el._countToken = {});
+      const t0 = performance.now(), dur = 650;
+      const ease = (t) => 1 - Math.pow(1 - t, 3);
+      const step = (now) => {
+        if (el._countToken !== token) return;
+        const t = Math.min(1, (now - t0) / dur);
+        el.textContent = `${Math.round(a + (b - a) * ease(t))}${pct ? '%' : ''}`;
+        if (t < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+  }
+  // Tapping a stat box pops its bar up a little.
+  function popBar(index) {
+    const chart = altView.querySelector('.trend-wrap .trend-chart:not(.trend-leaving)');
+    const bar = chart && chart.querySelectorAll('.trend-bar')[index];
+    if (!bar || typeof bar.animate !== 'function') return;
+    if (bar._pop) bar._pop.cancel();
+    bar._pop = bar.animate([
+      { transform: 'translateY(0) scale(1)', filter: 'brightness(1)' },
+      { transform: 'translateY(-6px) scale(1.06, 1.03)', filter: 'brightness(1.25)', offset: 0.4 },
+      { transform: 'translateY(0) scale(1)', filter: 'brightness(1)' }
+    ], { duration: 650, easing: EASE });
+  }
   const kindOf = (chart) => chart.classList.contains('trend-mock') ? 'mock' : 'real';
   function growChart(chart) {
     if (!chart || typeof chart.animate !== 'function') return;

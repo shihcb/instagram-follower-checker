@@ -5182,6 +5182,11 @@ button:focus-visible,
   border-radius: 12px;
   padding: 12px 10px;
   text-align: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Fade in only when the view first shows, not on every update. */
+.insights-stats.stats-enter .insights-stat {
   animation: chip-fade-in 0.38s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 .insights-stat-value {
@@ -5221,15 +5226,18 @@ button:focus-visible,
 }
 /* The example shown before there's any data: greyed out. */
 .trend-chart.trend-mock .trend-bar {
-  background: var(--text-muted) !important;
-  opacity: 0.22;
+  background: color-mix(in srgb, var(--text-muted) 14%, transparent) !important;
+  border-color: color-mix(in srgb, var(--text-muted) 30%, transparent) !important;
 }
-/* One bar per stat box, in that box's color. */
+/* One bar per stat box, drawn exactly like its box: the same tint and
+   outline in the same color. */
 .trend-bar {
   flex: 1 1 0;
-  border-radius: 6px 6px 2px 2px;
-  background: var(--bar, #10b981);
-  opacity: 0.9;
+  border-radius: 7px 7px 3px 3px;
+  background: color-mix(in srgb, var(--bar, #7fae98) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--bar, #7fae98) 50%, transparent);
+  border-bottom: none;
+  box-sizing: border-box;
   transform-origin: bottom;
 }
 @keyframes trend-grow {
@@ -5550,8 +5558,8 @@ select,
 
 /* Each stat box in its own color (the same as its bar in the graph). */
 .insights-stat[style*="--stat"] {
-  border-color: color-mix(in srgb, var(--stat) 40%, transparent) !important;
-  background: color-mix(in srgb, var(--stat) 8%, transparent) !important;
+  border-color: color-mix(in srgb, var(--stat) 50%, transparent) !important;
+  background: color-mix(in srgb, var(--stat) 16%, transparent) !important;
 }
 .insights-stat[style*="--stat"] .insights-stat-value {
   color: var(--stat);
