@@ -729,7 +729,7 @@ function calculateUnfollowers({ animate = false, matchRenames = false } = {}) {
 function getUnfollowedEmptyHtml(animate) {
   return `
       <div class="dropdown-header-bar">0 unfollowed accounts</div>
-      <div class="dropdown-empty-message${animate ? ' empty-enter' : ''}">no unfollowed accounts yet</div>
+      <div class="dropdown-empty-message${animate ? ' empty-enter' : ''}">no accounts unfollowed yet</div>
     `;
 }
 
@@ -852,7 +852,7 @@ function updateUnfollowedUI(enteringUsername) {
 function getStarredEmptyHtml(animate) {
   return `
       <div class="dropdown-header-bar">0 starred accounts</div>
-      <div class="dropdown-empty-message${animate ? ' empty-enter' : ''}">no starred accounts yet</div>
+      <div class="dropdown-empty-message${animate ? ' empty-enter' : ''}">no accounts starred yet</div>
     `;
 }
 
@@ -3374,7 +3374,8 @@ function updateInstructionsStepUI() {
   });
 
   if (activeTab) {
-    const nav = document.querySelector('.instructions-steps-nav');
+    // Its own bar (list 3's switcher shares the class and comes first).
+    const nav = activeTab.closest('.instructions-steps-nav');
     if (nav) {
       const nextTab = document.querySelector(`.instructions-tab[data-step="${currentInstructionStep + 1}"]`);
       const peekOffset = nextTab ? 38 : 12;

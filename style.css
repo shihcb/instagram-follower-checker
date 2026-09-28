@@ -2198,7 +2198,9 @@ body.hide-shortcuts #keyboard-hints {
    first few frames (the opening curve), which looked like a snap on this
    big window. Opening keeps the shared curve. */
 #instructions-modal-overlay:not(.show),
-#instructions-modal-overlay:not(.show) .account-modal-card {
+#instructions-modal-overlay:not(.show) .account-modal-card,
+.export-overlay:not(.show),
+.export-overlay:not(.show) .account-modal-card {
   -webkit-transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
                       -webkit-transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
   transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
@@ -5024,10 +5026,6 @@ button:focus-visible,
 /* Exactly the instructions window's bar (.instructions-steps-nav). */
 .changes-nav {
   margin-bottom: 12px;
-}
-.changes-count {
-  margin-left: 3px;
-  opacity: 0.6;
 }
 .changes-pane {
   display: none;

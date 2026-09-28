@@ -681,7 +681,7 @@
         html = `<div class="insights-sub">${who} · since ${esc(new Date(d.since).toLocaleDateString())}</div>
           <div class="instructions-steps-nav changes-nav">
             <div class="instructions-nav-indicator changes-indicator"></div>
-            ${CHANGE_TABS.map(([id, label]) => `<button class="insights-tab${id === changesTab ? ' active' : ''}" data-change="${id}">${label} <span class="changes-count">${lists[id].length}</span></button>`).join('')}
+            ${CHANGE_TABS.map(([id, label]) => `<button class="insights-tab${id === changesTab ? ' active' : ''}" data-change="${id}">${label}</button>`).join('')}
           </div>
           ${CHANGE_TABS.map(([id]) => `<div class="changes-pane${id === changesTab ? ' active' : ''}" data-pane="${id}">${userRowsHtml(asUsers(lists[id]), CHANGE_EMPTY[id])}</div>`).join('')}`;
       }
@@ -737,7 +737,7 @@
   // Worded like the unfollowed / starred submenus' empty lines.
   const CHANGE_EMPTY = {
     lost: 'no accounts unfollowed you', new: 'no new followers',
-    stopped: 'no accounts you stopped following', started: 'no accounts you started following'
+    stopped: "no accounts you've stopped following", started: "no accounts you've started following"
   };
   let changesTab = 'lost';
   function placeChangesIndicator() {
@@ -832,7 +832,7 @@
   function openExport() {
     if (!exportOverlay) {
       exportOverlay = document.createElement('div');
-      exportOverlay.className = 'modal-overlay hidden';
+      exportOverlay.className = 'modal-overlay hidden export-overlay';
       exportOverlay.innerHTML = `
         <div class="account-modal-card glass export-card">
           <div class="account-modal-header"><h3>export</h3></div>
