@@ -5195,13 +5195,21 @@ button:focus-visible,
   color: var(--text-muted);
   margin-top: 2px;
 }
+/* Fills the space left under the numbers (bar heights are % of it). */
 .trend-chart {
   display: flex;
   align-items: flex-end;
   gap: 6px;
-  height: 80px;
+  flex: 1 1 auto;
+  min-height: 60px;
+  margin-top: 14px;
   padding: 6px 4px 0;
   border-bottom: 1px solid var(--card-border);
+}
+/* The example shown before there's any history: greyed out. */
+.trend-chart.trend-mock .trend-bar {
+  background: var(--text-muted);
+  opacity: 0.22;
 }
 .trend-bar {
   flex: 1 1 0;

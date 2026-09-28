@@ -679,6 +679,8 @@
           ${action ? `<button class="insights-row-btn" data-ins="${action.id}" data-username="${esc(u.username)}">${action.label}</button>` : ''}
         </div>`).join('')}${users.length > 500 ? `<div class="insights-more">+ ${users.length - 500} more</div>` : ''}</div>`
     : `<div class="dropdown-empty-message">${empty}</div>`;
+  // No imports yet: a greyed-out example of what the chart will look like.
+  const MOCK_TREND = `<div class="trend-chart trend-mock" aria-hidden="true">${[45, 70, 55, 85, 60, 40, 65].map((h, i) => `<div class="trend-bar" style="height:${h}%;animation-delay:${i * 30}ms"></div>`).join('')}</div>`;
   const asUsers = (names) => names.map(n => ({ username: n, originalUsername: n }));
   const stat = (value, label) => `<div class="insights-stat"><div class="insights-stat-value">${value}</div><div class="insights-stat-label">${label}</div></div>`;
 
@@ -708,15 +710,15 @@
       const history = readJSON(`import_history_${key}`, []);
       const max = Math.max(1, ...history.map(h => h.unfollowers || 0));
       const bars = history.map((h, i) => {
-        const hgt = Math.max(3, Math.round(((h.unfollowers || 0) / max) * 70));
-        return `<div class="trend-bar" style="height:${hgt}px;animation-delay:${i * 30}ms" title="${esc(new Date(h.date).toLocaleDateString())}: ${h.unfollowers || 0}"></div>`;
+        const hgt = Math.max(4, Math.round(((h.unfollowers || 0) / max) * 100));
+        return `<div class="trend-bar" style="height:${hgt}%;animation-delay:${i * 30}ms" title="${esc(new Date(h.date).toLocaleDateString())}: ${h.unfollowers || 0}"></div>`;
       }).join('');
       html = `<div class="insights-sub">accounts that don't follow you back, per import</div>
         <div class="insights-stats">
           ${stat(following, 'following')}${stat(followers, 'followers')}${stat(`${ratio}%`, 'follow you back')}
           ${stat(state.unfollowers.length, "don't follow you back")}${stat(state.unfollowed.length, 'unfollowed')}${stat(state.starred.length, 'starred')}
         </div>
-        ${history.length ? `<div class="trend-chart">${bars}</div>` : ''}`;
+        ${history.length ? `<div class="trend-chart">${bars}</div>` : MOCK_TREND}`;
     } else if (currentView === 'mutuals') {
       const fset = followersSet();
       html = userRowsHtml(state.following.filter(u => fset.has(u.username)), 'no mutual accounts yet');
