@@ -571,14 +571,24 @@
   function buildViewSwitcher() {
     const box = document.querySelector('#card-unfollowers .results-container');
     if (!box || viewNav) return;
+    // Open on the view you were last on (saved on this device), without a
+    // slide — not always back on results after a reload.
+    let saved = 'results';
+    try { saved = localStorage.getItem('list3_view') || 'results'; } catch (e) {}
+    if (!VIEWS.some(v => v[0] === saved)) saved = 'results';
+    currentView = saved;
     viewNav = document.createElement('div');
     viewNav.className = 'instructions-steps-nav list3-views';
     viewNav.innerHTML = `<div class="instructions-nav-indicator list3-views-indicator"></div>
-      ${VIEWS.map(([id, label]) => `<button class="insights-tab${id === 'results' ? ' active' : ''}" data-view="${id}">${label}</button>`).join('')}`;
+      ${VIEWS.map(([id, label]) => `<button class="insights-tab${id === saved ? ' active' : ''}" data-view="${id}">${label}</button>`).join('')}`;
     box.parentNode.insertBefore(viewNav, box);
     altView = document.createElement('div');
-    altView.className = 'list3-alt-view hidden';
+    altView.className = `list3-alt-view${saved === 'results' ? ' hidden' : ''}`;
     box.appendChild(altView);
+    if (saved !== 'results') {
+      box.classList.add('showing-alt');
+      renderView();
+    }
     viewNav.addEventListener('click', (e) => {
       const tab = e.target.closest('[data-view]');
       if (!tab) return;
@@ -597,6 +607,10 @@
       const indicator = viewNav.querySelector('.list3-views-indicator');
       indicator._pos = null;
       moveInstructionsIndicator(indicator, active);
+      // A restored tab near the end (stats) scrolled into view.
+      const right = active.offsetLeft + active.offsetWidth + 12;
+      if (right > viewNav.scrollLeft + viewNav.clientWidth) viewNav.scrollLeft = right - viewNav.clientWidth;
+      else if (active.offsetLeft - 12 < viewNav.scrollLeft) viewNav.scrollLeft = Math.max(0, active.offsetLeft - 12);
     };
     requestAnimationFrame(place);
     // Once the font has loaded the tabs have their real widths.
@@ -627,6 +641,7 @@
     // A quick second tap: settle whatever the last switch left mid-slide.
     [...viewEls('results'), elements.listUnfollowers, altView].forEach(el => el && el.getAnimations && el.getAnimations().forEach(a => a.cancel()));
     const outgoing = viewEls(currentView).filter(el => el.getClientRects().length);
+    try { localStorage.setItem('list3_view', view); } catch (e) {}
     currentView = view;
     const token = ++viewToken;
     const swap = () => {
