@@ -46,7 +46,8 @@
     const t = readJSON('unfollow_tally', null);
     return t && t.date === localDay() && Array.isArray(t.names) ? t.names : [];
   };
-  const writeTally = (names) => { writeJSON('unfollow_tally', { date: localDay(), names }); pushToCloud(); };
+  // `updated` lets the cloud copy and this device's settle on the latest.
+  const writeTally = (names) => { writeJSON('unfollow_tally', { date: localDay(), names, updated: Date.now() }); pushToCloud(); refreshToolbar(); };
   const getToday = () => readTally().length;
   function tallyAdd(usernames) {
     const acc = accKey();
@@ -55,12 +56,24 @@
     usernames.forEach(u => { const id = `${acc}:${u}`; if (!names.includes(id)) names.push(id); });
     writeTally(names);
   }
-  // Undo: whatever this account added since the snapshot comes back off.
-  function tallyUndo(snap) {
-    const before = new Set(snap.tally || []);
+  // Back to list 3 (the x in the unfollowed menu) or moved to starred: no
+  // longer unfollowed, so it comes off today's count.
+  function tallyRemove(usernames) {
+    const acc = accKey();
+    const drop = new Set(usernames.map(u => `${acc}:${u}`));
     const names = readTally();
-    const kept = names.filter(id => before.has(id) || !id.startsWith(`${snap.acc}:`));
+    const kept = names.filter(id => !drop.has(id));
     if (kept.length !== names.length) writeTally(kept);
+  }
+  // Undo: this account's part of the count goes back to exactly what it was
+  // before that step (an undone unfollow comes off, an undone "back to list
+  // 3" goes back on); other accounts' are left alone.
+  function tallyUndo(snap) {
+    if (!snap.tally) return;
+    const mine = (id) => id.startsWith(`${snap.acc}:`);
+    const names = readTally();
+    const next = names.filter(id => !mine(id)).concat(snap.tally.filter(mine));
+    if (next.length !== names.length || next.some(id => !names.includes(id))) writeTally(next);
   }
   // Midnight: the tally starts over even with the page left open.
   (function atMidnight() {
@@ -244,10 +257,12 @@
     for (const [sel, verb] of ACTIONS) {
       const btn = e.target.closest(sel);
       if (btn) {
-        const row = btn.closest('[data-username]');
+        // The row, not the button (submenu buttons carry the username too).
+        const row = btn.closest('.user-row, .parsed-item') || btn.closest('[data-username]');
         if (row && row.classList.contains('username-exit')) return;
         const name = row ? row.querySelector('.user-link, .parsed-username') : null;
         offerUndo(snapshot(), `${name ? name.textContent.trim() : 'account'} ${verb}`);
+        if (row && sel.startsWith('#list-unfollowed ')) tallyRemove([row.dataset.username]);
         return;
       }
     }

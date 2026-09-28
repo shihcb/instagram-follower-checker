@@ -5496,13 +5496,15 @@ async function pullFromCloud(uploadLocalFirst = false) {
         }
 
         if (metaItem.notes) storageSet('user_notes', JSON.stringify(metaItem.notes));
-        // Today's unfollow tally: the cloud's and this device's together
-        // (same day only; an older one has already reset at midnight).
+        // Today's unfollow tally.
         if (metaItem.tally && Array.isArray(metaItem.tally.names)) {
           let local = null;
           try { local = JSON.parse(storageGet('unfollow_tally') || 'null'); } catch (e) {}
-          const names = (local && local.date === metaItem.tally.date) ? [...new Set([...local.names, ...metaItem.tally.names])] : metaItem.tally.names;
-          if (!local || local.date <= metaItem.tally.date) storageSet('unfollow_tally', JSON.stringify({ date: metaItem.tally.date, names }));
+          // Whichever changed last wins (combining them brought back a name
+          // that had been undone on this device).
+          const cloud = metaItem.tally;
+          const newer = !local || cloud.date > local.date || (cloud.date === local.date && (cloud.updated || 0) > (local.updated || 0));
+          if (newer) storageSet('unfollow_tally', JSON.stringify(cloud));
         }
 
         // Clean meta header from raw starred list
