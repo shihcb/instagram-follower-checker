@@ -1739,12 +1739,12 @@ body.hide-shortcuts #keyboard-hints {
   opacity: 1;
   transform: translateY(0) scale(1);
   overflow: hidden;
-  transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-              margin-top 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-              margin-bottom 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-              padding 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.34s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+              margin-top 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+              margin-bottom 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.38s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .account-mgmt-row.empty-chips {
@@ -4625,7 +4625,7 @@ body.auth-logged-out #auth-form-view.smooth-exit {
 }
 
 .dropdown-empty-message.empty-enter {
-  animation: dropdown-empty-enter 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: dropdown-empty-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .auth-settings-section {

@@ -1180,7 +1180,7 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
         listEl.classList.add('hidden');
       }
     };
-    setTimeout(hideWhenDone, 800);
+    setTimeout(hideWhenDone, ROW_MOTION_MS);
   } else {
     // Empty the hidden list too: rows left in it still counted for the
     // keyboard shortcuts (pressing 1 opened and unfollowed an invisible,
@@ -1196,7 +1196,7 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
 // can be on screen (the list's own scrolled view, or the window when the
 // list grows with the page), plus a margin. Rows are ~62px apart; 44 is
 // a safe underestimate.
-const ROW_TAIL_DELAY = 850; // after list 3's 800ms slide
+const ROW_TAIL_DELAY = 600; // after list 3's slide (ROW_MOTION_MS)
 function initialRowBudget(listEl) {
   const view = Math.min(listEl.clientHeight || Infinity, window.innerHeight);
   return Math.ceil((listEl.scrollTop + view) / 44) + 20;
@@ -1239,7 +1239,7 @@ function reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, rename
   // row's position, change its style, read the next…) forces a full layout
   // per row — ~100ms for a few hundred rows, all of it before the first
   // frame of the animation can paint.
-  const DURATION = 800;
+  const DURATION = ROW_MOTION_MS;
   const live = new Map();
   listEl.querySelectorAll('.user-row:not(.username-exit)').forEach(row => live.set(row.dataset.username, row));
   // Rows' offsetTop is measured against the list, so it must be their
@@ -1369,7 +1369,7 @@ function reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, rename
 // and a cleared list can hold hundreds.
 function animateResultsExits(listEl, previousRows) {
   if (previousRows.size === 0) return;
-  const DURATION = 800;
+  const DURATION = ROW_MOTION_MS;
   const stillHere = new Set(Array.from(listEl.querySelectorAll('.user-row:not(.username-exit)')).map(r => r.dataset.username));
   const leaving = Array.from(previousRows.keys()).filter(row => !stillHere.has(row.dataset.username));
   if (leaving.length === 0) return;
@@ -1398,7 +1398,7 @@ function animateResultsExits(listEl, previousRows) {
 }
 
 function animateResultsReentry(listEl, previousTops, resumeTops = new Map(), { enter = true, rowSelector = '.user-row' } = {}) {
-  const DURATION = 800;
+  const DURATION = ROW_MOTION_MS;
   const rows = Array.from(listEl.querySelectorAll(`${rowSelector}:not(.username-exit)`));
   if (rows.length === 0) return;
 
@@ -1619,7 +1619,7 @@ function extractUsernameFromFile(file) {
  * Ensures an Instagram account exists and is selected. If the account doesn't exist,
  * it creates it. Then selects it and loads its data so imports go to the right account.
  */
-function ensureAccountSelected(username) {
+function ensureAccountSelected(username, { renderResults = true } = {}) {
   if (!username) return;
 
   const usernameLower = username.toLowerCase();
@@ -1652,7 +1652,7 @@ function ensureAccountSelected(username) {
       }
       state.selectedAccountUsername = originalName;
       storageSet('selected_instagram_account', state.selectedAccountUsername);
-      loadAccountData(state.selectedAccountUsername, true, true); // like selecting its chip
+      loadAccountData(state.selectedAccountUsername, true, true, { renderResults }); // like selecting its chip
     }
   } else {
     // Account doesn't exist — create it and select it
@@ -1664,7 +1664,7 @@ function ensureAccountSelected(username) {
     saveAccountsList();
     state.selectedAccountUsername = username;
     storageSet('selected_instagram_account', username);
-    loadAccountData(username, true, true); // its chip fades in, like adding one by hand
+    loadAccountData(username, true, true, { renderResults }); // its chip fades in, like adding one by hand
   }
 
   renderAccountChips();
@@ -1718,7 +1718,10 @@ async function processImportFiles(files, isFolderUpload = false) {
       }
     }
     if (extractedUsername) {
-      ensureAccountSelected(extractedUsername);
+      // List 3 isn't redrawn with the account's old data first: it goes
+      // straight to the imported result below, with each username's
+      // unfollowed/starred choice already applied.
+      ensureAccountSelected(extractedUsername, { renderResults: false });
     }
 
     // Clear List 1 and List 2 smoothly, read every file, then update list 3
@@ -1787,7 +1790,10 @@ function saveCurrentAccountData() {
 // `animateResults`: the user just switched accounts by selecting/unselecting
 // a chip, so list 3's usernames slide out/in/along as they change (see
 // updateResultsUI) instead of the whole list snapping to the new account.
-function loadAccountData(username, animate = false, animateResults = false) {
+// `renderResults: false` (imports): lists and submenus load, but list 3 is
+// left as it is — the import redraws it once, animated, with the new files
+// (processImportFiles), instead of first showing the account's old list 3.
+function loadAccountData(username, animate = false, animateResults = false, { renderResults = true } = {}) {
   if (username) {
     state.selectedAccountUsername = username;
     storageSet('selected_instagram_account', username);
@@ -1866,7 +1872,7 @@ function loadAccountData(username, animate = false, animateResults = false) {
 
   updateListUI('following');
   updateListUI('followers');
-  calculateUnfollowers({ animate: animateResults });
+  if (renderResults) calculateUnfollowers({ animate: animateResults });
   renderAccountChips(animate);
   updateStorageProgressBar();
   updateResetReminderUI();
@@ -2169,8 +2175,8 @@ function saveAccountFromModal() {
 // rebuilt once they've settled, where nothing moves any more. It used to
 // bounce the chip out behind the still-open window, then switch list 3,
 // rebuild and re-slide every chip and close the window in one go.
-const CHIP_EXIT_DELAY = 220; // the window has mostly faded by then
-const CHIP_EXIT_MS = 500;
+const CHIP_EXIT_DELAY = 160; // the window has mostly faded by then
+const CHIP_EXIT_MS = 380;
 let chipRenderHeld = false;
 
 function animateChipExit(chip) {
@@ -2268,7 +2274,7 @@ function deleteAccountFromModal() {
           // was the last chip, the row now closes — still held at its
           // height (minHeight) so it eases shut instead of snapping.
           renderAccountChips(false, { force: true });
-          setTimeout(() => { elements.accountChipsList.style.minHeight = ''; }, 550);
+          setTimeout(() => { elements.accountChipsList.style.minHeight = ''; }, 420); // the row's 0.38s close
         }, CHIP_EXIT_MS);
       });
     } else {
@@ -2545,6 +2551,9 @@ function cubicBezierEasing(x1, y1, x2, y2) {
   };
 }
 const rowEase = cubicBezierEasing(0.4, 0, 0.2, 1);
+// How long every row slide takes — list 3 and the submenus, in and out,
+// and the shifts around them. (Was 800ms; shorter feels snappier.)
+const ROW_MOTION_MS = 520;
 
 const rowMotion = new Map(); // element -> its active motion pieces
 let rowMotionFrame = null;
@@ -2768,7 +2777,7 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
     const now = performance.now();
     const left = motion.slide.distance * (1 - rowEase(motionProgress(motion.slide, now)));
     motion.slide = null;
-    if (left > 0.5) motion.shifts.push({ offset: -left, start: null, duration: 800 });
+    if (left > 0.5) motion.shifts.push({ offset: -left, start: null, duration: ROW_MOTION_MS });
   }
 
   // Slide distance: one full row pitch (its height plus the gap below it),
@@ -2776,7 +2785,7 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   // both list 3 rows (which vary in height) and the submenus' fixed rows.
   const exitDistance = rowEl.offsetHeight + (parseFloat(getComputedStyle(rowEl).marginBottom) || 0);
 
-  const DURATION = 800;
+  const DURATION = ROW_MOTION_MS;
   const container = rowEl.parentElement;
 
   if (!container) {
@@ -2872,7 +2881,7 @@ function animatePanelHeightChange(listEl, startedShown, startHeight) {
   const endHeight = listEl.offsetHeight;
   if (endHeight === startHeight) return;
 
-  const DURATION = 600;
+  const DURATION = 420;
   listEl.style.height = `${startHeight}px`;
   void listEl.offsetHeight; // commit the locked starting height before animating away from it
   // Combined with (not replacing) the panel's own opacity/transform
@@ -4452,7 +4461,7 @@ function playAppEntrance() {
     grid.animate([
       { opacity: 0, transform: 'translateY(16px) scale(0.97)' },
       { opacity: 1, transform: 'none' }
-    ], { duration: 800, easing: ease });
+    ], { duration: 600, easing: ease });
   }
   if (elements.accountChipsList) {
     elements.accountChipsList.querySelectorAll('.account-chip').forEach(chip => {
