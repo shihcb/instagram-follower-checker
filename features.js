@@ -15,8 +15,6 @@
 (() => {
   const EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
   const DAY = 24 * 60 * 60 * 1000;
-  const DAILY_LIMIT = 150;
-  const DAILY_WARN = 100;
 
   const accKey = () => (state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '_global_');
   const readJSON = (key, fallback) => { try { const v = JSON.parse(storageGet(key) || 'null'); return v == null ? fallback : v; } catch (e) { return fallback; } };
@@ -38,8 +36,38 @@
     if (!notesMemo) { notesMemo = getNotes(); setTimeout(() => { notesMemo = null; }, 0); }
     return notesMemo;
   };
-  const todayKey = () => `unfollow_count_${new Date().toISOString().slice(0, 10)}`;
-  const getToday = () => +(storageGet(todayKey()) || 0);
+  // ---------- today's unfollow tally ----------
+  // Every account unfollowed today (from list 3, the starred menu, several
+  // at once), kept as "account:username" so an undo can take exactly that
+  // one back off. Your own calendar day (not UTC's): it starts again at
+  // midnight. Saved on the device and in the cloud with the rest.
+  const localDay = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const readTally = () => {
+    const t = readJSON('unfollow_tally', null);
+    return t && t.date === localDay() && Array.isArray(t.names) ? t.names : [];
+  };
+  const writeTally = (names) => { writeJSON('unfollow_tally', { date: localDay(), names }); pushToCloud(); };
+  const getToday = () => readTally().length;
+  function tallyAdd(usernames) {
+    const acc = accKey();
+    if (acc === DEMO_ID || !usernames.length) return;
+    const names = readTally();
+    usernames.forEach(u => { const id = `${acc}:${u}`; if (!names.includes(id)) names.push(id); });
+    writeTally(names);
+  }
+  // Undo: whatever this account added since the snapshot comes back off.
+  function tallyUndo(snap) {
+    const before = new Set(snap.tally || []);
+    const names = readTally();
+    const kept = names.filter(id => before.has(id) || !id.startsWith(`${snap.acc}:`));
+    if (kept.length !== names.length) writeTally(kept);
+  }
+  // Midnight: the tally starts over even with the page left open.
+  (function atMidnight() {
+    const now = new Date();
+    const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1);
+    setTimeout(() => { refreshToolbar(); atMidnight(); }, next - now);
+  })();
 
   let sortMode = 'default'; // 'default' | 'oldest' | 'newest'
   try { sortMode = localStorage.getItem('list3_sort') || 'default'; } catch (e) {}
@@ -134,7 +162,8 @@
       acc: accKey(),
       following: state.following.slice(),
       unfollowed: state.unfollowed.slice(),
-      starred: state.starred.slice()
+      starred: state.starred.slice(),
+      tally: readTally().slice()
     };
   }
   function restore(snap) {
@@ -142,6 +171,7 @@
     state.following = snap.following;
     state.unfollowed = snap.unfollowed;
     state.starred = snap.starred;
+    tallyUndo(snap);
     elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
     updateListUI('following');
     saveCurrentAccountData();
@@ -232,14 +262,8 @@
   // ---------- daily unfollow counter ----------
   const baseUpdateUnfollowedUI = updateUnfollowedUI;
   updateUnfollowedUI = function (enteringUsername) {
-    if (enteringUsername && accKey() !== DEMO_ID) {
-      const count = getToday() + 1;
-      storageSet(todayKey(), String(count));
-      if (count === DAILY_WARN || count === DAILY_LIMIT) {
-        setTimeout(() => showToast(count >= DAILY_LIMIT
-          ? `${count} unfollows today — instagram may limit your account, so take a break until tomorrow.`
-          : `${count} unfollows today — slow down to stay under instagram's limits.`, null, null, { tone: 'warn', duration: 7000 }), ROW_MOTION_MS + 900);
-      }
+    if (enteringUsername) {
+      tallyAdd([enteringUsername]);
       refreshToolbar();
     }
     return baseUpdateUnfollowedUI.call(this, enteringUsername);
@@ -374,8 +398,7 @@
 
     const count = getToday();
     const countEl = toolbar.querySelector('[data-act="count"]');
-    setPill(countEl, count > 0, `${count} of ${DAILY_LIMIT} unfollows today`);
-    countEl.classList.toggle('warn', count >= DAILY_WARN);
+    setPill(countEl, count > 0, `${plural(count, 'account')} unfollowed today`);
 
     const importedAt = +(storageGet(`import_date_${accKey()}`) || 0);
     const due = importedAt && Date.now() - importedAt > 7 * DAY && accKey() !== DEMO_ID;
@@ -472,7 +495,7 @@
     } else if (kind === 'unfollow') {
       const have = new Set(state.unfollowed.map(u => u.username));
       users.forEach(u => { if (!have.has(u.username)) state.unfollowed.unshift({ ...u, account: acc }); });
-      storageSet(todayKey(), String(getToday() + users.length));
+      tallyAdd(users.map(u => u.username));
     }
     const n = users.length;
     setSelectMode(false);
@@ -583,8 +606,8 @@
   // one slides in, in the direction of the tab — together 550ms on the
   // highlight's easing, so the content lands as the highlight does.
   const VIEWS = [
-    ['results', 'results'], ['changes', 'changes'], ['stats', 'stats'], ['mutuals', 'mutuals'],
-    ['fans', 'fans'], ['compare', 'compare']
+    ['results', 'results'], ['changes', 'changes'], ['mutuals', 'mutuals'], ['fans', 'fans'],
+    ['compare', 'compare'], ['stats', 'stats']
   ];
   let viewNav = null;
   let altView = null;

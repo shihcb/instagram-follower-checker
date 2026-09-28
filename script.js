@@ -2743,15 +2743,34 @@ function slideRowOut(rowEl, distance, duration, onDone = null) {
   const slide = { dir: 'out', distance, start: null, duration, onDone };
   motionOf(rowEl).slide = slide;
   // Frames don't run in a background tab — make sure the completion (which
-  // saves state) still happens if the page stops painting.
+  // saves state) still happens if the page never paints again. But not the
+  // moment you come back: tapping a row opens instagram, the page sleeps,
+  // and this timer used to fire the instant it woke, before the slide got
+  // a single frame — the row just vanished. While the page is hidden it
+  // waits for it to show again (and lets the slide play); it only steps in
+  // if the page is closed, or frames really aren't coming.
   if (onDone) {
-    setTimeout(() => {
+    const finish = () => {
       if (slide.onDone) {
         const fn = slide.onDone;
         slide.onDone = null;
         fn();
       }
-    }, duration + 1000);
+    };
+    const check = () => {
+      if (!slide.onDone) return;
+      if (document.visibilityState === 'hidden') {
+        document.addEventListener('visibilitychange', () => setTimeout(check, duration + 1000), { once: true });
+        window.addEventListener('pagehide', finish, { once: true });
+        return;
+      }
+      if (slide.start !== null && performance.now() - slide.start < duration + 500) {
+        setTimeout(check, duration + 1000); // it's playing: let it finish
+        return;
+      }
+      finish();
+    };
+    setTimeout(check, duration + 1000);
   }
   queueRowMotionFlush();
 }
@@ -5477,6 +5496,14 @@ async function pullFromCloud(uploadLocalFirst = false) {
         }
 
         if (metaItem.notes) storageSet('user_notes', JSON.stringify(metaItem.notes));
+        // Today's unfollow tally: the cloud's and this device's together
+        // (same day only; an older one has already reset at midnight).
+        if (metaItem.tally && Array.isArray(metaItem.tally.names)) {
+          let local = null;
+          try { local = JSON.parse(storageGet('unfollow_tally') || 'null'); } catch (e) {}
+          const names = (local && local.date === metaItem.tally.date) ? [...new Set([...local.names, ...metaItem.tally.names])] : metaItem.tally.names;
+          if (!local || local.date <= metaItem.tally.date) storageSet('unfollow_tally', JSON.stringify({ date: metaItem.tally.date, names }));
+        }
 
         // Clean meta header from raw starred list
         rawStarred = rawStarred.filter(item => !item.__meta);
@@ -5554,7 +5581,7 @@ const LOCAL_DATA_OWNER_KEY = 'local_data_owner';
 // could see (and upload into their own cloud data) the previous user's.
 function clearLocalAccountData() {
   const prefixes = ['following_users', 'followers_users', 'unfollowed_users', 'starred_users', 'import_date_',
-    'hidden_users_', 'import_history_', 'import_diff_', 'user_notes', 'unfollow_count_'];
+    'hidden_users_', 'import_history_', 'import_diff_', 'user_notes', 'unfollow_count_', 'unfollow_tally'];
   Object.keys(localStorage).forEach(key => {
     if (prefixes.some(prefix => key.startsWith(prefix))) storageRemove(key);
   });
@@ -5675,7 +5702,8 @@ async function pushToCloudNow() {
       instagram_accounts: (state.instagramAccounts || []).filter(acc => !isDemoAccount(acc)),
       selected_account: (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() !== DEMO_ID) ? state.selectedAccountUsername : null,
       accounts_data: accountDataMap,
-      notes: JSON.parse(storageGet('user_notes') || '{}')
+      notes: JSON.parse(storageGet('user_notes') || '{}'),
+      tally: JSON.parse(storageGet('unfollow_tally') || 'null')
     };
 
     const cloudStarred = [metaHeader, ...allStarredArray];
