@@ -2084,31 +2084,29 @@ function deleteAccountFromModal() {
     }
 
     const performDelete = () => {
-      // 1. Remove account-specific local storage keys
+      // Its latest unfollowed/starred first, if it's the one on screen.
+      if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === acc) {
+        saveCurrentAccountData();
+      }
+      // 1. Drop the account's imported lists (they come back with the next
+      //    import). Its unfollowed/starred history is KEPT — on this device
+      //    and in the cloud (pushToCloudNow saves every account that has
+      //    one) — and loads back in when the same username returns, by
+      //    importing its files again or adding it by hand (loadAccountData
+      //    reads it). Deleting a chip used to erase that history for good.
       storageRemove(`following_users_${acc}`);
       storageRemove(`followers_users_${acc}`);
-      storageRemove(`unfollowed_users_${acc}`);
-      storageRemove(`starred_users_${acc}`);
       storageRemove(`import_date_${acc}`);
 
-      // 2. Remove all unfollowed and starred entries belonging to this account from main storage
-      const mainStarred = JSON.parse(storageGet('starred_users') || '[]');
-      const filteredStarred = mainStarred.filter(u => !u.account || u.account.toLowerCase() !== acc);
-      storageSet('starred_users', JSON.stringify(filteredStarred));
-
-      const mainUnfollowed = JSON.parse(storageGet('unfollowed_users') || '[]');
-      const filteredUnfollowed = mainUnfollowed.filter(u => !u.account || u.account.toLowerCase() !== acc);
-      storageSet('unfollowed_users', JSON.stringify(filteredUnfollowed));
-
-      // 3. Remove from current state arrays
+      // 2. Remove from current state arrays
       state.starred = (state.starred || []).filter(u => !u.account || u.account.toLowerCase() !== acc);
       state.unfollowed = (state.unfollowed || []).filter(u => !u.account || u.account.toLowerCase() !== acc);
 
-      // 4. Remove account from accounts registry
+      // 3. Remove account from accounts registry
       state.instagramAccounts.splice(state.editingAccountIndex, 1);
       storageSet('instagram_accounts', JSON.stringify(state.instagramAccounts));
 
-      // 5. Reset selection if the deleted account was selected
+      // 4. Reset selection if the deleted account was selected
       if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === acc) {
         state.selectedAccountUsername = null;
         storageRemove('selected_instagram_account');
@@ -5185,7 +5183,14 @@ async function pushToCloudNow() {
     const allStarredMap = new Map();
     const allUnfollowedMap = new Map();
 
-    const accounts = [...(state.instagramAccounts || []).map(a => a.originalUsername.toLowerCase()), '_global_'];
+    // Every account with saved data — including deleted chips, whose
+    // unfollowed/starred history is kept for when they're added back.
+    const accountSet = new Set([...(state.instagramAccounts || []).map(a => a.originalUsername.toLowerCase()), '_global_']);
+    Object.keys(localStorage).forEach(key => {
+      const match = /^(?:unfollowed|starred)_users_(.+)$/.exec(key);
+      if (match) accountSet.add(match[1]);
+    });
+    const accounts = [...accountSet];
 
     // Include current active state in accountDataMap
     if (state.selectedAccountUsername) {
