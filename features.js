@@ -711,13 +711,12 @@
         const hgt = Math.max(3, Math.round(((h.unfollowers || 0) / max) * 70));
         return `<div class="trend-bar" style="height:${hgt}px;animation-delay:${i * 30}ms" title="${esc(new Date(h.date).toLocaleDateString())}: ${h.unfollowers || 0}"></div>`;
       }).join('');
-      html = `<div class="insights-sub">${who}</div>
+      html = `<div class="insights-sub">accounts that don't follow you back, per import</div>
         <div class="insights-stats">
           ${stat(following, 'following')}${stat(followers, 'followers')}${stat(`${ratio}%`, 'follow you back')}
           ${stat(state.unfollowers.length, "don't follow you back")}${stat(state.unfollowed.length, 'unfollowed')}${stat(state.starred.length, 'starred')}
         </div>
-        <div class="insights-section-title">accounts that don't follow you back, per import</div>
-        ${history.length ? `<div class="trend-chart">${bars}</div>` : `<div class="dropdown-empty-message">import your files to start tracking this</div>`}`;
+        ${history.length ? `<div class="trend-chart">${bars}</div>` : ''}`;
     } else if (currentView === 'mutuals') {
       const fset = followersSet();
       html = userRowsHtml(state.following.filter(u => fset.has(u.username)), 'no mutual accounts yet');
