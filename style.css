@@ -1366,16 +1366,21 @@ button:disabled *,
   text-decoration: underline;
 }
 
+/* Same buttons and spacing as list 3's row (.user-row-actions): 28px
+   buttons, 4px apart, at every width. */
 .dropdown-actions-group {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px !important;
 }
-
-@media (max-width: 1024px) {
-  .dropdown-actions-group {
-    gap: 2px !important;
-  }
+.dropdown-actions-group > button,
+.results-dropdowns-group .dropdown-wrapper .dropdown-actions-group > button {
+  flex-shrink: 0 !important;
+  /* The menus' toggle-button rule (full width, 6px padding) caught these
+     too and squeezed them to 26px. */
+  width: 28px !important;
+  min-width: 28px !important;
+  padding: 0 !important;
 }
 
 /* -------------------------------------------------------------
@@ -1959,13 +1964,17 @@ body.hide-shortcuts #keyboard-hints {
      blur was costly in Safari and made pop-ups stutter where the
      submenus — same fade and motion, no backdrop — stay smooth. */
   will-change: opacity;
-  -webkit-transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  /* Closing (the state it returns to): an even fade. Opening (.show) uses
+     the shared pop-in curve below. Same for every pop-up. */
+  -webkit-transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .modal-overlay.show {
   opacity: 1;
   pointer-events: auto;
+  -webkit-transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .account-modal-card,
@@ -1981,10 +1990,10 @@ body.hide-shortcuts #keyboard-hints {
   -webkit-transform: translateY(14px) scale(0.95);
   transform: translateY(14px) scale(0.95);
   will-change: opacity, transform;
-  -webkit-transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                      -webkit-transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  -webkit-transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+                      -webkit-transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 /* The backdrop already blurs the page; the card blurring it again under
@@ -1997,6 +2006,10 @@ body.hide-shortcuts #keyboard-hints {
 
 .modal-overlay.show .account-modal-card,
 .modal-overlay.show .confirm-modal-box {
+  -webkit-transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                      -webkit-transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
   opacity: 1;
   -webkit-transform: translateY(0) scale(1);
   transform: translateY(0) scale(1);
@@ -2202,18 +2215,7 @@ body.hide-shortcuts #keyboard-hints {
   animation: none;
 }
 
-/* Closing eases out evenly instead of dropping most of the way in the
-   first few frames (the opening curve), which looked like a snap on this
-   big window. Opening keeps the shared curve. */
-#instructions-modal-overlay:not(.show),
-#instructions-modal-overlay:not(.show) .account-modal-card,
-.export-overlay:not(.show),
-.export-overlay:not(.show) .account-modal-card {
-  -webkit-transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
-                      -webkit-transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
+/* (Every pop-up now closes with an even fade: see .modal-overlay.) */
 
 .instructions-next-btn {
   position: relative;

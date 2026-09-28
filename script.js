@@ -2238,7 +2238,7 @@ function applyAccountFromModal(username, index) {
 // bounce the chip out behind the still-open window, then switch list 3,
 // rebuild and re-slide every chip and close the window in one go.
 // A menu or window fading out over the chip row has mostly cleared by now.
-const OVERLAY_CLEAR_MS = 160;
+const OVERLAY_CLEAR_MS = 220; // pop-ups close with an even 450ms fade: ~70% gone by now
 const CHIP_EXIT_DELAY = OVERLAY_CLEAR_MS;
 const CHIP_EXIT_MS = 380;
 let chipRenderHolds = 0; // chips still animating out (the row waits for all of them)
