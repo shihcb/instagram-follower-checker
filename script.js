@@ -1566,6 +1566,18 @@ function ensureAccountSelected(username) {
 
   normalizeInstagramAccounts();
 
+  // Real files for the demo chip's name turn the demo into that real
+  // account (same spot in the chips), unless a real one already exists.
+  const demoIndex = state.instagramAccounts.findIndex(acc => isDemoAccount(acc) && acc.username.toLowerCase() === usernameLower);
+  const realExists = state.instagramAccounts.some(acc => !isDemoAccount(acc) && acc.originalUsername.toLowerCase() === usernameLower);
+  if (demoIndex >= 0 && !realExists) {
+    const demoSelected = state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === DEMO_ID;
+    state.instagramAccounts[demoIndex] = { username, originalUsername: username };
+    if (demoSelected) state.selectedAccountUsername = null; // nothing of the demo is saved over
+    clearDemoData();
+    saveAccountsList();
+  }
+
   // Check if account already exists by matching originalUsername (case-insensitive)
   const existingIndex = state.instagramAccounts.findIndex(
     acc => acc.originalUsername.toLowerCase() === usernameLower
@@ -1589,7 +1601,7 @@ function ensureAccountSelected(username) {
     }
     const newAcc = { username: username, originalUsername: username };
     state.instagramAccounts.push(newAcc);
-    storageSet('instagram_accounts', JSON.stringify(state.instagramAccounts));
+    saveAccountsList();
     state.selectedAccountUsername = username;
     storageSet('selected_instagram_account', username);
     loadAccountData(username);
@@ -1997,7 +2009,7 @@ function openAccountModal(index = -1) {
 
     // Show original username caption if it has been edited
     if (elements.accountModalOriginalCaption) {
-      if (acc.username.toLowerCase() !== acc.originalUsername.toLowerCase()) {
+      if (!isDemoAccount(acc) && acc.username.toLowerCase() !== acc.originalUsername.toLowerCase()) {
         elements.accountModalOriginalCaption.textContent = `original: @${acc.originalUsername.toLowerCase()}`;
         elements.accountModalOriginalCaption.classList.remove('hidden');
       } else {
@@ -2066,7 +2078,7 @@ function saveAccountFromModal() {
     loadAccountData(username, true, true); // its new chip fades in; switching to it animates list 3, like selecting its chip
   }
 
-  storageSet('instagram_accounts', JSON.stringify(state.instagramAccounts));
+  saveAccountsList();
   renderAccountChips(true);
   pushToCloud();
   closeAccountModal();
@@ -2084,8 +2096,9 @@ function deleteAccountFromModal() {
     }
 
     const performDelete = () => {
+      if (isDemoAccount(deletedAccount)) clearDemoData(); // nothing of the demo is kept
       // Its latest unfollowed/starred first, if it's the one on screen.
-      if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === acc) {
+      if (!isDemoAccount(deletedAccount) && state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === acc) {
         saveCurrentAccountData();
       }
       // 1. Drop the account's imported lists (they come back with the next
@@ -2104,7 +2117,7 @@ function deleteAccountFromModal() {
 
       // 3. Remove account from accounts registry
       state.instagramAccounts.splice(state.editingAccountIndex, 1);
-      storageSet('instagram_accounts', JSON.stringify(state.instagramAccounts));
+      saveAccountsList();
 
       // 4. Reset selection if the deleted account was selected
       if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === acc) {
@@ -2809,37 +2822,59 @@ function unlockPageScroll() {
   window.scrollTo(0, y);
 }
 
-// "try a demo" (import files menu): an @shihcb account whose list 3 has two
-// usernames to try unfollowing, starring and so on. Selects it if it
-// already exists, and only fills in its lists when it has none — never
-// over an account's real imported data.
-const DEMO_ACCOUNT = 'shihcb';
+// "try a demo" (import files menu): a demo account chip shown as @shihcb,
+// with two test usernames in list 3 to try unfollowing, starring and so on.
+// It's a different account from any real @shihcb: its internal id
+// (originalUsername, which every account's saved data is keyed by) is
+// DEMO_ID and it's marked `demo: true`. Nothing about it is kept — it's
+// left out of the saved account list and the cloud (saveAccountsList,
+// pushToCloudNow), its data is wiped on every "try a demo" and on reload,
+// and importing real files for @shihcb turns it into that real account
+// (ensureAccountSelected).
+const DEMO_ID = '__demo__';
+const DEMO_NAME = 'shihcb';
 const DEMO_FOLLOWING = ['shihcb', 'cloudyandhazel'];
+
+function isDemoAccount(acc) {
+  return !!acc && (acc.demo === true || String(acc.originalUsername).toLowerCase() === DEMO_ID);
+}
+
+// The saved account list: everything except the demo chip.
+function saveAccountsList() {
+  storageSet('instagram_accounts', JSON.stringify((state.instagramAccounts || []).filter(acc => !isDemoAccount(acc))));
+}
+
+// Removes every trace of the demo's data from this device.
+function clearDemoData() {
+  ['following', 'followers', 'unfollowed', 'starred'].forEach(type => storageRemove(`${type}_users_${DEMO_ID}`));
+  storageRemove(`import_date_${DEMO_ID}`);
+  ['last_active_instagram_account', 'selected_instagram_account'].forEach(key => {
+    if (storageGet(key) === DEMO_ID) storageRemove(key);
+  });
+}
+
 function startDemo() {
   normalizeInstagramAccounts();
-  let account = state.instagramAccounts.find(a => a.originalUsername.toLowerCase() === DEMO_ACCOUNT);
-  if (state.selectedAccountUsername) saveCurrentAccountData();
-  if (!account) {
-    account = { username: DEMO_ACCOUNT, originalUsername: DEMO_ACCOUNT };
-    state.instagramAccounts.push(account);
-    storageSet('instagram_accounts', JSON.stringify(state.instagramAccounts));
+  if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() !== DEMO_ID) {
+    saveCurrentAccountData();
   }
-  const key = account.originalUsername.toLowerCase();
-  const hasLists = JSON.parse(storageGet(`following_users_${key}`) || '[]').length > 0
-    || JSON.parse(storageGet(`followers_users_${key}`) || '[]').length > 0;
-  if (!hasLists) {
-    const users = DEMO_FOLLOWING.map(name => ({
-      username: name, originalUsername: name, fullName: '', timestamp: null,
-      profileUrl: `https://www.instagram.com/${name}/`
-    }));
-    storageSet(`following_users_${key}`, JSON.stringify(users));
-    storageSet(`followers_users_${key}`, '[]');
+  // A fresh demo every time: both usernames back, nothing unfollowed or
+  // starred from an earlier try.
+  clearDemoData();
+  const users = DEMO_FOLLOWING.map(name => ({
+    username: name, originalUsername: name, fullName: '', timestamp: null,
+    profileUrl: `https://www.instagram.com/${name}/`
+  }));
+  storageSet(`following_users_${DEMO_ID}`, JSON.stringify(users));
+  storageSet(`followers_users_${DEMO_ID}`, '[]');
+  storageSet(`unfollowed_users_${DEMO_ID}`, '[]');
+  storageSet(`starred_users_${DEMO_ID}`, '[]');
+  if (!state.instagramAccounts.some(isDemoAccount)) {
+    state.instagramAccounts.push({ username: DEMO_NAME, originalUsername: DEMO_ID, demo: true });
   }
-  state.selectedAccountUsername = account.originalUsername;
-  storageSet('selected_instagram_account', account.originalUsername);
+  state.selectedAccountUsername = DEMO_ID;
   // Its chip fades in and list 3's usernames slide in, like adding an account.
-  loadAccountData(account.originalUsername, true, true);
-  pushToCloud();
+  loadAccountData(DEMO_ID, true, true);
 }
 
 function setupEventListeners() {
@@ -5165,7 +5200,7 @@ async function pullFromCloud(uploadLocalFirst = false) {
           state.selectedAccountUsername = state.instagramAccounts.length > 0 ? state.instagramAccounts[0].originalUsername : null;
         }
 
-        storageSet('instagram_accounts', JSON.stringify(state.instagramAccounts));
+        saveAccountsList();
         if (state.selectedAccountUsername) {
           storageSet('selected_instagram_account', state.selectedAccountUsername);
         } else {
@@ -5321,10 +5356,11 @@ async function pushToCloudNow() {
       const match = /^(?:unfollowed|starred)_users_(.+)$/.exec(key);
       if (match) accountSet.add(match[1]);
     });
+    accountSet.delete(DEMO_ID); // the demo chip is never saved
     const accounts = [...accountSet];
 
     // Include current active state in accountDataMap
-    if (state.selectedAccountUsername) {
+    if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() !== DEMO_ID) {
       const currentKey = state.selectedAccountUsername.toLowerCase();
       storageSet(`following_users_${currentKey}`, JSON.stringify(state.following));
       storageSet(`followers_users_${currentKey}`, JSON.stringify(state.followers));
@@ -5356,12 +5392,12 @@ async function pushToCloudNow() {
     (state.starred || []).forEach(u => {
       if (!u.__meta) {
         const itemAcc = u.account || activeAcc;
-        allStarredMap.set(`${itemAcc}_${u.username}`, { ...u, account: itemAcc });
+        if (itemAcc !== DEMO_ID) allStarredMap.set(`${itemAcc}_${u.username}`, { ...u, account: itemAcc });
       }
     });
     (state.unfollowed || []).forEach(u => {
       const itemAcc = u.account || activeAcc;
-      allUnfollowedMap.set(`${itemAcc}_${u.username}`, { ...u, account: itemAcc });
+      if (itemAcc !== DEMO_ID) allUnfollowedMap.set(`${itemAcc}_${u.username}`, { ...u, account: itemAcc });
     });
 
     const allStarredArray = Array.from(allStarredMap.values());
@@ -5372,8 +5408,8 @@ async function pushToCloudNow() {
 
     const metaHeader = {
       __meta: true,
-      instagram_accounts: state.instagramAccounts || [],
-      selected_account: state.selectedAccountUsername || null,
+      instagram_accounts: (state.instagramAccounts || []).filter(acc => !isDemoAccount(acc)),
+      selected_account: (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() !== DEMO_ID) ? state.selectedAccountUsername : null,
       accounts_data: accountDataMap
     };
 
@@ -5553,6 +5589,10 @@ function updateResetReminderUI() {
 // -------------------------------------------------------------
 // App Initialization
 // -------------------------------------------------------------
+// The demo chip never outlives the page (see startDemo).
+clearDemoData();
+if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === DEMO_ID) state.selectedAccountUsername = null;
+
 document.addEventListener('DOMContentLoaded', () => {
   if ((window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) || window.matchMedia('(display-mode: standalone)').matches) {
     document.body.classList.add('is-capacitor');
