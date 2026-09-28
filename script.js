@@ -2774,6 +2774,74 @@ window.addEventListener('resize', () => {
   }, 150);
 });
 
+// Freezes the page behind a modal. overflow: hidden alone doesn't stop
+// iOS Safari from scrolling the page underneath, so the body is pinned in
+// place (position: fixed at the current scroll offset) and put back where
+// it was afterwards. Logged out, the scrolling page is the login overlay.
+let pageScrollLock = null;
+function lockPageScroll() {
+  if (pageScrollLock) return;
+  const body = document.body;
+  const overlay = body.classList.contains('auth-logged-out') ? elements.authDropdown : null;
+  pageScrollLock = {
+    y: window.scrollY,
+    overlay,
+    saved: { position: body.style.position, top: body.style.top, left: body.style.left, right: body.style.right, width: body.style.width, overflow: body.style.overflow },
+    overlayOverflow: overlay ? overlay.style.overflow : null
+  };
+  body.style.position = 'fixed';
+  body.style.top = `-${pageScrollLock.y}px`;
+  body.style.left = '0';
+  body.style.right = '0';
+  body.style.width = '100%';
+  body.style.overflow = 'hidden';
+  if (overlay) overlay.style.setProperty('overflow', 'hidden', 'important');
+}
+function unlockPageScroll() {
+  if (!pageScrollLock) return;
+  const { y, saved, overlay, overlayOverflow } = pageScrollLock;
+  pageScrollLock = null;
+  Object.assign(document.body.style, saved);
+  if (overlay) {
+    overlay.style.removeProperty('overflow');
+    if (overlayOverflow) overlay.style.overflow = overlayOverflow;
+  }
+  window.scrollTo(0, y);
+}
+
+// "try a demo" (import files menu): an @shihcb account whose list 3 has two
+// usernames to try unfollowing, starring and so on. Selects it if it
+// already exists, and only fills in its lists when it has none — never
+// over an account's real imported data.
+const DEMO_ACCOUNT = 'shihcb';
+const DEMO_FOLLOWING = ['shihcb', 'cloudyandhazel'];
+function startDemo() {
+  normalizeInstagramAccounts();
+  let account = state.instagramAccounts.find(a => a.originalUsername.toLowerCase() === DEMO_ACCOUNT);
+  if (state.selectedAccountUsername) saveCurrentAccountData();
+  if (!account) {
+    account = { username: DEMO_ACCOUNT, originalUsername: DEMO_ACCOUNT };
+    state.instagramAccounts.push(account);
+    storageSet('instagram_accounts', JSON.stringify(state.instagramAccounts));
+  }
+  const key = account.originalUsername.toLowerCase();
+  const hasLists = JSON.parse(storageGet(`following_users_${key}`) || '[]').length > 0
+    || JSON.parse(storageGet(`followers_users_${key}`) || '[]').length > 0;
+  if (!hasLists) {
+    const users = DEMO_FOLLOWING.map(name => ({
+      username: name, originalUsername: name, fullName: '', timestamp: null,
+      profileUrl: `https://www.instagram.com/${name}/`
+    }));
+    storageSet(`following_users_${key}`, JSON.stringify(users));
+    storageSet(`followers_users_${key}`, '[]');
+  }
+  state.selectedAccountUsername = account.originalUsername;
+  storageSet('selected_instagram_account', account.originalUsername);
+  // Its chip fades in and list 3's usernames slide in, like adding an account.
+  loadAccountData(account.originalUsername, true, true);
+  pushToCloud();
+}
+
 function setupEventListeners() {
   // Instagram Account Management Event Listeners
   if (elements.btnAddAccount) {
@@ -2787,6 +2855,15 @@ function setupEventListeners() {
       elements.togglePreviewUnfollowed.classList.remove('active');
       elements.listStarred.classList.remove('show');
       elements.togglePreviewStarred.classList.remove('active');
+    });
+  }
+
+  const btnTryDemo = document.getElementById('btn-try-demo');
+  if (btnTryDemo) {
+    btnTryDemo.addEventListener('click', () => {
+      if (elements.addAccountDropdownMenu) elements.addAccountDropdownMenu.classList.remove('show');
+      if (elements.btnAddAccount) elements.btnAddAccount.classList.remove('active');
+      startDemo();
     });
   }
 
@@ -2934,6 +3011,7 @@ function openInstructionsModal(step = 1) {
 
   cancelOverlayHide(elements.instructionsModalOverlay);
   elements.instructionsModalOverlay.classList.remove('hidden');
+  lockPageScroll();
   requestAnimationFrame(() => {
     elements.instructionsModalOverlay.classList.add('show');
     updateInstructionsStepUI();
@@ -2948,6 +3026,7 @@ function openInstructionsModal(step = 1) {
 function closeInstructionsModal() {
   if (!elements.instructionsModalOverlay) return;
   elements.instructionsModalOverlay.classList.remove('show');
+  unlockPageScroll();
   // 600ms, matching .modal-overlay/.account-modal-card's own CSS transition
   // duration (style.css) — see closeAccountModal for why this can't be 350.
   scheduleOverlayHide(elements.instructionsModalOverlay, () => {
@@ -2955,6 +3034,60 @@ function closeInstructionsModal() {
   });
 }
 window.closeInstructionsModal = closeInstructionsModal;
+
+// Slides the highlight to `tab` like the log in / sign up switch does:
+// same duration and easing, transform only (FLIP: it takes its new size at
+// once, then is scaled back from its old spot and size), so the whole move
+// stays on the GPU and in one piece. A switch mid-slide starts from where
+// the highlight actually is.
+// Scrolls the tab bar in step with the highlight: same duration and
+// easing. The browser's own smooth scroll starts much faster than the
+// highlight's ease-in, so the highlight was first dragged back with the
+// tabs and then swung forward — the choppy part of the switch.
+const instructionsEase = cubicBezierEasing(0.65, 0, 0.35, 1);
+function scrollInstructionsNav(nav, target) {
+  const start = nav.scrollLeft;
+  const max = nav.scrollWidth - nav.clientWidth;
+  const end = Math.max(0, Math.min(max, target));
+  const token = (nav._scrollToken = {});
+  if (Math.abs(end - start) < 0.5) return;
+  let t0 = null;
+  const step = (now) => {
+    if (nav._scrollToken !== token) return; // a newer switch took over
+    if (t0 === null) t0 = now;
+    const p = Math.min(1, (now - t0) / 550);
+    nav.scrollLeft = start + (end - start) * instructionsEase(p);
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+function moveInstructionsIndicator(indicator, tab) {
+  const x = tab.offsetLeft;
+  const w = tab.offsetWidth;
+  let from = indicator._pos || null;
+  if (indicator._anim && indicator._anim.playState === 'running' && from) {
+    const nav = indicator.offsetParent;
+    const navRect = nav.getBoundingClientRect();
+    const scale = (navRect.width / nav.offsetWidth) || 1;
+    const r = indicator.getBoundingClientRect();
+    from = {
+      x: (r.left - navRect.left) / scale - nav.clientLeft + nav.scrollLeft,
+      w: r.width / scale
+    };
+  }
+  if (indicator._anim) indicator._anim.cancel();
+  indicator._anim = null;
+  indicator.style.width = `${w}px`;
+  indicator.style.transform = `translateX(${x}px)`;
+  indicator._pos = { x, w };
+  const moved = from && (Math.abs(from.x - x) > 0.5 || Math.abs(from.w - w) > 0.5);
+  if (!moved || indicator.classList.contains('no-transition') || typeof indicator.animate !== 'function') return;
+  indicator._anim = indicator.animate([
+    { transform: `translateX(${from.x}px) scaleX(${from.w / w})` },
+    { transform: `translateX(${x}px) scaleX(1)` }
+  ], { duration: 550, easing: 'cubic-bezier(0.65, 0, 0.35, 1)' });
+}
 
 function updateInstructionsStepUI() {
   const tabs = document.querySelectorAll('.instructions-tab');
@@ -2983,18 +3116,15 @@ function updateInstructionsStepUI() {
       const navWidth = nav.clientWidth;
 
       if (tabLeft < navScrollLeft) {
-        nav.scrollTo({ left: Math.max(0, tabLeft), behavior: 'smooth' });
+        scrollInstructionsNav(nav, Math.max(0, tabLeft));
       } else if (tabRight > navScrollLeft + navWidth) {
-        nav.scrollTo({ left: tabRight - navWidth, behavior: 'smooth' });
+        scrollInstructionsNav(nav, tabRight - navWidth);
       }
     }
   }
 
   const indicator = elements.instructionsNavIndicator || document.getElementById('instructions-nav-indicator');
-  if (indicator && activeTab) {
-    indicator.style.transform = `translateX(${activeTab.offsetLeft}px)`;
-    indicator.style.width = `${activeTab.offsetWidth}px`;
-  }
+  if (indicator && activeTab) moveInstructionsIndicator(indicator, activeTab);
 
   panes.forEach((pane) => {
     const s = parseInt(pane.id.replace('instructions-step-', ''), 10);
@@ -4092,11 +4222,12 @@ function applyGuestPreviewLock(isLoggedIn) {
     // cloud data. Their real accounts/lists load right after from the cloud.
     let accounts = [];
     try {
-      // (Old saves stored plain strings — normalize, or the filter threw
-      // and every saved account was dropped.)
+      // (Old saves stored plain strings — normalize them.) The guest demo's
+      // chip only ever lives in memory, never in saved accounts, so a saved
+      // @shihcb is a real one (e.g. from "try a demo") and stays.
       accounts = JSON.parse(storageGet('instagram_accounts') || '[]')
         .map(acc => typeof acc === 'string' ? { username: acc, originalUsername: acc } : acc)
-        .filter(acc => acc && acc.originalUsername && acc.originalUsername.toLowerCase() !== GUEST_PREVIEW_USERNAME.toLowerCase());
+        .filter(acc => acc && acc.originalUsername);
     } catch (e) {}
     state.instagramAccounts = accounts;
     const demoSelected = state.selectedAccountUsername

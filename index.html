@@ -78,7 +78,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=285">
+  <link rel="stylesheet" href="style.css?v=286">
   <!-- Supabase Client Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -464,6 +464,10 @@
                                     </svg>
                                   </button>
                                   <div class="dropdown-menu" id="add-account-dropdown-menu" style="min-width: 150px; padding: 4px 0;">
+                                    <button id="btn-try-demo" class="dropdown-item-btn" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; font-size: 0.8rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
+                                      <span>try a demo</span>
+                                    </button>
                                     <button id="btn-upload-files" class="dropdown-item-btn" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; font-size: 0.8rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 6px;">
                                       <svg viewBox="2 0 20 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
                                       <span>upload files</span>
@@ -659,7 +663,7 @@
         <ol class="instructions-step-list">
           <li>click the <strong>import files</strong> button in list 3</li>
           <li>select your <code>following.html</code> &amp; <code>followers_1.html</code> files (or select the entire folder)</li>
-          <li>your accounts are processed <strong>100% locally</strong>.</li>
+          <li>your accounts are processed <strong>100% locally</strong></li>
         </ol>
       </div>
 
@@ -704,6 +708,6 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="script.js?v=300"></script>
+  <script src="script.js?v=301"></script>
 </body>
 </html>

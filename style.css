@@ -2106,8 +2106,12 @@ body.hide-shortcuts #keyboard-hints {
   background: #ffffff;
   border-radius: 7px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
-  transition: transform 0.52s cubic-bezier(0.22, 1, 0.36, 1), width 0.52s cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform, width;
+  /* Moved and resized by one transform-only animation (see
+     updateInstructionsStepUI in script.js) with the log in / sign up
+     switch's easing — animating width alongside transform ran the resize
+     on the main thread, out of step with the slide, and stuttered. */
+  transform-origin: left center;
+  will-change: transform;
   pointer-events: none;
   z-index: 1;
 }
