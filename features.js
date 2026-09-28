@@ -339,7 +339,12 @@
     old.classList.add('toolbar-pill-text-old');
     win.appendChild(old);
     text.textContent = label;
-    win.style.width = `${textWidth(win, label)}px`;
+    const target = textWidth(win, label);
+    win.style.width = `${target}px`;
+    // Back to its natural width once the resize has played (a width fixed
+    // from a measurement taken before layout was 0 — just the icon showed).
+    clearTimeout(win._widthTimer);
+    win._widthTimer = setTimeout(() => { win.style.width = ''; }, 360);
     if (typeof text.animate !== 'function') { old.remove(); return; }
     const timing = { duration: 320, easing: EASE };
     old.animate([{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: 'translateX(-16px)' }], { ...timing, fill: 'forwards' })
@@ -351,10 +356,7 @@
     if (!toolbar) return;
     const win = toolbar.querySelector('.sort-window');
     const sortText = win.querySelector('.sort-current');
-    if (!sortText.textContent) { // first time only; changes slide (slideSortLabel)
-      sortText.textContent = SORT_LABELS[sortMode];
-      win.style.width = `${textWidth(win, SORT_LABELS[sortMode])}px`;
-    }
+    if (!sortText.textContent) sortText.textContent = SORT_LABELS[sortMode]; // first time only; changes slide (slideSortLabel)
     toolbar.querySelector('[data-act="sort"]').classList.toggle('on', sortMode !== 'default');
     const hasRows = state.unfollowers.length > 0;
     toolbar.querySelector('[data-act="sort"]').disabled = !hasRows;

@@ -5257,3 +5257,17 @@ button:focus-visible,
 .list-search-row > .preview-toggle.no-anim {
   transition: none !important;
 }
+
+/* List 3's search row: search, undo, export, insights, info — every
+   button the same size, one even (tighter) gap. */
+#card-unfollowers .search-row {
+  gap: 6px;
+}
+#card-unfollowers .search-row > .preview-toggle {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+}
