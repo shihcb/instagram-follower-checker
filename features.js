@@ -45,13 +45,6 @@
     const t = new Date(u.timestamp).getTime();
     return Number.isFinite(t) ? t : null;
   };
-  const ago = (t) => {
-    const d = Math.max(0, Date.now() - t) / DAY;
-    if (d < 1) return 'today';
-    if (d < 30) return plural(Math.floor(d), 'day');
-    if (d < 365) return plural(Math.floor(d / 30), 'month');
-    return plural(Math.floor(d / 365), 'year');
-  };
 
   // ---------- list 3: sorting ----------
   // Every path that changes list 3 ends in updateResultsUI, so the sort is
@@ -85,7 +78,6 @@
     const t = timeOf(user);
     const note = notesForRender()[user.username];
     const extras = [];
-    if (t !== null) extras.push(`<span class="row-age" title="followed ${esc(new Date(t).toLocaleDateString())}">followed ${ago(t) === 'today' ? 'today' : `${ago(t)} ago`}</span>`);
     if (note && note.tags && note.tags.length) extras.push(note.tags.map(tag => `<span class="row-tag">${esc(tag)}</span>`).join(''));
     if (note && note.text) extras.push(`<span class="row-note">${esc(note.text)}</span>`);
     if (extras.length) {
@@ -653,6 +645,7 @@
       box.classList.toggle('showing-alt', view !== 'results');
       altView.classList.toggle('hidden', view === 'results');
       if (view !== 'results') { renderView(); altView.scrollTop = 0; }
+      if (view === 'changes') { const pane = altView.querySelector('.changes-pane.active'); if (pane) staggerIn(pane, dir); }
       refreshToolbar();
       if (typeof altView.animate !== 'function') return;
       viewEls(view).forEach(el => el.animate(
@@ -885,23 +878,41 @@
     const left = active.offsetLeft - 12, right = active.offsetLeft + active.offsetWidth + (active.nextElementSibling ? 38 : 12);
     if (left < nav.scrollLeft) scrollInstructionsNav(nav, Math.max(0, left));
     else if (right > nav.scrollLeft + nav.clientWidth) scrollInstructionsNav(nav, right - nav.clientWidth);
-    // Same swap as list 3's views: out, then in, 550ms together.
-    altView.querySelectorAll('.changes-pane').forEach(p => p.getAnimations && p.getAnimations().forEach(a => a.cancel()));
+    // The list you're leaving: its rows slide and fade out one after
+    // another; then the new list's rows slide in one after another.
+    altView.querySelectorAll('.changes-pane').forEach(p => p.querySelectorAll('.insights-row, .dropdown-empty-message').forEach(el => el.getAnimations && el.getAnimations().forEach(an => an.cancel())));
     const token = (altView._changesToken = {});
     const swap = () => {
       if (altView._changesToken !== token) return;
-      oldPane.getAnimations && oldPane.getAnimations().forEach(a => a.cancel());
       oldPane.classList.remove('active');
+      oldPane.querySelectorAll('.insights-row, .dropdown-empty-message').forEach(el => el.getAnimations && el.getAnimations().forEach(an => an.cancel()));
       newPane.classList.add('active');
-      if (typeof newPane.animate === 'function') newPane.animate(
-        [{ opacity: 0, transform: `translateX(${dir * 28}px)` }, { opacity: 1, transform: 'translateX(0)' }],
-        { duration: 350, easing: 'cubic-bezier(0.65, 0, 0.35, 1)' });
+      staggerIn(newPane, dir);
     };
-    if (typeof oldPane.animate !== 'function') return swap();
-    oldPane.animate(
-      [{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: `translateX(${-dir * 28}px)` }],
-      { duration: 200, easing: 'cubic-bezier(0.65, 0, 0.35, 1)', fill: 'forwards' }
-    ).finished.then(swap, swap);
+    staggerOut(oldPane, dir).then(swap);
+  }
+  // A list's rows (or its empty text) come in / go out one after another;
+  // only the ones in view take part, so a long list isn't slow.
+  function paneItems(pane) {
+    const box = altView.getBoundingClientRect();
+    return [...pane.querySelectorAll('.insights-row, .dropdown-empty-message')]
+      .filter(el => { const r = el.getBoundingClientRect(); return r.bottom > box.top && r.top < box.bottom; })
+      .slice(0, 14);
+  }
+  function staggerIn(pane, dir = 1) {
+    const items = paneItems(pane);
+    if (!items.length || typeof items[0].animate !== 'function') return;
+    items.forEach((el, i) => el.animate(
+      [{ opacity: 0, transform: `translate(${dir * 18}px, 6px)` }, { opacity: 1, transform: 'none' }],
+      { duration: 420, delay: i * 35, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' }));
+  }
+  function staggerOut(pane, dir = 1) {
+    const items = paneItems(pane);
+    if (!items.length || typeof items[0].animate !== 'function') return Promise.resolve();
+    const anims = items.map((el, i) => el.animate(
+      [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: `translate(${-dir * 18}px, 0)` }],
+      { duration: 200, delay: i * 18, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' }));
+    return Promise.all(anims.map(an => an.finished.catch(() => {})));
   }
 
   const EXPORT_LISTS = [
