@@ -2014,6 +2014,18 @@ function createAccountChip(name) {
   return chip;
 }
 
+// Once the chip row has finished opening, it goes back to sizing itself
+// (the measured --chip-row-height is only for the open/close animation).
+(() => {
+  const row = document.getElementById('account-mgmt-row');
+  if (!row) return;
+  row.addEventListener('transitionend', (e) => {
+    if (e.target === row && e.propertyName === 'max-height' && !row.classList.contains('empty-chips')) {
+      row.style.removeProperty('--chip-row-height');
+    }
+  });
+})();
+
 function renderAccountChips(animate = false, { force = false } = {}) {
   if (!elements.accountChipsList || !elements.btnAddAccount) return;
   if (chipRenderHolds > 0 && !force) return; // a chip is animating out (deleteAccountFromModal)
@@ -2026,7 +2038,7 @@ function renderAccountChips(animate = false, { force = false } = {}) {
     // Closing: it animates down from the height it has now (style.css,
     // --chip-row-height). Opening: from 0 to its height with the new chips,
     // set further down once they're rendered.
-    if (accounts.length === 0 && !accountMgmtRow.classList.contains('empty-chips')) {
+    if (accounts.length === 0 && !accountMgmtRow.classList.contains('empty-chips') && accountMgmtRow.offsetHeight > 0) {
       accountMgmtRow.style.setProperty('--chip-row-height', `${accountMgmtRow.offsetHeight}px`);
     }
     accountMgmtRow.classList.toggle('empty-chips', accounts.length === 0);
@@ -2087,9 +2099,18 @@ function renderAccountChips(animate = false, { force = false } = {}) {
   slideChipsFromPreviousRects(previousChipRects);
 
   if (accountMgmtRow && accounts.length > 0) {
-    // Opening (or already open): the height of the row with these chips.
+    // Opening: animate to the height of the row with these chips. Only
+    // while it opens — the measured cap is dropped once it's open (see the
+    // transitionend handler below), and never set from a measurement taken
+    // while the app isn't laid out (0 — e.g. still inside the hidden login
+    // page while a reload logs back in), which left the row clamped to its
+    // padding with the chips cut off.
     const chipsHeight = elements.accountChipsList.offsetHeight;
-    accountMgmtRow.style.setProperty('--chip-row-height', `${chipsHeight + 8}px`); // + its 4px top/bottom padding
+    if (rowOpening && chipsHeight > 0) {
+      accountMgmtRow.style.setProperty('--chip-row-height', `${chipsHeight + 8}px`); // + its 4px top/bottom padding
+    } else if (!rowOpening) {
+      accountMgmtRow.style.removeProperty('--chip-row-height');
+    }
   }
 
   if (accounts.length > 0) {
