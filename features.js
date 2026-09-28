@@ -417,7 +417,19 @@
   }
   function updateSelectCount() {
     if (!selectBar) return;
-    selectBar.querySelector('.row-select-count').textContent = `${selected.size} selected`;
+    // The count pill eases to its new width (the bar, sized to its content,
+    // follows along), instead of snapping when the number gets a digit.
+    const count = selectBar.querySelector('.row-select-count');
+    const text = `${selected.size} selected`;
+    if (count.textContent !== text) {
+      const from = count.getBoundingClientRect().width;
+      if (count._anim) count._anim.cancel();
+      count.textContent = text;
+      const to = count.getBoundingClientRect().width;
+      if (from && Math.abs(from - to) > 0.5 && selectBar.classList.contains('show') && typeof count.animate === 'function') {
+        count._anim = count.animate([{ width: `${from}px` }, { width: `${to}px` }], { duration: 260, easing: EASE });
+      }
+    }
     selectBar.querySelectorAll('[data-bulk]:not([data-bulk="cancel"])').forEach(b => { b.disabled = selected.size === 0; });
   }
   elements.listUnfollowers.addEventListener('click', (e) => {

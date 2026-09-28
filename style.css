@@ -4887,6 +4887,9 @@ button:focus-visible,
   color: #000000;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   white-space: nowrap;
+  overflow: hidden;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 [data-theme="dark"] .row-select-count {
   box-shadow: none;
