@@ -2153,9 +2153,17 @@ function saveAccountFromModal() {
 
   normalizeInstagramAccounts();
 
-  if (state.editingAccountIndex >= 0 && state.editingAccountIndex < state.instagramAccounts.length) {
+  // The window closes first; the chip changes once it has cleared (it
+  // covers the chip row while fading), so a new chip's entrance is seen.
+  const index = state.editingAccountIndex;
+  closeAccountModal();
+  setTimeout(() => applyAccountFromModal(username, index), OVERLAY_CLEAR_MS);
+}
+
+function applyAccountFromModal(username, index) {
+  if (index >= 0 && index < state.instagramAccounts.length) {
     // Only update the display username, leaving the originalUsername untouched!
-    state.instagramAccounts[state.editingAccountIndex].username = username;
+    state.instagramAccounts[index].username = username;
   } else {
     // Adding manually: create an object with identical username and originalUsername
     const newAcc = { username: username, originalUsername: username };
@@ -2171,7 +2179,6 @@ function saveAccountFromModal() {
   saveAccountsList();
   renderAccountChips(true);
   pushToCloud();
-  closeAccountModal();
 }
 
 // Deleting a chip, in three calm steps rather than all at once: the edit
@@ -2181,7 +2188,9 @@ function saveAccountFromModal() {
 // rebuilt once they've settled, where nothing moves any more. It used to
 // bounce the chip out behind the still-open window, then switch list 3,
 // rebuild and re-slide every chip and close the window in one go.
-const CHIP_EXIT_DELAY = 160; // the window has mostly faded by then
+// A menu or window fading out over the chip row has mostly cleared by now.
+const OVERLAY_CLEAR_MS = 160;
+const CHIP_EXIT_DELAY = OVERLAY_CLEAR_MS;
 const CHIP_EXIT_MS = 380;
 let chipRenderHolds = 0; // chips still animating out (the row waits for all of them)
 
@@ -3047,17 +3056,25 @@ function setupEventListeners() {
     });
   }
 
+  // The import files menu drops down over the chip row (nearly full width
+  // on phones): anything it starts closes the menu first, and a new chip
+  // comes in once the menu has cleared — it used to play its whole
+  // entrance hidden under the menu, so it seemed to just snap in.
+  const closeImportMenu = () => {
+    if (elements.addAccountDropdownMenu) elements.addAccountDropdownMenu.classList.remove('show');
+    if (elements.btnAddAccount) elements.btnAddAccount.classList.remove('active');
+  };
   const btnTryDemo = document.getElementById('btn-try-demo');
   if (btnTryDemo) {
     btnTryDemo.addEventListener('click', () => {
-      if (elements.addAccountDropdownMenu) elements.addAccountDropdownMenu.classList.remove('show');
-      if (elements.btnAddAccount) elements.btnAddAccount.classList.remove('active');
-      startDemo();
+      closeImportMenu();
+      setTimeout(startDemo, OVERLAY_CLEAR_MS);
     });
   }
 
   if (elements.btnUploadFiles) {
     elements.btnUploadFiles.addEventListener('click', () => {
+      closeImportMenu(); // gone by the time the files come back
       if (elements.importFilesInput) {
         elements.importFilesInput.click();
       }
@@ -3066,6 +3083,7 @@ function setupEventListeners() {
 
   if (elements.btnUploadFolder) {
     elements.btnUploadFolder.addEventListener('click', () => {
+      closeImportMenu();
       if (elements.importFolderInput) {
         elements.importFolderInput.click();
       }
