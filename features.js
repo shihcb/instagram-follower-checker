@@ -32,6 +32,12 @@
   // ---------- data ----------
   const getNotes = () => readJSON('user_notes', {});
   const setNotes = (notes) => { writeJSON('user_notes', notes); pushToCloud(); };
+  // One read per render of list 3, not one per row.
+  let notesMemo = null;
+  const notesForRender = () => {
+    if (!notesMemo) { notesMemo = getNotes(); setTimeout(() => { notesMemo = null; }, 0); }
+    return notesMemo;
+  };
   const todayKey = () => `unfollow_count_${new Date().toISOString().slice(0, 10)}`;
   const getToday = () => +(storageGet(todayKey()) || 0);
 
@@ -70,6 +76,7 @@
     state.unfollowers = list;
     refreshUndo(); // the steps belong to the account on screen
     const result = baseUpdateResultsUI.call(this, opts);
+    keepSelection();
     refreshToolbar();
     refreshView();
     return result;
@@ -80,7 +87,7 @@
   renderUnfollowerRowHtml = function (user, index) {
     let html = baseRowHtml.call(this, user, index);
     const t = timeOf(user);
-    const note = getNotes()[user.username];
+    const note = notesForRender()[user.username];
     const extras = [];
     if (t !== null) extras.push(`<span class="row-age" title="followed ${esc(new Date(t).toLocaleDateString())}">followed ${ago(t) === 'today' ? 'today' : `${ago(t)} ago`}</span>`);
     if (note && note.tags && note.tags.length) extras.push(note.tags.map(tag => `<span class="row-tag">${esc(tag)}</span>`).join(''));
@@ -415,6 +422,17 @@
     updateSelectCount();
     refreshToolbar();
   }
+  // List 3 re-renders (a search, a row leaving, switching accounts) rebuilt
+  // the rows without their selected outline, and the count kept usernames
+  // that were no longer there.
+  function keepSelection() {
+    if (!selectMode) return;
+    const here = new Set(state.unfollowers.map(u => u.username));
+    [...selected].forEach(n => { if (!here.has(n)) selected.delete(n); });
+    elements.listUnfollowers.classList.add('select-mode');
+    elements.listUnfollowers.querySelectorAll('.user-row').forEach(r => r.classList.toggle('multi-selected', selected.has(r.dataset.username)));
+    updateSelectCount();
+  }
   function updateSelectCount() {
     if (!selectBar) return;
     // The count pill eases to its new width (the bar, sized to its content,
@@ -603,7 +621,11 @@
       moveInstructionsIndicator(indicator, active);
     };
     requestAnimationFrame(place);
+    // Once the font has loaded the tabs have their real widths.
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { place(); placeChangesIndicator(); });
     window.addEventListener('resize', place);
+    // Searching or jumping to list 3 by keyboard brings the results back.
+    elements.searchUnfollowers && elements.searchUnfollowers.addEventListener('focus', () => showView('results'));
     if (window.ResizeObserver) new ResizeObserver(place).observe(viewNav);
   }
   // What's showing in the box for a view.

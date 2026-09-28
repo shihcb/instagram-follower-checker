@@ -1987,6 +1987,14 @@ body.hide-shortcuts #keyboard-hints {
               transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
+/* The backdrop already blurs the page; the card blurring it again under
+   itself on every frame of its slide made pop-ups drop frames. */
+.modal-overlay .glass,
+.modal-overlay .confirm-modal-box {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
 .modal-overlay.show .account-modal-card,
 .modal-overlay.show .confirm-modal-box {
   opacity: 1;
@@ -5325,4 +5333,16 @@ button:focus-visible,
   min-height: 34px !important;
   margin: 0 !important;
   flex-shrink: 0 !important;
+}
+
+/* Long lists: rows off screen aren't laid out or painted, so a row sliding
+   out, a sort or a view switch doesn't re-lay out hundreds of rows on every
+   frame (they keep their last measured height). */
+#list-unfollowers .user-row,
+.list3-alt-view .insights-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 60px;
+}
+.list3-alt-view .insights-row {
+  contain-intrinsic-size: auto 36px;
 }

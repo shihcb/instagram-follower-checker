@@ -2787,6 +2787,16 @@ function onRowExitStarted(rowEl) {
 // already doing (see the row motion engine above).
 function addRowShift(el, offset, duration) {
   if (Math.abs(offset) < 0.5) return;
+  // A row that's out of sight for the whole slide just takes its new spot:
+  // animating hundreds of off-screen rows meant restyling every one of them
+  // on every frame, and the visible slide stuttered on long lists.
+  const box = el.parentElement && el.parentElement.getBoundingClientRect();
+  if (box && !rowMotion.has(el)) {
+    const r = el.getBoundingClientRect();
+    const reach = Math.abs(offset) + 80;
+    const top = Math.max(box.top, 0), bottom = Math.min(box.bottom, window.innerHeight);
+    if (r.bottom + reach < top || r.top - reach > bottom) return;
+  }
   motionOf(el).shifts.push({ offset, start: null, duration });
   queueRowMotionFlush();
 }
@@ -3221,7 +3231,8 @@ function setupEventListeners() {
 
   // Instructions Modal Keyboard Shortcuts (Esc, Left/Right Arrows, Enter)
   window.addEventListener('keydown', (e) => {
-    if (!elements.instructionsModalOverlay || elements.instructionsModalOverlay.classList.contains('hidden')) {
+    // Not while it's closing either (arrows kept flipping steps as it faded).
+    if (!elements.instructionsModalOverlay || !elements.instructionsModalOverlay.classList.contains('show')) {
       return;
     }
 
@@ -4020,13 +4031,17 @@ function updateInstructionsStepUI() {
       return;
     }
 
-    // Ignore shortcuts if the user is typing in Following or Followers textareas
+    // Ignore shortcuts while typing anywhere but list 3's search (a note,
+    // tags, a username, email, password, lists 1 and 2), while a pop-up is
+    // open, or while another view covers list 3 — any of those let a typed
+    // number unfollow a row.
     const active = document.activeElement;
-    if (active && (active.id === 'input-following' || active.id === 'input-followers')) {
+    const searchInput = elements.searchUnfollowers;
+    if (active && active !== searchInput && (active.matches('input, textarea, select') || active.isContentEditable)) {
       return;
     }
-
-    const searchInput = elements.searchUnfollowers;
+    if (document.querySelector('.modal-overlay.show')) return;
+    if (document.querySelector('#card-unfollowers .results-container.showing-alt') && e.key !== '/') return;
     const isSearchFocused = active === searchInput;
 
     // Ignore shortcuts if search input is focused AND user is typing a text search query (not empty)
