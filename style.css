@@ -1504,9 +1504,11 @@ body.hide-shortcuts #keyboard-hints {
   color: #f4f4f5 !important;
 }
 
+/* Open (its menu showing): just a white outline, no brighter fill. */
 [data-theme="dark"] .preview-toggle.active {
   border-color: #ffffff !important;
-  background-color: rgba(255, 255, 255, 0.16) !important;
+  background-color: rgba(255, 255, 255, 0.07) !important;
+  background: rgba(255, 255, 255, 0.07) !important;
 }
 
 .preview-toggle *,

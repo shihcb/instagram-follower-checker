@@ -721,8 +721,8 @@
         const fa = fol(a), fb = fol(b);
         const sa = new Set(fa.map(u => u.username)), sb = new Set(fb.map(u => u.username));
         html = `<div class="compare-pickers"><select class="compare-select">${opts(a)}</select><span>vs</span><select class="compare-select">${opts(b)}</select></div>
-          <div class="insights-section"><div class="insights-section-title">follows the first account but not the second account <span>${fa.filter(u => !sb.has(u.username)).length}</span></div>${userRowsHtml(fa.filter(u => !sb.has(u.username)), 'no accounts here')}</div>
-          <div class="insights-section"><div class="insights-section-title">follows the second account but not the first account <span>${fb.filter(u => !sa.has(u.username)).length}</span></div>${userRowsHtml(fb.filter(u => !sa.has(u.username)), 'no accounts here')}</div>`;
+          <div class="insights-section"><div class="insights-section-title">follows the first account but not the second account</div>${userRowsHtml(fa.filter(u => !sb.has(u.username)), 'no accounts here')}</div>
+          <div class="insights-section"><div class="insights-section-title">follows the second account but not the first account</div>${userRowsHtml(fb.filter(u => !sa.has(u.username)), 'no accounts here')}</div>`;
       }
     }
     body.innerHTML = `<div class="insights-pane">${html}</div>`;
