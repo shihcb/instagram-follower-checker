@@ -29,8 +29,22 @@
   const SWITCH = { duration: 600, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' };
   const SWITCH_OUT = { ...SWITCH, fill: 'forwards' };
   const SWITCH_IN = SWITCH;
+  // With a fade on top, on its own gentler timing (sharing the slide's
+  // fast start, the old view vanished almost at once): the one leaving
+  // fades out over about a third of a second, the one arriving fades in
+  // over about half a second, while they slide.
   const outFrames = (dx) => [{ transform: 'translateX(0)' }, { transform: `translateX(${dx}px)` }];
   const inFrames = (dx) => [{ transform: `translateX(${dx}px)` }, { transform: 'translateX(0)' }];
+  const FADE_OUT = { duration: 340, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' };
+  const FADE_IN = { duration: 480, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' };
+  function slideOut(el, dx) {
+    el.animate([{ opacity: 1 }, { opacity: 0 }], FADE_OUT);
+    return el.animate(outFrames(dx), SWITCH_OUT);
+  }
+  function slideIn(el, dx) {
+    el.animate([{ opacity: 0 }, { opacity: 1 }], FADE_IN);
+    return el.animate(inFrames(dx), SWITCH_IN);
+  }
   const boxWidth = () => (altView && altView.parentNode ? altView.parentNode.clientWidth : 320);
   const SLIDE_Y = 12; // data changes lift away and settle
   const DAY = 24 * 60 * 60 * 1000;
@@ -708,8 +722,8 @@
     const token = ++viewToken;
     switchLeftovers = leaving;
     const w = boxWidth();
-    leaving.forEach(el => el.animate(outFrames(-dir * w), SWITCH_OUT));
-    incoming.forEach(el => el.animate(inFrames(dir * w), SWITCH_IN));
+    leaving.forEach(el => slideOut(el, -dir * w));
+    incoming.forEach(el => slideIn(el, dir * w));
     setTimeout(() => { if (token === viewToken) finishSwitch(); }, SWITCH_OUT.duration + 20);
   }
   // Whatever the last switch left on screen: put away, animations cleared.
@@ -1034,8 +1048,8 @@
     oldPane.classList.add('pane-out');
     newPane.classList.add('active');
     const w = altView.clientWidth;
-    oldPane.animate(outFrames(-dir * w), SWITCH_OUT).finished.then(() => settlePaneOut(oldPane), () => settlePaneOut(oldPane));
-    newPane.animate(inFrames(dir * w), SWITCH_IN);
+    slideOut(oldPane, -dir * w).finished.then(() => settlePaneOut(oldPane), () => settlePaneOut(oldPane));
+    slideIn(newPane, dir * w);
   }
   function settlePaneOut(pane) {
     pane.getAnimations && pane.getAnimations().forEach(an => an.cancel());
