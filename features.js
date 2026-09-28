@@ -14,6 +14,14 @@
 // -------------------------------------------------------------
 (() => {
   const EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
+  // One motion for everything inside list 3's tabs, matched to the tab
+  // highlight's glide (520ms): what leaves eases out in 200ms, what arrives
+  // glides in over 320ms on the highlight's curve, so it lands with it.
+  const GLIDE = 'cubic-bezier(0.32, 0.72, 0, 1)';
+  const LEAVE = { duration: 200, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' };
+  const ARRIVE = { duration: 320, easing: GLIDE };
+  const SLIDE_X = 24; // tab switches slide sideways
+  const SLIDE_Y = 12; // data changes lift away and settle
   const DAY = 24 * 60 * 60 * 1000;
 
   // Everything here hooks into the app's own updates (loading your data at
@@ -662,14 +670,12 @@
       refreshToolbar();
       if (typeof altView.animate !== 'function') return;
       viewEls(view).forEach(el => el.animate(
-        [{ opacity: 0, transform: `translateX(${dir * 28}px)` }, { opacity: 1, transform: 'translateX(0)' }],
-        { duration: 350, easing: 'cubic-bezier(0.65, 0, 0.35, 1)' }));
+        [{ opacity: 0, transform: `translateX(${dir * SLIDE_X}px)` }, { opacity: 1, transform: 'translateX(0)' }], ARRIVE));
     };
     if (typeof altView.animate !== 'function' || !outgoing.length) return swap();
     let pending = outgoing.length;
     outgoing.forEach(el => el.animate(
-      [{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: `translateX(${-dir * 28}px)` }],
-      { duration: 200, easing: 'cubic-bezier(0.65, 0, 0.35, 1)', fill: 'forwards' }
+      [{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: `translateX(${-dir * SLIDE_X}px)` }], LEAVE
     ).finished.then(() => { if (--pending === 0) swap(); }, () => { if (--pending === 0) swap(); }));
   }
   // Keep the open view current as the data changes (imports, account
@@ -693,10 +699,9 @@
     if (oldNav) oldNav.style.visibility = 'hidden';
     oldPane.style.top = `${12 - scroll}px`;
     altView.appendChild(oldPane);
-    oldPane.animate([{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(-10px)' }],
-      { duration: 280, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' })
+    oldPane.animate([{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: `translateY(${-SLIDE_Y}px)` }], LEAVE)
       .finished.then(() => oldPane.remove(), () => {});
-    contentIn(altView.querySelector('.insights-pane:not(.pane-leaving)'), 150);
+    contentIn(altView.querySelector('.insights-pane:not(.pane-leaving)'), 120);
   }
   // The new content comes in as one block, the exit played backwards
   // (the changes view's switcher stays put, only what's under it moves).
@@ -704,8 +709,8 @@
     if (!pane || typeof pane.animate !== 'function') return;
     [...pane.children]
       .filter(ch => !ch.matches('.changes-nav') && !(ch.matches('.changes-pane') && !ch.classList.contains('active')))
-      .forEach(el => el.animate([{ opacity: 0, transform: 'translateY(-10px)' }, { opacity: 1, transform: 'none' }],
-        { duration: 280, delay, easing: 'cubic-bezier(0, 0, 0.2, 1)', fill: 'backwards' }));
+      .forEach(el => el.animate([{ opacity: 0, transform: `translateY(${-SLIDE_Y}px)` }, { opacity: 1, transform: 'none' }],
+        { ...ARRIVE, delay, fill: 'backwards' }));
   }
 
 
@@ -855,7 +860,7 @@
     if (!chart || typeof chart.animate !== 'function') return;
     chart.querySelectorAll('.trend-bar').forEach((bar, i) => bar.animate(
       [{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }],
-      { duration: 700, delay: i * 50, easing: EASE, fill: 'backwards' }));
+      { duration: 700, delay: i * 50, easing: GLIDE, fill: 'backwards' }));
   }
   function updateChart(wrap, fresh) {
     const cur = wrap.querySelector('.trend-chart:not(.trend-leaving)');
@@ -869,7 +874,7 @@
         if (!to || to === bar.style.height) return;
         const from = `${bar.getBoundingClientRect().height}px`;
         bar.style.height = to;
-        if (typeof bar.animate === 'function') bar.animate([{ height: from }, { height: to }], { duration: 600, easing: EASE });
+        if (typeof bar.animate === 'function') bar.animate([{ height: from }, { height: to }], { duration: 520, easing: GLIDE });
       });
       return;
     }
@@ -886,7 +891,7 @@
       { duration: 650, easing: 'cubic-bezier(0.55, 0, 0.45, 1)', fill: 'forwards' })
       .finished.then(() => cur.remove(), () => {});
     next.animate([{ transform: 'translateY(105%)', opacity: 0 }, { transform: 'translateY(0)', opacity: 1 }],
-      { duration: 750, delay: 520, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' });
+      { duration: 750, delay: 520, easing: GLIDE, fill: 'backwards' });
   }
 
   // ---------- changes view: its own tab switcher ----------
@@ -942,13 +947,11 @@
   // slides in the same way (in the direction of the tab).
   function paneIn(pane, dir = 1) {
     if (typeof pane.animate !== 'function') return;
-    pane.animate([{ opacity: 0, transform: `translateX(${dir * 18}px)` }, { opacity: 1, transform: 'none' }],
-      { duration: 280, easing: 'cubic-bezier(0, 0, 0.2, 1)' });
+    pane.animate([{ opacity: 0, transform: `translateX(${dir * SLIDE_X}px)` }, { opacity: 1, transform: 'none' }], ARRIVE);
   }
   function paneOut(pane, dir = 1) {
     if (typeof pane.animate !== 'function') return Promise.resolve();
-    return pane.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: `translateX(${-dir * 18}px)` }],
-      { duration: 200, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' }).finished.catch(() => {});
+    return pane.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: `translateX(${-dir * SLIDE_X}px)` }], LEAVE).finished.catch(() => {});
   }
 
 

@@ -5238,7 +5238,7 @@ button:focus-visible,
   border-bottom: none;
   box-sizing: border-box;
   transform-origin: bottom;
-  transition: transform 0.45s cubic-bezier(0.34, 1.4, 0.64, 1), background-color 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.52s cubic-bezier(0.32, 0.72, 0, 1); /* the tabs' glide */
 }
 /* Its box tapped: popped out and stays out. */
 .trend-bar.bar-on {
@@ -5594,7 +5594,7 @@ select,
 .insights-stat[style*="--stat"] {
   border-color: color-mix(in srgb, var(--stat) 70%, transparent) !important;
   background: color-mix(in srgb, var(--stat) 26%, transparent) !important;
-  transition: box-shadow 0.3s ease, background-color 0.3s ease;
+  transition: box-shadow 0.52s cubic-bezier(0.32, 0.72, 0, 1);
 }
 .insights-stat[style*="--stat"].stat-on {
   box-shadow: 0 0 0 1.5px var(--stat) inset;
