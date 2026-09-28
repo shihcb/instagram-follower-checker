@@ -2185,6 +2185,22 @@ body.hide-shortcuts #keyboard-hints {
   animation: paneFadeIn 0.2s ease-out;
 }
 
+/* Opening: the step is already there, the window's own fade is enough. */
+#instructions-modal-overlay.opening .instructions-step-pane.active {
+  animation: none;
+}
+
+/* Closing eases out evenly instead of dropping most of the way in the
+   first few frames (the opening curve), which looked like a snap on this
+   big window. Opening keeps the shared curve. */
+#instructions-modal-overlay:not(.show),
+#instructions-modal-overlay:not(.show) .account-modal-card {
+  -webkit-transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+                      -webkit-transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
 .instructions-next-btn {
   position: relative;
   overflow: hidden;

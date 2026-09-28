@@ -3253,23 +3253,28 @@ let currentInstructionStep = 1;
 
 function openInstructionsModal(step = 1) {
   if (!elements.instructionsModalOverlay) return;
+  const overlay = elements.instructionsModalOverlay;
   currentInstructionStep = step;
 
   const indicator = elements.instructionsNavIndicator || document.getElementById('instructions-nav-indicator');
+  // Everything inside is put in place before the window starts to fade in
+  // (it used to be done a frame into the animation: the step, the tab
+  // highlight and the tab bar's scroll all jumped while the window was
+  // appearing, which read as a snap). Laid out but still invisible here.
+  cancelOverlayHide(overlay);
+  overlay.classList.remove('hidden');
+  overlay.classList.add('opening');
   if (indicator) {
     indicator.classList.add('no-transition');
+    indicator._pos = null;
   }
-
-  showModalOverlay(elements.instructionsModalOverlay);
+  instructionsInstant = true;
+  updateInstructionsStepUI();
+  instructionsInstant = false;
+  if (indicator) indicator.classList.remove('no-transition');
+  showModalOverlay(overlay);
   lockPageScroll();
-  requestAnimationFrame(() => {
-    updateInstructionsStepUI();
-    setTimeout(() => {
-      if (indicator) {
-        indicator.classList.remove('no-transition');
-      }
-    }, 150);
-  });
+  setTimeout(() => overlay.classList.remove('opening'), 600);
 }
 
 function closeInstructionsModal() {
@@ -3283,6 +3288,13 @@ function closeInstructionsModal() {
   });
 }
 window.closeInstructionsModal = closeInstructionsModal;
+// Decode the step pictures ahead of time, while nothing's happening, so the
+// first open doesn't stall on them mid-animation.
+(window.requestIdleCallback || ((fn) => setTimeout(fn, 1500)))(() => {
+  document.querySelectorAll('#instructions-modal-overlay img').forEach(img => {
+    if (typeof img.decode === 'function') img.decode().catch(() => {});
+  });
+});
 // Shared with the insights window (features.js): same tab highlight/scroll.
 window.moveInstructionsIndicator = moveInstructionsIndicator;
 window.scrollInstructionsNav = scrollInstructionsNav;
@@ -3297,11 +3309,13 @@ window.scrollInstructionsNav = scrollInstructionsNav;
 // highlight's ease-in, so the highlight was first dragged back with the
 // tabs and then swung forward — the choppy part of the switch.
 const instructionsEase = cubicBezierEasing(0.65, 0, 0.35, 1);
+let instructionsInstant = false; // opening: jump straight there
 function scrollInstructionsNav(nav, target) {
   const start = nav.scrollLeft;
   const max = nav.scrollWidth - nav.clientWidth;
   const end = Math.max(0, Math.min(max, target));
   const token = (nav._scrollToken = {});
+  if (instructionsInstant) { nav.scrollLeft = end; return; }
   if (Math.abs(end - start) < 0.5) return;
   let t0 = null;
   const step = (now) => {
