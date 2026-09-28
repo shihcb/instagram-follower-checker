@@ -5116,7 +5116,7 @@ button:focus-visible,
 }
 .insights-section-title {
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 400;
   color: var(--text-main);
   margin: 6px 0 6px;
 }
