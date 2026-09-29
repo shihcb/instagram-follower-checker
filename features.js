@@ -1122,15 +1122,17 @@
     clearTimeout(altView._changesTimer);
     if (typeof newPane.animate !== 'function') { shown.forEach(p => settlePaneOut(p)); newPane.classList.add('active'); return; }
     const av = altView.getBoundingClientRect();
+    // Screen size to layout size (the guest preview draws the app scaled).
+    const k = altView.offsetWidth ? av.width / altView.offsetWidth : 1;
     // Lists still in the flow are pinned where they are before the new one
     // joins it.
     shown.filter(p => p !== newPane && !p.classList.contains('pane-out')).forEach(p => {
       const r = p.getBoundingClientRect();
-      Object.assign(p.style, { position: 'absolute', top: `${r.top - av.top + altView.scrollTop}px`, left: `${r.left - av.left}px`, width: `${r.width}px` });
+      Object.assign(p.style, { position: 'absolute', top: `${(r.top - av.top) / k - altView.clientTop + altView.scrollTop}px`, left: `${(r.left - av.left) / k - altView.clientLeft}px`, width: `${p.offsetWidth}px`, height: `${p.offsetHeight}px` });
       p.classList.add('pane-out');
     });
     newPane.classList.remove('pane-out');
-    newPane.style.position = newPane.style.top = newPane.style.left = newPane.style.width = '';
+    newPane.style.position = newPane.style.top = newPane.style.left = newPane.style.width = newPane.style.height = '';
     newPane.classList.add('active');
     const w = altView.clientWidth;
     const D = TAB_MOTION.in.duration;
@@ -1158,7 +1160,7 @@
     pane.getAnimations && pane.getAnimations().forEach(an => an.cancel());
     pane.classList.remove('pane-out');
     if (pane.dataset.pane !== changesTab) pane.classList.remove('active');
-    pane.style.position = pane.style.top = pane.style.left = pane.style.width = '';
+    pane.style.position = pane.style.top = pane.style.left = pane.style.width = pane.style.height = '';
   }
   // Switching changes tabs: the whole list box slides out, the new one
   // slides in the same way (in the direction of the tab).
