@@ -5772,7 +5772,7 @@ select,
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  padding: 4px 8px 8px;
+  padding: 8px; /* the same as list 3's own list: rows line up tab to tab */
   display: flex;
   flex-direction: column;
   position: relative;
