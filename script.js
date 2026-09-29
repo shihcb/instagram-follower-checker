@@ -1333,8 +1333,13 @@ function reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, rename
   // own scrolled viewport, in the same layout px.
   const listRect = listEl.getBoundingClientRect();
   const visualScale = (listRect.height / listEl.offsetHeight) || 1;
-  const viewTop = listEl.scrollTop;
-  const viewBottom = viewTop + listEl.clientHeight;
+  // "On screen" is generous — a screen's height either side of the list's
+  // view: the page's layout can still move right after this (a pill above
+  // the list hiding, the phone's toolbar), and a row judged just out of
+  // sight then showed up in place while the rest slid in.
+  const margin = window.innerHeight || 800;
+  const viewTop = listEl.scrollTop - margin;
+  const viewBottom = listEl.scrollTop + listEl.clientHeight + margin;
   const offScreen = (top, height) => top + height <= viewTop || top >= viewBottom;
   const anyRow = live.values().next().value || listEl.querySelector('.user-row');
   const rowGap = anyRow ? (parseFloat(getComputedStyle(anyRow).marginBottom) || 0) : 0;
@@ -1471,7 +1476,10 @@ function animateResultsReentry(listEl, previousTops, resumeTops = new Map(), { e
   const visualScale = (listEl.getBoundingClientRect().height / listEl.offsetHeight) || 1;
 
   const listRect = listEl.getBoundingClientRect();
-  const offScreen = (top, height) => top + height <= listRect.top || top >= listRect.bottom;
+  // Generous (see reconcileUnfollowerRows): a row just past the list's
+  // edge right now can be in view a moment later.
+  const margin = window.innerHeight || 800;
+  const offScreen = (top, height) => top + height <= listRect.top - margin || top >= listRect.bottom + margin;
   rows.forEach(row => {
     const previousTop = previousTops.get(row.dataset.username);
     const resumeTop = resumeTops.get(row.dataset.username);
@@ -1489,7 +1497,7 @@ function animateResultsReentry(listEl, previousTops, resumeTops = new Map(), { e
       if (!enter) return;
       // Only rows actually on screen — pasting a whole list can add hundreds.
       const rect = row.getBoundingClientRect();
-      if (rect.bottom <= listRect.top || rect.top >= listRect.bottom) return;
+      if (offScreen(rect.top, rect.height)) return;
       // New to the list: slide down into place from one row pitch above,
       // emerging from its own slot's top edge (see slideRowIn).
       const marginBottom = parseFloat(getComputedStyle(row).marginBottom) || 0;

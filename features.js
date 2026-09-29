@@ -84,6 +84,9 @@
     state.unfollowers = list;
     }, 'sort');
     safe(refreshUndo, 'undo'); // the steps belong to the account on screen
+    // The toolbar first: its reminder pill showing or hiding moves list 3's
+    // box, and doing that after the rows were placed left one unanimated.
+    safe(refreshToolbar, 'toolbar');
     const result = baseUpdateResultsUI.call(this, opts);
     safe(keepSelection, 'selection');
     safe(refreshToolbar, 'toolbar');
