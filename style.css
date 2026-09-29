@@ -5955,3 +5955,9 @@ select,
 .love-overlay:not(.show) .love-heart-float {
   animation-play-state: paused;
 }
+/* Pending requests: list 3's rows, sliding in and out inside this list. */
+.results-extra .pending-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}

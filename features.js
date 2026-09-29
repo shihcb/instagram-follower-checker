@@ -1310,6 +1310,7 @@
       pane.appendChild(fresh);
       return;
     }
+    if (id === 'pending') { swapPendingRows(pane, old, fresh); return; }
     const scroll = old.scrollTop;
     old.classList.add('extra-leaving');
     old.scrollTop = scroll;
@@ -1322,6 +1323,42 @@
     setTimeout(drop, LEAVE.duration + 400);
     [...fresh.children].filter(el => !(keepSub && el.matches('.insights-sub')))
       .forEach(el => el.animate(MODAL_IN, { duration: 450, easing: MODAL_EASE, delay: LEAVE.duration, fill: 'backwards' }));
+  }
+  // Pending requests change like list 3's rows (an account picked, files
+  // imported): the boxes on screen slide out, the new ones slide in, each
+  // with list 3's own row slide (script.js's row engine).
+  function swapPendingRows(pane, old, fresh) {
+    const oldRows = [...old.querySelectorAll('.pending-list > .user-row:not(.username-exit)')];
+    const gapOf = (r) => (r ? parseFloat(getComputedStyle(r).marginBottom) || 0 : 6);
+    const gap = gapOf(oldRows[0]);
+    const was = oldRows.map(r => ({ r, rect: r.getBoundingClientRect(), pitch: r.offsetHeight + gap }));
+    oldRows.forEach(r => stopRowMotion(r));
+    old.replaceWith(fresh);
+    const list = fresh.querySelector('.pending-list');
+    const host = list || fresh;
+    const hr = host.getBoundingClientRect();
+    const k = host.offsetWidth ? hr.width / host.offsetWidth : 1;
+    const margin = window.innerHeight || 800;
+    const seen = (top, bottom) => bottom > -margin && top < window.innerHeight + margin;
+    // Leaving: pinned where they were drawn, sliding out like a removed row.
+    was.forEach(({ r, rect, pitch }) => {
+      if (!seen(rect.top, rect.bottom)) return;
+      Object.assign(r.style, { position: 'absolute', top: `${(rect.top - hr.top) / k - host.clientTop + host.scrollTop}px`, left: `${(rect.left - hr.left) / k - host.clientLeft}px`, width: `${rect.width / k}px`, margin: '0', zIndex: '1' });
+      r.classList.add('username-exit');
+      host.appendChild(r);
+      slideRowOut(r, pitch, ROW_MOTION_MS, () => r.remove());
+    });
+    // Coming: each slides down into its place, like a row added to list 3.
+    if (list) {
+      list.querySelectorAll(':scope > .user-row:not(.username-exit)').forEach(r => {
+        const rr = r.getBoundingClientRect();
+        if (seen(rr.top, rr.bottom)) slideRowIn(r, r.offsetHeight + gapOf(r), ROW_MOTION_MS);
+      });
+    } else {
+      // Now empty: its text comes in once the boxes have gone.
+      const msg = fresh.querySelector('.dropdown-empty-message');
+      if (msg && was.length && typeof msg.animate === 'function') msg.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 320, delay: ROW_MOTION_MS, easing: MODAL_EASE, fill: 'backwards' });
+    }
   }
   function renderExtras(animate = true) {
     Object.keys(extraPanes).forEach(id => renderExtra(id, animate));
