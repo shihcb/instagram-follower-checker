@@ -1099,6 +1099,18 @@ function renderUnfollowerRowHtml(user, index) {
 // extends or shortens one already shown (@co -> @coo) is the same row
 // being edited — it updates in place instead of sliding out and back in
 // after every pause in typing.
+// List 3 with nothing in it says so ("no unfollowers", or "no matches"
+// while searching), centered in the box; `fade`: it fades in, once the last
+// rows have slid out.
+function showResultsEmpty(fade) {
+  const el = elements.emptyState;
+  const text = elements.searchUnfollowers.value.trim() ? 'no matches' : 'no unfollowers';
+  if (el.textContent.trim() !== text) el.innerHTML = `<div class="dropdown-empty-message">${text}</div>`;
+  const was = !el.classList.contains('hidden');
+  el.classList.remove('hidden');
+  if (fade && !was && typeof el.animate === 'function') el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 320, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' });
+}
+
 function updateResultsUI({ animate = false, matchRenames = false } = {}) {
   const listEl = elements.listUnfollowers;
   listEl._rowTailToken = null; // this render decides the rows now
@@ -1241,6 +1253,7 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
       // search that simply matches nothing).
       if (!listEl.querySelector('.user-row:not(.username-exit)')) {
         listEl.classList.add('hidden');
+        showResultsEmpty(true);
       }
     };
     setTimeout(hideWhenDone, ROW_MOTION_MS);
@@ -1251,7 +1264,7 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
     listEl.querySelectorAll('.user-row').forEach(stopRowMotion);
     listEl.innerHTML = '';
     elements.listUnfollowers.classList.add('hidden');
-    elements.emptyState.classList.add('hidden');
+    showResultsEmpty(false);
   }
 }
 

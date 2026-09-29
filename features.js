@@ -1190,8 +1190,8 @@
   let resultsSubnav = null;
   const extraPanes = {};
   const EXTRA_TEXT = {
-    pending: { sub: '', empty: 'no pending follow requests', missing: 'requests you sent that are still pending' },
-    closeFriends: { sub: '', empty: 'your close friends list is empty', missing: 'close friends' },
+    pending: { sub: '', empty: 'no pending requests', missing: 'requests you sent that are still pending' },
+    closeFriends: { sub: '', empty: 'no close friends', missing: 'close friends' },
     blocked: { sub: '', empty: 'no blocked accounts', missing: 'blocked accounts' },
     restricted: { sub: '', empty: 'no restricted accounts', missing: 'restricted accounts' }
   };
@@ -1281,7 +1281,7 @@
     const text = EXTRA_TEXT[id];
     const list = extraListsNow()[id];
     if (!Array.isArray(list)) {
-      return { sub: '', body: `<div class="dropdown-empty-message">import your instagram export folder to see your ${text.missing}</div>` };
+      return { sub: '', body: `<div class="dropdown-empty-message">${text.empty}</div>` };
     }
     let users = list;
     let flagOf = null;
