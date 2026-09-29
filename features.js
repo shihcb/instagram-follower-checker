@@ -625,10 +625,18 @@
       if (tab) { e.stopPropagation(); showChangesTab(tab.dataset.change); }
     });
     // Park the highlight under "results" once the bar has a size.
+    // Re-places the highlight after a real change in the tabs' size or
+    // position. iPhone Safari fires "resize" constantly (its toolbars grow
+    // and shrink); re-placing then cut the slide short and it snapped onto
+    // the tab. A slide that's playing, or a highlight already on its tab,
+    // is left alone.
     const place = () => {
       const active = viewNav.querySelector('.insights-tab.active');
       if (!active || !active.offsetWidth) return;
       const indicator = viewNav.querySelector('.list3-views-indicator');
+      const running = indicator._anims && indicator._anims.some(an => an.playState === 'running');
+      const pos = indicator._pos;
+      if (running || (pos && Math.abs(pos.x - active.offsetLeft) < 0.5 && Math.abs(pos.w - active.offsetWidth) < 0.5)) return;
       indicator._pos = null;
       moveInstructionsIndicator(indicator, active);
       // A restored tab near the end (stats) scrolled into view.

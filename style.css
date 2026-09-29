@@ -2265,7 +2265,12 @@ body.hide-shortcuts #keyboard-hints {
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3) !important;
 }
 
+/* Sized from its width/height attributes before it has loaded (Safari laid
+   a step out with the picture at no height for a moment, then the content
+   jumped up when it appeared). */
 .step-guide-img {
+  width: auto;
+  height: auto;
   max-width: 100%;
   max-height: 190px;
   border-radius: 10px;
