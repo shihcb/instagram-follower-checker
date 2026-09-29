@@ -6024,3 +6024,9 @@ select,
   max-width: 100%;
   box-sizing: border-box;
 }
+/* Every switcher inside a view (changes, stats) sits exactly where the
+   results one does: 8px in from the box's top and sides (the views' own
+   padding is 12px). */
+.list3-alt-view .insights-pane > .changes-nav {
+  margin: -4px -4px 12px;
+}
