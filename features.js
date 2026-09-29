@@ -1191,9 +1191,9 @@
   const extraPanes = {};
   const EXTRA_TEXT = {
     pending: { sub: '', empty: 'no pending follow requests', missing: 'requests you sent that are still pending' },
-    closeFriends: { sub: 'your close friends list', empty: 'your close friends list is empty', missing: 'close friends' },
-    blocked: { sub: "accounts you've blocked", empty: 'no blocked accounts', missing: 'blocked accounts' },
-    restricted: { sub: "accounts you've restricted", empty: 'no restricted accounts', missing: 'restricted accounts' }
+    closeFriends: { sub: '', empty: 'your close friends list is empty', missing: 'close friends' },
+    blocked: { sub: '', empty: 'no blocked accounts', missing: 'blocked accounts' },
+    restricted: { sub: '', empty: 'no restricted accounts', missing: 'restricted accounts' }
   };
   const extraListsNow = () => readExtraLists(state.selectedAccountUsername);
   const mainPanes = () => [document.getElementById('unfollowers-empty-state'), elements.listUnfollowers].filter(Boolean);
