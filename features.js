@@ -883,7 +883,7 @@
           <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${grid}${series.map(([k, , c]) => `<path class="tl-line" d="${path(k)}" style="--c:${c}"/>`).join('')}</svg>
           ${dots}
         </div>
-        <div class="timeline-dates">${dateSpans(!real ? [Date.now() - 150 * DAY, Date.now() - 60 * DAY] : single ? [t1] : [t0, t1])}</div>
+        <div class="timeline-dates">${dateSpans(!real ? [new Date(new Date().getFullYear(), 9, 9).getTime(), new Date(new Date().getFullYear(), 9, 9).getTime()] : single ? [t1] : [t0, t1])}</div>
       </div>`;
   }
   // New numbers: the lines bend from where they are into their new shape
