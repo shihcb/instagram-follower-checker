@@ -18,7 +18,13 @@
   // highlight's glide (520ms): what leaves eases out in 200ms, what arrives
   // glides in over 320ms on the highlight's curve, so it lands with it.
   const GLIDE = 'cubic-bezier(0.32, 0.72, 0, 1)';
-  const LEAVE = { duration: 200, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' };
+  // Content changing inside a view (an account picked, files imported):
+  // the instructions window's own motion — out like it closes, in like it
+  // opens: an even 0.45s, fading while sinking 14px and easing to 95%.
+  const MODAL_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
+  const MODAL_OUT = [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(14px) scale(0.95)' }];
+  const MODAL_IN = [{ opacity: 0, transform: 'translateY(14px) scale(0.95)' }, { opacity: 1, transform: 'none' }];
+  const LEAVE = { duration: 450, easing: MODAL_EASE, fill: 'forwards' };
   const ARRIVE = { duration: 320, easing: GLIDE };
   const SLIDE_X = 24; // tab switches slide sideways
   // Switching tabs: a push, like iOS navigation — the view you leave slides
@@ -844,16 +850,16 @@
     oldPane.classList.add('pane-leaving');
     // The changes view's switcher stays put (the new one sits exactly where
     // the old one was); only what's under it swaps.
-    const oldNav = oldPane.querySelector('.changes-nav');
-    if (oldNav) oldNav.style.visibility = 'hidden';
+    // So do the views' explanation lines ("they follow you, but you don't
+    // follow them back"): they don't animate at all.
+    oldPane.querySelectorAll(':scope > .changes-nav, :scope > .insights-sub').forEach(el => { el.style.visibility = 'hidden'; });
     oldPane.style.top = `${12 - scroll}px`;
     altView.appendChild(oldPane);
     // Gone once it has faded — and also if the fade gets interrupted (a
     // phone can while the page is still loading), with a backup timer: a
     // leftover used to sit on top of the new content after a reload.
     const drop = () => oldPane.remove();
-    oldPane.animate([{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: `translateY(${-SLIDE_Y}px)` }], LEAVE)
-      .finished.then(drop, drop);
+    oldPane.animate(MODAL_OUT, LEAVE).finished.then(drop, drop);
     setTimeout(drop, LEAVE.duration + 400);
     // The new content only comes in once the old has gone, so the two never
     // show on top of each other (two texts in the same spot did).
@@ -864,9 +870,8 @@
   function contentIn(pane, delay = 0) {
     if (!pane || typeof pane.animate !== 'function') return;
     [...pane.children]
-      .filter(ch => !ch.matches('.changes-nav') && !(ch.matches('.changes-pane') && !ch.classList.contains('active')))
-      .forEach(el => el.animate([{ opacity: 0, transform: `translateY(${-SLIDE_Y}px)` }, { opacity: 1, transform: 'none' }],
-        { ...ARRIVE, delay, fill: 'backwards' }));
+      .filter(ch => !ch.matches('.changes-nav, .insights-sub') && !(ch.matches('.changes-pane') && !ch.classList.contains('active')))
+      .forEach(el => el.animate(MODAL_IN, { duration: 450, easing: MODAL_EASE, delay, fill: 'backwards' }));
   }
 
 

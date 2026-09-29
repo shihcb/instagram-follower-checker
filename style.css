@@ -3279,9 +3279,10 @@ body.is-capacitor.auth-logged-out #theme-toggle {
      close actually gets to play instead of being cut short by the
      display:none it used to snap to), but flips to visible with no delay
      when opening. */
-  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              visibility 0s linear 0.6s;
+  /* The instructions window's motion: an even 0.45s both ways. */
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0s linear 0.45s;
 }
 
 .auth-dropdown.show {
@@ -3289,8 +3290,8 @@ body.is-capacitor.auth-logged-out #theme-toggle {
   visibility: visible;
   transform: translateY(0) scale(1);
   pointer-events: auto;
-  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
               visibility 0s linear 0s;
 }
 

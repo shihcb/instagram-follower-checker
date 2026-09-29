@@ -5275,9 +5275,21 @@ function initAuth() {
     if (document.activeElement && typeof document.activeElement.blur === 'function') {
       document.activeElement.blur();
     }
-    elements.authDropdown.classList.toggle('show');
-    if (elements.authDropdown.classList.contains('show')) {
+    // Opening: drawn once (still invisible) before it fades in, like the
+    // pop-ups, so a first open can't eat the start of the animation.
+    const dd = elements.authDropdown;
+    if (dd.classList.contains('show') || dd._opening) {
+      dd._opening = null;
+      dd.classList.remove('show');
+    } else {
       updateResetReminderUI();
+      const token = (dd._opening = {});
+      dd.style.visibility = 'visible';
+      void dd.offsetWidth;
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        dd.style.visibility = '';
+        if (dd._opening === token) { dd._opening = null; dd.classList.add('show'); }
+      }));
     }
   });
 
