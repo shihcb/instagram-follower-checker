@@ -549,7 +549,12 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { place(); placeChangesIndicator(); });
     window.addEventListener('resize', place);
     // Searching or jumping to list 3 by keyboard brings the results back.
-    elements.searchUnfollowers && elements.searchUnfollowers.addEventListener('focus', () => { showView('results'); showResultsSub('unfollowers'); });
+    // One step (two queued separately, the second replaced the first).
+    elements.searchUnfollowers && elements.searchUnfollowers.addEventListener('focus', () => queueSwitch(viewGate, () => {
+      if (currentView === 'results') { switchResultsSub('unfollowers'); return; }
+      jumpResultsSub('unfollowers'); // not on screen: no slide needed
+      switchView('results');
+    }));
     if (window.ResizeObserver) new ResizeObserver(place).observe(viewNav);
   }
   // What's showing in the box for a view.
@@ -1295,16 +1300,13 @@
   // instead left it showing outside its list mid-slide on iPhone.
   function centerEmpties() {
     const box = document.querySelector('#card-unfollowers .results-container');
-    if (!box) return;
-    if (resultsSubnav && resultsSubnav.getClientRects().length) {
-      box.style.setProperty('--extra-shift', `${-(resultsSubnav.offsetTop + resultsSubnav.offsetHeight) / 2}px`);
-    }
-    const pane = altView && altView.querySelector(':scope > .insights-pane:not(.pane-leaving) > .changes-pane.active');
-    if (pane && pane.getClientRects().length) {
-      let top = 0, el = pane;
-      while (el && el !== box) { top += el.offsetTop; el = el.offsetParent; }
-      if (el === box) altView.style.setProperty('--pane-shift', `${(box.clientHeight - top - pane.offsetHeight - top) / 2}px`);
-    }
+    if (!box || !viewNav || !viewNav.offsetHeight) return;
+    // Every switcher is the same bar as list 3's own (always on screen),
+    // 8px in from the box's top: results' lists start 4px under it, the
+    // views' 12px (and end 12px above the box's bottom).
+    const h = viewNav.offsetHeight;
+    box.style.setProperty('--extra-shift', `${-(8 + h + 4) / 2}px`);
+    box.style.setProperty('--pane-shift', `${-(h + 8) / 2}px`);
   }
   const centerSoon = () => requestAnimationFrame(() => safe(centerEmpties, 'empty texts'));
 
@@ -1366,6 +1368,7 @@
     const nav = resultsSubnav.querySelector('.changes-nav');
     requestAnimationFrame(() => placeSubIndicator(nav));
     if (window.ResizeObserver) new ResizeObserver(centerSoon).observe(box);
+    centerEmpties();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeSubIndicator(nav));
   }
   function showResultsSub(id) {
@@ -1408,6 +1411,21 @@
         </div>`;
       }).join('')}</div>`
     : `<div class="dropdown-empty-message">${empty}</div>`);
+  // Straight to a results tab, no slide (for when the results aren't on
+  // screen). The highlight is re-placed once the switcher shows again.
+  function jumpResultsSub(id) {
+    if (!resultsSubnav || subTab.results === id) return;
+    subTab.results = id;
+    try { localStorage.setItem('results_sub', id); } catch (e) {}
+    const box = resultsSubnav.parentNode;
+    settleSub(box);
+    resultsSubnav.querySelectorAll('[data-sub]').forEach(t => t.classList.toggle('active', t.dataset.sub === id));
+    const ind = resultsSubnav.querySelector('.changes-indicator');
+    if (ind) ind._pos = null;
+    box.classList.toggle('sub-extra', id !== 'unfollowers');
+    resultsPanes().forEach(p => { p.classList.remove('pane-out'); clearPin(p); p.classList.toggle('sub-on', p.classList.contains('results-extra') ? p.dataset.sub === id : id === 'unfollowers'); });
+    refreshToolbar();
+  }
   function extraContent(id) {
     const text = EXTRA_TEXT[id];
     const list = extraListsNow()[id];
