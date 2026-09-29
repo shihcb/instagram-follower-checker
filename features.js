@@ -834,9 +834,20 @@
   function timelineHtml(key) {
     const hist = key === DEMO_ID ? [] : readJSON(`import_history_${key}`, [])
       .filter(h => h && Number.isFinite(h.date) && Number.isFinite(h.following) && Number.isFinite(h.followers));
-    const real = hist.length >= 2;
-    const pts = real ? hist.map(h => ({ t: h.date, a: h.following, b: h.followers }))
-      : MOCK_TIMELINE.map(([a, b], i) => ({ t: i, a, b }));
+    // Real as soon as there's data: each import, and now (if the lists have
+    // changed since). With one point only, it's drawn as a flat line.
+    const nowA = state.following.length, nowB = state.followers.length;
+    const real = nowA > 0 || nowB > 0;
+    let pts;
+    let single = false;
+    if (real) {
+      pts = hist.map(h => ({ t: h.date, a: h.following, b: h.followers }));
+      const lastH = pts[pts.length - 1];
+      if (!lastH || lastH.a !== nowA || lastH.b !== nowB) pts.push({ t: Date.now(), a: nowA, b: nowB });
+      if (pts.length === 1) { single = true; pts = [{ ...pts[0], t: pts[0].t - DAY }, pts[0]]; }
+    } else {
+      pts = MOCK_TIMELINE.map(([a, b], i) => ({ t: i, a, b }));
+    }
     const W = 320, H = 150, PX = 6, PY = 14;
     const vals = pts.flatMap(p => [p.a, p.b]);
     let lo = Math.min(...vals), hi = Math.max(...vals);
@@ -857,12 +868,12 @@
     // lines from one set of points to the next (morphTimeline).
     const shape = pts.map((p, i) => `${x(p, i).toFixed(1)},${y(p.a).toFixed(1)},${y(p.b).toFixed(1)}`).join(';');
     return `<div class="timeline${real ? '' : ' timeline-mock'}" data-sig="${sig}" data-pts="${shape}">
-        <div class="timeline-legend">${series.map(([k, label, c]) => `<span class="timeline-key" style="--c:${c}"><i></i>${label}<b>${last[k]}</b></span>`).join('')}</div>
+        <div class="timeline-legend">${series.map(([k, label, c]) => `<span class="timeline-key" style="--c:${c}"><i></i>${label}<b>${real ? last[k] : 0}</b></span>`).join('')}</div>
         <div class="timeline-chart"${real ? '' : ' aria-hidden="true"'}>
           <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${grid}${series.map(([k, , c]) => `<path class="tl-line" d="${path(k)}" style="--c:${c}"/>`).join('')}</svg>
           ${dots}
         </div>
-        <div class="timeline-dates">${real ? `<span>${shortDate(t0)}</span><span>${shortDate(t1)}</span>` : '<span>shows up after your second import</span>'}</div>
+        <div class="timeline-dates">${!real ? '' : single ? `<span>${shortDate(t1)}</span>` : `<span>${shortDate(t0)}</span><span>${shortDate(t1)}</span>`}</div>
       </div>`;
   }
   // New numbers: the lines bend from where they are into their new shape
@@ -883,7 +894,6 @@
       }
       return pts[pts.length - 1][k];
     };
-    tl.className = fresh.className;
     tl.dataset.sig = fresh.dataset.sig;
     tl.dataset.pts = fresh.dataset.pts;
     // Legend: the numbers count from the old to the new.
@@ -905,6 +915,10 @@
     dots.forEach(d => chart.appendChild(d));
     const paths = [...chart.querySelectorAll('.tl-line')];
     [...fresh.querySelectorAll('.tl-line')].forEach((p, i) => { if (paths[i]) paths[i].setAttribute('style', p.getAttribute('style')); });
+    // The colors change last, once the pieces above have their current
+    // (grey or old) color on screen, so it eases across instead of jumping.
+    tl.querySelectorAll('.tl-line, .tl-dot, .timeline-key i, .timeline-key b').forEach(el => { const cs = getComputedStyle(el); void (cs.stroke + cs.borderColor + cs.backgroundColor + cs.color); });
+    tl.className = fresh.className;
     const token = (tl._morph = {});
     const t0 = performance.now();
     const draw = (e) => {

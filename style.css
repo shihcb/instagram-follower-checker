@@ -5901,15 +5901,16 @@ select,
 .timeline-dates > span:only-child {
   margin: 0 auto;
 }
-/* Before a second import: a greyed-out example, like the overview's. */
+/* No data yet: a greyed-out example in exactly the overview's example
+   grey (its bars' outline). */
 .timeline-mock .tl-line {
-  stroke: color-mix(in srgb, var(--text-muted) 35%, transparent);
+  stroke: color-mix(in srgb, var(--text-muted) 30%, transparent);
 }
 .timeline-mock .tl-dot {
-  border-color: color-mix(in srgb, var(--text-muted) 40%, transparent);
+  border-color: color-mix(in srgb, var(--text-muted) 30%, transparent);
 }
 .timeline-mock .timeline-key i {
-  background: color-mix(in srgb, var(--text-muted) 40%, transparent);
+  background: color-mix(in srgb, var(--text-muted) 30%, transparent);
 }
 
 /* Export window: the stats picture, under the lists (a button, not a
