@@ -3399,6 +3399,22 @@ function setupEventListeners() {
     });
   }
 
+  // Upload zip: the same file picker and import as "upload files", showing
+  // only .zip files (Instagram's export as it arrives).
+  const btnUploadZip = document.getElementById('btn-upload-zip');
+  if (btnUploadZip && elements.importFilesInput) {
+    const input = elements.importFilesInput;
+    const allFiles = input.getAttribute('accept');
+    const restore = () => input.setAttribute('accept', allFiles);
+    input.addEventListener('change', restore);
+    window.addEventListener('focus', () => setTimeout(restore, 500)); // picker closed without a choice
+    btnUploadZip.addEventListener('click', () => {
+      closeImportMenu();
+      input.setAttribute('accept', '.zip,application/zip');
+      input.click();
+    });
+  }
+
   if (elements.btnUploadFiles) {
     elements.btnUploadFiles.addEventListener('click', () => {
       closeImportMenu(); // gone by the time the files come back
