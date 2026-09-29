@@ -84,7 +84,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=347">
+  <link rel="stylesheet" href="style.css?v=348">
   <!-- Supabase Client Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -627,6 +627,8 @@
         <button class="instructions-tab" data-step="5">5. check results</button>
       </div>
 
+      <!-- All steps share one spot (stacked): switching never changes the layout. -->
+      <div class="instructions-steps">
       <!-- Step 1: Accounts Center -->
       <div class="instructions-step-pane active" id="instructions-step-1">
         <div class="step-image-container">
@@ -683,6 +685,7 @@
           <li>turn on <strong>auto-open next profile</strong> in settings to open profiles one after another</li>
         </ol>
       </div>
+      </div>
 
       <div class="instructions-modal-footer">
         <div class="instructions-step-dots">
@@ -724,7 +727,7 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="script.js?v=332"></script>
+  <script src="script.js?v=333"></script>
   <script src="features.js?v=60"></script>
 </body>
 </html>

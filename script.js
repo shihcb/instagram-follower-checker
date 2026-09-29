@@ -3373,7 +3373,7 @@ window.scrollInstructionsNav = scrollInstructionsNav;
 // easing. The browser's own smooth scroll starts much faster than the
 // highlight's ease-in, so the highlight was first dragged back with the
 // tabs and then swung forward — the choppy part of the switch.
-const instructionsEase = cubicBezierEasing(0.16, 1, 0.3, 1); // the highlight's (IND_EASE)
+const instructionsEase = cubicBezierEasing(0.4, 0, 0.2, 1); // the highlight's (IND_EASE)
 let instructionsInstant = false; // opening: jump straight there
 function scrollInstructionsNav(nav, target) {
   const max = nav.scrollWidth - nav.clientWidth;
@@ -3411,8 +3411,10 @@ function scrollInstructionsNav(nav, target) {
 // All three share one timing, so they stay joined the whole way.
 const IND_CAP = 9;       // cap width (a little over the corner radius)
 const IND_MID_BASE = 100; // the middle's unscaled width
-const IND_MS = 600;  // the instructions window's opening timing
-const IND_EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
+const IND_MS = 560;
+// A gentle glide that starts softly: the window's fast-start curve covered
+// most of the distance in the first few frames, which read as a snap.
+const IND_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
 function indicatorParts(indicator) {
   if (indicator._parts) return indicator._parts;
   indicator.classList.add('ind-split');
@@ -3460,8 +3462,6 @@ function moveInstructionsIndicator(indicator, tab) {
 function settleStepOut(pane) {
   pane.getAnimations && pane.getAnimations().forEach(an => an.cancel());
   pane.classList.remove('pane-out');
-  if (parseInt(pane.id.replace('instructions-step-', ''), 10) !== currentInstructionStep) pane.classList.remove('active');
-  pane.style.position = pane.style.top = pane.style.left = pane.style.width = pane.style.height = '';
 }
 
 function updateInstructionsStepUI() {
@@ -3502,35 +3502,22 @@ function updateInstructionsStepUI() {
   const indicator = elements.instructionsNavIndicator || document.getElementById('instructions-nav-indicator');
   if (indicator && activeTab) moveInstructionsIndicator(indicator, activeTab);
 
-  // Changing steps: the step you leave slides and fades out while the new
-  // one slides and fades in (the same motion as every tab switcher).
-  const oldPane = [...panes].find(p => p.classList.contains('active') && !p.classList.contains('pane-out'));
+  // Changing steps: every step sits in the same spot (stacked), always laid
+  // out, and only the current one shows — so switching never changes the
+  // layout and nothing can jump. The step you leave slides and fades out
+  // while the new one slides and fades in (the tab switchers' motion).
+  const oldPane = [...panes].find(p => p.classList.contains('active'));
   const newPane = [...panes].find(p => parseInt(p.id.replace('instructions-step-', ''), 10) === currentInstructionStep);
   panes.forEach(p => { if (p.classList.contains('pane-out')) settleStepOut(p); });
-  // Pin the step that's leaving where it is *before* the new one joins the
-  // layout: measured after, the two shared the space for a moment and the
-  // leaving step jumped up as it slid out.
-  const sliding = oldPane && newPane && oldPane !== newPane && !instructionsInstant && typeof newPane.animate === 'function';
-  if (sliding) {
-    const parent = newPane.parentElement;
-    if (getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
-    const pr = parent.getBoundingClientRect(), r = oldPane.getBoundingClientRect();
-    const scale = (pr.width / parent.offsetWidth) || 1;
-    Object.assign(oldPane.style, { position: 'absolute', top: `${(r.top - pr.top) / scale}px`, left: `${(r.left - pr.left) / scale}px`, width: `${r.width / scale}px`, height: `${r.height / scale}px` });
-    oldPane.classList.add('pane-out');
-  }
-  panes.forEach((pane) => {
-    const s = parseInt(pane.id.replace('instructions-step-', ''), 10);
-    pane.classList.toggle('active', s === currentInstructionStep || (pane === oldPane && oldPane !== newPane));
-  });
-  if (sliding) {
+  panes.forEach(p => p.classList.toggle('active', p === newPane));
+  if (oldPane && newPane && oldPane !== newPane && !instructionsInstant && typeof newPane.animate === 'function') {
     const oldStep = parseInt(oldPane.id.replace('instructions-step-', ''), 10);
     const dir = currentInstructionStep > oldStep ? 1 : -1;
     const w = newPane.parentElement.clientWidth;
+    newPane.getAnimations().forEach(an => an.cancel());
+    oldPane.classList.add('pane-out');
     tabSlideOut(oldPane, -dir * w).finished.then(() => settleStepOut(oldPane), () => settleStepOut(oldPane));
     tabSlideIn(newPane, dir * w);
-  } else if (oldPane && oldPane !== newPane) {
-    oldPane.classList.remove('active');
   }
 
   dots.forEach((dot) => {

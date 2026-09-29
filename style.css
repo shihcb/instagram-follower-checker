@@ -2196,6 +2196,29 @@ body.hide-shortcuts #keyboard-hints {
   to { opacity: 1; }
 }
 
+/* The steps, stacked in one cell: always laid out, only the current one
+   (and one sliding out) visible. */
+.instructions-steps {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template: 1fr / 1fr;
+  position: relative;
+  overflow: hidden;
+}
+.instructions-steps > .instructions-step-pane {
+  grid-area: 1 / 1;
+  display: flex !important;
+  visibility: hidden;
+  pointer-events: none;
+}
+.instructions-steps > .instructions-step-pane.active,
+.instructions-steps > .instructions-step-pane.pane-out {
+  visibility: visible;
+}
+.instructions-steps > .instructions-step-pane.active {
+  pointer-events: auto;
+}
 .instructions-step-pane {
   display: none;
   flex-direction: column;
