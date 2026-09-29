@@ -853,8 +853,11 @@
     const dots = series.map(([k, , c]) => pts.map((p, i) => `<span class="tl-dot" style="--c:${c};--x:${fx(p, i).toFixed(3)};left:${(x(p, i) / W * 100).toFixed(2)}%;top:${(y(p[k]) / H * 100).toFixed(2)}%"></span>`).join('')).join('');
     const last = pts[pts.length - 1];
     const sig = `${real ? 'r' : 'm'}:${pts.map(p => `${p.t}.${p.a}.${p.b}`).join(',')}`;
-    return `<div class="timeline${real ? '' : ' timeline-mock'}" data-sig="${sig}">
-        <div class="timeline-legend">${series.map(([k, label, c]) => `<span class="timeline-key" style="--c:${c}"><i></i>${label}${real ? `<b>${last[k]}</b>` : ''}</span>`).join('')}</div>
+    // Where each point is drawn (graph units), so a change can move the
+    // lines from one set of points to the next (morphTimeline).
+    const shape = pts.map((p, i) => `${x(p, i).toFixed(1)},${y(p.a).toFixed(1)},${y(p.b).toFixed(1)}`).join(';');
+    return `<div class="timeline${real ? '' : ' timeline-mock'}" data-sig="${sig}" data-pts="${shape}">
+        <div class="timeline-legend">${series.map(([k, label, c]) => `<span class="timeline-key" style="--c:${c}"><i></i>${label}<b>${last[k]}</b></span>`).join('')}</div>
         <div class="timeline-chart"${real ? '' : ' aria-hidden="true"'}>
           <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${grid}${series.map(([k, , c]) => `<path class="tl-line" d="${path(k)}" style="--c:${c}"/>`).join('')}</svg>
           ${dots}
@@ -862,6 +865,66 @@
         <div class="timeline-dates">${real ? `<span>${shortDate(t0)}</span><span>${shortDate(t1)}</span>` : '<span>shows up after your second import</span>'}</div>
       </div>`;
   }
+  // New numbers: the lines bend from where they are into their new shape
+  // (points travelling with them), the example's grey warms into the real
+  // colors, and the legend's numbers count to the new ones — like the stat
+  // boxes. `tl` stays on screen and takes on `fresh`.
+  const TL_W = 320, TL_H = 150, TL_MS = 900;
+  const tlEase = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  function morphTimeline(tl, fresh) {
+    const parse = (el) => (el.dataset.pts || '').split(';').filter(Boolean).map(p => p.split(',').map(Number));
+    const from = tl._shape || parse(tl), to = parse(fresh);
+    if (!from.length || !to.length) { tl.replaceWith(fresh); return; }
+    // Height of the old line at x (straight between its points).
+    const yAt = (pts, x, k) => {
+      if (x <= pts[0][0]) return pts[0][k];
+      for (let i = 1; i < pts.length; i++) {
+        if (x <= pts[i][0]) { const [x0] = pts[i - 1], [x1] = pts[i]; const f = x1 > x0 ? (x - x0) / (x1 - x0) : 1; return pts[i - 1][k] + (pts[i][k] - pts[i - 1][k]) * f; }
+      }
+      return pts[pts.length - 1][k];
+    };
+    tl.className = fresh.className;
+    tl.dataset.sig = fresh.dataset.sig;
+    tl.dataset.pts = fresh.dataset.pts;
+    // Legend: the numbers count from the old to the new.
+    const oldNums = [...tl.querySelectorAll('.timeline-key b')].map(b => parseInt(b.textContent, 10) || 0);
+    tl.querySelector('.timeline-legend').replaceWith(fresh.querySelector('.timeline-legend'));
+    tl.querySelectorAll('.timeline-key b').forEach((b, i) => {
+      const a = oldNums[i] ?? 0, z = parseInt(b.textContent, 10) || 0;
+      if (a === z) return;
+      const t0 = performance.now();
+      const step = (now) => { const t = Math.min(1, (now - t0) / TL_MS); b.textContent = Math.round(a + (z - a) * tlEase(t)); if (t < 1 && b.isConnected) requestAnimationFrame(step); };
+      b.textContent = a;
+      requestAnimationFrame(step);
+    });
+    tl.querySelector('.timeline-dates').replaceWith(fresh.querySelector('.timeline-dates'));
+    // The new points, drawn each frame from the old line to the new one.
+    const chart = tl.querySelector('.timeline-chart');
+    chart.querySelectorAll('.tl-dot').forEach(d => d.remove());
+    const dots = [...fresh.querySelectorAll('.tl-dot')];
+    dots.forEach(d => chart.appendChild(d));
+    const paths = [...chart.querySelectorAll('.tl-line')];
+    [...fresh.querySelectorAll('.tl-line')].forEach((p, i) => { if (paths[i]) paths[i].setAttribute('style', p.getAttribute('style')); });
+    const token = (tl._morph = {});
+    const t0 = performance.now();
+    const draw = (e) => {
+      const shape = to.map(([x, a, b]) => [x, yAt(from, x, 1) + (a - yAt(from, x, 1)) * e, yAt(from, x, 2) + (b - yAt(from, x, 2)) * e]);
+      tl._shape = shape; // a change mid-way carries on from here
+      [1, 2].forEach((k, s) => {
+        if (paths[s]) paths[s].setAttribute('d', shape.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[k].toFixed(1)}`).join(' '));
+        shape.forEach((p, i) => { const d = dots[s * shape.length + i]; if (d) d.style.top = `${(p[k] / TL_H * 100).toFixed(2)}%`; });
+      });
+    };
+    draw(0);
+    const step = (now) => {
+      if (tl._morph !== token) return;
+      const t = Math.min(1, (now - t0) / TL_MS);
+      draw(tlEase(t));
+      if (t < 1) requestAnimationFrame(step); else tl._shape = null;
+    };
+    requestAnimationFrame(step);
+  }
+
   // The lines draw in from the left, the points pop in as the line reaches
   // them.
   function drawTimeline(scope) {
@@ -966,15 +1029,11 @@
       const tlPane = newTl.parentNode;
       const showing = tlPane.classList.contains('active');
       if (oldTl && oldTl.dataset.sig === newTl.dataset.sig) newTl.replaceWith(oldTl);
-      else if (oldTl && showing && !pageLoading && typeof oldTl.animate === 'function') {
-        // New numbers: the old chart goes like the instructions window
-        // closes, the new one comes in like it opens.
-        oldTl.classList.add('timeline-leaving');
-        tlPane.appendChild(oldTl);
-        const drop = () => oldTl.remove();
-        oldTl.animate(MODAL_OUT, LEAVE).finished.then(drop, drop);
-        setTimeout(drop, LEAVE.duration + 400);
-        newTl.animate(MODAL_IN, { duration: 450, easing: MODAL_EASE, delay: LEAVE.duration, fill: 'backwards' });
+      else if (oldTl && showing && !pageLoading) {
+        // New numbers: the lines move to them (from the example's, or the
+        // last account's), like the stat boxes' numbers do.
+        newTl.replaceWith(oldTl);
+        morphTimeline(oldTl, newTl);
       } else if (showing) drawTimeline(tlPane);
     }
     applyPopped();

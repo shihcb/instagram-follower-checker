@@ -5986,3 +5986,18 @@ select,
 #unfollowers-empty-state {
   position: relative;
 }
+/* The timeline's colors ease between the example's grey and the real
+   colors as its lines move (morphTimeline). */
+.tl-line {
+  transition: stroke 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tl-dot {
+  transition: border-color 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.timeline-key i {
+  transition: background-color 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.timeline-mock .timeline-key b {
+  color: var(--text-muted);
+  transition: color 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+}
