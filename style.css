@@ -5800,9 +5800,10 @@ select,
   text-wrap: balance;
   pointer-events: none;
 }
+/* Drawn in full (no content-visibility): skipping rows off screen made
+   iPhone Safari paint them late — a lagging ghost — while the list slid. */
 .results-extra .insights-row {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 36px;
+  content-visibility: visible;
 }
 .insights-row-flag {
   margin-left: auto;
