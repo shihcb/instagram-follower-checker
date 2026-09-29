@@ -1109,15 +1109,29 @@
     const next = fresh.querySelector('.trend-chart');
     if (!next) return;
     if (!cur) { wrap.appendChild(next); growChart(next); return; }
-    if (kindOf(cur) === kindOf(next)) {
+    // Example <-> real: the same bars morph in one go — each grows or
+    // shrinks to its new height while its grey warms into its box's color
+    // (or back). Swapping one graph for the other looked like a jump.
+    let morph = false;
+    if (kindOf(cur) !== kindOf(next)) {
+      wrap.querySelectorAll('.trend-leaving').forEach(el => el.remove());
+      cur.getAnimations().forEach(a => a.cancel());
+      cur.querySelectorAll('.trend-bar').forEach(bar => { bar.getAnimations().forEach(a => a.cancel()); const cs = getComputedStyle(bar); void (cs.backgroundColor + cs.borderColor); });
+      const mock = kindOf(next) === 'mock';
+      cur.classList.toggle('trend-mock', mock);
+      if (mock) cur.setAttribute('aria-hidden', 'true'); else cur.removeAttribute('aria-hidden');
+      morph = true;
+    }
+    {
       const newBars = [...next.querySelectorAll('.trend-bar')];
       cur.querySelectorAll('.trend-bar').forEach((bar, i) => {
         const to = newBars[i] && newBars[i].style.height;
         if (!to || to === bar.style.height) return;
         const from = `${bar.getBoundingClientRect().height}px`;
         bar.style.height = to;
-        if (typeof bar.animate === 'function') bar.animate([{ height: from }, { height: to }], { duration: 520, easing: GLIDE });
+        if (typeof bar.animate === 'function') bar.animate([{ height: from }, { height: to }], morph ? { duration: 900, easing: MODAL_EASE } : { duration: 520, easing: GLIDE });
       });
+      applyPopped();
       return;
     }
     // Swap: an earlier one still leaving goes now; this one leaves from

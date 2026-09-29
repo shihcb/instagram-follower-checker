@@ -6088,3 +6088,10 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 .love-overlay.show .love-card {
   transform: none;
 }
+/* The bars' colors ease between the example's grey and their boxes'
+   colors as they morph (updateChart). */
+.trend-bar {
+  transition: transform 0.52s cubic-bezier(0.32, 0.72, 0, 1),
+              background-color 0.9s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+}
