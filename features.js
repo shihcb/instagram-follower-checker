@@ -92,6 +92,7 @@
     safe(refreshToolbar, 'toolbar');
     safe(refreshView, 'view');
     safe(() => renderExtras(true), 'extra lists'); // an account picked: its lists
+    centerSoon();
     return result;
   };
 
@@ -661,6 +662,7 @@
       listEls().filter(el => el.classList.contains('view-leaving')).forEach(el => leaving.push(el));
     }
     refreshToolbar();
+    centerSoon();
     if (typeof altView.animate !== 'function') { finishSwitch(); return; }
     const D = TAB_MOTION.in.duration;
     const timing = (dist) => ({ duration: Math.round(D * Math.min(1, Math.max(0.35, Math.abs(dist) / w))), easing: TAB_MOTION.in.easing });
@@ -955,6 +957,7 @@
       } else if (showing) drawTimeline(tlPane);
     }
     applyPopped();
+    centerSoon();
   }
 
   // The stats graph. First time in: the bars grow up. Switching between
@@ -1180,8 +1183,31 @@
     const all = [...live.querySelectorAll(':scope > .changes-pane')];
     const target = all.find(p => p.dataset.pane === id);
     slideSub(altView, all, [target], 'active', p => order.indexOf(p.dataset.pane), dir);
+    centerSoon();
     if (id === 'timeline') drawTimeline(target);
   }
+
+  // ---------- empty texts: centered in list 3's whole box ----------
+  // Each view's or tab's "no …" text is laid over the whole box (switchers
+  // included), so it sits exactly in the middle of it wherever the list it
+  // belongs to starts. Measured by layout, so a slide doesn't move it.
+  function centerEmpties() {
+    const box = document.querySelector('#card-unfollowers .results-container');
+    if (!box) return;
+    box.querySelectorAll('.dropdown-empty-message').forEach(msg => {
+      if (!msg.getClientRects().length) return;
+      msg.classList.add('box-centered');
+      const cb = msg.offsetParent;
+      if (!cb) return;
+      let top = cb.clientTop, el = cb;
+      while (el && el !== box) { top += el.offsetTop; el = el.offsetParent; }
+      if (el !== box) return;
+      top -= box.clientTop;
+      msg.style.top = `${-top}px`;
+      msg.style.bottom = `${-(box.clientHeight - top - cb.clientHeight)}px`;
+    });
+  }
+  const centerSoon = () => requestAnimationFrame(() => safe(centerEmpties, 'empty texts'));
 
   // ---------- results: its own switcher ----------
   // Unfollowers (list 3 itself) and the export's other lists: requests you
@@ -1240,6 +1266,7 @@
     });
     const nav = resultsSubnav.querySelector('.changes-nav');
     requestAnimationFrame(() => placeSubIndicator(nav));
+    if (window.ResizeObserver) new ResizeObserver(centerSoon).observe(box);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeSubIndicator(nav));
   }
   function showResultsSub(id) {
@@ -1255,6 +1282,7 @@
     const targets = id === 'unfollowers' ? mainPanes() : [extraPanes[id]];
     slideSub(box, resultsPanes(), targets, 'sub-on', el => order.indexOf(resultsSubOf(el)), dir);
     refreshToolbar();
+    centerSoon();
   }
   // Pending requests are drawn like list 3's own rows (the avatar, the
   // username, the box), with the arrow (opens the profile, to cancel it
@@ -1366,6 +1394,7 @@
   }
   function renderExtras(animate = true) {
     Object.keys(extraPanes).forEach(id => renderExtra(id, animate));
+    centerSoon();
   }
   // Its X tapped (cancelled on Instagram): it slides out like a list 3 row.
   function removePending(name, row) {
@@ -1721,5 +1750,5 @@
   else init();
 
   // For the rest of the app (and tests).
-  window.igFeatures = { showView, showToast, setSelectMode, refreshToolbar };
+  window.igFeatures = { showView, showToast, setSelectMode, refreshToolbar, centerEmpties: () => safe(centerEmpties, 'empty texts') };
 })();

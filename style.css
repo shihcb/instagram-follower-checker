@@ -5968,3 +5968,21 @@ select,
   text-align: center;
   text-wrap: balance;
 }
+/* Empty texts centered on list 3's whole box (centerEmpties in
+   features.js sets how far each reaches past its own list, up and down).
+   Each list is its own frame for it, so a list sliding keeps its text. */
+#card-unfollowers .results-container .dropdown-empty-message.box-centered {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px !important;
+  margin: 0;
+  pointer-events: none;
+}
+.list3-alt-view .changes-pane,
+#unfollowers-empty-state {
+  position: relative;
+}

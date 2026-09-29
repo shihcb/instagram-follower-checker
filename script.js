@@ -1108,6 +1108,7 @@ function showResultsEmpty(fade) {
   if (el.textContent.trim() !== text) el.innerHTML = `<div class="dropdown-empty-message">${text}</div>`;
   const was = !el.classList.contains('hidden');
   el.classList.remove('hidden');
+  if (window.igFeatures && window.igFeatures.centerEmpties) window.igFeatures.centerEmpties();
   if (fade && !was && typeof el.animate === 'function') el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 320, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' });
 }
 
