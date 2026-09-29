@@ -16,3 +16,9 @@ each file that changed by 1, in the same commit as the change. This both
 busts the browser cache and makes the version number go up, so the user can
 tell whether a device has the latest update. Never merge a change to
 `style.css`, `script.js` or `features.js` without bumping its tag.
+
+## Always push to `main`
+
+When a change is done, commit it and push it straight to `main` (after
+bumping the version tags above) — that's what deploys the app (Vercel).
+Don't leave work only on a side branch or ask first.
