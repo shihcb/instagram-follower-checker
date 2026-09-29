@@ -6017,3 +6017,10 @@ select,
 #card-unfollowers .results-container > .results-subnav.view-leaving {
   display: block !important;
 }
+/* And never wider than its bar, whatever layout it's in (so it always
+   keeps its scroll and can't spread its tabs across the box). */
+.results-subnav > .changes-nav {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
