@@ -3539,9 +3539,14 @@ function updateInstructionsStepUI() {
     const from = at.get(newPane) || { x: dir * w, o: 0.35 };
     const tIn = timing(from.x); longest = tIn.duration;
     newPane.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: 'translateX(0)', opacity: 1 }], tIn);
+    const stepOf = (p) => parseInt(p.id.replace('instructions-step-', ''), 10);
     shown.filter(p => p !== newPane).forEach(p => {
       const f = at.get(p) || { x: 0, o: 1 };
-      const to = f.x < -0.5 ? -w : f.x > 0.5 ? w : -dir * w;
+      const to = stepOf(p) < currentInstructionStep ? -w : w; // carousel order
+      if (Math.sign(f.x) === -Math.sign(to) && Math.abs(f.x) > 0.4 * w) {
+        p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${f.x}px)`, opacity: 0 }], { duration: 90, fill: 'forwards' });
+        return;
+      }
       const t = timing(to - f.x); longest = Math.max(longest, t.duration);
       p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
     });

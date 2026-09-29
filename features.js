@@ -764,11 +764,24 @@
       longest = Math.max(longest, t.duration);
       el.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: 'translateX(0)', opacity: 1 }], t);
     });
+    // Like a carousel in tab order: a page for a tab left of the one you
+    // chose leaves to the left, one to its right leaves to the right — so
+    // however fast you tap, the pages keep their order on screen.
+    const order = (v) => VIEWS.findIndex(x => x[0] === v);
+    const viewOf = (el) => el === altView
+      ? ((altView.querySelector(':scope > .insights-pane:not(.pane-leaving)') || {}).dataset || {}).view
+      : el.classList.contains('insights-pane') ? el.dataset.view : 'results';
+    const targetOrder = order(view);
     leaving.forEach(el => {
       const from = at.has(el) ? at.get(el) : { x: 0, o: 1 };
-      // Away to the side it's already on (a page heading back the way it
-      // came keeps going that way, never across the box).
-      const to = from.x < -0.5 ? -w : from.x > 0.5 ? w : -dir * w;
+      const o = order(viewOf(el));
+      const to = (o >= 0 ? o < targetOrder : dir > 0) ? -w : w;
+      // Already mostly off the other side: it just fades where it is,
+      // rather than travelling back across the box.
+      if (Math.sign(from.x) === -Math.sign(to) && Math.abs(from.x) > 0.4 * w) {
+        el.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: `translateX(${from.x}px)`, opacity: 0 }], { duration: 90, fill: 'forwards' });
+        return;
+      }
       const t = timing(to - from.x);
       longest = Math.max(longest, t.duration);
       el.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
@@ -1121,9 +1134,14 @@
     const from = at.get(newPane) || { x: dir * w, o: 0.35 };
     const tIn = timing(from.x); longest = tIn.duration;
     newPane.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: 'translateX(0)', opacity: 1 }], tIn);
+    const cOrder = (pane) => CHANGE_TABS.findIndex(t => t[0] === pane.dataset.pane);
     shown.filter(p => p !== newPane).forEach(p => {
       const f = at.get(p) || { x: 0, o: 1 };
-      const to = f.x < -0.5 ? -w : f.x > 0.5 ? w : -dir * w;
+      const to = cOrder(p) < cOrder(newPane) ? -w : w; // carousel order
+      if (Math.sign(f.x) === -Math.sign(to) && Math.abs(f.x) > 0.4 * w) {
+        p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${f.x}px)`, opacity: 0 }], { duration: 90, fill: 'forwards' });
+        return;
+      }
       const t = timing(to - f.x); longest = Math.max(longest, t.duration);
       p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
     });
