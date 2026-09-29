@@ -25,7 +25,7 @@
   // fully out one side while the new one slides in from the other, edge to
   // edge, with a soft fade. The same motion as every tab switcher in the
   // app (script.js: TAB_MOTION, tabSlideOut/In).
-  const SWITCH_OUT = { ...TAB_MOTION.slide, fill: 'forwards' };
+  const SWITCH_OUT = { ...TAB_MOTION.in, fill: 'forwards' };
   const slideOut = (el, dx) => tabSlideOut(el, dx);
   const slideIn = (el, dx) => tabSlideIn(el, dx);
   const boxWidth = () => (altView && altView.parentNode ? altView.parentNode.clientWidth : 320);

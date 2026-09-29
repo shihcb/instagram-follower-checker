@@ -267,18 +267,27 @@ function cancelOverlayHide(overlay) {
 // instructions steps, log in / sign up) moves its content the same way: a
 // sideways slide on the instructions window's opening timing (600ms, fast
 // then settling) with a soft fade on its own gentler timing.
+// The instructions window's own timing: what leaves goes like the window
+// closing (450ms, an even ease), what arrives comes like it opening
+// (600ms, fast then settling gently). Slide and fade share each timing so
+// they move as one.
 const TAB_MOTION = {
-  slide: { duration: 600, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' },
-  fadeOut: { duration: 420, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' },
-  fadeIn: { duration: 560, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }
+  out: { duration: 450, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' },
+  in: { duration: 600, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }
 };
+TAB_MOTION.slide = TAB_MOTION.in; // (older name, kept for callers)
 function tabSlideOut(el, dx) {
-  el.animate([{ opacity: 1 }, { opacity: 0 }], { ...TAB_MOTION.fadeOut, fill: 'forwards' });
-  return el.animate([{ transform: 'translateX(0)' }, { transform: `translateX(${dx}px)` }], { ...TAB_MOTION.slide, fill: 'forwards' });
+  // It fades like the window closing, but slides on the same curve as the
+  // one arriving, so the two stay edge to edge (on different curves the new
+  // content slid over the old while it was still showing).
+  el.animate([{ opacity: 1 }, { opacity: 0 }], { ...TAB_MOTION.out, fill: 'forwards' });
+  return el.animate([{ transform: 'translateX(0)' }, { transform: `translateX(${dx}px)` }], { ...TAB_MOTION.in, fill: 'forwards' });
 }
 function tabSlideIn(el, dx) {
-  el.animate([{ opacity: 0 }, { opacity: 1 }], TAB_MOTION.fadeIn);
-  return el.animate([{ transform: `translateX(${dx}px)` }, { transform: 'translateX(0)' }], TAB_MOTION.slide);
+  return el.animate([
+    { opacity: 0, transform: `translateX(${dx}px)` },
+    { opacity: 1, transform: 'translateX(0)' }
+  ], TAB_MOTION.in);
 }
 window.TAB_MOTION = TAB_MOTION;
 window.tabSlideOut = tabSlideOut;
