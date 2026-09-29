@@ -555,7 +555,21 @@
   const viewEls = (view) => view === 'results'
     ? [elements.listUnfollowers, document.getElementById('unfollowers-empty-state')].filter(el => el && !el.classList.contains('hidden'))
     : [altView];
+  // One tab switch at a time: a tap while a slide is still playing waits
+  // for it to finish, then goes (only the latest such tap), so no slide is
+  // cut short.
+  function queueSwitch(gate, run) {
+    const left = (gate.until || 0) - performance.now();
+    if (left <= 0 && !gate.next) { run(); return; }
+    gate.next = run;
+    clearTimeout(gate.timer);
+    gate.timer = setTimeout(() => { const next = gate.next; gate.next = null; if (next) next(); }, Math.max(0, left) + 20);
+  }
+  const viewGate = {};
   function showView(view) {
+    queueSwitch(viewGate, () => switchView(view));
+  }
+  function switchView(view) {
     if (!viewNav || view === currentView) return;
     clearTimeout(settleTimer); // a switch takes over from the load-time draw
     if (altView) altView.style.opacity = '';
@@ -697,6 +711,7 @@
     });
     const token = ++viewToken;
     switchTimer = setTimeout(() => { if (token === viewToken) finishSwitch(); }, longest + 30);
+    viewGate.until = performance.now() + longest;
   }
   let switchTimer = null;
   // Once a switch has played out: what slid away is put away.
@@ -1166,10 +1181,14 @@
       p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
     });
     host._subTimer = setTimeout(() => settleSub(host), longest + 30);
+    (host._gate || (host._gate = {})).until = performance.now() + longest;
   }
 
   // The switchers inside the changes and stats views.
   function showAltSub(id) {
+    queueSwitch(altView._gate || (altView._gate = {}), () => switchAltSub(id));
+  }
+  function switchAltSub(id) {
     const view = currentView;
     const tabs = SUB_TABS[view];
     const live = altView && altView.querySelector(':scope > .insights-pane:not(.pane-leaving)');
@@ -1270,6 +1289,11 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeSubIndicator(nav));
   }
   function showResultsSub(id) {
+    if (!resultsSubnav) return;
+    const box = resultsSubnav.parentNode;
+    queueSwitch(box._gate || (box._gate = {}), () => switchResultsSub(id));
+  }
+  function switchResultsSub(id) {
     if (!resultsSubnav || subTab.results === id || !SUB_TABS.results.some(t => t[0] === id)) return;
     const order = SUB_TABS.results.map(t => t[0]);
     const dir = order.indexOf(id) > order.indexOf(subTab.results) ? 1 : -1;
