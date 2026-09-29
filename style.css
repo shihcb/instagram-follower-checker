@@ -6030,3 +6030,10 @@ select,
 .list3-alt-view .insights-pane > .changes-nav {
   margin: -4px -4px 12px;
 }
+/* Stats' switcher has only two tabs: it hugs them instead of filling the
+   box (same left edge as the other switchers). */
+.list3-alt-view .insights-pane[data-view="stats"] > .changes-nav {
+  align-self: flex-start;
+  width: fit-content;
+  max-width: calc(100% + 8px);
+}
