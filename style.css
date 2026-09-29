@@ -6048,3 +6048,43 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
   transform-origin: center;
   will-change: opacity, transform;
 }
+
+/* -------------------------------------------------------------
+ * One pop-up motion everywhere (the pop-up windows'): an even 0.45s
+ * fade, rising 14px and easing from 95% scale, from the middle, the same
+ * opening and closing. Solid cards, no blur of their own (blurring what's
+ * under a moving card made it stutter on phones).
+ * ------------------------------------------------------------- */
+.dropdown-menu {
+  transform-origin: center;
+}
+[data-theme="dark"] .dropdown-menu {
+  background: linear-gradient(var(--card-bg), var(--card-bg)), var(--bg-color) !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.row-select-bar,
+.feature-toast {
+  transform: translate(-50%, 14px) scale(0.95);
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.row-select-bar.show,
+.feature-toast.show {
+  transform: translate(-50%, 0) scale(1);
+}
+.love-overlay {
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0s linear 0.45s;
+}
+.love-overlay.show {
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0s linear 0s;
+}
+.love-card {
+  transform: translateY(14px) scale(0.95);
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.love-overlay.show .love-card {
+  transform: none;
+}

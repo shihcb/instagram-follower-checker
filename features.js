@@ -371,7 +371,8 @@
     const shown = !el.classList.contains('pill-hidden');
     if (show === shown) return;
     el.classList.toggle('pill-hidden', !show);
-    if (show) animateIn(el, 'scale(0.85)');
+    // Comes in like the pop-ups do.
+    if (show && typeof el.animate === 'function') el.animate(MODAL_IN, { duration: 450, easing: MODAL_EASE });
   }
 
   // ---------- select several rows ----------
