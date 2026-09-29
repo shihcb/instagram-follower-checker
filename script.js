@@ -1103,6 +1103,15 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
   const listEl = elements.listUnfollowers;
   listEl._rowTailToken = null; // this render decides the rows now
 
+  // A chip picked or files imported: a new list, so every username slides
+  // in together. A username that was already on screen (in both accounts,
+  // say) used to just stay put, the one row not animating while the rest
+  // came in. The rows on screen are set apart so they leave like the rest.
+  if (state.freshRows) {
+    state.freshRows = false;
+    if (animate) listEl.querySelectorAll('.user-row:not(.username-exit)').forEach(row => { row.dataset.username = `\u0000${row.dataset.username}`; });
+  }
+
   // Rows still sliding out from an earlier change survive this re-render
   // instead of being wiped mid-slide:
   //  - ones the user removed (exitListRow: star/delete/dismiss/click) are
@@ -1866,6 +1875,7 @@ async function processImportFiles(files, isFolderUpload = false) {
     if (extrasChanged) writeExtraLists(state.selectedAccountUsername, lists);
 
     if (mainFiles.length) {
+      state.freshRows = true; // imported files: the list comes in whole
       calculateUnfollowers({ animate: true });
       // Restart the weekly reset reminder from this fresh import.
       recordImportDate(state.selectedAccountUsername);
@@ -2001,7 +2011,10 @@ function loadAccountData(username, animate = false, animateResults = false, { re
 
   updateListUI('following');
   updateListUI('followers');
-  if (renderResults) calculateUnfollowers({ animate: animateResults });
+  if (renderResults) {
+    if (animateResults) state.freshRows = true; // another account: its list comes in whole
+    calculateUnfollowers({ animate: animateResults });
+  }
   renderAccountChips(animate);
   updateStorageProgressBar();
   updateResetReminderUI();

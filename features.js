@@ -1183,7 +1183,7 @@
   let resultsSubnav = null;
   const extraPanes = {};
   const EXTRA_TEXT = {
-    pending: { sub: 'tap one to cancel it on instagram', empty: 'no pending follow requests', missing: 'requests you sent that are still pending' },
+    pending: { sub: '', empty: 'no pending follow requests', missing: 'requests you sent that are still pending' },
     closeFriends: { sub: 'your close friends list', empty: 'your close friends list is empty', missing: 'close friends' },
     blocked: { sub: "accounts you've blocked", empty: 'no blocked accounts', missing: 'blocked accounts' },
     restricted: { sub: "accounts you've restricted", empty: 'no restricted accounts', missing: 'restricted accounts' }
