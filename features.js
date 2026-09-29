@@ -792,6 +792,8 @@
     oldPane.querySelectorAll(':scope > .changes-nav, :scope > .insights-sub').forEach(el => { el.style.visibility = 'hidden'; });
     oldPane.style.top = `${12 - scroll}px`;
     altView.appendChild(oldPane);
+    // Empty texts leave with the one empty-text fade, not the window motion.
+    oldPane.querySelectorAll('.dropdown-empty-message').forEach(m => { fadeGhostOut(m); m.style.visibility = 'hidden'; });
     // Gone once it has faded — and also if the fade gets interrupted (a
     // phone can while the page is still loading), with a backup timer: a
     // leftover used to sit on top of the new content after a reload.
@@ -808,7 +810,13 @@
     if (!pane || typeof pane.animate !== 'function') return;
     [...pane.children]
       .filter(ch => !ch.matches('.changes-nav, .insights-sub') && !(ch.matches('.changes-pane') && !ch.classList.contains('active')))
-      .forEach(el => el.animate(MODAL_IN, { duration: 450, easing: MODAL_EASE, delay, fill: 'backwards' }));
+      .forEach(el => {
+        // An empty text (alone, or all its list holds) comes in with the
+        // one empty-text fade.
+        const onlyEmpty = el.matches('.dropdown-empty-message') || (el.children.length === 1 && el.firstElementChild.matches('.dropdown-empty-message'));
+        if (onlyEmpty) fadeEmptyIn(el, delay);
+        else el.animate(MODAL_IN, { duration: 450, easing: MODAL_EASE, delay, fill: 'backwards' });
+      });
   }
 
 
@@ -1516,12 +1524,14 @@
     const oldSub = old.querySelector(':scope > .insights-sub');
     const keepSub = oldSub && oldSub.textContent === sub;
     if (keepSub) oldSub.style.visibility = 'hidden';
+    old.querySelectorAll('.dropdown-empty-message').forEach(m => { fadeGhostOut(m); m.style.visibility = 'hidden'; });
     pane.appendChild(fresh);
     const drop = () => old.remove();
     old.animate(MODAL_OUT, LEAVE).finished.then(drop, drop);
     setTimeout(drop, LEAVE.duration + 400);
     [...fresh.children].filter(el => !(keepSub && el.matches('.insights-sub')))
-      .forEach(el => el.animate(MODAL_IN, { duration: 450, easing: MODAL_EASE, delay: LEAVE.duration, fill: 'backwards' }));
+      .forEach(el => (el.matches('.dropdown-empty-message') ? fadeEmptyIn(el, LEAVE.duration)
+        : el.animate(MODAL_IN, { duration: 450, easing: MODAL_EASE, delay: LEAVE.duration, fill: 'backwards' })));
   }
   // Pending requests change like list 3's rows (an account picked, files
   // imported): the boxes on screen slide out, the new ones slide in, each
@@ -1532,6 +1542,7 @@
     const gap = gapOf(oldRows[0]);
     const was = oldRows.map(r => ({ r, rect: r.getBoundingClientRect(), pitch: r.offsetHeight + gap }));
     oldRows.forEach(r => stopRowMotion(r));
+    old.querySelectorAll('.dropdown-empty-message').forEach(m => fadeGhostOut(m));
     old.replaceWith(fresh);
     const list = fresh.querySelector('.pending-list');
     const host = list || fresh;
@@ -1556,7 +1567,7 @@
     } else {
       // Now empty: its text comes in once the boxes have gone.
       const msg = fresh.querySelector('.dropdown-empty-message');
-      if (msg && was.length && typeof msg.animate === 'function') msg.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 320, delay: ROW_MOTION_MS, easing: MODAL_EASE, fill: 'backwards' });
+      if (msg) fadeEmptyIn(msg, was.length ? ROW_MOTION_MS : 0);
     }
   }
   function renderExtras(animate = true) {

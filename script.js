@@ -766,6 +766,35 @@ function calculateUnfollowers({ animate = false, matchRenames = false } = {}) {
   }
 }
 
+// Every empty text ("no …") leaves the same way: a copy of it fades out
+// right where it was (0.32s), laid over its box, while whatever replaces
+// it comes in — instead of vanishing. (One fade for all of them; they
+// come in with the same fade.)
+const EMPTY_FADE = { duration: 320, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' };
+function fadeGhostOut(el) {
+  if (!el || !el.getClientRects().length || typeof el.animate !== 'function') return;
+  const host = el.closest('.results-container, .dropdown-menu') || document.body;
+  const hr = host.getBoundingClientRect(), r = el.getBoundingClientRect();
+  const k = host.offsetWidth ? hr.width / host.offsetWidth : 1;
+  const ghost = el.cloneNode(true);
+  ghost.classList.remove('empty-enter');
+  Object.assign(ghost.style, {
+    position: 'absolute', inset: 'auto', margin: '0', transform: 'none', animation: 'none',
+    top: `${(r.top - hr.top) / k - host.clientTop + host.scrollTop}px`, left: `${(r.left - hr.left) / k - host.clientLeft}px`,
+    width: `${r.width / k}px`, height: `${r.height / k}px`, boxSizing: 'border-box',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', pointerEvents: 'none', zIndex: '3'
+  });
+  ghost.style.setProperty('padding', getComputedStyle(el).padding, 'important');
+  if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+  host.appendChild(ghost);
+  const drop = () => ghost.remove();
+  ghost.animate([{ opacity: 1 }, { opacity: 0 }], { ...EMPTY_FADE, fill: 'forwards' }).finished.then(drop, drop);
+  setTimeout(drop, 800);
+}
+function fadeEmptyIn(el, delay = 0) {
+  if (el && typeof el.animate === 'function') el.animate([{ opacity: 0 }, { opacity: 1 }], { ...EMPTY_FADE, delay, fill: 'backwards' });
+}
+
 // The panel's empty text, when its first username comes in: it fades out
 // where it was (laid over the panel) instead of vanishing — the same fade
 // as the empty text in list 3's tabs.
@@ -1133,7 +1162,7 @@ function showResultsEmpty(fade) {
   const was = !el.classList.contains('hidden');
   el.classList.remove('hidden');
   if (window.igFeatures && window.igFeatures.centerEmpties) window.igFeatures.centerEmpties();
-  if (fade && !was && typeof el.animate === 'function') el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 320, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' });
+  if (fade && !was) fadeEmptyIn(el);
 }
 
 // Opens someone's Instagram profile: on a phone straight in the Instagram
@@ -1261,6 +1290,7 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
   }
 
   if (filtered.length > 0) {
+    if (!elements.emptyState.classList.contains('hidden')) fadeGhostOut(elements.emptyState.querySelector('.dropdown-empty-message'));
     elements.emptyState.classList.add('hidden');
     elements.listUnfollowers.classList.remove('hidden');
     
