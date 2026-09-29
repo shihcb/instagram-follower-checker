@@ -3516,20 +3516,34 @@ function updateInstructionsStepUI() {
 
   // Changing steps: every step sits in the same spot (stacked), always laid
   // out, and only the current one shows — so switching never changes the
-  // layout and nothing can jump. The step you leave slides and fades out
-  // while the new one slides and fades in (the tab switchers' motion).
-  const oldPane = [...panes].find(p => p.classList.contains('active'));
+  // layout. The step you leave slides away while the new one slides in; a
+  // tap mid-slide carries on from where each step is drawn.
   const newPane = [...panes].find(p => parseInt(p.id.replace('instructions-step-', ''), 10) === currentInstructionStep);
-  panes.forEach(p => { if (p.classList.contains('pane-out')) settleStepOut(p); });
-  panes.forEach(p => p.classList.toggle('active', p === newPane));
-  if (oldPane && newPane && oldPane !== newPane && !instructionsInstant && typeof newPane.animate === 'function') {
-    const oldStep = parseInt(oldPane.id.replace('instructions-step-', ''), 10);
+  const shown = [...panes].filter(p => p.classList.contains('active') || p.classList.contains('pane-out'));
+  const prevActive = [...panes].find(p => p.classList.contains('active'));
+  const at = new Map(shown.map(p => { const cs = getComputedStyle(p); return [p, { x: new DOMMatrixReadOnly(cs.transform).m41 || 0, o: +cs.opacity }]; }));
+  shown.forEach(p => p.getAnimations().forEach(an => an.cancel()));
+  clearTimeout(updateInstructionsStepUI._timer);
+  panes.forEach(p => { p.classList.toggle('active', p === newPane); p.classList.toggle('pane-out', p !== newPane && shown.includes(p)); });
+  if (prevActive && newPane && prevActive !== newPane && !instructionsInstant && typeof newPane.animate === 'function') {
+    const oldStep = parseInt(prevActive.id.replace('instructions-step-', ''), 10);
     const dir = currentInstructionStep > oldStep ? 1 : -1;
     const w = newPane.parentElement.clientWidth;
-    newPane.getAnimations().forEach(an => an.cancel());
-    oldPane.classList.add('pane-out');
-    tabSlideOut(oldPane, -dir * w).finished.then(() => settleStepOut(oldPane), () => settleStepOut(oldPane));
-    tabSlideIn(newPane, dir * w);
+    const D = TAB_MOTION.in.duration;
+    const timing = (dist) => ({ duration: Math.round(D * Math.min(1, Math.max(0.35, Math.abs(dist) / w))), easing: TAB_MOTION.in.easing });
+    let longest = 0;
+    const from = at.get(newPane) || { x: dir * w, o: 0.35 };
+    const tIn = timing(from.x); longest = tIn.duration;
+    newPane.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: 'translateX(0)', opacity: 1 }], tIn);
+    shown.filter(p => p !== newPane).forEach(p => {
+      const f = at.get(p) || { x: 0, o: 1 };
+      const to = f.x < -0.5 ? -w : f.x > 0.5 ? w : -dir * w;
+      const t = timing(to - f.x); longest = Math.max(longest, t.duration);
+      p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
+    });
+    updateInstructionsStepUI._timer = setTimeout(() => panes.forEach(p => { if (p !== [...panes].find(q => q.classList.contains('active'))) settleStepOut(p); }), longest + 30);
+  } else {
+    panes.forEach(p => { if (p !== newPane) settleStepOut(p); });
   }
 
   dots.forEach((dot) => {

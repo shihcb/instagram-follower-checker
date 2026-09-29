@@ -672,61 +672,126 @@
     else if (right > viewNav.scrollLeft + viewNav.clientWidth) scrollInstructionsNav(viewNav, right - viewNav.clientWidth);
 
     if (view !== 'results' && selectMode) setSelectMode(false);
-    finishSwitch(); // a quick second tap: settle what the last one left
-    const from = currentView;
     try { localStorage.setItem('list3_view', view); } catch (e) {}
     currentView = view;
     const box = altView.parentNode;
-    const canAnimate = typeof altView.animate === 'function';
+    const w = boxWidth();
+    const listEls = () => [elements.listUnfollowers, document.getElementById('unfollowers-empty-state')].filter(el => el && !el.classList.contains('hidden'));
+    const panes = () => [...altView.querySelectorAll(':scope > .insights-pane')];
+    // Tapping again mid-slide: everything carries on from where it's drawn
+    // right now (no snapping back). Record it, then stop the old slide.
+    const at = new Map();
+    const track = (el) => {
+      if (!el || at.has(el) || !el.getClientRects().length) return;
+      const cs = getComputedStyle(el);
+      at.set(el, { x: new DOMMatrixReadOnly(cs.transform).m41 || 0, o: +cs.opacity });
+    };
+    [...listEls(), altView, ...panes()].forEach(track);
+    at.forEach((_, el) => el.getAnimations().forEach(an => an.cancel()));
+    panes().forEach(p => { p.style.transform = ''; p.style.opacity = ''; });
+    clearTimeout(switchTimer);
+    // When the whole box moves (to or from the results), the pages inside
+    // it keep the offset they were drawn at, so nothing jumps inside it.
+    const freezePanes = () => panes().forEach(p => {
+      const a = at.get(p);
+      if (a && (Math.abs(a.x) > 0.5 || a.o < 0.99)) { p.style.transform = `translateX(${a.x}px)`; p.style.opacity = a.o; }
+    });
+
+    let incoming = [];
     const leaving = [];
-    if (from === 'results') {
-      // The list stays on screen (laid over the box) while it slides away.
-      viewEls('results').filter(el => el.getClientRects().length).forEach(el => { el.classList.add('view-leaving'); leaving.push(el); });
-    } else if (view === 'results') {
-      altView.classList.add('view-leaving');
-      leaving.push(altView);
-    } else {
-      // View to view: the old content is laid over the new one inside the
-      // box while it goes.
-      const oldPane = altView.querySelector('.insights-pane:not(.pane-leaving)');
-      if (oldPane) {
-        const scroll = altView.scrollTop;
-        oldPane.remove();
-        oldPane.classList.add('pane-leaving');
-        oldPane.style.top = `${12 - scroll}px`;
-        leaving.push(oldPane);
-        altView._leavingPane = oldPane;
+    const altShowing = !altView.classList.contains('hidden') && !altView.classList.contains('view-leaving');
+    if (view === 'results') {
+      box.classList.remove('showing-alt');
+      listEls().forEach(el => el.classList.remove('view-leaving'));
+      incoming = listEls();
+      if (at.has(altView)) { freezePanes(); altView.classList.add('view-leaving'); leaving.push(altView); }
+      else altView.classList.add('hidden');
+    } else if (!altShowing) {
+      // From the results (or on its way there): the list goes, the view box
+      // comes — the same box turning round if it was the one leaving.
+      listEls().filter(el => at.has(el) || el.getClientRects().length).forEach(el => { el.classList.add('view-leaving'); leaving.push(el); });
+      const live = altView.querySelector(':scope > .insights-pane:not(.pane-leaving)');
+      altView.classList.remove('view-leaving', 'hidden');
+      box.classList.add('showing-alt');
+      if (!live || live.dataset.view !== view) { panes().forEach(p => p.remove()); renderView(); altView.scrollTop = 0; }
+      else {
+        altView._html = renderView(true);
+        // The page that's coming back was drawn off-centre inside the box:
+        // the box takes over that offset, the page sits centred in it.
+        const a = at.get(live), b = at.get(altView);
+        if (a && b) at.set(altView, { x: b.x + a.x, o: Math.min(b.o, a.o) });
+        // Pages still on their way out inside the box finish leaving from
+        // where they're drawn (relative to the box's new place).
+        altView.querySelectorAll(':scope > .insights-pane.pane-leaving').forEach(p => {
+          const f = at.get(p) || { x: 0, o: 0.35 };
+          const rel = f.x - (a ? a.x : 0);
+          const to = rel < 0 ? rel - w * 0.5 : rel + w * 0.5;
+          if (typeof p.animate === 'function') p.animate([{ transform: `translateX(${rel}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: 0 }], { duration: 300, easing: TAB_MOTION.in.easing, fill: 'forwards' });
+          else p.remove();
+        });
       }
-    }
-    box.classList.toggle('showing-alt', view !== 'results');
-    altView.classList.toggle('hidden', view === 'results');
-    if (view !== 'results') {
-      renderView();
+      incoming = [altView];
+    } else {
+      // View to view inside the box: the page you go to may still be on its
+      // way out — it turns round; otherwise it's drawn.
+      let target = panes().find(p => p.dataset.view === view);
+      const others = panes().filter(p => p !== target);
+      const scroll = altView.scrollTop;
+      others.forEach(p => { if (!p.classList.contains('pane-leaving')) { p.classList.add('pane-leaving'); p.style.top = `${12 - scroll}px`; } });
+      if (target) {
+        target.classList.remove('pane-leaving');
+        target.style.top = '';
+        altView._html = renderView(true);
+      } else {
+        others.forEach(p => p.remove());
+        renderView();
+        target = altView.querySelector(':scope > .insights-pane');
+        others.forEach(p => altView.appendChild(p));
+      }
       altView.scrollTop = 0;
-      if (altView._leavingPane) { altView.appendChild(altView._leavingPane); altView._leavingPane = null; }
+      incoming = [target];
+      leaving.push(...others);
+      listEls().filter(el => el.classList.contains('view-leaving')).forEach(el => leaving.push(el));
     }
     refreshToolbar();
-    if (!canAnimate) { finishSwitch(); return; }
-    const incoming = view === 'results'
-      ? viewEls('results')
-      : [from === 'results' ? altView : altView.querySelector('.insights-pane:not(.pane-leaving)')].filter(Boolean);
+    if (typeof altView.animate !== 'function') { finishSwitch(); return; }
+    const D = TAB_MOTION.in.duration;
+    const timing = (dist) => ({ duration: Math.round(D * Math.min(1, Math.max(0.35, Math.abs(dist) / w))), easing: TAB_MOTION.in.easing });
+    let longest = 0;
+    incoming.forEach(el => {
+      const from = at.has(el) ? at.get(el) : { x: dir * w, o: 0.35 };
+      const t = timing(from.x);
+      longest = Math.max(longest, t.duration);
+      el.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: 'translateX(0)', opacity: 1 }], t);
+    });
+    leaving.forEach(el => {
+      const from = at.has(el) ? at.get(el) : { x: 0, o: 1 };
+      // Away to the side it's already on (a page heading back the way it
+      // came keeps going that way, never across the box).
+      const to = from.x < -0.5 ? -w : from.x > 0.5 ? w : -dir * w;
+      const t = timing(to - from.x);
+      longest = Math.max(longest, t.duration);
+      el.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
+    });
     const token = ++viewToken;
-    switchLeftovers = leaving;
-    const w = boxWidth();
-    leaving.forEach(el => slideOut(el, -dir * w));
-    incoming.forEach(el => slideIn(el, dir * w));
-    setTimeout(() => { if (token === viewToken) finishSwitch(); }, SWITCH_OUT.duration + 20);
+    switchTimer = setTimeout(() => { if (token === viewToken) finishSwitch(); }, longest + 30);
   }
-  // Whatever the last switch left on screen: put away, animations cleared.
-  let switchLeftovers = [];
+  let switchTimer = null;
+  // Once a switch has played out: what slid away is put away.
   function finishSwitch() {
-    switchLeftovers.forEach(el => {
-      el.getAnimations && el.getAnimations().forEach(an => an.cancel());
-      if (el.classList.contains('pane-leaving')) el.remove();
+    if (!altView) return;
+    altView.querySelectorAll(':scope > .insights-pane.pane-leaving').forEach(p => p.remove());
+    [elements.listUnfollowers, document.getElementById('unfollowers-empty-state')].forEach(el => {
+      if (!el) return;
+      el.getAnimations().forEach(an => an.cancel());
       el.classList.remove('view-leaving');
     });
-    switchLeftovers = [];
-    if (altView && currentView === 'results') altView.classList.add('hidden');
+    if (currentView === 'results') {
+      altView.getAnimations().forEach(an => an.cancel());
+      altView.classList.remove('view-leaving');
+      altView.classList.add('hidden');
+      altView.querySelectorAll(':scope > .insights-pane').forEach(p => { p.style.transform = ''; p.style.opacity = ''; });
+    }
   }
   // Keep the open view current as the data changes (imports, account
   // switches, unfollows).
@@ -883,7 +948,7 @@
     const oldStats = body.querySelector('.insights-pane:not(.pane-leaving) .insights-stats');
     if (oldStats) oldStats.remove();
     body.querySelectorAll('.pane-leaving').forEach(el => el.remove());
-    body.innerHTML = `<div class="insights-pane">${html}</div>`;
+    body.innerHTML = `<div class="insights-pane" data-view="${currentView}">${html}</div>`;
     placeChangesIndicator();
     const newStats = body.querySelector('.insights-stats');
     if (newStats && oldStats) { newStats.replaceWith(oldStats); updateStats(oldStats, newStats); }
@@ -1030,17 +1095,41 @@
     const left = active.offsetLeft - 12, right = active.offsetLeft + active.offsetWidth + (active.nextElementSibling ? 38 : 12);
     if (left < nav.scrollLeft) scrollInstructionsNav(nav, Math.max(0, left));
     else if (right > nav.scrollLeft + nav.clientWidth) scrollInstructionsNav(nav, right - nav.clientWidth);
-    // The list you leave slides away while the new one slides in, at the
-    // same time (the old one laid over where it was until it's gone).
-    altView.querySelectorAll('.changes-pane.pane-out').forEach(p => settlePaneOut(p));
-    if (typeof oldPane.animate !== 'function') { oldPane.classList.remove('active'); newPane.classList.add('active'); return; }
-    const av = altView.getBoundingClientRect(), r = oldPane.getBoundingClientRect();
-    Object.assign(oldPane.style, { position: 'absolute', top: `${r.top - av.top + altView.scrollTop}px`, left: `${r.left - av.left}px`, width: `${r.width}px` });
-    oldPane.classList.add('pane-out');
+    // Tapping again mid-slide carries on from where each list is drawn.
+    const live = altView.querySelector(':scope > .insights-pane:not(.pane-leaving)');
+    const all = [...live.querySelectorAll('.changes-pane')];
+    const shown = all.filter(p => p.classList.contains('active') || p.classList.contains('pane-out'));
+    const at = new Map(shown.map(p => { const cs = getComputedStyle(p); return [p, { x: new DOMMatrixReadOnly(cs.transform).m41 || 0, o: +cs.opacity }]; }));
+    shown.forEach(p => p.getAnimations().forEach(an => an.cancel()));
+    clearTimeout(altView._changesTimer);
+    if (typeof newPane.animate !== 'function') { shown.forEach(p => settlePaneOut(p)); newPane.classList.add('active'); return; }
+    const av = altView.getBoundingClientRect();
+    // Lists still in the flow are pinned where they are before the new one
+    // joins it.
+    shown.filter(p => p !== newPane && !p.classList.contains('pane-out')).forEach(p => {
+      const r = p.getBoundingClientRect();
+      Object.assign(p.style, { position: 'absolute', top: `${r.top - av.top + altView.scrollTop}px`, left: `${r.left - av.left}px`, width: `${r.width}px` });
+      p.classList.add('pane-out');
+    });
+    newPane.classList.remove('pane-out');
+    newPane.style.position = newPane.style.top = newPane.style.left = newPane.style.width = '';
     newPane.classList.add('active');
     const w = altView.clientWidth;
-    slideOut(oldPane, -dir * w).finished.then(() => settlePaneOut(oldPane), () => settlePaneOut(oldPane));
-    slideIn(newPane, dir * w);
+    const D = TAB_MOTION.in.duration;
+    const timing = (dist) => ({ duration: Math.round(D * Math.min(1, Math.max(0.35, Math.abs(dist) / w))), easing: TAB_MOTION.in.easing });
+    let longest = 0;
+    const from = at.get(newPane) || { x: dir * w, o: 0.35 };
+    const tIn = timing(from.x); longest = tIn.duration;
+    newPane.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: 'translateX(0)', opacity: 1 }], tIn);
+    shown.filter(p => p !== newPane).forEach(p => {
+      const f = at.get(p) || { x: 0, o: 1 };
+      const to = f.x < -0.5 ? -w : f.x > 0.5 ? w : -dir * w;
+      const t = timing(to - f.x); longest = Math.max(longest, t.duration);
+      p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
+    });
+    altView._changesTimer = setTimeout(() => {
+      live.querySelectorAll('.changes-pane.pane-out').forEach(p => settlePaneOut(p));
+    }, longest + 30);
   }
   function settlePaneOut(pane) {
     pane.getAnimations && pane.getAnimations().forEach(an => an.cancel());
