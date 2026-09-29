@@ -549,8 +549,10 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { place(); placeChangesIndicator(); });
     window.addEventListener('resize', place);
     // Searching or jumping to list 3 by keyboard brings the results back.
-    // One step (two queued separately, the second replaced the first).
-    elements.searchUnfollowers && elements.searchUnfollowers.addEventListener('focus', () => queueSwitch(viewGate, () => {
+    // Only once something is typed (just tapping the search box leaves you
+    // where you are); one step (two queued separately, the second
+    // replaced the first).
+    elements.searchUnfollowers && elements.searchUnfollowers.addEventListener('input', () => elements.searchUnfollowers.value.trim() && (currentView !== 'results' || subTab.results !== 'unfollowers') && queueSwitch(viewGate, () => {
       if (currentView === 'results') { switchResultsSub('unfollowers'); return; }
       jumpResultsSub('unfollowers'); // not on screen: no slide needed
       switchView('results');
