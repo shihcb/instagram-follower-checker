@@ -6037,3 +6037,14 @@ select,
   width: fit-content;
   max-width: calc(100% + 8px);
 }
+/* The settings panel opens and closes exactly like the pop-up windows
+   (.account-modal-card): the same solid card, no blur of its own under it
+   (blurring the page on every frame of its slide made it stutter), and
+   the same 0.45s fade, 14px rise and 95% scale from its middle. */
+html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
+  background: linear-gradient(var(--card-bg), var(--card-bg)), var(--bg-color);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  transform-origin: center;
+  will-change: opacity, transform;
+}
