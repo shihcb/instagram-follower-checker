@@ -913,7 +913,9 @@
       const a = oldNums[i] ?? 0, z = parseInt(b.textContent, 10) || 0;
       if (a === z) return;
       const t0 = performance.now();
-      const step = (now) => { const t = Math.min(1, (now - t0) / TL_MS); b.textContent = Math.round(a + (z - a) * tlEase(t)); if (t < 1 && b.isConnected) requestAnimationFrame(step); };
+      // Counted exactly like the stat boxes' numbers (updateStats): 650ms,
+      // easing out, so every number in between shows.
+      const step = (now) => { const t = Math.min(1, (now - t0) / 650); b.textContent = Math.round(a + (z - a) * (1 - Math.pow(1 - t, 3))); if (t < 1 && b.isConnected) requestAnimationFrame(step); };
       b.textContent = a;
       requestAnimationFrame(step);
     });
