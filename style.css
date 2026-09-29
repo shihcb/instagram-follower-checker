@@ -5968,19 +5968,27 @@ select,
   text-align: center;
   text-wrap: balance;
 }
-/* Empty texts centered on list 3's whole box (centerEmpties in
-   features.js sets how far each reaches past its own list, up and down).
-   Each list is its own frame for it, so a list sliding keeps its text. */
-#card-unfollowers .results-container .dropdown-empty-message.box-centered {
+/* Empty texts: each fills its own list's space and is moved up to the
+   middle of list 3's whole box (centerEmpties in features.js sets how
+   far). */
+.results-extra .extra-body > .dropdown-empty-message,
+#unfollowers-empty-state > .dropdown-empty-message,
+.list3-alt-view .changes-pane > .dropdown-empty-message {
   position: absolute;
-  left: 0;
-  right: 0;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0 24px !important;
   margin: 0;
   pointer-events: none;
+}
+.results-extra .extra-body > .dropdown-empty-message,
+#unfollowers-empty-state > .dropdown-empty-message {
+  transform: translateY(var(--extra-shift, 0px));
+}
+.list3-alt-view .changes-pane > .dropdown-empty-message {
+  transform: translateY(var(--pane-shift, 0px));
 }
 .list3-alt-view .changes-pane,
 #unfollowers-empty-state {

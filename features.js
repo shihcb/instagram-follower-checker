@@ -1272,24 +1272,24 @@
   }
 
   // ---------- empty texts: centered in list 3's whole box ----------
-  // Each view's or tab's "no …" text is laid over the whole box (switchers
-  // included), so it sits exactly in the middle of it wherever the list it
-  // belongs to starts. Measured by layout, so a slide doesn't move it.
+  // A tab's "no …" text fills its own list's space (so it's clipped with it
+  // and slides with it) and is moved up by exactly as much as puts it in
+  // the middle of the whole box, switcher included. The amount only
+  // depends on the switcher's height, so it's known before a tab shows
+  // (no jump on its first frame). Stretching the text over the whole box
+  // instead left it showing outside its list mid-slide on iPhone.
   function centerEmpties() {
     const box = document.querySelector('#card-unfollowers .results-container');
     if (!box) return;
-    box.querySelectorAll('.dropdown-empty-message').forEach(msg => {
-      if (!msg.getClientRects().length) return;
-      msg.classList.add('box-centered');
-      const cb = msg.offsetParent;
-      if (!cb) return;
-      let top = cb.clientTop, el = cb;
+    if (resultsSubnav && resultsSubnav.getClientRects().length) {
+      box.style.setProperty('--extra-shift', `${-(resultsSubnav.offsetTop + resultsSubnav.offsetHeight) / 2}px`);
+    }
+    const pane = altView && altView.querySelector(':scope > .insights-pane:not(.pane-leaving) > .changes-pane.active');
+    if (pane && pane.getClientRects().length) {
+      let top = 0, el = pane;
       while (el && el !== box) { top += el.offsetTop; el = el.offsetParent; }
-      if (el !== box) return;
-      top -= box.clientTop;
-      msg.style.top = `${-top}px`;
-      msg.style.bottom = `${-(box.clientHeight - top - cb.clientHeight)}px`;
-    });
+      if (el === box) altView.style.setProperty('--pane-shift', `${(box.clientHeight - top - pane.offsetHeight - top) / 2}px`);
+    }
   }
   const centerSoon = () => requestAnimationFrame(() => safe(centerEmpties, 'empty texts'));
 
