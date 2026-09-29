@@ -6118,9 +6118,14 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 /* The version, centered at the bottom of the settings panel. */
 .app-version {
   text-align: center;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
+  line-height: 1.5;
   color: var(--text-muted);
-  margin-top: -4px;
+  margin: 10px 0 0;
+  padding: 0;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1; /* never under the button */
 }
 .app-version:empty {
   display: none;

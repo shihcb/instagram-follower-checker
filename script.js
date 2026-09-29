@@ -1221,7 +1221,9 @@ function openInstagramProfile(username, webUrl) {
 // The version at the bottom of the settings panel: the sum of the app's
 // three files' version tags (index.html), which goes up with every update
 // — so it shows whether this device has the latest.
-(function showAppVersion() {
+// (Worked out once the page has loaded: features.js comes after this file,
+// and counting before it was there left its number out.)
+function showAppVersion() {
   const el = document.getElementById('app-version');
   if (!el) return;
   const total = ['style.css', 'script.js', 'features.js'].reduce((sum, file) => {
@@ -1230,7 +1232,9 @@ function openInstagramProfile(username, webUrl) {
     return sum + (v ? +v[1] : 0);
   }, 0);
   if (total) el.textContent = `version ${total}`;
-})();
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', showAppVersion);
+else showAppVersion();
 
 function updateResultsUI({ animate = false, matchRenames = false } = {}) {
   const listEl = elements.listUnfollowers;
