@@ -4879,36 +4879,8 @@ button:focus-visible,
   background: rgba(245, 158, 11, 0.08);
 }
 
-/* List 3 row extras: follow age, tags, note */
-.row-extras {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 6px;
-  margin-top: 3px;
-}
-.row-age,
-.row-note {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-}
-.row-note {
-  flex-basis: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-style: italic;
-}
-.row-tag {
-  font-size: 0.64rem;
-  font-weight: 600;
-  padding: 1px 7px;
-  border-radius: 999px;
-  background: rgba(16, 185, 129, 0.12);
-  color: #10b981;
-}
 #list-unfollowers .user-row {
-  -webkit-touch-callout: none; /* long-press opens the note window */
+  -webkit-touch-callout: none; /* no link preview popping up mid-tap */
 }
 
 /* Select several rows */
@@ -5056,30 +5028,6 @@ button:focus-visible,
   font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
-}
-
-/* Note window */
-.feature-note-card textarea {
-  width: 100%;
-  padding: 12px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--input-border);
-  background: var(--input-bg);
-  color: var(--text-main);
-  font-size: 0.95rem;
-  font-family: inherit;
-  resize: none;
-  outline: none;
-  transition: border-color 0.2s ease;
-}
-.feature-note-card textarea:focus {
-  border-color: var(--text-main);
-}
-.feature-note-footer {
-  flex-wrap: wrap;
-}
-.feature-note-footer [data-note="hide"] {
-  flex-basis: 100%;
 }
 
 /* List 3's view switcher (same bar, tabs and highlight as instructions) */
@@ -5543,13 +5491,11 @@ select,
 .export-mockup-options,
 .export-pill,
 .toolbar-pill,
-.row-tag,
 .row-select-bar,
 .row-select-count,
 .row-select-bar button,
 .feature-toast,
 .feature-toast-btn,
-.feature-note-card textarea,
 .insights-list,
 .insights-stat,
 .insights-row-btn,
@@ -5779,4 +5725,224 @@ select,
 .modal-overlay .account-modal-card,
 .modal-overlay .confirm-modal-box {
   background: linear-gradient(var(--card-bg), var(--card-bg)), var(--bg-color) !important;
+}
+
+/* -------------------------------------------------------------
+ * List 3's results tab: its own switcher (unfollowers, pending requests,
+ * close friends, blocked, restricted) at the top of the box, and the
+ * lists that slide under it.
+ * ------------------------------------------------------------- */
+.results-subnav {
+  flex: none;
+  padding: 8px 8px 0; /* lined up with list 3's rows */
+}
+.results-subnav .changes-nav {
+  margin-bottom: 4px;
+}
+.results-container.showing-alt > .results-subnav,
+.results-container.showing-alt > .results-extra {
+  display: none !important;
+}
+/* Only the list for the tab it's on shows (one on its way out stays until
+   it has gone). */
+#card-unfollowers .results-container.has-sub > #list-unfollowers:not(.sub-on):not(.pane-out),
+#card-unfollowers .results-container.has-sub > #unfollowers-empty-state:not(.sub-on):not(.pane-out) {
+  display: none !important;
+}
+.results-extra {
+  display: none;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  flex-direction: column;
+}
+.results-extra.sub-on,
+.results-extra.pane-out {
+  display: flex;
+}
+.results-container > .pane-out {
+  pointer-events: none;
+  z-index: 1;
+}
+.results-extra > .extra-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: 4px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+/* Old content fading away over the new (an account picked, an import). */
+.results-extra > .extra-body.extra-leaving {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.results-extra .insights-sub {
+  text-align: center;
+  color: var(--text-muted);
+}
+/* The empty text sits centered in the list's whole box. */
+.results-extra .extra-body > .dropdown-empty-message {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px !important;
+  color: var(--text-muted);
+  text-align: center;
+  text-wrap: balance;
+  pointer-events: none;
+}
+.results-extra .insights-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 36px;
+}
+.insights-row-flag {
+  margin-left: auto;
+  padding-left: 10px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------------
+ * Stats: timeline (following and followers at each import)
+ * ------------------------------------------------------------- */
+.list3-alt-view .changes-pane[data-pane="timeline"] {
+  position: relative;
+}
+.timeline {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 190px;
+}
+.timeline.timeline-leaving {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.timeline-legend {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.timeline-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.timeline-key i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c);
+}
+.timeline-key b {
+  color: var(--text-main);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  margin-left: 2px;
+}
+.timeline-chart {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 140px;
+  margin: 0 6px;
+}
+.timeline-chart svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.tl-grid {
+  stroke: var(--card-border);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  vector-effect: non-scaling-stroke;
+}
+.tl-line {
+  fill: none;
+  stroke: var(--c);
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.tl-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bg-color); /* solid: the line doesn't show through */
+  border: 2px solid var(--c);
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
+}
+.timeline-dates {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin: 8px 2px 0;
+}
+.timeline-dates > span:only-child {
+  margin: 0 auto;
+}
+/* Before a second import: a greyed-out example, like the overview's. */
+.timeline-mock .tl-line {
+  stroke: color-mix(in srgb, var(--text-muted) 35%, transparent);
+}
+.timeline-mock .tl-dot {
+  border-color: color-mix(in srgb, var(--text-muted) 40%, transparent);
+}
+.timeline-mock .timeline-key i {
+  background: color-mix(in srgb, var(--text-muted) 40%, transparent);
+}
+
+/* Export window: the stats picture, under the lists (a button, not a
+   choice: it downloads / shares straight away). */
+.export-option.export-image {
+  margin: -8px 0 18px;
+}
+.export-option.export-image .export-check {
+  color: var(--text-main);
+  border-color: transparent;
+}
+
+/* Stats under its switcher: the numbers and the graph sit closer, so the
+   graph keeps its room on a phone. */
+.list3-alt-view .changes-pane[data-pane="overview"] .insights-stats {
+  margin-bottom: 0;
+}
+.list3-alt-view .changes-pane[data-pane="overview"] .trend-wrap {
+  margin-top: 12px;
+}
+.list3-alt-view .changes-pane[data-pane="overview"] .insights-stat {
+  padding: 10px 8px;
+}
+/* The export window never runs off a short screen: its lists scroll
+   inside it (everything else stays in view). */
+.export-card {
+  max-height: calc(100dvh - 32px);
+  display: flex;
+  flex-direction: column;
+}
+.export-card .export-options {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }

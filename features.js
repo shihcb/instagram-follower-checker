@@ -6,7 +6,6 @@
 //  - export (CSV)
 //  - undo after unfollowing / starring / removing
 //  - select several rows and act on them at once
-//  - notes and tags per username (long-press or right-click a row)
 //  - daily unfollow counter with a warning
 //  - re-import reminder, installable app (manifest + service worker)
 // Everything reuses the app's own styles and motion: list 3's row slides,
@@ -56,16 +55,6 @@
     }
   };
 
-  // ---------- data ----------
-  const getNotes = () => readJSON('user_notes', {});
-  const setNotes = (notes) => { writeJSON('user_notes', notes); pushToCloud(); };
-  // One read per render of list 3, not one per row.
-  let notesMemo = null;
-  const notesForRender = () => {
-    if (!notesMemo) { notesMemo = getNotes(); setTimeout(() => { notesMemo = null; }, 0); }
-    return notesMemo;
-  };
-
   let sortMode = 'default'; // 'default' | 'oldest' | 'newest'
   try { sortMode = localStorage.getItem('list3_sort') || 'default'; } catch (e) {}
 
@@ -99,25 +88,9 @@
     safe(keepSelection, 'selection');
     safe(refreshToolbar, 'toolbar');
     safe(refreshView, 'view');
+    safe(() => renderExtras(true), 'extra lists'); // an account picked: its lists
     return result;
   };
-
-  // Rows: how long ago you followed them, your note and tags.
-  const baseRowHtml = renderUnfollowerRowHtml;
-  renderUnfollowerRowHtml = function (user, index) {
-    const base = baseRowHtml.call(this, user, index);
-    return safe(() => withExtras(base, user), 'row') || base;
-  };
-  function withExtras(html, user) {
-    const note = notesForRender()[user.username];
-    const extras = [];
-    if (note && note.tags && note.tags.length) extras.push(note.tags.map(tag => `<span class="row-tag">${esc(tag)}</span>`).join(''));
-    if (note && note.text) extras.push(`<span class="row-note">${esc(note.text)}</span>`);
-    if (extras.length) {
-      html = html.replace(/(<div class="user-details">[\s\S]*?)(\n\s*<\/div>\n\s*<\/div>\n\s*<div class="user-meta">)/, `$1<div class="row-extras">${extras.join('')}</div>$2`);
-    }
-    return html;
-  }
 
   // ---------- toast (undo, messages) ----------
   let toastEl = null;
@@ -379,7 +352,7 @@
     if (!sortText.textContent) sortText.textContent = SORT_LABELS[sortMode]; // first time only; changes slide (slideSortLabel)
     toolbar.querySelector('[data-act="sort"]').classList.toggle('on', sortMode !== 'default');
     // Sort and select only work on the results view.
-    const hasRows = state.unfollowers.length > 0 && currentView === 'results';
+    const hasRows = state.unfollowers.length > 0 && currentView === 'results' && subTab.results === 'unfollowers';
     toolbar.querySelector('[data-act="sort"]').disabled = !hasRows;
     toolbar.querySelector('[data-act="select"]').disabled = !hasRows && !selectMode;
     toolbar.querySelector('[data-act="select"]').classList.toggle('on', selectMode);
@@ -487,102 +460,6 @@
     offerUndo(snap, `${plural(n, 'account')} ${kind === 'star' ? 'starred' : 'unfollowed'}`);
   }
 
-  // ---------- notes & tags (long-press / right-click a row) ----------
-  let noteOverlay = null;
-  let noteFor = null;
-  function openNote(username) {
-    const user = state.unfollowers.find(u => u.username === username) || { username, originalUsername: username };
-    noteFor = user;
-    if (!noteOverlay) {
-      noteOverlay = document.createElement('div');
-      noteOverlay.className = 'modal-overlay hidden';
-      noteOverlay.innerHTML = `
-        <div class="account-modal-card glass feature-note-card">
-          <div class="account-modal-header"><h3 class="feature-note-title"></h3></div>
-          <div class="account-modal-input-group">
-            <label>note</label>
-            <textarea class="feature-note-text" rows="3" placeholder="for example, met at work"></textarea>
-          </div>
-          <div class="account-modal-input-group">
-            <label>tags</label>
-            <input type="text" class="feature-note-tags" placeholder="for example, close friend, brand">
-          </div>
-          <div class="account-modal-actions feature-note-footer">
-            <button class="btn btn-secondary" data-note="cancel">cancel</button>
-            <button class="btn btn-primary" data-note="save">save</button>
-          </div>
-        </div>`;
-      document.body.appendChild(noteOverlay);
-      noteOverlay.addEventListener('click', (e) => {
-        if (e.target === noteOverlay) return closeNote();
-        const btn = e.target.closest('[data-note]');
-        if (!btn) return;
-        if (btn.dataset.note === 'cancel') return closeNote();
-        if (btn.dataset.note === 'save') return saveNote();
-      });
-      noteOverlay.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeNote(); });
-    }
-    const note = getNotes()[username] || {};
-    noteOverlay.querySelector('.feature-note-title').textContent = `@${user.originalUsername}`;
-    noteOverlay.querySelector('.feature-note-text').value = note.text || '';
-    noteOverlay.querySelector('.feature-note-tags').value = (note.tags || []).join(', ');
-    showModalOverlay(noteOverlay);
-    lockPageScroll();
-  }
-  function closeNote() {
-    if (!noteOverlay) return;
-    noteOverlay.classList.remove('show');
-    unlockPageScroll();
-    scheduleOverlayHide(noteOverlay, () => noteOverlay.classList.add('hidden'));
-  }
-  function saveNote() {
-    const text = noteOverlay.querySelector('.feature-note-text').value.trim();
-    const tags = noteOverlay.querySelector('.feature-note-tags').value.split(',').map(t => t.trim().toLowerCase()).filter(Boolean).slice(0, 6);
-    const notes = getNotes();
-    if (text || tags.length) notes[noteFor.username] = { text, tags }; else delete notes[noteFor.username];
-    setNotes(notes);
-    closeNote();
-    // Redraw just that row's extras, fading them in.
-    const row = elements.listUnfollowers.querySelector(`.user-row[data-username="${CSS.escape(noteFor.username)}"]`);
-    if (row) {
-      const index = +row.dataset.index;
-      const tpl = document.createElement('template');
-      tpl.innerHTML = renderUnfollowerRowHtml(noteFor, index).trim();
-      const fresh = tpl.content.querySelector('.row-extras');
-      const old = row.querySelector('.row-extras');
-      if (old) old.remove();
-      if (fresh) { row.querySelector('.user-details').appendChild(fresh); animateIn(fresh); }
-    }
-  }
-  // Long-press (touch) or right-click (mouse) on a list 3 row.
-  let pressTimer = null, pressStart = null, suppressClick = false;
-  elements.listUnfollowers.addEventListener('touchstart', (e) => {
-    const row = e.target.closest('.user-row');
-    if (!row || selectMode || row.classList.contains('username-exit')) return;
-    const t = e.touches[0];
-    pressStart = { x: t.clientX, y: t.clientY };
-    pressTimer = setTimeout(() => {
-      suppressClick = true;
-      if (navigator.vibrate) navigator.vibrate(15);
-      openNote(row.dataset.username);
-    }, 500);
-  }, { passive: true });
-  elements.listUnfollowers.addEventListener('touchmove', (e) => {
-    if (!pressTimer || !pressStart) return;
-    const t = e.touches[0];
-    if (Math.hypot(t.clientX - pressStart.x, t.clientY - pressStart.y) > 10) { clearTimeout(pressTimer); pressTimer = null; }
-  }, { passive: true });
-  elements.listUnfollowers.addEventListener('touchend', () => { clearTimeout(pressTimer); pressTimer = null; }, { passive: true });
-  elements.listUnfollowers.addEventListener('click', (e) => {
-    if (suppressClick) { suppressClick = false; e.preventDefault(); e.stopImmediatePropagation(); }
-  }, true);
-  elements.listUnfollowers.addEventListener('contextmenu', (e) => {
-    const row = e.target.closest('.user-row');
-    if (!row || selectMode || row.classList.contains('username-exit')) return;
-    e.preventDefault();
-    openNote(row.dataset.username);
-  });
-
   // ---------- list 3 views: a tab switcher above list 3's box ----------
   // Same bar and sliding highlight as the instructions window. Switching
   // only swaps what's inside list 3's box: the old view slides out, the new
@@ -592,6 +469,18 @@
     ['results', 'results'], ['changes', 'changes'], ['mutuals', 'mutuals'], ['fans', 'fans'],
     ['compare', 'compare'], ['stats', 'stats']
   ];
+  // The switchers inside views, and the tab each one is on (results and
+  // stats remember theirs on this device).
+  const SUB_TABS = {
+    changes: [['lost', 'unfollowed you'], ['new', 'new followers'], ['stopped', 'you stopped following'], ['started', 'you started following']],
+    stats: [['overview', 'overview'], ['timeline', 'timeline']],
+    results: [['unfollowers', 'unfollowers'], ['pending', 'pending requests'], ['closeFriends', 'close friends'], ['blocked', 'blocked'], ['restricted', 'restricted']]
+  };
+  const savedSub = (key, view) => {
+    try { const v = localStorage.getItem(key); if (SUB_TABS[view].some(t => t[0] === v)) return v; } catch (e) {}
+    return SUB_TABS[view][0][0];
+  };
+  const subTab = { changes: 'lost', stats: savedSub('stats_sub', 'stats'), results: savedSub('results_sub', 'results') };
   let viewNav = null;
   let altView = null;
   let currentView = 'results';
@@ -627,8 +516,8 @@
     altView.addEventListener('click', (e) => {
       const box = e.target.closest('.insights-stat');
       if (box) { setPopped([...box.parentNode.children].indexOf(box)); return; }
-      const tab = e.target.closest('[data-change]');
-      if (tab) { e.stopPropagation(); showChangesTab(tab.dataset.change); }
+      const tab = e.target.closest('[data-sub]');
+      if (tab) { e.stopPropagation(); showAltSub(tab.dataset.sub); }
     });
     // Park the highlight under "results" once the bar has a size.
     // Re-places the highlight after a real change in the tabs' size or
@@ -655,7 +544,7 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { place(); placeChangesIndicator(); });
     window.addEventListener('resize', place);
     // Searching or jumping to list 3 by keyboard brings the results back.
-    elements.searchUnfollowers && elements.searchUnfollowers.addEventListener('focus', () => showView('results'));
+    elements.searchUnfollowers && elements.searchUnfollowers.addEventListener('focus', () => { showView('results'); showResultsSub('unfollowers'); });
     if (window.ResizeObserver) new ResizeObserver(place).observe(viewNav);
   }
   // What's showing in the box for a view.
@@ -677,12 +566,12 @@
     if (left < viewNav.scrollLeft) scrollInstructionsNav(viewNav, Math.max(0, left));
     else if (right > viewNav.scrollLeft + viewNav.clientWidth) scrollInstructionsNav(viewNav, right - viewNav.clientWidth);
 
-    if (view !== 'results' && selectMode) setSelectMode(false);
+    if ((view !== 'results' || subTab.results !== 'unfollowers') && selectMode) setSelectMode(false);
     try { localStorage.setItem('list3_view', view); } catch (e) {}
     currentView = view;
     const box = altView.parentNode;
     const w = boxWidth();
-    const listEls = () => [elements.listUnfollowers, document.getElementById('unfollowers-empty-state')].filter(el => el && !el.classList.contains('hidden'));
+    const listEls = resultsEls;
     const panes = () => [...altView.querySelectorAll(':scope > .insights-pane')];
     // Tapping again mid-slide: everything carries on from where it's drawn
     // right now (no snapping back). Record it, then stop the old slide.
@@ -708,18 +597,27 @@
     const altShowing = !altView.classList.contains('hidden') && !altView.classList.contains('view-leaving');
     if (view === 'results') {
       box.classList.remove('showing-alt');
-      listEls().forEach(el => el.classList.remove('view-leaving'));
+      // Back in the flow (a list still sliding between results tabs stays
+      // pinned until it has gone).
+      listEls().forEach(el => { el.classList.remove('view-leaving'); if (!el.classList.contains('pane-out')) clearPin(el); });
       incoming = listEls();
       if (at.has(altView)) { freezePanes(); altView.classList.add('view-leaving'); leaving.push(altView); }
       else altView.classList.add('hidden');
     } else if (!altShowing) {
       // From the results (or on its way there): the list goes, the view box
       // comes — the same box turning round if it was the one leaving.
-      listEls().filter(el => at.has(el) || el.getClientRects().length).forEach(el => { el.classList.add('view-leaving'); leaving.push(el); });
+      // Pinned where they are (the switcher on top, the list under it) while
+      // they slide away over the box.
+      const going = listEls().filter(el => at.has(el) || el.getClientRects().length);
+      pinAll(box, going.filter(el => !el.classList.contains('pane-out') && !el.classList.contains('view-leaving')));
+      going.forEach(el => { el.classList.add('view-leaving'); leaving.push(el); });
       const live = altView.querySelector(':scope > .insights-pane:not(.pane-leaving)');
       altView.classList.remove('view-leaving', 'hidden');
       box.classList.add('showing-alt');
-      if (!live || live.dataset.view !== view) { panes().forEach(p => p.remove()); renderView(); altView.scrollTop = 0; }
+      // Its page is only reused while it's still sliding (turning round);
+      // one put away earlier is drawn again — the data may have changed
+      // since (an import on the results, say).
+      if (!live || live.dataset.view !== view || !at.has(altView)) { panes().filter(p => p !== live).forEach(p => p.remove()); renderView(); altView.scrollTop = 0; }
       else {
         altView._html = renderView(true);
         // The page that's coming back was drawn off-centre inside the box:
@@ -800,10 +698,15 @@
   function finishSwitch() {
     if (!altView) return;
     altView.querySelectorAll(':scope > .insights-pane.pane-leaving').forEach(p => p.remove());
-    [elements.listUnfollowers, document.getElementById('unfollowers-empty-state')].forEach(el => {
-      if (!el) return;
+    const box = altView.parentNode;
+    // The results slid away: a results tab switch it cut short is put away
+    // too. (Back on the results, one that's playing carries on.)
+    if (currentView !== 'results') settleSub(box);
+    [resultsSubnav, ...resultsPanes()].forEach(el => {
+      if (!el || !el.classList.contains('view-leaving')) return;
       el.getAnimations().forEach(an => an.cancel());
       el.classList.remove('view-leaving');
+      if (!el.classList.contains('pane-out')) clearPin(el);
     });
     if (currentView === 'results') {
       altView.getAnimations().forEach(an => an.cancel());
@@ -877,10 +780,11 @@
 
   const followingSet = () => new Set(state.following.map(u => u.username));
   const followersSet = () => new Set(state.followers.map(u => u.username));
-  const userRowsHtml = (users, empty, action) => users.length
+  const userRowsHtml = (users, empty, action, flagOf) => users.length
     ? `<div class="insights-list">${users.slice(0, 500).map(u => `
         <div class="parsed-item insights-row" data-username="${esc(u.username)}">
           <a href="${esc(safeProfileUrl(u))}" target="_blank" rel="noopener" class="parsed-username">@${esc(u.originalUsername || u.username)}</a>
+          ${flagOf && flagOf(u) ? `<span class="insights-row-flag">${flagOf(u)}</span>` : ''}
           ${action ? `<button class="insights-row-btn" data-ins="${action.id}" data-username="${esc(u.username)}">${action.label}</button>` : ''}
         </div>`).join('')}${users.length > 500 ? `<div class="insights-more">+ ${users.length - 500} more</div>` : ''}</div>`
     : `<div class="dropdown-empty-message">${empty}</div>`;
@@ -895,6 +799,58 @@
   const asUsers = (names) => names.map(n => ({ username: n, originalUsername: n }));
   const stat = (value, label, i) => `<div class="insights-stat" style="--stat:${STAT_COLORS[i]}"><div class="insights-stat-value">${value}</div><div class="insights-stat-label">${label}</div></div>`;
 
+  // ---------- stats: timeline ----------
+  // Following and followers at each import (the last 24), as two lines in
+  // their stat boxes' colors. Before a second import: a greyed-out example,
+  // like the overview's graph.
+  const MOCK_TIMELINE = [[40, 52], [46, 55], [44, 61], [52, 64], [55, 72], [58, 77]]; // [following, followers]
+  const shortDate = (t) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  function timelineHtml(key) {
+    const hist = key === DEMO_ID ? [] : readJSON(`import_history_${key}`, [])
+      .filter(h => h && Number.isFinite(h.date) && Number.isFinite(h.following) && Number.isFinite(h.followers));
+    const real = hist.length >= 2;
+    const pts = real ? hist.map(h => ({ t: h.date, a: h.following, b: h.followers }))
+      : MOCK_TIMELINE.map(([a, b], i) => ({ t: i, a, b }));
+    const W = 320, H = 150, PX = 6, PY = 14;
+    const vals = pts.flatMap(p => [p.a, p.b]);
+    let lo = Math.min(...vals), hi = Math.max(...vals);
+    if (hi - lo < 4) { lo -= 2; hi += 2; }
+    const pad = (hi - lo) * 0.12;
+    lo = Math.max(0, lo - pad); hi += pad;
+    const t0 = pts[0].t, t1 = pts[pts.length - 1].t;
+    const fx = (p, i) => (t1 > t0 ? (p.t - t0) / (t1 - t0) : i / Math.max(1, pts.length - 1));
+    const x = (p, i) => PX + (W - 2 * PX) * fx(p, i);
+    const y = (v) => PY + (H - 2 * PY) * (1 - (v - lo) / (hi - lo));
+    const series = [['a', 'following', STAT_COLORS[0]], ['b', 'followers', STAT_COLORS[1]]];
+    const path = (k) => pts.map((p, i) => `${i ? 'L' : 'M'}${x(p, i).toFixed(1)} ${y(p[k]).toFixed(1)}`).join(' ');
+    const grid = [0.25, 0.5, 0.75].map(g => `<line class="tl-grid" x1="0" x2="${W}" y1="${(H * g).toFixed(1)}" y2="${(H * g).toFixed(1)}"/>`).join('');
+    const dots = series.map(([k, , c]) => pts.map((p, i) => `<span class="tl-dot" style="--c:${c};--x:${fx(p, i).toFixed(3)};left:${(x(p, i) / W * 100).toFixed(2)}%;top:${(y(p[k]) / H * 100).toFixed(2)}%"></span>`).join('')).join('');
+    const last = pts[pts.length - 1];
+    const sig = `${real ? 'r' : 'm'}:${pts.map(p => `${p.t}.${p.a}.${p.b}`).join(',')}`;
+    return `<div class="timeline${real ? '' : ' timeline-mock'}" data-sig="${sig}">
+        <div class="timeline-legend">${series.map(([k, label, c]) => `<span class="timeline-key" style="--c:${c}"><i></i>${label}${real ? `<b>${last[k]}</b>` : ''}</span>`).join('')}</div>
+        <div class="timeline-chart"${real ? '' : ' aria-hidden="true"'}>
+          <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${grid}${series.map(([k, , c]) => `<path class="tl-line" d="${path(k)}" style="--c:${c}"/>`).join('')}</svg>
+          ${dots}
+        </div>
+        <div class="timeline-dates">${real ? `<span>${shortDate(t0)}</span><span>${shortDate(t1)}</span>` : '<span>shows up after your second import</span>'}</div>
+      </div>`;
+  }
+  // The lines draw in from the left, the points pop in as the line reaches
+  // them.
+  function drawTimeline(scope) {
+    const tl = scope && scope.querySelector('.timeline:not(.timeline-leaving)');
+    const svg = tl && tl.querySelector('svg');
+    if (!svg || typeof svg.animate !== 'function') return;
+    const D = 900, DELAY = 120;
+    svg.animate([{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)' }], { duration: D, delay: DELAY, easing: GLIDE, fill: 'backwards' });
+    tl.querySelectorAll('.tl-dot').forEach(d => {
+      const at = parseFloat(d.style.getPropertyValue('--x')) || 0;
+      d.animate([{ opacity: 0, transform: 'translate(-50%, -50%) scale(0.3)' }, { opacity: 1, transform: 'translate(-50%, -50%) scale(1)' }],
+        { duration: 380, delay: DELAY + D * 0.75 * at, easing: EASE, fill: 'backwards' });
+    });
+  }
+
   // dry: just return what the view would show (to tell if it changed).
   function renderView(dry = false) {
     const body = altView;
@@ -906,11 +862,8 @@
         // Its own switcher, same design as the one above list 3 — always
         // there, each tab with its own empty text.
         const lists = d ? { lost: d.lostFollowers, new: d.newFollowers, stopped: d.stoppedFollowing, started: d.startedFollowing } : { lost: [], new: [], stopped: [], started: [] };
-        html = `<div class="instructions-steps-nav changes-nav">
-            <div class="instructions-nav-indicator changes-indicator"></div>
-            ${CHANGE_TABS.map(([id, label]) => `<button class="insights-tab${id === changesTab ? ' active' : ''}" data-change="${id}">${label}</button>`).join('')}
-          </div>
-          ${CHANGE_TABS.map(([id]) => `<div class="changes-pane${id === changesTab ? ' active' : ''}" data-pane="${id}">${userRowsHtml(asUsers(lists[id]), CHANGE_EMPTY[id])}</div>`).join('')}`;
+        html = `${subNavHtml(SUB_TABS.changes, subTab.changes)}
+          ${SUB_TABS.changes.map(([id]) => `<div class="changes-pane${id === subTab.changes ? ' active' : ''}" data-pane="${id}">${userRowsHtml(asUsers(lists[id]), CHANGE_EMPTY[id])}</div>`).join('')}`;
       }
     } else if (currentView === 'stats') {
       const following = state.following.length, followers = state.followers.length;
@@ -924,12 +877,14 @@
       // sliver on a straight scale; this keeps the order and shows them.
       const logScale = (c) => Math.round((Math.log1p(c) / Math.log1p(maxCount)) * 100);
       const heights = counts.map(c => c === null ? Math.max(4, ratio) : Math.max(4, logScale(c)));
-      html = `<div class="insights-sub">accounts that don't follow you back</div>
-        <div class="insights-stats">
+      const pane = (id, inner) => `<div class="changes-pane${id === subTab.stats ? ' active' : ''}" data-pane="${id}">${inner}</div>`;
+      html = `${subNavHtml(SUB_TABS.stats, subTab.stats)}
+        ${pane('overview', `<div class="insights-stats">
           ${stat(following, 'following', 0)}${stat(followers, 'followers', 1)}${stat(`${ratio}%`, 'follow you back', 2)}
           ${stat(state.unfollowers.length, "don't follow you back", 3)}${stat(state.unfollowed.length, 'unfollowed', 4)}${stat(state.starred.length, 'starred', 5)}
         </div>
-        <div class="trend-wrap">${hasData ? chartHtml(heights, false) : chartHtml(MOCK_HEIGHTS, true)}</div>`;
+        <div class="trend-wrap">${hasData ? chartHtml(heights, false) : chartHtml(MOCK_HEIGHTS, true)}</div>`)}
+        ${pane('timeline', timelineHtml(key))}`;
     } else if (currentView === 'mutuals') {
       const fset = followersSet();
       html = userRowsHtml(state.following.filter(u => fset.has(u.username)), 'no mutual accounts yet');
@@ -965,6 +920,9 @@
     // values (rebuilding them re-ran their fade-in: a flicker).
     const oldStats = body.querySelector('.insights-pane:not(.pane-leaving) .insights-stats');
     if (oldStats) oldStats.remove();
+    // And the timeline: kept while its numbers are the same.
+    const oldTl = body.querySelector('.insights-pane:not(.pane-leaving) .timeline:not(.timeline-leaving)');
+    if (oldTl) oldTl.remove();
     body.querySelectorAll('.pane-leaving').forEach(el => el.remove());
     body.innerHTML = `<div class="insights-pane" data-view="${currentView}">${html}</div>`;
     placeChangesIndicator();
@@ -977,6 +935,22 @@
     const newWrap = body.querySelector('.trend-wrap');
     if (newWrap && oldWrap) { newWrap.replaceWith(oldWrap); updateChart(oldWrap, newWrap); }
     else if (newWrap) growChart(newWrap.querySelector('.trend-chart'));
+    const newTl = body.querySelector('.timeline');
+    if (newTl) {
+      const tlPane = newTl.parentNode;
+      const showing = tlPane.classList.contains('active');
+      if (oldTl && oldTl.dataset.sig === newTl.dataset.sig) newTl.replaceWith(oldTl);
+      else if (oldTl && showing && !pageLoading && typeof oldTl.animate === 'function') {
+        // New numbers: the old chart goes like the instructions window
+        // closes, the new one comes in like it opens.
+        oldTl.classList.add('timeline-leaving');
+        tlPane.appendChild(oldTl);
+        const drop = () => oldTl.remove();
+        oldTl.animate(MODAL_OUT, LEAVE).finished.then(drop, drop);
+        setTimeout(drop, LEAVE.duration + 400);
+        newTl.animate(MODAL_IN, { duration: 450, easing: MODAL_EASE, delay: LEAVE.duration, fill: 'backwards' });
+      } else if (showing) drawTimeline(tlPane);
+    }
     applyPopped();
   }
 
@@ -1055,128 +1029,341 @@
       { duration: 750, delay: 520, easing: GLIDE, fill: 'backwards' });
   }
 
-  // ---------- changes view: its own tab switcher ----------
-  const CHANGE_TABS = [
-    ['lost', 'unfollowed you'], ['new', 'new followers'],
-    ['stopped', 'you stopped following'], ['started', 'you started following']
-  ];
+  // ---------- tab switchers inside the views (changes, stats, results) ----------
   // Worded like the unfollowed / starred submenus' empty lines.
   const CHANGE_EMPTY = {
     lost: 'no accounts have unfollowed you', new: 'no new followers',
     stopped: "no accounts you've stopped following", started: "no accounts you've started following"
   };
-  let changesTab = 'lost';
+  // Every switcher is the same bar, highlight and slide as list 3's own.
+  const subNavHtml = (tabs, current) => `<div class="instructions-steps-nav changes-nav">
+      <div class="instructions-nav-indicator changes-indicator"></div>
+      ${tabs.map(([id, label]) => `<button class="insights-tab${id === current ? ' active' : ''}" data-sub="${id}">${label}</button>`).join('')}
+    </div>`;
   // Places the outline on the active tab. On a reload the view is drawn
   // before its tabs have their real size (the font, the layout), which
   // left only the outline's left end showing — so it waits for a measured
-  // tab, and re-places itself whenever the tabs change size.
-  function placeChangesIndicator(tries = 0) {
-    const nav = altView && altView.querySelector('.insights-pane:not(.pane-leaving) .changes-nav');
-    if (!nav) return;
+  // tab, and re-places itself whenever the tabs change size (also when a
+  // hidden switcher shows again).
+  function placeSubIndicator(nav, tries = 0) {
+    if (!nav || !nav.isConnected) return;
     const active = nav.querySelector('.insights-tab.active');
     if (!active) return;
-    if (!active.offsetWidth) {
-      if (tries < 30) requestAnimationFrame(() => placeChangesIndicator(tries + 1));
-      return;
-    }
     const indicator = nav.querySelector('.changes-indicator');
-    indicator._pos = null;
-    moveInstructionsIndicator(indicator, active);
-    const left = active.offsetLeft - 12;
-    if (left > 0) nav.scrollLeft = left;
     if (!nav._sizeWatch && window.ResizeObserver) {
-      let last = active.offsetWidth;
       nav._sizeWatch = new ResizeObserver(() => {
         const cur = nav.querySelector('.insights-tab.active');
         if (!cur || !cur.offsetWidth || !nav.isConnected) return;
         const running = indicator._anims && indicator._anims.some(an => an.playState === 'running');
-        if (running || cur.offsetWidth === last && indicator._pos && Math.abs(indicator._pos.w - cur.offsetWidth) < 0.5) return;
-        last = cur.offsetWidth;
+        const pos = indicator._pos;
+        if (running || (pos && Math.abs(pos.x - cur.offsetLeft) < 0.5 && Math.abs(pos.w - cur.offsetWidth) < 0.5)) return;
         indicator._pos = null;
         moveInstructionsIndicator(indicator, cur);
       });
       nav.querySelectorAll('.insights-tab').forEach(t => nav._sizeWatch.observe(t));
     }
+    if (!active.offsetWidth) {
+      if (tries < 30) requestAnimationFrame(() => placeSubIndicator(nav, tries + 1));
+      return;
+    }
+    indicator._pos = null;
+    moveInstructionsIndicator(indicator, active);
+    const left = active.offsetLeft - 12;
+    if (left > 0) nav.scrollLeft = left;
   }
-  function showChangesTab(id) {
-    const nav = altView.querySelector('.changes-nav');
-    if (!nav || id === changesTab) return;
-    const ids = CHANGE_TABS.map(t => t[0]);
-    const dir = ids.indexOf(id) > ids.indexOf(changesTab) ? 1 : -1;
-    const oldPane = altView.querySelector(`.changes-pane[data-pane="${changesTab}"]`);
-    const newPane = altView.querySelector(`.changes-pane[data-pane="${id}"]`);
-    changesTab = id;
-    const tabs = [...nav.querySelectorAll('[data-change]')];
-    const active = tabs.find(t => t.dataset.change === id);
+  // Every switcher in the open view.
+  function placeChangesIndicator() {
+    if (!altView) return;
+    altView.querySelectorAll(':scope > .insights-pane:not(.pane-leaving) .changes-nav').forEach(nav => placeSubIndicator(nav));
+  }
+  // The highlight glides to the tab; a tab near an edge scrolls into view,
+  // peeking at the next one (the instructions bar's rule).
+  function selectSubTab(nav, id) {
+    const tabs = [...nav.querySelectorAll('[data-sub]')];
+    const active = tabs.find(t => t.dataset.sub === id);
+    if (!active) return;
     tabs.forEach(t => t.classList.toggle('active', t === active));
     moveInstructionsIndicator(nav.querySelector('.changes-indicator'), active);
     const left = active.offsetLeft - 12, right = active.offsetLeft + active.offsetWidth + (active.nextElementSibling ? 38 : 12);
     if (left < nav.scrollLeft) scrollInstructionsNav(nav, Math.max(0, left));
     else if (right > nav.scrollLeft + nav.clientWidth) scrollInstructionsNav(nav, right - nav.clientWidth);
-    // Tapping again mid-slide carries on from where each list is drawn.
-    const live = altView.querySelector(':scope > .insights-pane:not(.pane-leaving)');
-    const all = [...live.querySelectorAll('.changes-pane')];
-    const shown = all.filter(p => p.classList.contains('active') || p.classList.contains('pane-out'));
+  }
+  // Switching: the list you leave slides fully out one side while the new
+  // one slides in from the other, like a carousel in tab order (the same
+  // push as list 3's views). Tapping again mid-slide carries on from where
+  // each list is drawn. `on` is the class that shows a list; a list on its
+  // way out is pinned where it was (out of the flow) until it has gone.
+  const clearPin = (el) => { el.style.position = el.style.top = el.style.left = el.style.width = el.style.height = ''; };
+  function pinAll(host, els) {
+    const hr = host.getBoundingClientRect();
+    // Screen size to layout size (the guest preview draws the app scaled).
+    const k = host.offsetWidth ? hr.width / host.offsetWidth : 1;
+    // Measured first, then pinned: pinning one moves the next up.
+    const spots = els.map(el => {
+      const r = el.getBoundingClientRect();
+      return { el, top: (r.top - hr.top) / k - host.clientTop + host.scrollTop, left: (r.left - hr.left) / k - host.clientLeft, width: el.offsetWidth, height: el.offsetHeight };
+    });
+    spots.forEach(({ el, top, left, width, height }) => Object.assign(el.style, { position: 'absolute', top: `${top}px`, left: `${left}px`, width: `${width}px`, height: `${height}px` }));
+  }
+  function settleSub(host) {
+    clearTimeout(host._subTimer);
+    (host._subAll || []).forEach(p => {
+      if (!p.classList.contains('pane-out')) return;
+      p.getAnimations().forEach(an => an.cancel());
+      p.classList.remove('pane-out');
+      if (!(host._subTargets || []).includes(p)) p.classList.remove(host._subOn);
+      clearPin(p);
+    });
+  }
+  function slideSub(host, all, targets, on, orderOf, dir) {
+    const shown = all.filter(p => (p.classList.contains(on) || p.classList.contains('pane-out')) && p.getClientRects().length);
     const at = new Map(shown.map(p => { const cs = getComputedStyle(p); return [p, { x: new DOMMatrixReadOnly(cs.transform).m41 || 0, o: +cs.opacity }]; }));
     shown.forEach(p => p.getAnimations().forEach(an => an.cancel()));
-    clearTimeout(altView._changesTimer);
-    if (typeof newPane.animate !== 'function') { shown.forEach(p => settlePaneOut(p)); newPane.classList.add('active'); return; }
-    const av = altView.getBoundingClientRect();
-    // Screen size to layout size (the guest preview draws the app scaled).
-    const k = altView.offsetWidth ? av.width / altView.offsetWidth : 1;
-    // Lists still in the flow are pinned where they are before the new one
-    // joins it.
-    shown.filter(p => p !== newPane && !p.classList.contains('pane-out')).forEach(p => {
-      const r = p.getBoundingClientRect();
-      Object.assign(p.style, { position: 'absolute', top: `${(r.top - av.top) / k - altView.clientTop + altView.scrollTop}px`, left: `${(r.left - av.left) / k - altView.clientLeft}px`, width: `${p.offsetWidth}px`, height: `${p.offsetHeight}px` });
-      p.classList.add('pane-out');
-    });
-    newPane.classList.remove('pane-out');
-    newPane.style.position = newPane.style.top = newPane.style.left = newPane.style.width = newPane.style.height = '';
-    newPane.classList.add('active');
-    const w = altView.clientWidth;
+    clearTimeout(host._subTimer);
+    host._subAll = all;
+    host._subTargets = targets;
+    host._subOn = on;
+    if (typeof host.animate !== 'function') {
+      shown.forEach(p => p.classList.add('pane-out'));
+      targets.forEach(t => t.classList.add(on));
+      settleSub(host);
+      return;
+    }
+    pinAll(host, shown.filter(p => !targets.includes(p) && !p.classList.contains('pane-out')));
+    shown.filter(p => !targets.includes(p)).forEach(p => p.classList.add('pane-out'));
+    targets.forEach(t => { t.classList.remove('pane-out'); clearPin(t); t.classList.add(on); });
+    const w = host.clientWidth || 320;
     const D = TAB_MOTION.in.duration;
     const timing = (dist) => ({ duration: Math.round(D * Math.min(1, Math.max(0.35, Math.abs(dist) / w))), easing: TAB_MOTION.in.easing });
     let longest = 0;
-    const from = at.get(newPane) || { x: dir * w, o: 0.35 };
-    const tIn = timing(from.x); longest = tIn.duration;
-    newPane.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: 'translateX(0)', opacity: 1 }], tIn);
-    const cOrder = (pane) => CHANGE_TABS.findIndex(t => t[0] === pane.dataset.pane);
-    shown.filter(p => p !== newPane).forEach(p => {
+    targets.filter(t => t.getClientRects().length).forEach(t => {
+      const from = at.get(t) || { x: dir * w, o: 0.35 };
+      const tIn = timing(from.x);
+      longest = Math.max(longest, tIn.duration);
+      t.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: 'translateX(0)', opacity: 1 }], tIn);
+    });
+    const targetOrder = orderOf(targets[0]);
+    shown.filter(p => !targets.includes(p)).forEach(p => {
       const f = at.get(p) || { x: 0, o: 1 };
-      const to = cOrder(p) < cOrder(newPane) ? -w : w; // carousel order
+      const to = orderOf(p) < targetOrder ? -w : w; // carousel order
+      // Already mostly off the other side: it just fades where it is.
       if (Math.sign(f.x) === -Math.sign(to) && Math.abs(f.x) > 0.4 * w) {
         p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${f.x}px)`, opacity: 0 }], { duration: 90, fill: 'forwards' });
         return;
       }
-      const t = timing(to - f.x); longest = Math.max(longest, t.duration);
+      const t = timing(to - f.x);
+      longest = Math.max(longest, t.duration);
       p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
     });
-    altView._changesTimer = setTimeout(() => {
-      live.querySelectorAll('.changes-pane.pane-out').forEach(p => settlePaneOut(p));
-    }, longest + 30);
-  }
-  function settlePaneOut(pane) {
-    pane.getAnimations && pane.getAnimations().forEach(an => an.cancel());
-    pane.classList.remove('pane-out');
-    if (pane.dataset.pane !== changesTab) pane.classList.remove('active');
-    pane.style.position = pane.style.top = pane.style.left = pane.style.width = pane.style.height = '';
-  }
-  // Switching changes tabs: the whole list box slides out, the new one
-  // slides in the same way (in the direction of the tab).
-  function paneIn(pane, dir = 1) {
-    if (typeof pane.animate !== 'function') return;
-    pane.animate([{ opacity: 0, transform: `translateX(${dir * SLIDE_X}px)` }, { opacity: 1, transform: 'none' }], ARRIVE);
-  }
-  function paneOut(pane, dir = 1) {
-    if (typeof pane.animate !== 'function') return Promise.resolve();
-    return pane.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: `translateX(${-dir * SLIDE_X}px)` }], LEAVE).finished.catch(() => {});
+    host._subTimer = setTimeout(() => settleSub(host), longest + 30);
   }
 
+  // The switchers inside the changes and stats views.
+  function showAltSub(id) {
+    const view = currentView;
+    const tabs = SUB_TABS[view];
+    const live = altView && altView.querySelector(':scope > .insights-pane:not(.pane-leaving)');
+    const nav = live && live.querySelector(':scope > .changes-nav');
+    if (!tabs || !nav || subTab[view] === id || !tabs.some(t => t[0] === id)) return;
+    const order = tabs.map(t => t[0]);
+    const dir = order.indexOf(id) > order.indexOf(subTab[view]) ? 1 : -1;
+    subTab[view] = id;
+    if (view === 'stats') { try { localStorage.setItem('stats_sub', id); } catch (e) {} }
+    selectSubTab(nav, id);
+    const all = [...live.querySelectorAll(':scope > .changes-pane')];
+    const target = all.find(p => p.dataset.pane === id);
+    slideSub(altView, all, [target], 'active', p => order.indexOf(p.dataset.pane), dir);
+    if (id === 'timeline') drawTimeline(target);
+  }
+
+  // ---------- results: its own switcher ----------
+  // Unfollowers (list 3 itself) and the export's other lists: requests you
+  // sent that are still pending, close friends, blocked, restricted. The
+  // switcher sits at the top of list 3's box; the lists slide under it.
+  let resultsSubnav = null;
+  const extraPanes = {};
+  const EXTRA_TEXT = {
+    pending: { sub: 'tap one to cancel it on instagram', empty: 'no pending follow requests', missing: 'requests you sent that are still pending' },
+    closeFriends: { sub: 'your close friends list', empty: 'your close friends list is empty', missing: 'close friends' },
+    blocked: { sub: "accounts you've blocked", empty: 'no blocked accounts', missing: 'blocked accounts' },
+    restricted: { sub: "accounts you've restricted", empty: 'no restricted accounts', missing: 'restricted accounts' }
+  };
+  const extraListsNow = () => readExtraLists(state.selectedAccountUsername);
+  const mainPanes = () => [document.getElementById('unfollowers-empty-state'), elements.listUnfollowers].filter(Boolean);
+  const resultsPanes = () => [...mainPanes(), ...Object.values(extraPanes)];
+  const resultsSubOf = (el) => el.classList.contains('results-extra') ? el.dataset.sub : 'unfollowers';
+  // What's showing for the results view (to slide it as one when switching
+  // views): the switcher and the list it's on.
+  const resultsEls = () => (resultsSubnav
+    ? [resultsSubnav, ...resultsPanes()].filter(el => !el.classList.contains('hidden') && (el === resultsSubnav || el.classList.contains('sub-on') || el.classList.contains('pane-out')))
+    : mainPanes().filter(el => !el.classList.contains('hidden')));
+  function buildResultsSwitcher() {
+    const box = document.querySelector('#card-unfollowers .results-container');
+    if (!box || resultsSubnav) return;
+    resultsSubnav = document.createElement('div');
+    resultsSubnav.className = 'results-subnav';
+    resultsSubnav.innerHTML = subNavHtml(SUB_TABS.results, subTab.results);
+    box.insertBefore(resultsSubnav, box.firstChild);
+    SUB_TABS.results.slice(1).forEach(([id]) => {
+      const pane = document.createElement('div');
+      pane.className = 'results-extra';
+      pane.dataset.sub = id;
+      box.insertBefore(pane, altView && altView.parentNode === box ? altView : null);
+      extraPanes[id] = pane;
+    });
+    box.classList.add('has-sub');
+    box.classList.toggle('sub-extra', subTab.results !== 'unfollowers');
+    mainPanes().forEach(el => el.classList.toggle('sub-on', subTab.results === 'unfollowers'));
+    if (extraPanes[subTab.results]) extraPanes[subTab.results].classList.add('sub-on');
+    renderExtras(false);
+    resultsSubnav.addEventListener('click', (e) => {
+      const tab = e.target.closest('[data-sub]');
+      if (!tab) return;
+      e.stopPropagation();
+      showResultsSub(tab.dataset.sub);
+    });
+    // A pending request tapped: its profile opens (to cancel it there) and
+    // it leaves the list, with an undo.
+    box.addEventListener('click', (e) => {
+      const link = e.target.closest('.results-extra[data-sub="pending"] .insights-row .parsed-username');
+      if (!link) return;
+      const row = link.closest('.insights-row');
+      if (!row || row.classList.contains('username-exit')) { e.preventDefault(); return; }
+      removePending(row.dataset.username, row);
+    });
+    const nav = resultsSubnav.querySelector('.changes-nav');
+    requestAnimationFrame(() => placeSubIndicator(nav));
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeSubIndicator(nav));
+  }
+  function showResultsSub(id) {
+    if (!resultsSubnav || subTab.results === id || !SUB_TABS.results.some(t => t[0] === id)) return;
+    const order = SUB_TABS.results.map(t => t[0]);
+    const dir = order.indexOf(id) > order.indexOf(subTab.results) ? 1 : -1;
+    subTab.results = id;
+    try { localStorage.setItem('results_sub', id); } catch (e) {}
+    if (id !== 'unfollowers' && selectMode) setSelectMode(false);
+    selectSubTab(resultsSubnav.querySelector('.changes-nav'), id);
+    const box = resultsSubnav.parentNode;
+    box.classList.toggle('sub-extra', id !== 'unfollowers');
+    const targets = id === 'unfollowers' ? mainPanes() : [extraPanes[id]];
+    slideSub(box, resultsPanes(), targets, 'sub-on', el => order.indexOf(resultsSubOf(el)), dir);
+    refreshToolbar();
+  }
+  function extraContent(id) {
+    const text = EXTRA_TEXT[id];
+    const list = extraListsNow()[id];
+    if (!Array.isArray(list)) {
+      return { sub: '', body: `<div class="dropdown-empty-message">import your instagram export folder to see your ${text.missing}</div>` };
+    }
+    let users = list;
+    let flagOf = null;
+    if (id === 'closeFriends' && state.followers.length) {
+      const f = followersSet();
+      users = [...list.filter(u => !f.has(u.username)), ...list.filter(u => f.has(u.username))];
+      flagOf = (u) => (f.has(u.username) ? '' : "doesn't follow you back");
+    }
+    return { sub: text.sub, body: userRowsHtml(users, text.empty, null, flagOf) };
+  }
+  // A list's content changed (an account picked, files imported): like list
+  // 3's views, the old goes like the instructions window closes and the new
+  // comes in like it opens; the line on top stays put.
+  function renderExtra(id, animate) {
+    const pane = extraPanes[id];
+    if (!pane) return;
+    const { sub, body } = extraContent(id);
+    const sig = `${sub}|${body}`;
+    if (pane._sig === sig) return;
+    pane._sig = sig;
+    const old = pane.querySelector(':scope > .extra-body:not(.extra-leaving)');
+    const fresh = document.createElement('div');
+    fresh.className = 'extra-body';
+    fresh.innerHTML = `${sub ? `<div class="insights-sub">${esc(sub)}</div>` : ''}${body}`;
+    pane.querySelectorAll(':scope > .extra-leaving').forEach(el => el.remove());
+    const showing = animate && !pageLoading && old && pane.classList.contains('sub-on') && pane.getClientRects().length && typeof old.animate === 'function';
+    if (!showing) {
+      if (old) old.remove();
+      pane.appendChild(fresh);
+      return;
+    }
+    const scroll = old.scrollTop;
+    old.classList.add('extra-leaving');
+    old.scrollTop = scroll;
+    const oldSub = old.querySelector(':scope > .insights-sub');
+    const keepSub = oldSub && oldSub.textContent === sub;
+    if (keepSub) oldSub.style.visibility = 'hidden';
+    pane.appendChild(fresh);
+    const drop = () => old.remove();
+    old.animate(MODAL_OUT, LEAVE).finished.then(drop, drop);
+    setTimeout(drop, LEAVE.duration + 400);
+    [...fresh.children].filter(el => !(keepSub && el.matches('.insights-sub')))
+      .forEach(el => el.animate(MODAL_IN, { duration: 450, easing: MODAL_EASE, delay: LEAVE.duration, fill: 'backwards' }));
+  }
+  function renderExtras(animate = true) {
+    Object.keys(extraPanes).forEach(id => renderExtra(id, animate));
+  }
+  // Tapped (to cancel it on Instagram): it slides out like a list 3 row.
+  function removePending(name, row) {
+    const acc = state.selectedAccountUsername;
+    const lists = readExtraLists(acc);
+    const before = Array.isArray(lists.pending) ? lists.pending.slice() : [];
+    const index = before.findIndex(u => u.username === name);
+    if (index < 0) return;
+    const user = before[index];
+    lists.pending = before.filter(u => u.username !== name);
+    writeExtraLists(acc, lists);
+    pushToCloud();
+    const done = () => {
+      // Still that account on screen: the list is already right (the row
+      // has gone), unless it's now empty — then the empty text comes in.
+      if ((state.selectedAccountUsername || '') !== (acc || '')) return;
+      if (lists.pending.length) extraPanes.pending._sig = (({ sub, body }) => `${sub}|${body}`)(extraContent('pending'));
+      else renderExtra('pending', true);
+    };
+    exitListRow(row, done);
+    showToast(`@${user.originalUsername || name} removed from pending requests`, 'undo', () => {
+      const now = readExtraLists(acc);
+      const pending = Array.isArray(now.pending) ? now.pending : [];
+      if (pending.some(u => u.username === name)) return;
+      pending.splice(Math.min(index, pending.length), 0, user);
+      now.pending = pending;
+      writeExtraLists(acc, now);
+      pushToCloud();
+      if ((state.selectedAccountUsername || '') !== (acc || '')) return;
+      renderExtra('pending', false);
+      // It slides back in: its row grows open, pushing the rows below.
+      const back = extraPanes.pending.querySelector(`.insights-row[data-username="${CSS.escape(name)}"]`);
+      if (back && typeof back.animate === 'function') {
+        const h = back.offsetHeight;
+        back.animate([{ height: '0px', opacity: 0, transform: 'translateX(-24px)', paddingTop: '0px', paddingBottom: '0px' }, { height: `${h}px`, opacity: 1, transform: 'none' }],
+          { duration: ROW_MOTION_MS, easing: MODAL_EASE });
+      }
+    });
+  }
+  // The lists came in from an import (script.js).
+  extraListsChanged = function () {
+    safe(() => renderExtras(true), 'extra lists');
+    safe(refreshView, 'view');
+  };
+  // Pending requests used to be merged into list 1 (so they showed as not
+  // following you back): moved into their own list, for this account.
+  function movePendingOut() {
+    if (!state.following.some(u => u && u.isPendingRequest)) return false;
+    const moved = state.following.filter(u => u.isPendingRequest).map(cleanExtraEntry);
+    state.following = state.following.filter(u => !u.isPendingRequest);
+    const acc = state.selectedAccountUsername;
+    const lists = readExtraLists(acc);
+    const have = new Set((lists.pending || []).map(u => u.username));
+    lists.pending = [...(lists.pending || []), ...moved.filter(u => !have.has(u.username))];
+    writeExtraLists(acc, lists);
+    storageSet(listStorageKey('following'), JSON.stringify(state.following));
+    elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
+    return true;
+  }
 
   const EXPORT_LISTS = [
     ['list3', "list 3 · don't follow you back"], ['unfollowed', 'unfollowed'], ['starred', 'starred'],
-    ['following', 'list 1 · following'], ['followers', 'list 2 · followers'], ['mutuals', 'mutuals'], ['fans', 'fans']
+    ['following', 'list 1 · following'], ['followers', 'list 2 · followers'], ['mutuals', 'mutuals'], ['fans', 'fans'],
+    ['pending', 'pending requests'], ['closeFriends', 'close friends'], ['blocked', 'blocked'], ['restricted', 'restricted']
   ];
   function listFor(kind) {
     if (kind === 'following') return state.following;
@@ -1186,6 +1373,7 @@
     if (kind === 'starred') return state.starred;
     if (kind === 'mutuals') { const f = followersSet(); return state.following.filter(u => f.has(u.username)); }
     if (kind === 'fans') { const f = followingSet(); return state.followers.filter(u => !f.has(u.username)); }
+    if (EXTRA_TEXT[kind]) { const list = extraListsNow()[kind]; return Array.isArray(list) ? list : []; }
     return [];
   }
   function saveFile(name, blob) {
@@ -1201,16 +1389,15 @@
   }
   // One list: its own file. Several: one file with a 'list' column.
   function exportCsv(kinds) {
-    const notes = getNotes();
     const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const multi = kinds.length > 1;
-    const head = ['username', 'full name', 'followed', 'profile', 'note', 'tags'];
+    const head = ['username', 'full name', 'followed', 'profile'];
     const rows = [multi ? ['list'].concat(head) : head];
     kinds.forEach(kind => {
       const name = (EXPORT_LISTS.find(x => x[0] === kind) || [kind, kind])[1];
       listFor(kind).forEach(u => {
-        const t = timeOf(u); const n = notes[u.username] || {};
-        const row = [u.originalUsername || u.username, u.fullName || '', t ? new Date(t).toISOString().slice(0, 10) : '', safeProfileUrl(u), n.text || '', (n.tags || []).join(' ')];
+        const t = timeOf(u);
+        const row = [u.originalUsername || u.username, u.fullName || '', t ? new Date(t).toISOString().slice(0, 10) : '', safeProfileUrl(u)];
         rows.push(multi ? [name].concat(row) : row);
       });
     });
@@ -1228,6 +1415,11 @@
           <div class="account-modal-header"><h3>export</h3></div>
           <div class="insights-sub">choose the lists you want to download as a spreadsheet (csv)</div>
           <div class="export-options"></div>
+          <button class="export-option export-image" data-exp="image">
+            <span class="export-check"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></span>
+            <span class="export-label">stats image</span>
+            <span class="export-count">png</span>
+          </button>
           <div class="account-modal-actions">
             <button class="btn btn-secondary" data-exp="cancel">cancel</button>
             <button class="btn btn-primary" data-exp="go">export</button>
@@ -1236,6 +1428,11 @@
       document.body.appendChild(exportOverlay);
       exportOverlay.addEventListener('click', (e) => {
         if (e.target === exportOverlay || e.target.closest('[data-exp="cancel"]')) return closeExport();
+        if (e.target.closest('[data-exp="image"]')) {
+          closeExport();
+          safe(() => { statsImage().then(blob => blob && saveFile('ig-stats.png', blob)).catch(err => console.error('[features] stats image failed:', err)); }, 'stats image');
+          return;
+        }
         if (e.target.closest('[data-exp="go"]')) {
           const kinds = [...exportOverlay.querySelectorAll('.export-option.on')].map(o => o.dataset.kind);
           if (kinds.length) { exportCsv(kinds); closeExport(); }
@@ -1246,7 +1443,9 @@
       });
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !exportOverlay.classList.contains('hidden')) closeExport(); });
     }
-    exportOverlay.querySelector('.export-options').innerHTML = EXPORT_LISTS.map(([kind, label], i) => `
+    // The export's other lists only once they've been imported.
+    const lists = extraListsNow();
+    exportOverlay.querySelector('.export-options').innerHTML = EXPORT_LISTS.filter(([kind]) => !EXTRA_TEXT[kind] || Array.isArray(lists[kind])).map(([kind, label], i) => `
       <button class="export-option${i === 0 ? ' on' : ''}" data-kind="${kind}">
         <span class="export-check"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
         <span class="export-label">${esc(label)}</span>
@@ -1256,6 +1455,100 @@
     showModalOverlay(exportOverlay);
     lockPageScroll();
   }
+  // ---------- stats image (export window) ----------
+  // A picture of the stats view to share: the six numbers in their colors
+  // and the graph, in the app's current theme. No usernames in it.
+  const hexA = (hex, a) => {
+    const n = parseInt(hex.slice(1), 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+  };
+  function roundRect(ctx, x, y, w, h, r) {
+    const rr = typeof r === 'number' ? [r, r, r, r] : r;
+    ctx.beginPath();
+    ctx.moveTo(x + rr[0], y);
+    ctx.lineTo(x + w - rr[1], y); ctx.quadraticCurveTo(x + w, y, x + w, y + rr[1]);
+    ctx.lineTo(x + w, y + h - rr[2]); ctx.quadraticCurveTo(x + w, y + h, x + w - rr[2], y + h);
+    ctx.lineTo(x + rr[3], y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - rr[3]);
+    ctx.lineTo(x, y + rr[0]); ctx.quadraticCurveTo(x, y, x + rr[0], y);
+    ctx.closePath();
+  }
+  async function statsImage() {
+    const W = 1080, H = 1350, P = 72;
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const C = dark
+      ? { bg: '#09090b', text: '#fafafa', muted: '#a1a1aa' }
+      : { bg: '#ffffff', text: '#09090b', muted: '#71717a' };
+    const body = getComputedStyle(document.body).fontFamily || 'sans-serif';
+    const display = `'Outfit', ${body}`;
+    try { if (document.fonts) await Promise.all([document.fonts.load(`800 80px 'Outfit'`), document.fonts.load(`500 30px ${body}`)]); } catch (e) {}
+    const following = state.following.length, followers = state.followers.length;
+    const fset = followersSet();
+    const mutual = state.following.filter(u => fset.has(u.username)).length;
+    const ratio = following ? Math.round((mutual / following) * 100) : 0;
+    const counts = [following, followers, null, state.unfollowers.length, state.unfollowed.length, state.starred.length];
+    const values = [following, followers, `${ratio}%`, state.unfollowers.length, state.unfollowed.length, state.starred.length];
+    const labels = ['following', 'followers', 'follow you back', "don't follow you back", 'unfollowed', 'starred'];
+    const maxCount = Math.max(1, ...counts.filter(c => c !== null));
+    const heights = counts.map(c => (c === null ? Math.max(4, ratio) : Math.max(4, Math.round((Math.log1p(c) / Math.log1p(maxCount)) * 100))));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = C.bg;
+    ctx.fillRect(0, 0, W, H);
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = C.text;
+    ctx.font = `800 68px ${display}`;
+    ctx.fillText('my instagram stats', P, P + 60);
+    ctx.fillStyle = C.muted;
+    ctx.font = `500 30px ${body}`;
+    ctx.fillText(new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }), P, P + 112);
+
+    // The six boxes, three to a row.
+    const gap = 20, top = P + 170, bw = (W - P * 2 - gap * 2) / 3, bh = 190;
+    ctx.textAlign = 'center';
+    values.forEach((v, i) => {
+      const x = P + (i % 3) * (bw + gap), y = top + Math.floor(i / 3) * (bh + gap);
+      roundRect(ctx, x, y, bw, bh, 26);
+      ctx.fillStyle = hexA(STAT_COLORS[i], dark ? 0.12 : 0.07);
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = hexA(STAT_COLORS[i], 0.7);
+      ctx.stroke();
+      ctx.fillStyle = C.text;
+      ctx.font = `800 64px ${display}`;
+      ctx.fillText(String(v), x + bw / 2, y + 102);
+      ctx.fillStyle = C.muted;
+      ctx.font = `500 25px ${body}`;
+      ctx.fillText(labels[i], x + bw / 2, y + 146);
+    });
+
+    // The graph: a bar per box, in its color.
+    const gTop = top + bh * 2 + gap + 70, gBottom = H - P - 70, gh = gBottom - gTop;
+    const barGap = 22, barW = (W - P * 2 - barGap * 5) / 6;
+    heights.forEach((h, i) => {
+      const bhh = Math.max(10, gh * h / 100), x = P + i * (barW + barGap), y = gBottom - bhh;
+      const r = Math.min(18, bhh, barW / 2);
+      roundRect(ctx, x, y, barW, bhh, [r, r, 0, 0]);
+      ctx.fillStyle = hexA(STAT_COLORS[i], 0.26);
+      ctx.fill();
+      // Outlined like the app's bars: the top and sides, open at the bottom.
+      ctx.beginPath();
+      ctx.moveTo(x, gBottom);
+      ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.lineTo(x + barW - r, y); ctx.quadraticCurveTo(x + barW, y, x + barW, y + r);
+      ctx.lineTo(x + barW, gBottom);
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = hexA(STAT_COLORS[i], 0.7);
+      ctx.stroke();
+    });
+
+    ctx.fillStyle = C.muted;
+    ctx.font = `500 24px ${body}`;
+    ctx.fillText((document.title || 'instagram follower checker').toLowerCase(), W / 2, H - P + 10);
+    return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  }
+
   function updateExportButton() {
     const n = exportOverlay.querySelectorAll('.export-option.on').length;
     const go = exportOverlay.querySelector('[data-exp="go"]');
@@ -1323,7 +1616,9 @@
   // switching accounts, clearing).
   const baseUpdateListUI = updateListUI;
   updateListUI = function (type) {
+    const moved = type === 'following' && safe(movePendingOut, 'pending requests');
     const result = baseUpdateListUI.call(this, type);
+    if (moved) setTimeout(() => calculateUnfollowers({ animate: true }), 0);
     safe(refreshListExports, 'list export');
     return result;
   };
@@ -1355,10 +1650,11 @@
     });
   }
 
-  // The daily unfollow tally was removed: clear what it left on the device.
+  // The daily unfollow tally and the notes were removed: clear what they
+  // left on the device.
   function clearOldTally() {
     try {
-      Object.keys(localStorage).forEach(k => { if (k === 'unfollow_tally' || k.startsWith('unfollow_count_')) localStorage.removeItem(k); });
+      Object.keys(localStorage).forEach(k => { if (k === 'unfollow_tally' || k === 'user_notes' || k.startsWith('unfollow_count_')) localStorage.removeItem(k); });
     } catch (e) {}
   }
 
@@ -1368,6 +1664,7 @@
     safe(clearOldTally, 'cleanup');
     safe(buildToolbar, 'toolbar');
     safe(buildViewSwitcher, 'views');
+    safe(buildResultsSwitcher, 'results tabs');
     safe(buildExportButtons, 'export');
     safe(buildUndoButton, 'undo');
     safe(arrangeList3Buttons, 'buttons');
@@ -1378,5 +1675,5 @@
   else init();
 
   // For the rest of the app (and tests).
-  window.igFeatures = { showView, showToast, setSelectMode, openNote, refreshToolbar };
+  window.igFeatures = { showView, showToast, setSelectMode, refreshToolbar };
 })();
