@@ -2237,7 +2237,7 @@ body.hide-shortcuts #keyboard-hints {
   scrollbar-gutter: stable;
   padding-right: 4px;
   box-sizing: border-box;
-  justify-content: center;
+  justify-content: flex-start; /* every step starts at the same height */
 }
 
 .instructions-step-pane.active {
