@@ -5946,3 +5946,12 @@ select,
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+
+/* The love note's heartbeat and glow only play while it's open: running
+   forever behind the app (invisible), the glow repainted every frame and
+   left less of the phone's time for the app's own animations. */
+.love-overlay:not(.show) .love-heart-main,
+.love-overlay:not(.show) .love-text,
+.love-overlay:not(.show) .love-heart-float {
+  animation-play-state: paused;
+}
