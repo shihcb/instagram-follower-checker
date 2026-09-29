@@ -6011,3 +6011,9 @@ select,
   color: var(--text-muted);
   transition: color 0.9s cubic-bezier(0.4, 0, 0.2, 1);
 }
+/* The results switcher keeps its own layout while it slides away: made a
+   flex row by .view-leaving, its tab strip grew to fit every tab and lost
+   its scroll, so the far tabs swept across the box as a ghost. */
+#card-unfollowers .results-container > .results-subnav.view-leaving {
+  display: block !important;
+}
