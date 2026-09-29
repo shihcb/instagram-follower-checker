@@ -845,6 +845,34 @@ function fadeOutEmptyMessage(listEl, box) {
   setTimeout(drop, 700);
 }
 
+// The first username back in an open, empty panel (an undo, say): the
+// reverse of removing the last one — there the row slides out and then
+// the empty text fades in; here the empty text fades out first (the
+// panel holding its size), and only then does the row slide in, the
+// panel easing to its new height with it.
+const pendingPanelEntries = new WeakMap();
+function cancelPanelEntry(listEl) {
+  const cancel = pendingPanelEntries.get(listEl);
+  if (cancel) cancel();
+}
+function enterAfterEmptyFades(listEl, scrollItems, startHeight) {
+  listEl.style.height = `${startHeight}px`;
+  scrollItems.style.visibility = 'hidden';
+  const reveal = () => {
+    pendingPanelEntries.delete(listEl);
+    clearTimeout(timer);
+    listEl.style.height = '';
+    scrollItems.style.visibility = '';
+  };
+  const timer = setTimeout(() => {
+    reveal();
+    if (!scrollItems.isConnected) return;
+    animatePanelHeightChange(listEl, listEl.classList.contains('show'), startHeight);
+    animateResultsReentry(scrollItems, new Map(), new Map(), { rowSelector: '.parsed-item' });
+  }, EMPTY_FADE.duration);
+  pendingPanelEntries.set(listEl, reveal);
+}
+
 // `animate` adds the slow bouncy fade-in (.empty-enter, see style.css) —
 // used when the panel is open and the user just removed its last row, so
 // the message eases into the space that row left behind.
@@ -888,6 +916,8 @@ function updateUnfollowedUI(enteringUsername) {
 
   const wasShown = listEl.classList.contains('show');
   const startHeight = wasShown ? listEl.offsetHeight : null;
+  // A first username still waiting for the empty text to fade: show it now.
+  cancelPanelEntry(listEl);
   // Items are back after the panel was held at its old size for the empty
   // state (see pinPanelHeight) — let it size to its content again;
   // animatePanelHeightChange below eases it there from startHeight.
@@ -940,12 +970,16 @@ function updateUnfollowedUI(enteringUsername) {
         `).join('')}
       </div>
     `;
-    animatePanelHeightChange(listEl, wasShown, startHeight);
     fadeOutEmptyMessage(listEl, oldEmptyBox);
     const scrollItems = listEl.querySelector('.dropdown-scroll-items');
-    if (wasShown && scrollItems) {
-      animateResultsReentry(scrollItems, previousRowTops, new Map(), { rowSelector: '.parsed-item' });
-      slidePanelRowsOut(scrollItems, previousRows, new Set(listData.map(u => u.username)));
+    if (oldEmptyBox && scrollItems) {
+      enterAfterEmptyFades(listEl, scrollItems, startHeight);
+    } else {
+      animatePanelHeightChange(listEl, wasShown, startHeight);
+      if (wasShown && scrollItems) {
+        animateResultsReentry(scrollItems, previousRowTops, new Map(), { rowSelector: '.parsed-item' });
+        slidePanelRowsOut(scrollItems, previousRows, new Set(listData.map(u => u.username)));
+      }
     }
   } else {
     setToggleOccupied(toggleBtn, false);
@@ -989,6 +1023,8 @@ function updateStarredUI(enteringUsername) {
 
   const wasShown = listEl.classList.contains('show');
   const startHeight = wasShown ? listEl.offsetHeight : null;
+  // A first username still waiting for the empty text to fade: show it now.
+  cancelPanelEntry(listEl);
   // Items are back after the panel was held at its old size for the empty
   // state (see pinPanelHeight) — let it size to its content again;
   // animatePanelHeightChange below eases it there from startHeight.
@@ -1047,12 +1083,16 @@ function updateStarredUI(enteringUsername) {
         `).join('')}
       </div>
     `;
-    animatePanelHeightChange(listEl, wasShown, startHeight);
     fadeOutEmptyMessage(listEl, oldEmptyBox);
     const scrollItems = listEl.querySelector('.dropdown-scroll-items');
-    if (wasShown && scrollItems) {
-      animateResultsReentry(scrollItems, previousRowTops, new Map(), { rowSelector: '.parsed-item' });
-      slidePanelRowsOut(scrollItems, previousRows, new Set(listData.map(u => u.username)));
+    if (oldEmptyBox && scrollItems) {
+      enterAfterEmptyFades(listEl, scrollItems, startHeight);
+    } else {
+      animatePanelHeightChange(listEl, wasShown, startHeight);
+      if (wasShown && scrollItems) {
+        animateResultsReentry(scrollItems, previousRowTops, new Map(), { rowSelector: '.parsed-item' });
+        slidePanelRowsOut(scrollItems, previousRows, new Set(listData.map(u => u.username)));
+      }
     }
   } else {
     setToggleOccupied(toggleBtn, false);
