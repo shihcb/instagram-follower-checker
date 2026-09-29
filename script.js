@@ -772,7 +772,14 @@ function calculateUnfollowers({ animate = false, matchRenames = false } = {}) {
 // come in with the same fade.)
 const EMPTY_FADE = { duration: 320, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' };
 function fadeGhostOut(el) {
-  if (!el || !el.getClientRects().length || typeof el.animate !== 'function') return;
+  const play = captureGhost(el);
+  if (play) play();
+}
+// The copy, measured now (before anything around it changes); the
+// returned function lays it over its old spot and fades it out — for a
+// caller that redraws the host first (which would wipe a copy added now).
+function captureGhost(el) {
+  if (!el || !el.getClientRects().length || typeof el.animate !== 'function') return null;
   const host = el.closest('.results-container, .dropdown-menu') || document.body;
   const hr = host.getBoundingClientRect(), r = el.getBoundingClientRect();
   const k = host.offsetWidth ? hr.width / host.offsetWidth : 1;
@@ -785,11 +792,13 @@ function fadeGhostOut(el) {
     display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', pointerEvents: 'none', zIndex: '3'
   });
   ghost.style.setProperty('padding', getComputedStyle(el).padding, 'important');
-  if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
-  host.appendChild(ghost);
-  const drop = () => ghost.remove();
-  ghost.animate([{ opacity: 1 }, { opacity: 0 }], { ...EMPTY_FADE, fill: 'forwards' }).finished.then(drop, drop);
-  setTimeout(drop, 800);
+  return () => {
+    if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+    host.appendChild(ghost);
+    const drop = () => ghost.remove();
+    ghost.animate([{ opacity: 1 }, { opacity: 0 }], { ...EMPTY_FADE, fill: 'forwards' }).finished.then(drop, drop);
+    setTimeout(drop, 800);
+  };
 }
 function fadeEmptyIn(el, delay = 0) {
   if (el && typeof el.animate === 'function') el.animate([{ opacity: 0 }, { opacity: 1 }], { ...EMPTY_FADE, delay, fill: 'backwards' });
@@ -828,23 +837,8 @@ function slidePanelRowsOut(container, before, stillThere) {
 }
 
 // The panel's empty text, when its first username comes in: it fades out
-// where it was (laid over the panel) instead of vanishing — the same fade
-// as the empty text in list 3's tabs.
-function fadeOutEmptyMessage(listEl, box) {
-  if (!box || typeof listEl.animate !== 'function') return;
-  const tpl = document.createElement('template');
-  tpl.innerHTML = box.html.trim();
-  const ghost = tpl.content.firstElementChild;
-  if (!ghost) return;
-  ghost.classList.remove('empty-enter');
-  Object.assign(ghost.style, { position: 'absolute', top: `${box.top}px`, left: `${box.left}px`, width: `${box.width}px`, height: `${box.height}px`, margin: '0', pointerEvents: 'none', boxSizing: 'border-box' });
-  if (getComputedStyle(listEl).position === 'static') listEl.style.position = 'relative';
-  listEl.appendChild(ghost);
-  const drop = () => ghost.remove();
-  ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' }).finished.then(drop, drop);
-  setTimeout(drop, 700);
-}
-
+// where it was (captureGhost, measured before the redraw) instead of
+// vanishing — the same fade it came in with.
 // The first username back in an open, empty panel (an undo, say): the
 // reverse of removing the last one — there the row slides out and then
 // the empty text fades in; here the empty text fades out first (the
@@ -918,6 +912,10 @@ function updateUnfollowedUI(enteringUsername) {
   const startHeight = wasShown ? listEl.offsetHeight : null;
   // A first username still waiting for the empty text to fade: show it now.
   cancelPanelEntry(listEl);
+  // Measured while the panel still holds its size (unpinning below changes
+  // the text's padding — measured after, its fade-out copy sat a few px off).
+  const oldEmpty = wasShown ? listEl.querySelector('.dropdown-empty-message') : null;
+  const fadeOldEmpty = listData.length > 0 ? captureGhost(oldEmpty) : null;
   // Items are back after the panel was held at its old size for the empty
   // state (see pinPanelHeight) — let it size to its content again;
   // animatePanelHeightChange below eases it there from startHeight.
@@ -935,8 +933,6 @@ function updateUnfollowedUI(enteringUsername) {
   // The empty state's bounce is for the moment the last username leaves,
   // not for every later redraw while the panel stays open and empty.
   const wasAlreadyEmpty = !!listEl.querySelector('.dropdown-empty-message');
-  const oldEmpty = wasShown ? listEl.querySelector('.dropdown-empty-message') : null;
-  const oldEmptyBox = oldEmpty ? { top: oldEmpty.offsetTop, left: oldEmpty.offsetLeft, width: oldEmpty.offsetWidth, height: oldEmpty.offsetHeight, html: oldEmpty.outerHTML } : null;
 
   if (listData.length > 0) {
     setToggleOccupied(toggleBtn, true);
@@ -970,9 +966,9 @@ function updateUnfollowedUI(enteringUsername) {
         `).join('')}
       </div>
     `;
-    fadeOutEmptyMessage(listEl, oldEmptyBox);
+    if (fadeOldEmpty) fadeOldEmpty();
     const scrollItems = listEl.querySelector('.dropdown-scroll-items');
-    if (oldEmptyBox && scrollItems) {
+    if (fadeOldEmpty && scrollItems) {
       enterAfterEmptyFades(listEl, scrollItems, startHeight);
     } else {
       animatePanelHeightChange(listEl, wasShown, startHeight);
@@ -1025,6 +1021,10 @@ function updateStarredUI(enteringUsername) {
   const startHeight = wasShown ? listEl.offsetHeight : null;
   // A first username still waiting for the empty text to fade: show it now.
   cancelPanelEntry(listEl);
+  // Measured while the panel still holds its size (unpinning below changes
+  // the text's padding — measured after, its fade-out copy sat a few px off).
+  const oldEmpty = wasShown ? listEl.querySelector('.dropdown-empty-message') : null;
+  const fadeOldEmpty = listData.length > 0 ? captureGhost(oldEmpty) : null;
   // Items are back after the panel was held at its old size for the empty
   // state (see pinPanelHeight) — let it size to its content again;
   // animatePanelHeightChange below eases it there from startHeight.
@@ -1042,8 +1042,6 @@ function updateStarredUI(enteringUsername) {
   // The empty state's bounce is for the moment the last username leaves,
   // not for every later redraw while the panel stays open and empty.
   const wasAlreadyEmpty = !!listEl.querySelector('.dropdown-empty-message');
-  const oldEmpty = wasShown ? listEl.querySelector('.dropdown-empty-message') : null;
-  const oldEmptyBox = oldEmpty ? { top: oldEmpty.offsetTop, left: oldEmpty.offsetLeft, width: oldEmpty.offsetWidth, height: oldEmpty.offsetHeight, html: oldEmpty.outerHTML } : null;
 
   if (listData.length > 0) {
     setToggleOccupied(toggleBtn, true);
@@ -1083,9 +1081,9 @@ function updateStarredUI(enteringUsername) {
         `).join('')}
       </div>
     `;
-    fadeOutEmptyMessage(listEl, oldEmptyBox);
+    if (fadeOldEmpty) fadeOldEmpty();
     const scrollItems = listEl.querySelector('.dropdown-scroll-items');
-    if (oldEmptyBox && scrollItems) {
+    if (fadeOldEmpty && scrollItems) {
       enterAfterEmptyFades(listEl, scrollItems, startHeight);
     } else {
       animatePanelHeightChange(listEl, wasShown, startHeight);
