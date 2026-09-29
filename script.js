@@ -766,6 +766,24 @@ function calculateUnfollowers({ animate = false, matchRenames = false } = {}) {
   }
 }
 
+// The panel's empty text, when its first username comes in: it fades out
+// where it was (laid over the panel) instead of vanishing — the same fade
+// as the empty text in list 3's tabs.
+function fadeOutEmptyMessage(listEl, box) {
+  if (!box || typeof listEl.animate !== 'function') return;
+  const tpl = document.createElement('template');
+  tpl.innerHTML = box.html.trim();
+  const ghost = tpl.content.firstElementChild;
+  if (!ghost) return;
+  ghost.classList.remove('empty-enter');
+  Object.assign(ghost.style, { position: 'absolute', top: `${box.top}px`, left: `${box.left}px`, width: `${box.width}px`, height: `${box.height}px`, margin: '0', pointerEvents: 'none', boxSizing: 'border-box' });
+  if (getComputedStyle(listEl).position === 'static') listEl.style.position = 'relative';
+  listEl.appendChild(ghost);
+  const drop = () => ghost.remove();
+  ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' }).finished.then(drop, drop);
+  setTimeout(drop, 700);
+}
+
 // `animate` adds the slow bouncy fade-in (.empty-enter, see style.css) —
 // used when the panel is open and the user just removed its last row, so
 // the message eases into the space that row left behind.
@@ -827,6 +845,8 @@ function updateUnfollowedUI(enteringUsername) {
   // The empty state's bounce is for the moment the last username leaves,
   // not for every later redraw while the panel stays open and empty.
   const wasAlreadyEmpty = !!listEl.querySelector('.dropdown-empty-message');
+  const oldEmpty = wasShown ? listEl.querySelector('.dropdown-empty-message') : null;
+  const oldEmptyBox = oldEmpty ? { top: oldEmpty.offsetTop, left: oldEmpty.offsetLeft, width: oldEmpty.offsetWidth, height: oldEmpty.offsetHeight, html: oldEmpty.outerHTML } : null;
 
   if (listData.length > 0) {
     setToggleOccupied(toggleBtn, true);
@@ -861,6 +881,7 @@ function updateUnfollowedUI(enteringUsername) {
       </div>
     `;
     animatePanelHeightChange(listEl, wasShown, startHeight);
+    fadeOutEmptyMessage(listEl, oldEmptyBox);
     if (previousRowTops.size > 0) {
       const scrollItems = listEl.querySelector('.dropdown-scroll-items');
       if (scrollItems) animateResultsReentry(scrollItems, previousRowTops, new Map(), { rowSelector: '.parsed-item' });
@@ -924,6 +945,8 @@ function updateStarredUI(enteringUsername) {
   // The empty state's bounce is for the moment the last username leaves,
   // not for every later redraw while the panel stays open and empty.
   const wasAlreadyEmpty = !!listEl.querySelector('.dropdown-empty-message');
+  const oldEmpty = wasShown ? listEl.querySelector('.dropdown-empty-message') : null;
+  const oldEmptyBox = oldEmpty ? { top: oldEmpty.offsetTop, left: oldEmpty.offsetLeft, width: oldEmpty.offsetWidth, height: oldEmpty.offsetHeight, html: oldEmpty.outerHTML } : null;
 
   if (listData.length > 0) {
     setToggleOccupied(toggleBtn, true);
@@ -964,6 +987,7 @@ function updateStarredUI(enteringUsername) {
       </div>
     `;
     animatePanelHeightChange(listEl, wasShown, startHeight);
+    fadeOutEmptyMessage(listEl, oldEmptyBox);
     if (previousRowTops.size > 0) {
       const scrollItems = listEl.querySelector('.dropdown-scroll-items');
       if (scrollItems) animateResultsReentry(scrollItems, previousRowTops, new Map(), { rowSelector: '.parsed-item' });

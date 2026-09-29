@@ -4708,7 +4708,12 @@ body.auth-logged-out #auth-form-view.smooth-exit {
 }
 
 .dropdown-empty-message.empty-enter {
-  animation: dropdown-empty-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* The same fade as the empty text in list 3's tabs. */
+  animation: dropdown-empty-fade 0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@keyframes dropdown-empty-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .auth-settings-section {
