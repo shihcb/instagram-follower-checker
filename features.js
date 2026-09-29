@@ -296,7 +296,7 @@
         try { localStorage.setItem('list3_sort', sortMode); } catch (err) {}
         // List 3 first (its rows slide to the new order), then the label —
         // on the next frame, once that work is done, so neither stutters.
-        sortSlide();
+        calculateUnfollowers({ animate: true });
         requestAnimationFrame(() => slideSortLabel(btn));
       } else if (act === 'select') {
         setSelectMode(!selectMode);
@@ -305,49 +305,6 @@
       }
     });
     refreshToolbar();
-  }
-
-  // Sorting moves every row at once. Stepping each one from JS every frame
-  // (the row engine) ran on the main thread and stuttered on phones; here
-  // each row gets one transform animation from where it was drawn to its
-  // new place, which the browser runs on the GPU. Rows coming from far off
-  // screen glide in from just past the list's edge, at the same pace.
-  function sortSlide() {
-    const list = elements.listUnfollowers;
-    // Rows sliding in or out right now: the row engine carries those on.
-    if (list.classList.contains('hidden') || typeof list.animate !== 'function' || list.querySelector('.user-row.username-exit')) {
-      calculateUnfollowers({ animate: true });
-      return;
-    }
-    const lr = list.getBoundingClientRect();
-    const k = (lr.height / list.offsetHeight) || 1; // the guest preview is drawn scaled
-    const viewTop = Math.max(lr.top, 0), viewBottom = Math.min(lr.bottom, window.innerHeight);
-    // Where each row is drawn now (mid-slide included), then nothing moving.
-    const rows = [...list.querySelectorAll('.user-row')];
-    const before = new Map(rows.map(r => [r.dataset.username, r.getBoundingClientRect().top]));
-    rows.forEach(r => { stopRowMotion(r); r.getAnimations().forEach(an => an.cancel()); });
-    const scroll = list.scrollTop;
-    calculateUnfollowers({ animate: false });
-    list.scrollTop = scroll;
-    // The rest of a long list is added once the slide has played.
-    const built = list.querySelectorAll('.user-row').length;
-    const q = elements.searchUnfollowers.value.toLowerCase().trim();
-    const filtered = state.unfollowers.filter(u => u.originalUsername.toLowerCase().includes(q) || (u.fullName && u.fullName.toLowerCase().includes(q)));
-    list.querySelectorAll('.user-row.row-tail').forEach(r => r.remove());
-    appendRowTail(list, filtered, list.querySelectorAll('.user-row').length || built, ROW_TAIL_DELAY);
-    const reach = (viewBottom - viewTop) / k + 40;
-    const moves = [];
-    list.querySelectorAll('.user-row').forEach(r => {
-      const rect = r.getBoundingClientRect();
-      const was = before.get(r.dataset.username);
-      const seenNow = rect.bottom > viewTop && rect.top < viewBottom;
-      const seenBefore = was !== undefined && was + rect.height > viewTop && was < viewBottom;
-      if (!seenNow && !seenBefore) return;
-      let dy = was === undefined ? reach : (was - rect.top) / k;
-      if (Math.abs(dy) > reach) dy = Math.sign(dy) * reach;
-      if (Math.abs(dy) >= 0.5) moves.push([r, dy]);
-    });
-    moves.forEach(([r, dy]) => r.animate([{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }], { duration: ROW_MOTION_MS, easing: ROW_SLIDE_EASING }));
   }
 
   const SORT_LABELS = { default: 'sort', oldest: 'oldest first', newest: 'newest first' };
