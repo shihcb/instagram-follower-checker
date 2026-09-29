@@ -929,11 +929,24 @@
       const step = (now) => { const t = Math.min(1, (now - t0) / TL_MS); el.textContent = shortDate(a + (z - a) * tlEase(t)); if (t < 1 && el.isConnected) requestAnimationFrame(step); };
       requestAnimationFrame(step);
     });
-    // The new points, drawn each frame from the old line to the new one.
+    // The line is drawn through every old and new point while it moves
+    // (so the example's bends flatten out gradually rather than vanishing
+    // when there are fewer points); the old points fade out and the new
+    // ones fade in, each riding the moving line.
     const chart = tl.querySelector('.timeline-chart');
-    chart.querySelectorAll('.tl-dot').forEach(d => d.remove());
+    const xs = [...new Set([...from.map(p => p[0]), ...to.map(p => p[0])])].sort((a, b) => a - b);
+    const oldDots = [...chart.querySelectorAll('.tl-dot')].map(d => {
+      d.getAnimations().forEach(an => an.cancel());
+      const x = parseFloat(d.style.left) / 100 * TL_W;
+      return { d, x, k: parseFloat(d.style.top) / 100 * TL_H === yAt(from, x, 1) ? 1 : (Math.abs(parseFloat(d.style.top) / 100 * TL_H - yAt(from, x, 1)) < Math.abs(parseFloat(d.style.top) / 100 * TL_H - yAt(from, x, 2)) ? 1 : 2) };
+    });
     const dots = [...fresh.querySelectorAll('.tl-dot')];
     dots.forEach(d => chart.appendChild(d));
+    if (typeof chart.animate === 'function') {
+      oldDots.forEach(({ d }) => { d.classList.add('tl-dot-old'); d.animate([{ opacity: 1 }, { opacity: 0 }], { duration: TL_MS * 0.6, easing: MODAL_EASE, fill: 'forwards' }); });
+      dots.forEach(d => d.animate([{ opacity: 0 }, { opacity: 1 }], { duration: TL_MS * 0.6, delay: TL_MS * 0.4, easing: MODAL_EASE, fill: 'backwards' }));
+    }
+    setTimeout(() => oldDots.forEach(({ d }) => d.remove()), TL_MS + 50);
     const paths = [...chart.querySelectorAll('.tl-line')];
     [...fresh.querySelectorAll('.tl-line')].forEach((p, i) => { if (paths[i]) paths[i].setAttribute('style', p.getAttribute('style')); });
     // The colors change last, once the pieces above have their current
@@ -942,19 +955,21 @@
     tl.className = fresh.className;
     const token = (tl._morph = {});
     const t0 = performance.now();
-    const draw = (e) => {
-      const shape = to.map(([x, a, b]) => [x, yAt(from, x, 1) + (a - yAt(from, x, 1)) * e, yAt(from, x, 2) + (b - yAt(from, x, 2)) * e]);
-      tl._shape = shape; // a change mid-way carries on from here
+    const draw = (e, done) => {
+      const at = (x, k) => yAt(from, x, k) + (yAt(to, x, k) - yAt(from, x, k)) * e;
+      const line = (done ? to.map(p => p[0]) : xs).map(x => [x, at(x, 1), at(x, 2)]);
+      tl._shape = line; // a change mid-way carries on from here
       [1, 2].forEach((k, s) => {
-        if (paths[s]) paths[s].setAttribute('d', shape.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[k].toFixed(1)}`).join(' '));
-        shape.forEach((p, i) => { const d = dots[s * shape.length + i]; if (d) d.style.top = `${(p[k] / TL_H * 100).toFixed(2)}%`; });
+        if (paths[s]) paths[s].setAttribute('d', line.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[k].toFixed(1)}`).join(' '));
+        to.forEach((p, i) => { const d = dots[s * to.length + i]; if (d) d.style.top = `${(at(p[0], k) / TL_H * 100).toFixed(2)}%`; });
       });
+      oldDots.forEach(({ d, x, k }) => { d.style.top = `${(at(x, k) / TL_H * 100).toFixed(2)}%`; });
     };
     draw(0);
     const step = (now) => {
       if (tl._morph !== token) return;
       const t = Math.min(1, (now - t0) / TL_MS);
-      draw(tlEase(t));
+      draw(tlEase(t), t >= 1);
       if (t < 1) requestAnimationFrame(step); else tl._shape = null;
     };
     requestAnimationFrame(step);
