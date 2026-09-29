@@ -1218,6 +1218,20 @@ function openInstagramProfile(username, webUrl) {
   }, 1600);
 }
 
+// The version at the bottom of the settings panel: the sum of the app's
+// three files' version tags (index.html), which goes up with every update
+// — so it shows whether this device has the latest.
+(function showAppVersion() {
+  const el = document.getElementById('app-version');
+  if (!el) return;
+  const total = ['style.css', 'script.js', 'features.js'].reduce((sum, file) => {
+    const tag = document.querySelector(`link[href*="${file}"], script[src*="${file}"]`);
+    const v = tag && /[?&]v=(\d+)/.exec(tag.getAttribute('href') || tag.getAttribute('src'));
+    return sum + (v ? +v[1] : 0);
+  }, 0);
+  if (total) el.textContent = `version ${total}`;
+})();
+
 function updateResultsUI({ animate = false, matchRenames = false } = {}) {
   const listEl = elements.listUnfollowers;
   listEl._rowTailToken = null; // this render decides the rows now

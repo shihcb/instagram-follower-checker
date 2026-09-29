@@ -6115,3 +6115,13 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 .parsed-item a.parsed-username:focus {
   text-decoration: none !important;
 }
+/* The version, centered at the bottom of the settings panel. */
+.app-version {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: -4px;
+}
+.app-version:empty {
+  display: none;
+}
