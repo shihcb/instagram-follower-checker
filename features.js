@@ -1257,12 +1257,12 @@
     });
     // A pending request's X: it slides off the list like a list 3 row.
     box.addEventListener('click', (e) => {
-      const x = e.target.closest('.results-extra[data-sub="pending"] .user-row .action-dismiss');
+      const x = e.target.closest('.results-extra .user-row .action-dismiss');
       if (!x) return;
       e.stopPropagation();
       const row = x.closest('.user-row');
       if (!row || row.classList.contains('username-exit')) return;
-      removePending(row.dataset.username, row);
+      removeExtra(x.closest('.results-extra').dataset.sub, row.dataset.username, row);
     });
     const nav = resultsSubnav.querySelector('.changes-nav');
     requestAnimationFrame(() => placeSubIndicator(nav));
@@ -1289,18 +1289,18 @@
   // there) and the X (takes it off the list once you have).
   const X_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
   const ARROW_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
-  const pendingRowsHtml = (users, empty) => (users.length
+  const pendingRowsHtml = (users, empty, noteOf) => (users.length
     ? `<div class="pending-list">${users.slice(0, 500).map(u => {
         const href = esc(safeProfileUrl(u));
         const name = u.originalUsername || u.username;
         return `<div class="user-row" data-username="${esc(u.username)}">
           <div class="user-info">
             <a href="${href}" target="_blank" rel="noopener" class="user-avatar-link" title="visit instagram profile"><div class="user-avatar">${esc(name.substring(0, 2))}</div></a>
-            <div class="user-details"><a href="${href}" target="_blank" rel="noopener" class="user-link">@${esc(name)}</a></div>
+            <div class="user-details"><a href="${href}" target="_blank" rel="noopener" class="user-link">@${esc(name)}</a>${noteOf && noteOf(u) ? `<span class="user-fullname">${esc(noteOf(u))}</span>` : ''}</div>
           </div>
           <div class="user-meta"><div class="user-row-actions">
             <a href="${href}" target="_blank" rel="noopener" class="action-arrow" aria-label="visit instagram profile" title="visit instagram profile">${ARROW_ICON}</a>
-            <button class="action-dismiss" aria-label="remove from pending requests" title="remove from pending requests">${X_ICON}</button>
+            <button class="action-dismiss" aria-label="remove from this list" title="remove from this list">${X_ICON}</button>
           </div></div>
         </div>`;
       }).join('')}</div>`
@@ -1318,7 +1318,7 @@
       users = [...list.filter(u => !f.has(u.username)), ...list.filter(u => f.has(u.username))];
       flagOf = (u) => (f.has(u.username) ? '' : "doesn't follow you back");
     }
-    if (id === 'pending') return { sub: text.sub, body: pendingRowsHtml(users, text.empty) };
+    if (id === 'pending' || id === 'closeFriends') return { sub: text.sub, body: pendingRowsHtml(users, text.empty, flagOf) };
     return { sub: text.sub, body: userRowsHtml(users, text.empty, null, flagOf) };
   }
   // A list's content changed (an account picked, files imported): like list
@@ -1342,7 +1342,7 @@
       pane.appendChild(fresh);
       return;
     }
-    if (id === 'pending') { swapPendingRows(pane, old, fresh); return; }
+    if (id === 'pending' || id === 'closeFriends') { swapPendingRows(pane, old, fresh); return; }
     const scroll = old.scrollTop;
     old.classList.add('extra-leaving');
     old.scrollTop = scroll;
@@ -1397,20 +1397,20 @@
     centerSoon();
   }
   // Its X tapped (cancelled on Instagram): it slides out like a list 3 row.
-  function removePending(name, row) {
+  function removeExtra(kind, name, row) {
     const acc = state.selectedAccountUsername;
     const lists = readExtraLists(acc);
-    const before = Array.isArray(lists.pending) ? lists.pending.slice() : [];
+    const before = Array.isArray(lists[kind]) ? lists[kind].slice() : [];
     if (!before.some(u => u.username === name)) return;
-    lists.pending = before.filter(u => u.username !== name);
+    lists[kind] = before.filter(u => u.username !== name);
     writeExtraLists(acc, lists);
     pushToCloud();
     const done = () => {
       // Still that account on screen: the list is already right (the row
       // has gone), unless it's now empty — then the empty text comes in.
       if ((state.selectedAccountUsername || '') !== (acc || '')) return;
-      if (lists.pending.length) extraPanes.pending._sig = (({ sub, body }) => `${sub}|${body}`)(extraContent('pending'));
-      else renderExtra('pending', true);
+      if (lists[kind].length) extraPanes[kind]._sig = (({ sub, body }) => `${sub}|${body}`)(extraContent(kind));
+      else renderExtra(kind, true);
     };
     exitListRow(row, done);
   }
