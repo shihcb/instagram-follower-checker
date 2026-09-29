@@ -5740,3 +5740,11 @@ select,
   opacity: 1;
   transform: none;
 }
+
+/* Pop-up cards are solid: their usual tint laid over the page color. They
+   no longer blur what's under them (that was slow), and the see-through
+   tint alone let the page behind show through (text readable in dark). */
+.modal-overlay .account-modal-card,
+.modal-overlay .confirm-modal-box {
+  background: linear-gradient(var(--card-bg), var(--card-bg)), var(--bg-color) !important;
+}
