@@ -1264,13 +1264,17 @@ button:disabled *,
     left: auto !important;
     transform-origin: top right !important;
   }
+  /* One layout open or closed (the open-only spacing below used to switch
+     back the instant it started closing, so it changed shape as it left). */
   #add-account-dropdown-menu {
     width: 100% !important;
     left: 0 !important;
     right: 0 !important;
     transform-origin: top center !important;
-    gap: 12px !important;
-    padding: 8px 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding: 8px 4px !important;
   }
 }
 
@@ -3090,12 +3094,7 @@ html.hide-shortcuts .account-chip-badge {
 }
 
 @media (max-width: 1024px) {
-  #add-account-dropdown-menu.show {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 8px !important;
-    padding: 8px 4px !important;
-  }
+  /* (Its layout is the same closed as open — see the rule above.) */
   #add-account-dropdown-menu .dropdown-item-btn {
     padding: 10px 14px !important;
     border-radius: 8px !important;
