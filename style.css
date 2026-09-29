@@ -5425,7 +5425,10 @@ button:focus-visible,
 /* Long lists: rows off screen aren't laid out or painted, so a row sliding
    out, a sort or a view switch doesn't re-lay out hundreds of rows on every
    frame (they keep their last measured height). */
-#list-unfollowers .user-row,
+/* (Not list 3's own rows: skipped while out of sight — with a submenu
+   open over them, say — they measured at a stand-in height, and rows
+   coming back from the submenus slid in against the wrong sizes, jumping
+   before they settled.) */
 .list3-alt-view .insights-row {
   content-visibility: auto;
   contain-intrinsic-size: auto 60px;
