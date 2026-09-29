@@ -839,6 +839,8 @@
   // like the overview's graph.
   const MOCK_TIMELINE = [[40, 52], [46, 55], [44, 61], [52, 64], [55, 72], [58, 77]]; // [following, followers]
   const shortDate = (t) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  // Each date keeps its time, so a change can roll it to the new one.
+  const dateSpans = (times) => times.map(t => `<span data-t="${Math.round(t)}">${shortDate(t)}</span>`).join('');
   function timelineHtml(key) {
     const hist = key === DEMO_ID ? [] : readJSON(`import_history_${key}`, [])
       .filter(h => h && Number.isFinite(h.date) && Number.isFinite(h.following) && Number.isFinite(h.followers));
@@ -881,7 +883,7 @@
           <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${grid}${series.map(([k, , c]) => `<path class="tl-line" d="${path(k)}" style="--c:${c}"/>`).join('')}</svg>
           ${dots}
         </div>
-        <div class="timeline-dates">${!real ? '' : single ? `<span>${shortDate(t1)}</span>` : `<span>${shortDate(t0)}</span><span>${shortDate(t1)}</span>`}</div>
+        <div class="timeline-dates">${dateSpans(!real ? [Date.now() - 150 * DAY, Date.now() - 60 * DAY] : single ? [t1] : [t0, t1])}</div>
       </div>`;
   }
   // New numbers: the lines bend from where they are into their new shape
@@ -915,7 +917,18 @@
       b.textContent = a;
       requestAnimationFrame(step);
     });
+    // Dates: each rolls from the old date to the new one, month and day
+    // ticking through like the numbers count.
+    const oldTimes = [...tl.querySelectorAll('.timeline-dates [data-t]')].map(el => +el.dataset.t);
     tl.querySelector('.timeline-dates').replaceWith(fresh.querySelector('.timeline-dates'));
+    tl.querySelectorAll('.timeline-dates [data-t]').forEach((el, i) => {
+      const a = oldTimes[i] ?? oldTimes[oldTimes.length - 1], z = +el.dataset.t;
+      if (a === undefined || shortDate(a) === shortDate(z)) return;
+      const t0 = performance.now();
+      el.textContent = shortDate(a);
+      const step = (now) => { const t = Math.min(1, (now - t0) / TL_MS); el.textContent = shortDate(a + (z - a) * tlEase(t)); if (t < 1 && el.isConnected) requestAnimationFrame(step); };
+      requestAnimationFrame(step);
+    });
     // The new points, drawn each frame from the old line to the new one.
     const chart = tl.querySelector('.timeline-chart');
     chart.querySelectorAll('.tl-dot').forEach(d => d.remove());
