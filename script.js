@@ -271,9 +271,11 @@ function cancelOverlayHide(overlay) {
 // closing (450ms, an even ease), what arrives comes like it opening
 // (600ms, fast then settling gently). Slide and fade share each timing so
 // they move as one.
+// Slower and softer than the window itself (that felt too quick for
+// content): 850ms on a gentle ease-out, the leaving view fading over 550ms.
 const TAB_MOTION = {
-  out: { duration: 450, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' },
-  in: { duration: 600, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }
+  out: { duration: 550, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' },
+  in: { duration: 850, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' }
 };
 TAB_MOTION.slide = TAB_MOTION.in; // (older name, kept for callers)
 function tabSlideOut(el, dx) {
