@@ -1276,6 +1276,35 @@ function showAppVersion() {
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', showAppVersion);
 else showAppVersion();
 
+// Tapping the version reloads the whole page from scratch — in the browser,
+// the installed web app and the phone app alike: the offline copies (the
+// service worker and its cache) are dropped first, so nothing stale can
+// answer the reload.
+async function forceReload() {
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    if (window.caches) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  } catch (_) { /* reload anyway */ }
+  window.location.reload();
+}
+(() => {
+  const el = document.getElementById('app-version');
+  if (!el) return;
+  el.setAttribute('role', 'button');
+  el.tabIndex = 0;
+  el.title = 'reload the app';
+  el.addEventListener('click', forceReload);
+  el.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); forceReload(); }
+  });
+})();
+
 function updateResultsUI({ animate = false, matchRenames = false } = {}) {
   const listEl = elements.listUnfollowers;
   listEl._rowTailToken = null; // this render decides the rows now

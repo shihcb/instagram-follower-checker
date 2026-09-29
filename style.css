@@ -6126,6 +6126,13 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
   flex-shrink: 0;
   position: relative;
   z-index: 1; /* never under the button */
+  cursor: pointer; /* tap to reload the app (script.js: forceReload) */
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.app-version:active {
+  opacity: 0.6;
 }
 .app-version:empty {
   display: none;
