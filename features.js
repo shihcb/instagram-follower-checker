@@ -568,6 +568,9 @@
     clearTimeout(gate.timer);
     gate.timer = setTimeout(() => { const next = gate.next; gate.next = null; if (next) next(); }, Math.max(0, left) + 20);
   }
+  // Shared by every switcher (list 3's views and the tabs inside them): a
+  // view tapped right after a tab inside it waits too, or the bar slid away
+  // while its own tabs were still gliding back across it.
   const viewGate = {};
   function showView(view) {
     queueSwitch(viewGate, () => switchView(view));
@@ -1184,12 +1187,12 @@
       p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
     });
     host._subTimer = setTimeout(() => settleSub(host), longest + 30);
-    (host._gate || (host._gate = {})).until = performance.now() + longest * SLIDE_WAIT;
+    viewGate.until = Math.max(viewGate.until || 0, performance.now() + longest * SLIDE_WAIT);
   }
 
   // The switchers inside the changes and stats views.
   function showAltSub(id) {
-    queueSwitch(altView._gate || (altView._gate = {}), () => switchAltSub(id));
+    queueSwitch(viewGate, () => switchAltSub(id));
   }
   function switchAltSub(id) {
     const view = currentView;
@@ -1293,8 +1296,7 @@
   }
   function showResultsSub(id) {
     if (!resultsSubnav) return;
-    const box = resultsSubnav.parentNode;
-    queueSwitch(box._gate || (box._gate = {}), () => switchResultsSub(id));
+    queueSwitch(viewGate, () => switchResultsSub(id));
   }
   function switchResultsSub(id) {
     if (!resultsSubnav || subTab.results === id || !SUB_TABS.results.some(t => t[0] === id)) return;
