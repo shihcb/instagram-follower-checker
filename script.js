@@ -3376,21 +3376,31 @@ window.scrollInstructionsNav = scrollInstructionsNav;
 const instructionsEase = cubicBezierEasing(0.16, 1, 0.3, 1); // the highlight's (IND_EASE)
 let instructionsInstant = false; // opening: jump straight there
 function scrollInstructionsNav(nav, target) {
-  const start = nav.scrollLeft;
   const max = nav.scrollWidth - nav.clientWidth;
   const end = Math.max(0, Math.min(max, target));
-  const token = (nav._scrollToken = {});
+  nav._scrollToken = {};
+  // Where the tabs are drawn right now: the scroll position plus whatever
+  // is left of a scroll still gliding.
+  let residual = 0;
+  if (nav._scrollAnims) {
+    const first = nav._scrollAnims[0] && nav._scrollAnims[0].effect && nav._scrollAnims[0].effect.target;
+    if (first) residual = new DOMMatrixReadOnly(getComputedStyle(first).transform).m41 || 0;
+    nav._scrollAnims.forEach(an => an.cancel());
+    nav._scrollAnims = null;
+  }
+  const visual = nav.scrollLeft - residual;
   if (instructionsInstant) { nav.scrollLeft = end; return; }
-  if (Math.abs(end - start) < 0.5) return;
-  let t0 = null;
-  const step = (now) => {
-    if (nav._scrollToken !== token) return; // a newer switch took over
-    if (t0 === null) t0 = now;
-    const p = Math.min(1, (now - t0) / 600);
-    nav.scrollLeft = start + (end - start) * instructionsEase(p);
-    if (p < 1) requestAnimationFrame(step);
-  };
-  requestAnimationFrame(step);
+  if (Math.abs(end - visual) < 0.5) { nav.scrollLeft = end; return; }
+  // The scroll jumps to where it ends, and the tabs and highlight glide
+  // there from where they were drawn — by transform only, on the GPU.
+  // Animating scrollLeft frame by frame ran on the main thread and was
+  // choppy on phones.
+  nav.scrollLeft = end;
+  const delta = nav.scrollLeft - visual;
+  if (typeof nav.animate !== 'function') return;
+  nav._scrollAnims = [...nav.children].map(el => el.animate(
+    [{ transform: `translateX(${delta}px)` }, { transform: 'translateX(0)' }],
+    { duration: IND_MS, easing: IND_EASE }));
 }
 
 // The highlight is an outline, and animating its width ran on the main
@@ -3497,20 +3507,26 @@ function updateInstructionsStepUI() {
   const oldPane = [...panes].find(p => p.classList.contains('active') && !p.classList.contains('pane-out'));
   const newPane = [...panes].find(p => parseInt(p.id.replace('instructions-step-', ''), 10) === currentInstructionStep);
   panes.forEach(p => { if (p.classList.contains('pane-out')) settleStepOut(p); });
-  panes.forEach((pane) => {
-    const s = parseInt(pane.id.replace('instructions-step-', ''), 10);
-    pane.classList.toggle('active', s === currentInstructionStep || (pane === oldPane && oldPane !== newPane));
-  });
-  if (oldPane && newPane && oldPane !== newPane && !instructionsInstant && typeof newPane.animate === 'function') {
-    const oldStep = parseInt(oldPane.id.replace('instructions-step-', ''), 10);
-    const dir = currentInstructionStep > oldStep ? 1 : -1;
+  // Pin the step that's leaving where it is *before* the new one joins the
+  // layout: measured after, the two shared the space for a moment and the
+  // leaving step jumped up as it slid out.
+  const sliding = oldPane && newPane && oldPane !== newPane && !instructionsInstant && typeof newPane.animate === 'function';
+  if (sliding) {
     const parent = newPane.parentElement;
     if (getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
     const pr = parent.getBoundingClientRect(), r = oldPane.getBoundingClientRect();
     const scale = (pr.width / parent.offsetWidth) || 1;
     Object.assign(oldPane.style, { position: 'absolute', top: `${(r.top - pr.top) / scale}px`, left: `${(r.left - pr.left) / scale}px`, width: `${r.width / scale}px`, height: `${r.height / scale}px` });
     oldPane.classList.add('pane-out');
-    const w = parent.clientWidth;
+  }
+  panes.forEach((pane) => {
+    const s = parseInt(pane.id.replace('instructions-step-', ''), 10);
+    pane.classList.toggle('active', s === currentInstructionStep || (pane === oldPane && oldPane !== newPane));
+  });
+  if (sliding) {
+    const oldStep = parseInt(oldPane.id.replace('instructions-step-', ''), 10);
+    const dir = currentInstructionStep > oldStep ? 1 : -1;
+    const w = newPane.parentElement.clientWidth;
     tabSlideOut(oldPane, -dir * w).finished.then(() => settleStepOut(oldPane), () => settleStepOut(oldPane));
     tabSlideIn(newPane, dir * w);
   } else if (oldPane && oldPane !== newPane) {

@@ -5612,7 +5612,7 @@ select,
   border: none !important;
   background: none !important;
   width: 0 !important;
-  transform: none !important;
+  transform: none; /* not !important: the tab bar's scroll glide moves it */
   overflow: visible;
 }
 .instructions-nav-indicator.ind-split > span {
