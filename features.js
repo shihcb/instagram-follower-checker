@@ -1225,13 +1225,13 @@
       e.stopPropagation();
       showResultsSub(tab.dataset.sub);
     });
-    // A pending request tapped: its profile opens (to cancel it there) and
-    // it leaves the list, with an undo.
+    // A pending request's X: it slides off the list like a list 3 row.
     box.addEventListener('click', (e) => {
-      const link = e.target.closest('.results-extra[data-sub="pending"] .insights-row .parsed-username');
-      if (!link) return;
-      const row = link.closest('.insights-row');
-      if (!row || row.classList.contains('username-exit')) { e.preventDefault(); return; }
+      const x = e.target.closest('.results-extra[data-sub="pending"] .user-row .action-dismiss');
+      if (!x) return;
+      e.stopPropagation();
+      const row = x.closest('.user-row');
+      if (!row || row.classList.contains('username-exit')) return;
       removePending(row.dataset.username, row);
     });
     const nav = resultsSubnav.querySelector('.changes-nav');
@@ -1252,6 +1252,25 @@
     slideSub(box, resultsPanes(), targets, 'sub-on', el => order.indexOf(resultsSubOf(el)), dir);
     refreshToolbar();
   }
+  // Pending requests are drawn like list 3's own rows (the avatar, the
+  // username, the box), with only the X: it takes a request off the list
+  // once you've cancelled it (the avatar and username open the profile).
+  const X_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+  const pendingRowsHtml = (users, empty) => (users.length
+    ? `<div class="pending-list">${users.slice(0, 500).map(u => {
+        const href = esc(safeProfileUrl(u));
+        const name = u.originalUsername || u.username;
+        return `<div class="user-row" data-username="${esc(u.username)}">
+          <div class="user-info">
+            <a href="${href}" target="_blank" rel="noopener" class="user-avatar-link" title="visit instagram profile"><div class="user-avatar">${esc(name.substring(0, 2))}</div></a>
+            <div class="user-details"><a href="${href}" target="_blank" rel="noopener" class="user-link">@${esc(name)}</a></div>
+          </div>
+          <div class="user-meta"><div class="user-row-actions">
+            <button class="action-dismiss" aria-label="remove from pending requests" title="remove from pending requests">${X_ICON}</button>
+          </div></div>
+        </div>`;
+      }).join('')}</div>`
+    : `<div class="dropdown-empty-message">${empty}</div>`);
   function extraContent(id) {
     const text = EXTRA_TEXT[id];
     const list = extraListsNow()[id];
@@ -1265,6 +1284,7 @@
       users = [...list.filter(u => !f.has(u.username)), ...list.filter(u => f.has(u.username))];
       flagOf = (u) => (f.has(u.username) ? '' : "doesn't follow you back");
     }
+    if (id === 'pending') return { sub: text.sub, body: pendingRowsHtml(users, text.empty) };
     return { sub: text.sub, body: userRowsHtml(users, text.empty, null, flagOf) };
   }
   // A list's content changed (an account picked, files imported): like list
@@ -1304,14 +1324,12 @@
   function renderExtras(animate = true) {
     Object.keys(extraPanes).forEach(id => renderExtra(id, animate));
   }
-  // Tapped (to cancel it on Instagram): it slides out like a list 3 row.
+  // Its X tapped (cancelled on Instagram): it slides out like a list 3 row.
   function removePending(name, row) {
     const acc = state.selectedAccountUsername;
     const lists = readExtraLists(acc);
     const before = Array.isArray(lists.pending) ? lists.pending.slice() : [];
-    const index = before.findIndex(u => u.username === name);
-    if (index < 0) return;
-    const user = before[index];
+    if (!before.some(u => u.username === name)) return;
     lists.pending = before.filter(u => u.username !== name);
     writeExtraLists(acc, lists);
     pushToCloud();
@@ -1323,24 +1341,6 @@
       else renderExtra('pending', true);
     };
     exitListRow(row, done);
-    showToast(`@${user.originalUsername || name} removed from pending requests`, 'undo', () => {
-      const now = readExtraLists(acc);
-      const pending = Array.isArray(now.pending) ? now.pending : [];
-      if (pending.some(u => u.username === name)) return;
-      pending.splice(Math.min(index, pending.length), 0, user);
-      now.pending = pending;
-      writeExtraLists(acc, now);
-      pushToCloud();
-      if ((state.selectedAccountUsername || '') !== (acc || '')) return;
-      renderExtra('pending', false);
-      // It slides back in: its row grows open, pushing the rows below.
-      const back = extraPanes.pending.querySelector(`.insights-row[data-username="${CSS.escape(name)}"]`);
-      if (back && typeof back.animate === 'function') {
-        const h = back.offsetHeight;
-        back.animate([{ height: '0px', opacity: 0, transform: 'translateX(-24px)', paddingTop: '0px', paddingBottom: '0px' }, { height: `${h}px`, opacity: 1, transform: 'none' }],
-          { duration: ROW_MOTION_MS, easing: MODAL_EASE });
-      }
-    });
   }
   // The lists came in from an import (script.js).
   extraListsChanged = function () {
