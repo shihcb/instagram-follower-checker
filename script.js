@@ -271,24 +271,25 @@ function cancelOverlayHide(overlay) {
 // closing (450ms, an even ease), what arrives comes like it opening
 // (600ms, fast then settling gently). Slide and fade share each timing so
 // they move as one.
-// Slower and softer than the window itself (that felt too quick for
-// content): 850ms on a gentle ease-out, the leaving view fading over 550ms.
+// A page slide: both pages stay (nearly) solid and move edge to edge on an
+// even ease, so the slide itself is what you see. (Fading them out
+// and in, on a fast-start curve, read as the new page snapping in.) Only a
+// light dim on the way out and back up on the way in.
 const TAB_MOTION = {
-  out: { duration: 550, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' },
-  in: { duration: 850, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' }
+  in: { duration: 720, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }
 };
+TAB_MOTION.out = TAB_MOTION.in;
 TAB_MOTION.slide = TAB_MOTION.in; // (older name, kept for callers)
 function tabSlideOut(el, dx) {
-  // It fades like the window closing, but slides on the same curve as the
-  // one arriving, so the two stay edge to edge (on different curves the new
-  // content slid over the old while it was still showing).
-  el.animate([{ opacity: 1 }, { opacity: 0 }], { ...TAB_MOTION.out, fill: 'forwards' });
-  return el.animate([{ transform: 'translateX(0)' }, { transform: `translateX(${dx}px)` }], { ...TAB_MOTION.in, fill: 'forwards' });
+  return el.animate([
+    { transform: 'translateX(0)', opacity: 1 },
+    { transform: `translateX(${dx}px)`, opacity: 0.35 }
+  ], { ...TAB_MOTION.in, fill: 'forwards' });
 }
 function tabSlideIn(el, dx) {
   return el.animate([
-    { opacity: 0, transform: `translateX(${dx}px)` },
-    { opacity: 1, transform: 'translateX(0)' }
+    { transform: `translateX(${dx}px)`, opacity: 0.35 },
+    { transform: 'translateX(0)', opacity: 1 }
   ], TAB_MOTION.in);
 }
 window.TAB_MOTION = TAB_MOTION;
