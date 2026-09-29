@@ -1112,6 +1112,25 @@ function showResultsEmpty(fade) {
   if (fade && !was && typeof el.animate === 'function') el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 320, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' });
 }
 
+// Opens someone's Instagram profile: on a phone straight in the Instagram
+// app (a profile opened from code, rather than a tapped link, went through
+// the website in the browser first); on a computer the website, in a new
+// tab. No app on the phone: the website after a moment.
+const IS_PHONE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+function openInstagramProfile(username, webUrl) {
+  const url = webUrl || `https://www.instagram.com/${encodeURIComponent(username || '')}/`;
+  const native = window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform();
+  if (!IS_PHONE || native || !username) { window.open(url, '_blank'); return; }
+  let left = false;
+  const onHide = () => { if (document.hidden) left = true; };
+  document.addEventListener('visibilitychange', onHide);
+  window.location.href = `instagram://user?username=${encodeURIComponent(username)}`;
+  setTimeout(() => {
+    document.removeEventListener('visibilitychange', onHide);
+    if (!left && !document.hidden) window.location.href = url;
+  }, 1600);
+}
+
 function updateResultsUI({ animate = false, matchRenames = false } = {}) {
   const listEl = elements.listUnfollowers;
   listEl._rowTailToken = null; // this render decides the rows now
@@ -4348,7 +4367,7 @@ function updateInstructionsStepUI() {
       clickedWord = clickedWord.replace(/^[^a-zA-Z0-9._]+/, '').replace(/[^a-zA-Z0-9_]+$/, '');
       
       if (clickedWord && /^[a-zA-Z0-9._]+$/.test(clickedWord)) {
-        window.open(`https://instagram.com/${clickedWord}`, '_blank');
+        openInstagramProfile(clickedWord, `https://instagram.com/${clickedWord}`);
       }
     });
   };
@@ -4676,7 +4695,7 @@ function updateInstructionsStepUI() {
     }
 
     if (openProfile) {
-      window.open(safeProfileUrl(userObj), '_blank');
+      openInstagramProfile(userObj.originalUsername || userObj.username, safeProfileUrl(userObj));
     }
 
     const currentAcc = (state.selectedAccountUsername || '_global_').toLowerCase();

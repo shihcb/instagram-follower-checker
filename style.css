@@ -6095,3 +6095,15 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
               background-color 0.9s cubic-bezier(0.4, 0, 0.2, 1),
               border-color 0.9s cubic-bezier(0.4, 0, 0.2, 1);
 }
+/* Usernames never underline (tapped, held, hovered, select mode). */
+.user-link,
+.user-link:hover,
+.user-link:active,
+.user-link:focus,
+.user-link:visited,
+.parsed-item a.parsed-username,
+.parsed-item a.parsed-username:hover,
+.parsed-item a.parsed-username:active,
+.parsed-item a.parsed-username:focus {
+  text-decoration: none !important;
+}
