@@ -1253,9 +1253,10 @@
     refreshToolbar();
   }
   // Pending requests are drawn like list 3's own rows (the avatar, the
-  // username, the box), with only the X: it takes a request off the list
-  // once you've cancelled it (the avatar and username open the profile).
+  // username, the box), with the arrow (opens the profile, to cancel it
+  // there) and the X (takes it off the list once you have).
   const X_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+  const ARROW_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
   const pendingRowsHtml = (users, empty) => (users.length
     ? `<div class="pending-list">${users.slice(0, 500).map(u => {
         const href = esc(safeProfileUrl(u));
@@ -1266,6 +1267,7 @@
             <div class="user-details"><a href="${href}" target="_blank" rel="noopener" class="user-link">@${esc(name)}</a></div>
           </div>
           <div class="user-meta"><div class="user-row-actions">
+            <a href="${href}" target="_blank" rel="noopener" class="action-arrow" aria-label="visit instagram profile" title="visit instagram profile">${ARROW_ICON}</a>
             <button class="action-dismiss" aria-label="remove from pending requests" title="remove from pending requests">${X_ICON}</button>
           </div></div>
         </div>`;
