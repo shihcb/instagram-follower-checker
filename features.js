@@ -1126,6 +1126,10 @@
     host._subAll = all;
     host._subTargets = targets;
     host._subOn = on;
+    // Lists for other tabs that aren't on screen right now (list 3 empty,
+    // say) are put away too: one left marked as showing came back later,
+    // under another tab's list, once it had rows again.
+    all.filter(p => !targets.includes(p) && !shown.includes(p) && !p.classList.contains('pane-out')).forEach(p => { p.classList.remove(on); clearPin(p); });
     if (typeof host.animate !== 'function') {
       shown.forEach(p => p.classList.add('pane-out'));
       targets.forEach(t => t.classList.add(on));
