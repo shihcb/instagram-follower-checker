@@ -555,9 +555,12 @@
   const viewEls = (view) => view === 'results'
     ? [elements.listUnfollowers, document.getElementById('unfollowers-empty-state')].filter(el => el && !el.classList.contains('hidden'))
     : [altView];
-  // One tab switch at a time: a tap while a slide is still playing waits
-  // for it to finish, then goes (only the latest such tap), so no slide is
-  // cut short.
+  // One tab switch at a time: a tap early in a slide waits until the slide
+  // is mostly done (SLIDE_WAIT of it: most of the way across on its eased
+  // curve), then goes (only the latest such tap) and carries on smoothly
+  // from there. Waiting for the very end felt laggy; not waiting at all cut
+  // slides short and looked broken.
+  const SLIDE_WAIT = 0.55;
   function queueSwitch(gate, run) {
     const left = (gate.until || 0) - performance.now();
     if (left <= 0 && !gate.next) { run(); return; }
@@ -711,7 +714,7 @@
     });
     const token = ++viewToken;
     switchTimer = setTimeout(() => { if (token === viewToken) finishSwitch(); }, longest + 30);
-    viewGate.until = performance.now() + longest;
+    viewGate.until = performance.now() + longest * SLIDE_WAIT;
   }
   let switchTimer = null;
   // Once a switch has played out: what slid away is put away.
@@ -1181,7 +1184,7 @@
       p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
     });
     host._subTimer = setTimeout(() => settleSub(host), longest + 30);
-    (host._gate || (host._gate = {})).until = performance.now() + longest;
+    (host._gate || (host._gate = {})).until = performance.now() + longest * SLIDE_WAIT;
   }
 
   // The switchers inside the changes and stats views.
