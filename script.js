@@ -246,6 +246,7 @@ function setTheme(theme) {
 const pendingOverlayHides = new WeakMap();
 function scheduleOverlayHide(overlay, fn, delay = 600) {
   cancelOverlayHide(overlay);
+  overlay._showToken = null; // closed before it finished opening: stay closed
   pendingOverlayHides.set(overlay, setTimeout(() => {
     pendingOverlayHides.delete(overlay);
     fn();
@@ -305,7 +306,13 @@ function showModalOverlay(overlay) {
   cancelOverlayHide(overlay);
   overlay.classList.remove('hidden');
   void overlay.offsetWidth;
-  overlay.classList.add('show');
+  // Drawn once invisible first, then faded in: a first open (building the
+  // window, its pictures, the blur) used to eat the fade's first frames,
+  // so it looked like a snap.
+  const token = (overlay._showToken = {});
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (overlay._showToken === token && !overlay.classList.contains('hidden')) overlay.classList.add('show');
+  }));
 }
 
 function showSiteConfirm(title, message, confirmText = 'confirm', cancelText = 'cancel') {
@@ -333,11 +340,8 @@ function showSiteConfirm(title, message, confirmText = 'confirm', cancelText = '
       cancelBtn.style.display = 'none';
     }
 
-    cancelOverlayHide(overlay);
     overlay.classList.remove('fade-out-bounce');
-    overlay.classList.remove('hidden');
-    void overlay.offsetWidth;
-    overlay.classList.add('show');
+    showModalOverlay(overlay);
 
     function cleanup() {
       overlay.classList.add('fade-out-bounce');

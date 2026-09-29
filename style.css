@@ -1007,8 +1007,9 @@ button:disabled *,
   pointer-events: none;
   transform-origin: top left;
   will-change: opacity, transform;
-  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  /* Opens and closes the same way: the pop-ups' even 0.45s. */
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dropdown-menu.show {
@@ -1974,11 +1975,14 @@ body.hide-shortcuts #keyboard-hints {
   transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
+/* Opening is the closing played backwards: the same even 0.45s. (The
+   fast-start opening curve did most of its work in the first frames —
+   the ones a first open skips — so it looked like a snap.) */
 .modal-overlay.show {
   opacity: 1;
   pointer-events: auto;
-  -webkit-transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  -webkit-transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .account-modal-card,
@@ -2010,10 +2014,10 @@ body.hide-shortcuts #keyboard-hints {
 
 .modal-overlay.show .account-modal-card,
 .modal-overlay.show .confirm-modal-box {
-  -webkit-transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                      -webkit-transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  -webkit-transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+                      -webkit-transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
   opacity: 1;
   -webkit-transform: translateY(0) scale(1);
   transform: translateY(0) scale(1);
