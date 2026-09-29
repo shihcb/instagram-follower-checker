@@ -795,6 +795,38 @@ function fadeEmptyIn(el, delay = 0) {
   if (el && typeof el.animate === 'function') el.animate([{ opacity: 0 }, { opacity: 1 }], { ...EMPTY_FADE, delay, fill: 'backwards' });
 }
 
+// The unfollowed/starred panels' rows on screen (before a redraw), and the
+// ones gone after it slid out like a removed row — pinned where they were
+// drawn, over the redrawn list (an undo taking usernames away, say).
+function capturePanelRows(listEl) {
+  const rows = new Map();
+  listEl.querySelectorAll('.parsed-item:not(.username-exit)').forEach(row => {
+    if (!row.dataset.username) return;
+    rows.set(row.dataset.username, { row, rect: row.getBoundingClientRect(), pitch: row.offsetHeight + (parseFloat(getComputedStyle(row).marginBottom) || 0) });
+  });
+  return rows;
+}
+function slidePanelRowsOut(container, before, stillThere) {
+  if (!container || !before.size) return;
+  const cr = container.getBoundingClientRect();
+  const k = container.offsetWidth ? cr.width / container.offsetWidth : 1;
+  if (getComputedStyle(container).position === 'static') container.style.position = 'relative';
+  let any = false;
+  before.forEach(({ row, rect, pitch }, name) => {
+    if (stillThere.has(name) || rect.bottom <= cr.top || rect.top >= cr.bottom + pitch) return;
+    stopRowMotion(row);
+    row.classList.add('username-exit');
+    Object.assign(row.style, {
+      position: 'absolute', top: `${(rect.top - cr.top) / k - container.clientTop + container.scrollTop}px`,
+      left: `${(rect.left - cr.left) / k - container.clientLeft}px`, width: `${rect.width / k}px`, margin: '0', zIndex: '1'
+    });
+    container.appendChild(row);
+    slideRowOut(row, pitch, ROW_MOTION_MS, () => row.remove());
+    any = true;
+  });
+  if (any) stepRowMotion();
+}
+
 // The panel's empty text, when its first username comes in: it fades out
 // where it was (laid over the panel) instead of vanishing — the same fade
 // as the empty text in list 3's tabs.
@@ -865,12 +897,11 @@ function updateUnfollowedUI(enteringUsername) {
   // slide as list 3) and the rows below slide down to make room — capture
   // where they are now. Added while closed, nothing animates: it's just
   // there when the panel opens.
+  // Open: every change animates (an undo can bring usernames back or take
+  // them away) — rows remembered here to slide from.
   const previousRowTops = new Map();
-  if (wasShown && enteringUsername) {
-    listEl.querySelectorAll('.parsed-item:not(.username-exit)').forEach(row => {
-      previousRowTops.set(row.dataset.username, row.getBoundingClientRect().top);
-    });
-  }
+  const previousRows = wasShown ? capturePanelRows(listEl) : new Map();
+  previousRows.forEach((r, name) => previousRowTops.set(name, r.rect.top));
   // The empty state's bounce is for the moment the last username leaves,
   // not for every later redraw while the panel stays open and empty.
   const wasAlreadyEmpty = !!listEl.querySelector('.dropdown-empty-message');
@@ -911,9 +942,10 @@ function updateUnfollowedUI(enteringUsername) {
     `;
     animatePanelHeightChange(listEl, wasShown, startHeight);
     fadeOutEmptyMessage(listEl, oldEmptyBox);
-    if (previousRowTops.size > 0) {
-      const scrollItems = listEl.querySelector('.dropdown-scroll-items');
-      if (scrollItems) animateResultsReentry(scrollItems, previousRowTops, new Map(), { rowSelector: '.parsed-item' });
+    const scrollItems = listEl.querySelector('.dropdown-scroll-items');
+    if (wasShown && scrollItems) {
+      animateResultsReentry(scrollItems, previousRowTops, new Map(), { rowSelector: '.parsed-item' });
+      slidePanelRowsOut(scrollItems, previousRows, new Set(listData.map(u => u.username)));
     }
   } else {
     setToggleOccupied(toggleBtn, false);
@@ -925,6 +957,7 @@ function updateUnfollowedUI(enteringUsername) {
     // dropdown), still closed if it was closed.
     listEl.innerHTML = getUnfollowedEmptyHtml(wasShown && !wasAlreadyEmpty);
     animatePanelHeightChange(listEl, wasShown, startHeight);
+    slidePanelRowsOut(listEl, previousRows, new Set());
   }
 
   const resetUnfollowedBtn = document.getElementById('settings-reset-unfollowed-btn');
@@ -965,12 +998,11 @@ function updateStarredUI(enteringUsername) {
   // slide as list 3) and the rows below slide down to make room — capture
   // where they are now. Added while closed, nothing animates: it's just
   // there when the panel opens.
+  // Open: every change animates (an undo can bring usernames back or take
+  // them away) — rows remembered here to slide from.
   const previousRowTops = new Map();
-  if (wasShown && enteringUsername) {
-    listEl.querySelectorAll('.parsed-item:not(.username-exit)').forEach(row => {
-      previousRowTops.set(row.dataset.username, row.getBoundingClientRect().top);
-    });
-  }
+  const previousRows = wasShown ? capturePanelRows(listEl) : new Map();
+  previousRows.forEach((r, name) => previousRowTops.set(name, r.rect.top));
   // The empty state's bounce is for the moment the last username leaves,
   // not for every later redraw while the panel stays open and empty.
   const wasAlreadyEmpty = !!listEl.querySelector('.dropdown-empty-message');
@@ -1017,9 +1049,10 @@ function updateStarredUI(enteringUsername) {
     `;
     animatePanelHeightChange(listEl, wasShown, startHeight);
     fadeOutEmptyMessage(listEl, oldEmptyBox);
-    if (previousRowTops.size > 0) {
-      const scrollItems = listEl.querySelector('.dropdown-scroll-items');
-      if (scrollItems) animateResultsReentry(scrollItems, previousRowTops, new Map(), { rowSelector: '.parsed-item' });
+    const scrollItems = listEl.querySelector('.dropdown-scroll-items');
+    if (wasShown && scrollItems) {
+      animateResultsReentry(scrollItems, previousRowTops, new Map(), { rowSelector: '.parsed-item' });
+      slidePanelRowsOut(scrollItems, previousRows, new Set(listData.map(u => u.username)));
     }
   } else {
     setToggleOccupied(toggleBtn, false);
@@ -1031,6 +1064,7 @@ function updateStarredUI(enteringUsername) {
     // dropdown), still closed if it was closed.
     listEl.innerHTML = getStarredEmptyHtml(wasShown && !wasAlreadyEmpty);
     animatePanelHeightChange(listEl, wasShown, startHeight);
+    slidePanelRowsOut(listEl, previousRows, new Set());
   }
 
   const resetStarredBtn = document.getElementById('settings-reset-starred-btn');
