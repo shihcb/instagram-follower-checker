@@ -1,33 +1,41 @@
 // -------------------------------------------------------------
-// localStorage with change detection
+// Storage: memory + the cloud, nothing on the device
 // -------------------------------------------------------------
-// Saving rewrites whole lists (thousands of usernames) on every delete,
-// star or account switch, and localStorage writes of big strings are slow —
-// ~30ms per delete and ~300ms per account switch with real-sized accounts,
-// blocking the page (and every animation) meanwhile. Most of those writes
-// store exactly what's already there, so skip them: remember what each key
-// holds (from our own reads/writes) and only write when it changes.
-const storageMirror = new Map();
+// Everything the app keeps (accounts, lists, starred/unfollowed, imports,
+// history, settings) lives in memory for this page and in the cloud
+// (pushToCloud / pullFromCloud): nothing is saved on the device. The one
+// exception is the login session Supabase keeps itself (sb-…-auth-token);
+// without it every reload would log you out.
+const memoryStore = new Map();
+const isSessionKey = (key) => /^sb-/.test(key) || key.indexOf('supabase') !== -1;
+// What an older version saved on this device: read in (so anything not yet
+// in the cloud still gets there on login), then deleted from the device
+// once the cloud has it (dropDeviceCopy, after the first good upload).
+const oldDeviceKeys = [];
+(function readOldDeviceData() {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && !isSessionKey(key)) oldDeviceKeys.push(key);
+    }
+    oldDeviceKeys.forEach(key => memoryStore.set(key, localStorage.getItem(key)));
+  } catch (e) { /* no storage: nothing to read */ }
+})();
+function dropDeviceCopy() {
+  try { oldDeviceKeys.splice(0).forEach(key => localStorage.removeItem(key)); } catch (e) {}
+}
 function storageGet(key) {
-  const value = localStorage.getItem(key);
-  storageMirror.set(key, value);
-  return value;
+  return memoryStore.has(key) ? memoryStore.get(key) : null;
 }
 function storageSet(key, value) {
-  const str = String(value);
-  if (storageMirror.get(key) === str) return;
-  localStorage.setItem(key, str);
-  storageMirror.set(key, str);
+  memoryStore.set(key, String(value));
 }
 function storageRemove(key) {
-  localStorage.removeItem(key);
-  storageMirror.set(key, null);
+  memoryStore.delete(key);
 }
-// Another tab changed storage: forget what we thought those keys held.
-window.addEventListener('storage', (e) => {
-  if (e.key === null) storageMirror.clear();
-  else storageMirror.delete(e.key);
-});
+function storageKeys() {
+  return [...memoryStore.keys()];
+}
 
 // -------------------------------------------------------------
 // App State Configuration
@@ -190,6 +198,16 @@ const appGridLandingHome = elements.appGrid ? elements.appGrid.parentElement : n
 // -------------------------------------------------------------
 // Theme Management (Light/Dark)
 // -------------------------------------------------------------
+// Settings kept in the cloud with the rest (see pushToCloud).
+const CLOUD_PREFS = ['theme', 'list3_sort', 'list3_view', 'stats_sub', 'results_sub'];
+function applyCloudPrefs(prefs) {
+  CLOUD_PREFS.forEach(k => { if (typeof prefs[k] === 'string') storageSet(k, prefs[k]); });
+  if (typeof prefs.theme === 'string' && (prefs.theme === 'dark' || prefs.theme === 'light')) setTheme(prefs.theme);
+  if (window.igFeatures && typeof prefs.list3_view === 'string' && typeof window.igFeatures.showView === 'function') {
+    try { window.igFeatures.showView(prefs.list3_view); } catch (e) {}
+  }
+}
+
 function initTheme() {
   const savedTheme = storageGet('theme');
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -208,6 +226,7 @@ function initTheme() {
     const currentTheme = elements.html.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     storageSet('theme', newTheme);
+    pushToCloud(); // the setting lives in the cloud
     setTheme(newTheme);
   };
 
@@ -6005,6 +6024,8 @@ async function pullFromCloud(uploadLocalFirst = false) {
           storageRemove('selected_instagram_account');
         }
 
+        if (metaItem.prefs && typeof metaItem.prefs === 'object') applyCloudPrefs(metaItem.prefs);
+
         if (metaItem.accounts_data) {
           Object.keys(metaItem.accounts_data).forEach(key => {
             const itemData = metaItem.accounts_data[key];
@@ -6100,8 +6121,9 @@ const LOCAL_DATA_OWNER_KEY = 'local_data_owner';
 // could see (and upload into their own cloud data) the previous user's.
 function clearLocalAccountData() {
   const prefixes = ['following_users', 'followers_users', 'unfollowed_users', 'starred_users', 'import_date_',
-    'hidden_users_', 'import_history_', 'import_diff_', 'extra_lists_', 'user_notes', 'unfollow_count_', 'unfollow_tally'];
-  Object.keys(localStorage).forEach(key => {
+    'hidden_users_', 'import_history_', 'import_diff_', 'import_log_', 'list_reset_', 'extra_lists_', 'user_notes', 'unfollow_count_', 'unfollow_tally'];
+  dropDeviceCopy(); // another user's old device copy: never theirs to upload
+  storageKeys().forEach(key => {
     if (prefixes.some(prefix => key.startsWith(prefix))) storageRemove(key);
   });
   ['instagram_accounts', 'selected_instagram_account', 'last_active_instagram_account',
@@ -6158,7 +6180,7 @@ async function pushToCloudNow() {
     // Every account with saved data — including deleted chips, whose
     // unfollowed/starred history is kept for when they're added back.
     const accountSet = new Set([...(state.instagramAccounts || []).map(a => a.originalUsername.toLowerCase()), '_global_']);
-    Object.keys(localStorage).forEach(key => {
+    storageKeys().forEach(key => {
       const match = /^(?:unfollowed|starred)_users_(.+)$/.exec(key);
       if (match) accountSet.add(match[1]);
     });
@@ -6222,7 +6244,9 @@ async function pushToCloudNow() {
       __meta: true,
       instagram_accounts: (state.instagramAccounts || []).filter(acc => !isDemoAccount(acc)),
       selected_account: (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() !== DEMO_ID) ? state.selectedAccountUsername : null,
-      accounts_data: accountDataMap
+      accounts_data: accountDataMap,
+      // This user's settings travel too (nothing is kept on the device).
+      prefs: Object.fromEntries(CLOUD_PREFS.map(k => [k, storageGet(k)]).filter(([, v]) => v !== null))
     };
 
     const cloudStarred = [metaHeader, ...allStarredArray];
@@ -6237,6 +6261,7 @@ async function pushToCloudNow() {
       });
 
     if (error) throw error;
+    dropDeviceCopy(); // the cloud has it all now
     if (storageGet(CLOUD_DIRTY_KEY) === currentUser.id && !hasPendingCloudPush()) {
       storageRemove(CLOUD_DIRTY_KEY);
     }

@@ -56,7 +56,7 @@
   };
 
   let sortMode = 'default'; // 'default' | 'oldest' | 'newest'
-  try { sortMode = localStorage.getItem('list3_sort') || 'default'; } catch (e) {}
+  sortMode = storageGet('list3_sort') || 'default';
 
   const timeOf = (u) => {
     if (!u || !u.timestamp) return null;
@@ -760,7 +760,7 @@
       const act = btn.dataset.act;
       if (act === 'sort') {
         sortMode = sortMode === 'default' ? 'oldest' : sortMode === 'oldest' ? 'newest' : 'default';
-        try { localStorage.setItem('list3_sort', sortMode); } catch (err) {}
+        storageSet('list3_sort', sortMode); pushToCloud();
         // List 3 first (its rows slide to the new order), then the label —
         // on the next frame, once that work is done, so neither stutters.
         calculateUnfollowers({ animate: true });
@@ -988,7 +988,7 @@
     results: [['unfollowers', 'unfollowers'], ['pending', 'pending requests'], ['closeFriends', 'close friends'], ['blocked', 'blocked'], ['restricted', 'restricted']]
   };
   const savedSub = (key, view) => {
-    try { const v = localStorage.getItem(key); if (SUB_TABS[view].some(t => t[0] === v)) return v; } catch (e) {}
+    const v = storageGet(key); if (SUB_TABS[view].some(t => t[0] === v)) return v;
     return SUB_TABS[view][0][0];
   };
   const subTab = { changes: 'lost', stats: savedSub('stats_sub', 'stats'), results: savedSub('results_sub', 'results') };
@@ -1002,7 +1002,7 @@
     // Open on the view you were last on (saved on this device), without a
     // slide — not always back on results after a reload.
     let saved = 'results';
-    try { saved = localStorage.getItem('list3_view') || 'results'; } catch (e) {}
+    saved = storageGet('list3_view') || 'results';
     if (!VIEWS.some(v => v[0] === saved)) saved = 'results';
     currentView = saved;
     viewNav = document.createElement('div');
@@ -1105,7 +1105,7 @@
     else if (right > viewNav.scrollLeft + viewNav.clientWidth) scrollInstructionsNav(viewNav, right - viewNav.clientWidth);
 
     if (view !== 'results' && selectMode) setSelectMode(false);
-    try { localStorage.setItem('list3_view', view); } catch (e) {}
+    storageSet('list3_view', view); pushToCloud();
     currentView = view;
     const box = altView.parentNode;
     const w = boxWidth();
@@ -2027,7 +2027,7 @@
     const order = tabs.map(t => t[0]);
     const dir = order.indexOf(id) > order.indexOf(subTab[view]) ? 1 : -1;
     subTab[view] = id;
-    if (view === 'stats') { try { localStorage.setItem('stats_sub', id); } catch (e) {} }
+    if (view === 'stats') { storageSet('stats_sub', id); pushToCloud(); }
     selectSubTab(nav, id);
     const all = [...live.querySelectorAll(':scope > .changes-pane')];
     const target = all.find(p => p.dataset.pane === id);
@@ -2133,7 +2133,7 @@
     const order = SUB_TABS.results.map(t => t[0]);
     const dir = order.indexOf(id) > order.indexOf(subTab.results) ? 1 : -1;
     subTab.results = id;
-    try { localStorage.setItem('results_sub', id); } catch (e) {}
+    storageSet('results_sub', id); pushToCloud();
     if (selectMode) setSelectMode(false); // select is per tab
     selectSubTab(resultsSubnav.querySelector('.changes-nav'), id);
     const box = resultsSubnav.parentNode;
@@ -2154,7 +2154,7 @@
   function jumpResultsSub(id) {
     if (!resultsSubnav || subTab.results === id) return;
     subTab.results = id;
-    try { localStorage.setItem('results_sub', id); } catch (e) {}
+    storageSet('results_sub', id); pushToCloud();
     const box = resultsSubnav.parentNode;
     settleSub(box);
     resultsSubnav.querySelectorAll('[data-sub]').forEach(t => t.classList.toggle('active', t.dataset.sub === id));
@@ -2635,7 +2635,7 @@
   // left on the device.
   function clearOldTally() {
     try {
-      Object.keys(localStorage).forEach(k => { if (k === 'unfollow_tally' || k === 'user_notes' || k.startsWith('unfollow_count_')) localStorage.removeItem(k); });
+      storageKeys().forEach(k => { if (k === 'unfollow_tally' || k === 'user_notes' || k.startsWith('unfollow_count_')) storageRemove(k); });
     } catch (e) {}
   }
 
