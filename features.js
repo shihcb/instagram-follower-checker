@@ -514,7 +514,7 @@
         <div class="account-modal-card glass export-card">
           <div class="account-modal-header"><h3>saved imports</h3></div>
           <div class="saved-imports-chips"></div>
-          <div class="insights-sub saved-imports-help">tap an import to download it.<br><b>full folder</b>: the exact files you uploaded, in a zip.<br><b>changes</b>: who followed or unfollowed since the import before it, in a spreadsheet.</div>
+          <div class="insights-sub saved-imports-help">click an import to download it<br><b>full folder</b>: the exact files you uploaded<br><b>changes</b>: who followed or unfollowed since the import before it</div>
           <div class="export-options saved-imports-list"></div>
           <div class="account-modal-actions">
             <button class="btn btn-secondary" data-saved="close">close</button>
