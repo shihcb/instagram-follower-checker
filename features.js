@@ -138,6 +138,12 @@
   function restore(snap) {
     if (snap.acc !== accKey()) return;
     if (snap.cleared) { restoreClearedList(snap); return; }
+    if (snap.pending) {
+      const lists = readExtraLists(state.selectedAccountUsername);
+      lists.pending = snap.pending;
+      writeExtraLists(state.selectedAccountUsername, lists);
+      safe(() => renderExtras(true), 'extra lists');
+    }
     state.following = snap.following;
     state.unfollowed = snap.unfollowed;
     state.starred = snap.starred;
@@ -145,6 +151,8 @@
     updateListUI('following');
     saveCurrentAccountData();
     calculateUnfollowers({ animate: true });
+    updateUnfollowedUI();
+    updateStarredUI();
   }
   // The undo button (right of list 3's info button) lights up once the
   // action's slide has finished (its completion updates the lists) and
@@ -423,8 +431,10 @@
     toolbar.querySelector('[data-act="sort"]').classList.toggle('on', sortMode !== 'default');
     // Sort and select only work on the results view.
     const hasRows = state.unfollowers.length > 0 && currentView === 'results' && subTab.results === 'unfollowers';
+    const pendingNow = extraListsNow().pending;
+    const hasPending = currentView === 'results' && subTab.results === 'pending' && Array.isArray(pendingNow) && pendingNow.length > 0;
     toolbar.querySelector('[data-act="sort"]').disabled = !hasRows;
-    toolbar.querySelector('[data-act="select"]').disabled = !hasRows && !selectMode;
+    toolbar.querySelector('[data-act="select"]').disabled = !hasRows && !hasPending && !selectMode;
     toolbar.querySelector('[data-act="select"]').classList.toggle('on', selectMode);
 
     const importedAt = +(storageGet(`import_date_${accKey()}`) || 0);
@@ -445,11 +455,16 @@
   let selectMode = false;
   let selectBar = null;
   const selected = new Set();
+  // What select works on: list 3, or the pending requests tab.
+  const selectOnPending = () => subTab.results === 'pending';
+  const selectHosts = () => [elements.listUnfollowers, extraPanes.pending].filter(Boolean);
   function setSelectMode(on) {
     selectMode = on;
     selected.clear();
-    elements.listUnfollowers.classList.toggle('select-mode', on);
-    elements.listUnfollowers.querySelectorAll('.multi-selected').forEach(r => r.classList.remove('multi-selected'));
+    selectHosts().forEach(h => {
+      h.classList.toggle('select-mode', on && (h === elements.listUnfollowers ? !selectOnPending() : selectOnPending()));
+      h.querySelectorAll('.multi-selected').forEach(r => r.classList.remove('multi-selected'));
+    });
     if (!selectBar) {
       selectBar = document.createElement('div');
       selectBar.className = 'row-select-bar';
@@ -466,6 +481,11 @@
         bulkAction(btn.dataset.bulk);
       });
     }
+    // On desktop the bar floats over lists 1 and 2, which blur out behind
+    // it while selecting (on phones they're further down: it stays at the
+    // bottom of the screen).
+    placeSelectBar();
+    document.body.classList.toggle('select-active', on);
     // Commit its hidden starting state first — on the very first use the bar
     // was created and shown in the same frame, so it just appeared.
     void selectBar.offsetWidth;
@@ -473,11 +493,24 @@
     updateSelectCount();
     refreshToolbar();
   }
+  function placeSelectBar() {
+    if (!selectBar) return;
+    const a = document.getElementById('card-following'), b = document.getElementById('card-followers');
+    const wide = window.matchMedia('(min-width: 1025px)').matches && a && b && a.getClientRects().length;
+    selectBar.classList.toggle('over-lists', !!wide);
+    if (!wide) { selectBar.style.left = ''; selectBar.style.top = ''; return; }
+    const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+    const left = Math.min(ra.left, rb.left), right = Math.max(ra.right, rb.right);
+    const top = Math.min(ra.top, rb.top), bottom = Math.max(ra.bottom, rb.bottom);
+    selectBar.style.left = `${(left + right) / 2}px`;
+    selectBar.style.top = `${(top + bottom) / 2}px`;
+  }
+  window.addEventListener('resize', () => { if (selectMode) placeSelectBar(); });
   // List 3 re-renders (a search, a row leaving, switching accounts) rebuilt
   // the rows without their selected outline, and the count kept usernames
   // that were no longer there.
   function keepSelection() {
-    if (!selectMode) return;
+    if (!selectMode || selectOnPending()) return;
     const here = new Set(state.unfollowers.map(u => u.username));
     [...selected].forEach(n => { if (!here.has(n)) selected.delete(n); });
     elements.listUnfollowers.classList.add('select-mode');
@@ -501,6 +534,18 @@
     }
     selectBar.querySelectorAll('[data-bulk]:not([data-bulk="cancel"])').forEach(b => { b.disabled = selected.size === 0; });
   }
+  // Pending requests' rows, in select mode.
+  document.addEventListener('click', (e) => {
+    if (!selectMode || !selectOnPending()) return;
+    const row = e.target.closest('.results-extra[data-sub="pending"] .user-row');
+    if (!row || row.classList.contains('username-exit')) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    const name = row.dataset.username;
+    if (selected.has(name)) selected.delete(name); else selected.add(name);
+    row.classList.toggle('multi-selected', selected.has(name));
+    updateSelectCount();
+  }, true);
   elements.listUnfollowers.addEventListener('click', (e) => {
     if (!selectMode) return;
     const row = e.target.closest('.user-row');
@@ -514,6 +559,12 @@
   }, true);
   function bulkAction(kind) {
     if (kind === 'cancel' || selected.size === 0) { setSelectMode(false); return; }
+    if (selectOnPending()) {
+      const names = [...selected];
+      setSelectMode(false);
+      movePending(names, kind === 'star' ? 'star' : 'unfollow', null);
+      return;
+    }
     const snap = snapshot();
     const acc = accKey();
     const users = state.unfollowers.filter(u => selected.has(u.username));
@@ -664,7 +715,7 @@
     if (left < viewNav.scrollLeft) scrollInstructionsNav(viewNav, Math.max(0, left));
     else if (right > viewNav.scrollLeft + viewNav.clientWidth) scrollInstructionsNav(viewNav, right - viewNav.clientWidth);
 
-    if ((view !== 'results' || subTab.results !== 'unfollowers') && selectMode) setSelectMode(false);
+    if (view !== 'results' && selectMode) setSelectMode(false);
     try { localStorage.setItem('list3_view', view); } catch (e) {}
     currentView = view;
     const box = altView.parentNode;
@@ -893,6 +944,10 @@
   // Every username list (changes, mutuals, fans, compare, the results
   // tabs) uses list 3's own row box: avatar, @name, a note under it, and
   // the profile arrow (plus the X where a row can be removed).
+  const STAR_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>';
+  const TRASH_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
+  // dismiss: true (the X) or 'pending' (star, unfollow and the X, like
+  // list 3's own rows: starred/unfollowed ones move to those submenus).
   const boxRowHtml = (u, noteOf, dismiss) => {
     const href = esc(safeProfileUrl(u));
     const name = u.originalUsername || u.username;
@@ -903,6 +958,7 @@
             <div class="user-details"><a href="${href}" target="_blank" rel="noopener" class="user-link">@${esc(name)}</a>${note ? `<span class="user-fullname">${esc(note)}</span>` : ''}</div>
           </div>
           <div class="user-meta"><div class="user-row-actions">
+            ${dismiss === 'pending' ? `<button class="action-star" aria-label="star this account" title="move to the starred list">${STAR_ICON}</button><button class="action-delete" aria-label="mark as unfollowed" title="move to the unfollowed list">${TRASH_ICON}</button>` : ''}
             <a href="${href}" target="_blank" rel="noopener" class="action-arrow" aria-label="visit instagram profile" title="visit instagram profile">${ARROW_ICON}</a>
             ${dismiss ? `<button class="action-dismiss" aria-label="remove from this list" title="remove from this list">${X_ICON}</button>` : ''}
           </div></div>
@@ -917,7 +973,7 @@
     if (!users.length) return empty ? `<div class="dropdown-empty-message">${empty}</div>` : '';
     let more = '';
     if (users.length > LIST_PAGE) {
-      const key = `${users.length}|${users[0].username}|${users[users.length - 1].username}|${dismiss ? 1 : 0}`;
+      const key = `${users.length}|${users[0].username}|${users[users.length - 1].username}|${dismiss || 0}`;
       if (moreRows.size > 40) moreRows.clear();
       moreRows.set(key, { users, noteOf, dismiss });
       more = `<div class="rows-more" data-more-key="${esc(key)}" role="status" aria-label="loading more"><span class="rows-more-spinner" aria-hidden="true"></span></div>`;
@@ -1622,6 +1678,14 @@
     });
     // A pending request's X: it slides off the list like a list 3 row.
     box.addEventListener('click', (e) => {
+      const mv = e.target.closest('.results-extra[data-sub="pending"] .user-row .action-star, .results-extra[data-sub="pending"] .user-row .action-delete');
+      if (mv) {
+        e.stopPropagation();
+        const row = mv.closest('.user-row');
+        if (!row || row.classList.contains('username-exit')) return;
+        movePending([row.dataset.username], mv.classList.contains('action-star') ? 'star' : 'unfollow', row);
+        return;
+      }
       const x = e.target.closest('.results-extra .user-row .action-dismiss');
       if (!x) return;
       e.stopPropagation();
@@ -1645,7 +1709,7 @@
     const dir = order.indexOf(id) > order.indexOf(subTab.results) ? 1 : -1;
     subTab.results = id;
     try { localStorage.setItem('results_sub', id); } catch (e) {}
-    if (id !== 'unfollowers' && selectMode) setSelectMode(false);
+    if (selectMode) setSelectMode(false); // select is per tab
     selectSubTab(resultsSubnav.querySelector('.changes-nav'), id);
     const box = resultsSubnav.parentNode;
     box.classList.toggle('sub-extra', id !== 'unfollowers');
@@ -1688,6 +1752,7 @@
       users = [...list.filter(u => !f.has(u.username)), ...list.filter(u => f.has(u.username))];
       flagOf = (u) => (f.has(u.username) ? '' : "doesn't follow you back");
     }
+    if (id === 'pending') return { sub: text.sub, body: boxRowsHtml(users, text.empty, flagOf, 'pending') };
     return { sub: text.sub, body: pendingRowsHtml(users, text.empty, flagOf) };
   }
   // A list's content changed (an account picked, files imported): like list
@@ -1785,6 +1850,34 @@
       else renderExtra(kind, true);
     };
     exitListRow(row, done);
+  }
+  // Pending requests starred or marked unfollowed (a row's buttons or the
+  // bulk bar): they leave the pending list and go to that submenu, like
+  // list 3's rows do. Undoable.
+  function movePending(names, kind, row) {
+    const acc = state.selectedAccountUsername;
+    const lists = readExtraLists(acc);
+    const before = Array.isArray(lists.pending) ? lists.pending.slice() : [];
+    const pick = new Set(names);
+    const users = before.filter(u => pick.has(u.username));
+    if (!users.length) return;
+    const snap = { ...snapshot(), pending: before };
+    const tag = accKey();
+    const target = kind === 'star' ? state.starred : state.unfollowed;
+    const have = new Set(target.map(u => u.username));
+    users.forEach(u => { if (!have.has(u.username)) target.unshift({ ...cleanExtraEntry(u), account: tag }); });
+    lists.pending = before.filter(u => !pick.has(u.username));
+    writeExtraLists(acc, lists);
+    saveCurrentAccountData();
+    const done = () => {
+      if (kind === 'star') updateStarredUI(users[0].username); else updateUnfollowedUI(users[0].username);
+      if ((state.selectedAccountUsername || '') !== (acc || '')) return;
+      if (row && lists.pending.length) extraPanes.pending._sig = (({ sub, body }) => `${sub}|${body}`)(extraContent('pending'));
+      else renderExtra('pending', true);
+    };
+    if (row) exitListRow(row, done); else done();
+    pushToCloud();
+    offerUndo(snap, `${users.length === 1 ? `@${users[0].originalUsername || users[0].username}` : plural(users.length, 'account')} ${kind === 'star' ? 'starred' : 'unfollowed'}`);
   }
   // The lists came in from an import (script.js).
   extraListsChanged = function () {

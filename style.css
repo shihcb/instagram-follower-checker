@@ -4954,15 +4954,18 @@ button:focus-visible,
 }
 
 /* Select several rows */
-#list-unfollowers.select-mode .user-row {
+#list-unfollowers.select-mode .user-row,
+.results-extra.select-mode .user-row {
   cursor: pointer;
   transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
-#list-unfollowers.select-mode .user-row-actions {
+#list-unfollowers.select-mode .user-row-actions,
+.results-extra.select-mode .user-row-actions {
   opacity: 0.35;
   pointer-events: none;
 }
-#list-unfollowers .user-row.multi-selected {
+#list-unfollowers .user-row.multi-selected,
+.results-extra .user-row.multi-selected {
   border-color: #10b981 !important;
   background: rgba(16, 185, 129, 0.08) !important;
   box-shadow: 0 0 0 1px #10b981 inset;
@@ -4986,12 +4989,39 @@ button:focus-visible,
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, 16px) scale(0.96);
-  transition: opacity 0.38s cubic-bezier(0.4, 0, 0.2, 1), transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+  /* The list 3 slide. */
+  transition: opacity 0.52s cubic-bezier(0.4, 0, 0.2, 1), transform 0.52s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .row-select-bar.show {
   opacity: 1;
   pointer-events: auto;
   transform: translate(-50%, 0) scale(1);
+}
+/* Desktop: centered over lists 1 and 2 (placeSelectBar in features.js). */
+.row-select-bar.over-lists {
+  bottom: auto;
+  transform: translate(-50%, calc(-50% + 16px)) scale(0.96);
+}
+.row-select-bar.over-lists.show {
+  transform: translate(-50%, -50%) scale(1);
+}
+/* Selecting: lists 1 and 2 blur out behind the bar, with the list 3 slide. */
+#card-following,
+#card-followers {
+  /* (The cards' own transitions, plus the blur.) */
+  transition: filter 0.52s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.52s cubic-bezier(0.4, 0, 0.2, 1),
+              flex 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+body.select-active #card-following,
+body.select-active #card-followers {
+  filter: blur(6px);
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
 }
 /* The count and the buttons: one height (the count is a text span and
    took the page's taller line height, so it stood 3px taller). */
