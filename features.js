@@ -508,7 +508,8 @@
   function openSavedImports() {
     savedKey = accKey();
     if (!savedOverlay) buildSavedOverlay();
-    renderSavedImports();
+    if (savedKey === '_global_') savedKey = null;
+    renderSavedImports({ fresh: true });
     showModalOverlay(savedOverlay);
     lockPageScroll();
   }
@@ -534,9 +535,14 @@
         e.stopPropagation();
         if (e.target === savedOverlay || e.target.closest('[data-saved="close"]')) { closeSavedImports(); return; }
         const chip = e.target.closest('[data-saved-acc]');
-        if (chip) { savedKey = chip.dataset.savedAcc; renderSavedImports(); return; }
+        if (chip) {
+          savedKey = savedKey === chip.dataset.savedAcc ? null : chip.dataset.savedAcc;
+          renderSavedImports({ animate: true });
+          return;
+        }
         const row = e.target.closest('[data-import]');
         if (!row) return;
+        if (!savedKey || row.classList.contains('username-exit')) return;
         const entry = readJSON(logKey(savedKey), []).find(x => String(x.n) === row.dataset.import);
         if (entry) downloadSaved(savedKey, entry).catch(err => { console.error('[features] download failed:', err); showSiteAlert("couldn't download", "that import's files aren't on this device."); });
       });
@@ -550,26 +556,89 @@
     }
   }
   // The list for the chip picked at the top (the account on screen first).
-  function renderSavedImports() {
+  // Chips work like list 3's: tapping one picks it (its green highlight
+  // eases in, the other's eases out), tapping the picked one unpicks it.
+  // The imports come and go like list 3's usernames (the same row slide,
+  // each row sliding out or in on its own) and the window eases to its new
+  // height — all with the list 3 slide.
+  function savedChipsHtml() {
     const accounts = (state.instagramAccounts || []).filter(a => !isDemoAccount(a));
-    const chips = savedOverlay.querySelector('.saved-imports-chips');
-    chips.innerHTML = accounts.map(a => {
+    return accounts.map(a => {
       const k = a.originalUsername.toLowerCase();
-      return `<button type="button" class="account-chip${k === savedKey ? ' active' : ''}" data-saved-acc="${esc(k)}"><span class="chip-text">@${esc(a.username)}</span></button>`;
+      return `<button type="button" class="account-chip" data-saved-acc="${esc(k)}"><span class="chip-text">@${esc(a.username)}</span></button>`;
     }).join('');
-    chips.hidden = accounts.length < 2;
-    savedOverlay.querySelector('.account-modal-header .saved-imports-acc').textContent = accLabel(savedKey);
-    const log = savedKey === DEMO_ID ? [] : readJSON(logKey(savedKey), []);
-    const listEl = savedOverlay.querySelector('.saved-imports-list');
-    listEl.innerHTML = log.length ? log.slice().reverse().map(entry => {
+  }
+  function savedRowsHtml(key) {
+    if (!key) return '<div class="dropdown-empty-message">pick an account to see its saved imports</div>';
+    const log = key === DEMO_ID ? [] : readJSON(logKey(key), []);
+    if (!log.length) return '<div class="dropdown-empty-message">no imports saved yet</div>';
+    return log.slice().reverse().map(entry => {
       const c = entry.changes;
       const count = c ? c.lost.length + c.gained.length + c.stopped.length + c.started.length : 0;
       const kind = entry.files ? 'full folder · zip' : (c ? `${plural(count, 'change')} · csv` : 'no changes saved');
-      return `<button class="export-option saved-import" data-import="${entry.n}"${!entry.files && !c ? ' disabled' : ''}>
+      return `<button class="export-option saved-import" data-import="${entry.n}" data-row-key="${esc(key)}|${entry.n}"${!entry.files && !c ? ' disabled' : ''}>
           <span class="export-label">import ${entry.n}<span class="saved-import-date">${esc(longDate(entry.date))}</span></span>
           <span class="export-count">${esc(kind)}</span>
         </button>`;
-    }).join('') : '<div class="dropdown-empty-message">no imports saved yet</div>';
+    }).join('');
+  }
+  function renderSavedImports({ animate = false, fresh = false } = {}) {
+    const chips = savedOverlay.querySelector('.saved-imports-chips');
+    if (fresh) chips.innerHTML = savedChipsHtml();
+    chips.querySelectorAll('[data-saved-acc]').forEach(c => c.classList.toggle('active', c.dataset.savedAcc === savedKey));
+    chips.hidden = chips.children.length < 2;
+    savedOverlay.querySelector('.account-modal-header .saved-imports-acc').textContent = accLabel(savedKey);
+    const card = savedOverlay.querySelector('.export-card');
+    const listEl = savedOverlay.querySelector('.saved-imports-list');
+    const html = savedRowsHtml(savedKey);
+    if (!animate || typeof card.animate !== 'function') {
+      listEl.querySelectorAll('.saved-import').forEach(stopRowMotion);
+      listEl.innerHTML = html;
+      if (fresh && typeof card.animate === 'function') {
+        // Opening: the imports come in like list 3's usernames do.
+        requestAnimationFrame(() => animateResultsReentry(listEl, new Map(), new Map(), { rowSelector: '.saved-import' }));
+      }
+      return;
+    }
+    // What's on screen now, to slide from.
+    const startHeight = card.getBoundingClientRect().height;
+    card.getAnimations().forEach(an => an.cancel());
+    const lr = listEl.getBoundingClientRect();
+    const was = [...listEl.querySelectorAll(':scope > .saved-import:not(.username-exit)')].map(r => {
+      stopRowMotion(r);
+      const rect = r.getBoundingClientRect();
+      return { r, key: r.dataset.rowKey, top: rect.top, left: rect.left, width: rect.width, pitch: r.offsetHeight + (parseFloat(getComputedStyle(r).marginBottom) || 0) };
+    });
+    const ghosts = [...listEl.querySelectorAll(':scope > .dropdown-empty-message')].map(m => captureGhost(m)).filter(Boolean);
+    listEl.querySelectorAll(':scope > .username-exit').forEach(r => r.remove());
+    const prevTops = new Map(was.map(w => [w.key, w.top]));
+    listEl.innerHTML = html;
+    const stay = new Set([...listEl.querySelectorAll(':scope > .saved-import')].map(r => r.dataset.rowKey));
+    ghosts.forEach(play => play());
+    // Gone: pinned where they were, sliding out one by one.
+    const nr = listEl.getBoundingClientRect();
+    let left = 0;
+    was.forEach(w => {
+      if (stay.has(w.key)) return;
+      Object.assign(w.r.style, { position: 'absolute', top: `${w.top - nr.top + listEl.scrollTop}px`, left: `${w.left - nr.left}px`, width: `${w.width}px`, margin: '0', zIndex: '1' });
+      w.r.classList.add('username-exit');
+      listEl.appendChild(w.r);
+      slideRowOut(w.r, w.pitch, ROW_MOTION_MS, () => w.r.remove());
+      left++;
+    });
+    // Coming in (or staying, gliding to their new spot): list 3's own code.
+    listEl.querySelectorAll(':scope > .saved-import').forEach(r => { r.dataset.username = r.dataset.rowKey; });
+    const tops = new Map(prevTops);
+    animateResultsReentry(listEl, tops, new Map(), { rowSelector: '.saved-import' });
+    const msg = listEl.querySelector(':scope > .dropdown-empty-message');
+    if (msg) fadeEmptyIn(msg, left ? ROW_MOTION_MS : 0);
+    stepRowMotion();
+    // The window eases to its new height.
+    const endHeight = card.getBoundingClientRect().height;
+    if (Math.abs(endHeight - startHeight) > 0.5) {
+      card.animate([{ height: `${startHeight}px`, overflow: 'hidden' }, { height: `${endHeight}px`, overflow: 'hidden' }],
+        { duration: ROW_MOTION_MS, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }); // the list 3 slide
+    }
   }
   function closeSavedImports() {
     savedOverlay.classList.remove('show');

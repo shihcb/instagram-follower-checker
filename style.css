@@ -6378,3 +6378,19 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 .saved-imports-acc:empty {
   display: none;
 }
+
+/* Saved imports: rows spaced by margin (not the flex gap) so list 3's row
+   slide measures their full pitch; and a positioned list for the rows
+   sliding out. */
+.saved-imports-list {
+  position: relative;
+  gap: 0;
+}
+.saved-imports-list > .saved-import {
+  margin-bottom: 6px;
+}
+.saved-imports-list > .dropdown-empty-message {
+  padding: 18px 12px;
+  text-align: center;
+  color: var(--text-muted);
+}
