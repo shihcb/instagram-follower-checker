@@ -506,7 +506,7 @@
       savedOverlay.innerHTML = `
         <div class="account-modal-card glass export-card">
           <div class="account-modal-header"><h3>saved imports</h3></div>
-          <div class="insights-sub">full saves download the files you uploaded as a zip; the imports in between download just what changed</div>
+          <div class="insights-sub">your first import, every 5th import and your latest one keep the files you uploaded. tap one to download them as a zip. the others only keep who followed and unfollowed, and download as a spreadsheet.</div>
           <div class="export-options saved-imports-list"></div>
           <div class="account-modal-actions">
             <button class="btn btn-secondary" data-saved="close">close</button>
