@@ -548,6 +548,13 @@ button:disabled *,
 .count-badge,
 .result-badge,
 #unfollowers-count {
+  /* Counting up (setCountBadge in script.js) only changes the text and the
+     width: same-width digits so the number doesn't jitter, and the
+     clipping stays on all the time rather than switching on and off
+     around each count (that toggle flickered). */
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
   background: #000000 !important;
   color: #ffffff !important;
   border: 1px solid #000000 !important;
@@ -1790,15 +1797,17 @@ body.hide-shortcuts #keyboard-hints {
    one give way, ending its username in "…" at list 3's edge (the others
    only shrink if even that isn't enough). */
 .account-chips-list .account-chip {
-  flex: 0 1 auto;
-  min-width: 0;
+  flex: 0 0 auto;
 }
 .account-chips-list .account-chip:last-child {
-  flex-shrink: 1000;
-  min-width: 72px; /* always shows a few letters and the "…" */
+  flex-shrink: 1;
+  min-width: 0; /* ends at list 3's edge, never past it */
 }
 .account-chip .chip-text {
   min-width: 0;
+  /* Room for descenders (g, y, p): the chip's line-height of 1 clipped
+     their bottoms once the text got overflow: hidden for the "…". */
+  line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -5375,6 +5384,11 @@ button:focus-visible,
 .list-search-row .search-box {
   flex: 1 1 auto;
   min-width: 0;
+}
+/* The icon keeps its size while the button opens around it (it used to be
+   squeezed along with the button and then snap to full size at the end). */
+.list-search-row > .preview-toggle svg {
+  flex: none;
 }
 
 /* Export window */

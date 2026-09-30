@@ -1164,12 +1164,10 @@ function setCountBadge(el, n, word) {
   const reset = () => {
     el._countNow = undefined;
     el._countRaf = null;
-    ['transition', 'width', 'boxSizing', 'overflow', 'whiteSpace'].forEach(p => { el.style[p] = ''; });
+    ['transition', 'width', 'boxSizing'].forEach(p => { el.style[p] = ''; });
   };
   if (!Number.isFinite(from) || from === n || !startWidth || !endWidth || reduced) { reset(); return; }
   el.style.boxSizing = 'border-box';
-  el.style.overflow = 'hidden';
-  el.style.whiteSpace = 'nowrap';
   el.style.width = `${startWidth}px`;
   void el.offsetWidth;
   el.style.transition = `width ${COUNT_MS}ms cubic-bezier(0.33, 1, 0.68, 1)`;
