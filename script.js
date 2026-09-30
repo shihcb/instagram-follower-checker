@@ -779,7 +779,7 @@ function fadeGhostOut(el) {
 // caller that redraws the host first (which would wipe a copy added now).
 function captureGhost(el) {
   if (!el || !el.getClientRects().length || typeof el.animate !== 'function') return null;
-  const host = el.closest('.results-container, .dropdown-menu') || document.body;
+  const host = el.closest('.results-container, .dropdown-menu, .saved-imports-list') || document.body;
   const hr = host.getBoundingClientRect(), r = el.getBoundingClientRect();
   const k = host.offsetWidth ? hr.width / host.offsetWidth : 1;
   const ghost = el.cloneNode(true);

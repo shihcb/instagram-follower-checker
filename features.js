@@ -410,19 +410,12 @@
     writeJSON(logKey(key), fresh);
     refreshSavedImports();
   }
-  // "@name" of the account whose imports these are ('' for none / the demo).
-  function accLabel(key) {
-    if (!key || key === '_global_' || key === DEMO_ID) return '';
-    const acc = (state.instagramAccounts || []).find(a => a.originalUsername.toLowerCase() === key);
-    return `@${acc ? acc.username : key}`;
-  }
   function refreshSavedImports() {
     const box = document.getElementById('saved-imports-box');
     if (!box) return;
     const key = accKey();
     const log = key === DEMO_ID ? [] : readJSON(logKey(key), []);
     const set = (id, text) => { const el = document.getElementById(id); if (el && el.textContent !== text) el.textContent = text; };
-    set('saved-imports-acc', accLabel(key));
     const fill = document.getElementById('saved-imports-fill');
     if (!log.length) {
       set('saved-imports-value', 'not started');
@@ -519,7 +512,7 @@
       savedOverlay.className = 'modal-overlay hidden export-overlay saved-imports-overlay';
       savedOverlay.innerHTML = `
         <div class="account-modal-card glass export-card">
-          <div class="account-modal-header"><h3>saved imports<span class="saved-imports-acc"></span></h3></div>
+          <div class="account-modal-header"><h3>saved imports</h3></div>
           <div class="saved-imports-chips"></div>
           <div class="insights-sub saved-imports-help">tap an import to download it.<br><b>full folder</b>: the exact files you uploaded, in a zip.<br><b>changes</b>: who followed or unfollowed since the import before it, in a spreadsheet.</div>
           <div class="export-options saved-imports-list"></div>
@@ -587,7 +580,6 @@
     if (fresh) chips.innerHTML = savedChipsHtml();
     chips.querySelectorAll('[data-saved-acc]').forEach(c => c.classList.toggle('active', c.dataset.savedAcc === savedKey));
     chips.hidden = chips.children.length < 2;
-    savedOverlay.querySelector('.account-modal-header .saved-imports-acc').textContent = accLabel(savedKey);
     const card = savedOverlay.querySelector('.export-card');
     const listEl = savedOverlay.querySelector('.saved-imports-list');
     const html = savedRowsHtml(savedKey);
@@ -612,7 +604,13 @@
       const rect = r.getBoundingClientRect();
       return { r, key: r.dataset.rowKey, top: rect.top, left: rect.left, width: rect.width, pitch: r.offsetHeight + (parseFloat(getComputedStyle(r).marginBottom) || 0) };
     });
-    const ghosts = [...listEl.querySelectorAll(':scope > .dropdown-empty-message')].map(m => captureGhost(m)).filter(Boolean);
+    // Its empty text (if any): fades out, and the new one fades in once the
+    // old has gone — the sub-tabs' empty-text behavior. The same text
+    // staying just stays.
+    const oldMsg = listEl.querySelector(':scope > .dropdown-empty-message');
+    const newText = (html.match(/dropdown-empty-message">([^<]*)</) || [])[1];
+    const sameText = !!oldMsg && oldMsg.textContent === newText;
+    const ghosts = oldMsg && !sameText ? [captureGhost(oldMsg)].filter(Boolean) : [];
     listEl.querySelectorAll(':scope > .username-exit').forEach(r => r.remove());
     const prevTops = new Map(was.map(w => [w.key, w.top]));
     listEl.innerHTML = html;
@@ -634,7 +632,7 @@
     const tops = new Map(prevTops);
     animateResultsReentry(listEl, tops, new Map(), { rowSelector: '.saved-import' });
     const msg = listEl.querySelector(':scope > .dropdown-empty-message');
-    if (msg) fadeEmptyIn(msg, left ? ROW_MOTION_MS : 0);
+    if (msg && !sameText) fadeEmptyIn(msg, left ? ROW_MOTION_MS : (ghosts.length ? EMPTY_FADE.duration : 0));
     stepRowMotion();
     // The list (and with it the window) eases to its new height.
     const endHeight = listEl.getBoundingClientRect().height;
