@@ -480,8 +480,7 @@
   const fileDate = (t) => new Date(t).toISOString().slice(0, 10);
   const longDate = (t) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
   async function downloadSaved(key, entry) {
-    const who = showingExample ? 'example' : key === '_global_' ? 'lists' : key;
-    if (entry.example) { saveFile(`ig-checker-${who}-import-${entry.n}-${fileDate(entry.date)}.zip`, makeZip(entry.example, entry.date)); return; }
+    const who = key === '_global_' ? 'lists' : key;
     if (entry.files) {
       const rec = await dbDo('readonly', store => store.get(fileKey(key, entry.n)));
       if (rec && rec.files && rec.files.length) {
@@ -497,39 +496,23 @@
       .forEach(([k, label]) => (c[k] || []).forEach(name => rows.push([label, name])));
     saveFile(`ig-checker-${who}-import-${entry.n}-changes-${fileDate(entry.date)}.csv`, new Blob([rows.map(r => r.map(cell).join(',')).join('\n')], { type: 'text/csv' }));
   }
-  // TEMPORARY: an example list, shown only while this account has no saved
-  // imports yet, so the window can be seen before any real imports.
-  // Remove EXAMPLE_LOG (and its uses) once it's no longer wanted.
-  const EXAMPLE_LOG = (() => {
-    const day = 864e5, now = Date.now();
-    const users = (names) => names.map(n => ({ string_list_data: [{ href: `https://www.instagram.com/${n}`, value: n, timestamp: Math.floor((now - 90 * day) / 1000) }] }));
-    const files = (following, followers) => [
-      { name: 'following.json', type: 'application/json', data: new TextEncoder().encode(JSON.stringify({ relationships_following: users(following) }, null, 2)) },
-      { name: 'followers_1.json', type: 'application/json', data: new TextEncoder().encode(JSON.stringify(users(followers), null, 2)) }
-    ];
-    const ch = (lost, gained, stopped, started) => ({ lost, gained, stopped, started });
-    return [
-      { n: 1, date: now - 42 * day, full: true, files: true, example: files(['maya.draws', 'jordan_k', 'sam.eats'], ['maya.draws', 'jordan_k']), changes: null },
-      { n: 2, date: now - 35 * day, full: false, files: false, changes: ch([], ['sam.eats'], [], ['leo.films']) },
-      { n: 3, date: now - 28 * day, full: false, files: false, changes: ch(['jordan_k'], [], [], []) },
-      { n: 4, date: now - 21 * day, full: false, files: false, changes: ch([], ['nina.runs', 'leo.films'], ['sam.eats'], ['nina.runs']) },
-      { n: 5, date: now - 14 * day, full: true, files: true, example: files(['maya.draws', 'jordan_k', 'leo.films', 'nina.runs'], ['maya.draws', 'sam.eats', 'nina.runs', 'leo.films']), changes: ch([], [], [], []) },
-      { n: 6, date: now - 3 * day, full: false, files: true, example: files(['maya.draws', 'leo.films', 'nina.runs', 'ava.sings'], ['maya.draws', 'nina.runs', 'leo.films', 'ava.sings']), changes: ch(['sam.eats'], ['ava.sings'], ['jordan_k'], ['ava.sings']) }
-    ];
-  })();
   let savedOverlay = null;
-  let showingExample = false;
+  let savedKey = null; // whose imports the window is showing (a chip)
   function openSavedImports() {
-    const key = accKey();
-    let log = key === DEMO_ID ? [] : readJSON(logKey(key), []);
-    showingExample = !log.length;
-    if (showingExample) log = EXAMPLE_LOG;
-    if (!savedOverlay) {
+    savedKey = accKey();
+    if (!savedOverlay) buildSavedOverlay();
+    renderSavedImports();
+    showModalOverlay(savedOverlay);
+    lockPageScroll();
+  }
+  function buildSavedOverlay() {
+    {
       savedOverlay = document.createElement('div');
       savedOverlay.className = 'modal-overlay hidden export-overlay saved-imports-overlay';
       savedOverlay.innerHTML = `
         <div class="account-modal-card glass export-card">
           <div class="account-modal-header"><h3>saved imports</h3></div>
+          <div class="saved-imports-chips"></div>
           <div class="insights-sub saved-imports-help">tap an import to download it.<br><b>full folder</b>: the exact files you uploaded, in a zip.<br><b>changes</b>: who followed or unfollowed since the import before it, in a spreadsheet.</div>
           <div class="export-options saved-imports-list"></div>
           <div class="account-modal-actions">
@@ -543,10 +526,12 @@
       savedOverlay.addEventListener('click', (e) => {
         e.stopPropagation();
         if (e.target === savedOverlay || e.target.closest('[data-saved="close"]')) { closeSavedImports(); return; }
+        const chip = e.target.closest('[data-saved-acc]');
+        if (chip) { savedKey = chip.dataset.savedAcc; renderSavedImports(); return; }
         const row = e.target.closest('[data-import]');
         if (!row) return;
-        const entry = (showingExample ? EXAMPLE_LOG : readJSON(logKey(accKey()), [])).find(x => String(x.n) === row.dataset.import);
-        if (entry) downloadSaved(accKey(), entry).catch(err => { console.error('[features] download failed:', err); showSiteAlert("couldn't download", "that import's files aren't on this device."); });
+        const entry = readJSON(logKey(savedKey), []).find(x => String(x.n) === row.dataset.import);
+        if (entry) downloadSaved(savedKey, entry).catch(err => { console.error('[features] download failed:', err); showSiteAlert("couldn't download", "that import's files aren't on this device."); });
       });
       // Escape closes just this window (not the settings panel as well).
       document.addEventListener('keydown', (e) => {
@@ -556,6 +541,17 @@
         closeSavedImports();
       }, true);
     }
+  }
+  // The list for the chip picked at the top (the account on screen first).
+  function renderSavedImports() {
+    const accounts = (state.instagramAccounts || []).filter(a => !isDemoAccount(a));
+    const chips = savedOverlay.querySelector('.saved-imports-chips');
+    chips.innerHTML = accounts.map(a => {
+      const k = a.originalUsername.toLowerCase();
+      return `<button type="button" class="account-chip${k === savedKey ? ' active' : ''}" data-saved-acc="${esc(k)}"><span class="chip-text">@${esc(a.username)}</span></button>`;
+    }).join('');
+    chips.hidden = accounts.length < 2;
+    const log = savedKey === DEMO_ID ? [] : readJSON(logKey(savedKey), []);
     const listEl = savedOverlay.querySelector('.saved-imports-list');
     listEl.innerHTML = log.length ? log.slice().reverse().map(entry => {
       const c = entry.changes;
@@ -566,11 +562,6 @@
           <span class="export-count">${esc(kind)}</span>
         </button>`;
     }).join('') : '<div class="dropdown-empty-message">no imports saved yet</div>';
-    const note = savedOverlay.querySelector('.saved-imports-example');
-    if (note) note.remove();
-    if (showingExample) listEl.insertAdjacentHTML('beforebegin', '<div class="saved-imports-example">example — your own imports will show here</div>');
-    showModalOverlay(savedOverlay);
-    lockPageScroll();
   }
   function closeSavedImports() {
     savedOverlay.classList.remove('show');

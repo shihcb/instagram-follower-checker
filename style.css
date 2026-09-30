@@ -6348,30 +6348,6 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 .setting-item-row.reset-due .setting-desc {
   color: #ef4444;
 }
-/* TEMPORARY: the saved imports window's example note. */
-.saved-imports-example {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #d97706;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  border-radius: 8px;
-  padding: 6px 10px;
-  margin-bottom: 10px;
-  text-align: center;
-}
-/* TEMPORARY: the saved imports window's example note. */
-.saved-imports-example {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #d97706;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  border-radius: 8px;
-  padding: 6px 10px;
-  margin-bottom: 10px;
-  text-align: center;
-}
 
 .saved-imports-help {
   line-height: 1.6;
@@ -6379,4 +6355,15 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 .saved-imports-help b {
   color: var(--text-main);
   font-weight: 600;
+}
+
+/* Saved imports: the accounts' chips, to pick whose imports to list. */
+.saved-imports-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.saved-imports-chips[hidden] {
+  display: none;
 }
