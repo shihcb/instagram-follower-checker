@@ -2591,8 +2591,14 @@ function renderAccountChips(animate = false, { force = false } = {}) {
       if (oldWidth && typeof chip.animate === 'function') {
         const newWidth = chip.getBoundingClientRect().width;
         if (Math.abs(newWidth - oldWidth) > 0.5) {
-          chip.animate([{ width: `${oldWidth}px` }, { width: `${newWidth}px` }],
+          // While it resizes the name sits still at the left and the chip
+          // opens/closes over it (no "…" and no re-centering each frame).
+          chip.classList.add('chip-resizing');
+          const anim = chip.animate([{ width: `${oldWidth}px` }, { width: `${newWidth}px` }],
             { duration: CHIP_EXIT_MS, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' });
+          const done = () => chip.classList.remove('chip-resizing');
+          anim.onfinish = done;
+          anim.oncancel = done;
         }
       }
     }

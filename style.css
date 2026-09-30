@@ -1803,6 +1803,16 @@ body.hide-shortcuts #keyboard-hints {
   flex-shrink: 1;
   min-width: 0; /* ends at list 3's edge, never past it */
 }
+/* A chip easing to a renamed width (renderAccountChips). */
+.account-chip.chip-resizing {
+  justify-content: flex-start;
+  overflow: hidden;
+}
+.account-chip.chip-resizing .chip-text {
+  flex: none;
+  overflow: visible;
+  text-overflow: clip;
+}
 .account-chip .chip-text {
   min-width: 0;
   /* Room for descenders (g, y, p): the chip's line-height of 1 clipped
