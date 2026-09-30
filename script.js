@@ -2595,7 +2595,7 @@ function renderAccountChips(animate = false, { force = false } = {}) {
           // opens/closes over it (no "…" and no re-centering each frame).
           chip.classList.add('chip-resizing');
           const anim = chip.animate([{ width: `${oldWidth}px` }, { width: `${newWidth}px` }],
-            { duration: CHIP_EXIT_MS, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' });
+            { duration: ROW_MOTION_MS, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }); // the list 3 slide
           const done = () => chip.classList.remove('chip-resizing');
           anim.onfinish = done;
           anim.oncancel = done;
