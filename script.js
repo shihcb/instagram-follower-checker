@@ -3481,20 +3481,40 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   siblings.forEach((el, i) => addRowShift(el, topsBefore[i] - el.offsetTop, DURATION));
 
   // The list keeps its length while the row slides out, then gives the
-  // space back with the same slide: taking the row out of flow shortened
-  // it at once, and scrolled to the bottom of a long list the page (iPhone
-  // Safari especially) snapped the scroll up — the row vanished and the
-  // rest jumped. Now the rows above ease down into the space instead.
-  if (!shrinkBox && typeof container.animate === 'function') {
+  // space back with the same slide — driven frame by frame, together with
+  // the scroll position: taking the row out of flow shortened the list at
+  // once, and scrolled to the bottom of a long list the page (iPhone
+  // Safari especially) snapped the scroll up and then back when the row
+  // was finally removed — the row vanished and the rest jumped. Now the
+  // rows above ease down into the space instead.
+  if (!shrinkBox) {
     const spacer = document.createElement('div');
     spacer.className = 'row-exit-spacer';
     spacer.setAttribute('aria-hidden', 'true');
-    spacer.style.height = '0px';
+    spacer.style.height = `${exitDistance}px`;
     container.appendChild(spacer);
-    const drop = () => spacer.remove();
-    spacer.animate([{ height: `${exitDistance}px` }, { height: '0px' }], { duration: DURATION, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' })
-      .finished.then(drop, drop);
-    setTimeout(drop, DURATION + 400);
+    // The box that scrolls (the list itself, or one of its parents).
+    let scroller = container;
+    while (scroller && scroller !== document.body && !(/(auto|scroll)/.test(getComputedStyle(scroller).overflowY) && scroller.scrollHeight > scroller.clientHeight + 1)) {
+      scroller = scroller.parentElement;
+    }
+    if (scroller === document.body) scroller = null;
+    // How far the scroll has to come down as the space closes (only when
+    // the bottom of the list is on screen).
+    const startTop = scroller ? scroller.scrollTop : 0;
+    const need = scroller ? Math.max(0, Math.min(exitDistance, startTop - (scroller.scrollHeight - exitDistance - scroller.clientHeight))) : 0;
+    let t0 = null;
+    const step = (now) => {
+      if (t0 === null) t0 = now;
+      const raw = Math.min(1, (now - t0) / DURATION);
+      const e = rowEase(raw);
+      spacer.style.height = `${exitDistance * (1 - e)}px`;
+      if (need > 0 && scroller) scroller.scrollTop = startTop - need * e;
+      if (raw < 1 && spacer.isConnected) requestAnimationFrame(step);
+      else spacer.remove();
+    };
+    requestAnimationFrame(step);
+    setTimeout(() => spacer.remove(), DURATION + 400);
   }
 
   if (shrinkBox) {
