@@ -478,7 +478,7 @@
     return new Blob([...parts, ...central, end.buffer], { type: 'application/zip' });
   }
   const fileDate = (t) => new Date(t).toISOString().slice(0, 10);
-  const longDate = (t) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  const longDate = (t) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }).toLowerCase();
   async function downloadSaved(key, entry) {
     const who = key === '_global_' ? 'lists' : key;
     if (entry.files) {
