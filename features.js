@@ -1197,7 +1197,12 @@
   function captureViewRows(body) {
     const pane = body.querySelector(':scope > .insights-pane:not(.pane-leaving)');
     if (!pane || pageLoading || !pane.getClientRects().length) return null;
-    const out = { view: pane.dataset.view, lists: new Map() };
+    const out = { view: pane.dataset.view, lists: new Map(), ghosts: [] };
+    // Its empty texts, to fade out if they're not there any more.
+    pane.querySelectorAll('.dropdown-empty-message').forEach(m => {
+      const play = m.getClientRects().length ? captureGhost(m) : null;
+      if (play) out.ghosts.push({ text: m.textContent, play });
+    });
     pane.querySelectorAll('.pending-list').forEach(list => {
       if (!list.getClientRects().length) return;
       const tops = new Map(), rows = new Map();
@@ -1211,33 +1216,53 @@
     });
     return out;
   }
-  // True when it played (the same lists before and after); otherwise the
-  // view swaps as one block (refreshView's fade).
+  // Played whenever the same view is on screen and either side has rows:
+  // kept usernames glide to their spot, gone ones slide out (pinned where
+  // they were drawn), new ones slide in, and an empty text that's now
+  // showing fades in once the rows have gone — like list 3 itself.
   function slideViewRows(body, before) {
-    if (!before || !before.lists.size) return false;
+    if (!before) return false;
     const pane = body.querySelector(':scope > .insights-pane');
     if (!pane || pane.dataset.view !== before.view) return false;
     const lists = [...pane.querySelectorAll('.pending-list')].filter(l => l.getClientRects().length);
-    const keys = lists.map(listKey);
-    if (keys.length !== before.lists.size || !keys.every(k => before.lists.has(k))) return false;
-    lists.forEach((list, i) => {
-      const was = before.lists.get(keys[i]);
-      // Gone ones: pinned where they were drawn, sliding out like a row
-      // removed from list 3 (the list itself can be shorter now, so they're
-      // placed against it rather than clipped to it).
+    if (!lists.length && !before.lists.size) return false;
+    const shownTexts = new Set([...pane.querySelectorAll('.dropdown-empty-message')].filter(m => m.getClientRects().length).map(m => m.textContent));
+    before.ghosts.forEach(g => { if (!shownTexts.has(g.text)) g.play(); });
+    const margin = window.innerHeight || 800;
+    const onScreen = (rect) => rect.bottom > -margin && rect.top < window.innerHeight + margin;
+    const pinOut = (host, rect, r) => {
+      const hr = host.getBoundingClientRect();
+      const k = host.offsetWidth ? hr.width / host.offsetWidth : 1;
+      Object.assign(r.style, { position: 'absolute', top: `${(rect.top - hr.top) / k - host.clientTop}px`, left: `${(rect.left - hr.left) / k - host.clientLeft}px`, width: `${rect.width / k}px`, margin: '0', zIndex: '1' });
+      r.classList.add('username-exit');
+      host.appendChild(r);
+      slideRowOut(r, rect.pitch, ROW_MOTION_MS, () => r.remove());
+    };
+    let left = 0;
+    const used = new Set();
+    lists.forEach(list => {
+      const key = listKey(list);
+      const was = before.lists.get(key);
+      if (!was) { animateResultsReentry(list, new Map()); return; }
+      used.add(key);
       const stay = new Set([...list.querySelectorAll(':scope > .user-row')].map(r => r.dataset.username));
-      const lr = list.getBoundingClientRect();
-      const k = list.offsetWidth ? lr.width / list.offsetWidth : 1;
-      const margin = window.innerHeight || 800;
       was.rows.forEach((rect, r) => {
-        if (stay.has(r.dataset.username) || rect.bottom < -margin || rect.top > window.innerHeight + margin) return;
-        Object.assign(r.style, { position: 'absolute', top: `${(rect.top - lr.top) / k}px`, left: `${(rect.left - lr.left) / k}px`, width: `${rect.width / k}px`, margin: '0', zIndex: '1' });
-        r.classList.add('username-exit');
-        list.appendChild(r);
-        slideRowOut(r, rect.pitch, ROW_MOTION_MS, () => r.remove());
+        if (stay.has(r.dataset.username) || !onScreen(rect)) return;
+        pinOut(list, rect, r);
+        left++;
       });
       animateResultsReentry(list, was.tops);
     });
+    // Lists that are gone altogether (now empty): their rows slide out over
+    // where they were.
+    if (getComputedStyle(pane).position === 'static') pane.style.position = 'relative';
+    before.lists.forEach((was, key) => {
+      if (used.has(key)) return;
+      was.rows.forEach((rect, r) => { if (onScreen(rect)) { pinOut(pane, rect, r); left++; } });
+    });
+    // Its empty text only once those rows have left.
+    if (left) pane.querySelectorAll('.dropdown-empty-message').forEach(m => { if (m.getClientRects().length) fadeEmptyIn(m, ROW_MOTION_MS); });
+    stepRowMotion();
     return true;
   }
 
