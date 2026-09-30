@@ -6014,14 +6014,10 @@ select,
   background: color-mix(in srgb, var(--text-muted) 30%, transparent);
 }
 
-/* Export window: the stats picture, under the lists (a button, not a
-   choice: it downloads / shares straight away). */
+/* Export window: the stats picture, under the lists — ticked like them,
+   saved when you press export. */
 .export-option.export-image {
   margin: -8px 0 18px;
-}
-.export-option.export-image .export-check {
-  color: var(--text-main);
-  border-color: transparent;
 }
 
 /* Stats under its switcher: the numbers and the graph sit closer, so the

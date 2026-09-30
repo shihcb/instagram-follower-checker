@@ -1170,7 +1170,7 @@ function setCountBadge(el, n, word) {
   el.style.boxSizing = 'border-box';
   el.style.width = `${startWidth}px`;
   void el.offsetWidth;
-  el.style.transition = `width ${COUNT_MS}ms cubic-bezier(0.33, 1, 0.68, 1)`;
+  el.style.transition = `width ${ROW_MOTION_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`; // the list 3 slide
   el.style.width = `${endWidth}px`;
   const t0 = performance.now();
   const step = (now) => {

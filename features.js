@@ -1732,10 +1732,10 @@
       exportOverlay.innerHTML = `
         <div class="account-modal-card glass export-card">
           <div class="account-modal-header"><h3>export</h3></div>
-          <div class="insights-sub">choose the lists you want to download as a spreadsheet (csv)</div>
+          <div class="insights-sub">choose the lists you want to download as a spreadsheet (csv), and the stats image if you want it</div>
           <div class="export-options"></div>
           <button class="export-option export-image" data-exp="image">
-            <span class="export-check"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></span>
+            <span class="export-check"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
             <span class="export-label">stats image</span>
             <span class="export-count">png</span>
           </button>
@@ -1747,14 +1747,14 @@
       document.body.appendChild(exportOverlay);
       exportOverlay.addEventListener('click', (e) => {
         if (e.target === exportOverlay || e.target.closest('[data-exp="cancel"]')) return closeExport();
-        if (e.target.closest('[data-exp="image"]')) {
-          closeExport();
-          safe(() => { statsImage().then(blob => blob && saveFile('ig-stats.png', blob)).catch(err => console.error('[features] stats image failed:', err)); }, 'stats image');
-          return;
-        }
         if (e.target.closest('[data-exp="go"]')) {
-          const kinds = [...exportOverlay.querySelectorAll('.export-option.on')].map(o => o.dataset.kind);
-          if (kinds.length) { exportCsv(kinds); closeExport(); }
+          // The stats image is ticked like a list and saved only now.
+          const kinds = [...exportOverlay.querySelectorAll('.export-option.on[data-kind]')].map(o => o.dataset.kind);
+          const image = exportOverlay.querySelector('.export-image').classList.contains('on');
+          if (!kinds.length && !image) return;
+          if (kinds.length) exportCsv(kinds);
+          if (image) safe(() => { statsImage().then(blob => blob && saveFile('ig-stats.png', blob)).catch(err => console.error('[features] stats image failed:', err)); }, 'stats image');
+          closeExport();
           return;
         }
         const opt = e.target.closest('.export-option');
@@ -1770,6 +1770,7 @@
         <span class="export-label">${esc(label)}</span>
         <span class="export-count">${listFor(kind).length}</span>
       </button>`).join('');
+    exportOverlay.querySelector('.export-image').classList.remove('on');
     updateExportButton();
     showModalOverlay(exportOverlay);
     lockPageScroll();
@@ -1869,10 +1870,11 @@
   }
 
   function updateExportButton() {
-    const n = exportOverlay.querySelectorAll('.export-option.on').length;
+    const lists = exportOverlay.querySelectorAll('.export-option.on[data-kind]').length;
+    const image = exportOverlay.querySelector('.export-image').classList.contains('on');
     const go = exportOverlay.querySelector('[data-exp="go"]');
-    go.disabled = n === 0;
-    go.textContent = n > 1 ? `export ${n} lists` : 'export';
+    go.disabled = lists === 0 && !image;
+    go.textContent = lists > 1 ? `export ${lists} lists${image ? ' + image' : ''}` : 'export';
   }
   function closeExport() {
     exportOverlay.classList.remove('show');
