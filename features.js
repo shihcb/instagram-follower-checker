@@ -355,30 +355,24 @@
   // just the changes as a spreadsheet.
   const FULL_EVERY = 5;
   const logKey = (key) => `import_log_${key}`;
-  const fileKey = (key, n) => `${key}|${n}`;
-  let dbPromise = null;
-  function filesDb() {
-    if (!dbPromise) {
-      dbPromise = new Promise((resolve, reject) => {
-        if (!window.indexedDB) { reject(new Error('no IndexedDB')); return; }
-        const req = indexedDB.open('ig-checker-files', 1);
-        req.onupgradeneeded = () => req.result.createObjectStore('imports');
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
-      dbPromise.catch(() => { dbPromise = null; });
-    }
-    return dbPromise;
+  // The uploaded files live in the cloud (Supabase Storage, bucket
+  // "imports", one zip per import under the user's own folder) — never kept
+  // on the device, so every device and the home-screen app see the same.
+  const BUCKET = 'imports';
+  const canCloud = () => !!(supabaseClient && supabaseClient.storage && currentUser);
+  const cloudPath = (key, n) => `${currentUser.id}/${key}/import-${n}.zip`;
+  async function cloudPut(key, n, blob) {
+    const { error } = await supabaseClient.storage.from(BUCKET).upload(cloudPath(key, n), blob, { upsert: true, contentType: 'application/zip' });
+    if (error) throw error;
   }
-  async function dbDo(mode, fn) {
-    const db = await filesDb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction('imports', mode);
-      const req = fn(tx.objectStore('imports'));
-      tx.oncomplete = () => resolve(req && req.result);
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error);
-    });
+  async function cloudGet(key, n) {
+    const { data, error } = await supabaseClient.storage.from(BUCKET).download(cloudPath(key, n));
+    if (error) throw error;
+    return data;
+  }
+  async function cloudDel(key, n) {
+    const { error } = await supabaseClient.storage.from(BUCKET).remove([cloudPath(key, n)]);
+    if (error) throw error;
   }
   const isFullSave = (n) => n === 1 || n % FULL_EVERY === 0;
   async function saveImport(key, diff) {
@@ -393,10 +387,18 @@
     log.push(entry);
     writeJSON(logKey(key), log);
     refreshSavedImports();
+    pushToCloud();
     const files = (typeof lastImportFiles !== 'undefined' ? lastImportFiles : []) || [];
     if (!files.length) return;
-    const stored = await Promise.all(files.map(async file => ({ name: file.webkitRelativePath || file.name, type: file.type || '', data: await file.arrayBuffer() })));
-    await dbDo('readwrite', store => store.put({ files: stored }, fileKey(key, n)));
+    if (!canCloud()) { showToast("log in to save this import's files to the cloud"); return; }
+    const stored = await Promise.all(files.map(async file => ({ name: file.webkitRelativePath || file.name, data: await file.arrayBuffer() })));
+    try {
+      await cloudPut(key, n, makeZip(stored, entry.date));
+    } catch (err) {
+      console.error('[features] saving the import files to the cloud failed:', err);
+      showToast("couldn't save this import's files to the cloud");
+      return;
+    }
     const fresh = readJSON(logKey(key), []);
     const mine = fresh.find(x => x.n === n);
     if (mine) mine.files = true;
@@ -404,12 +406,48 @@
     // full save, it keeps just its changes.
     const before = fresh.find(x => x.n === n - 1);
     if (before && before.files && !before.full) {
-      await dbDo('readwrite', store => store.delete(fileKey(key, before.n)));
+      try { await cloudDel(key, before.n); } catch (err) { console.error('[features] removing old import files failed:', err); }
       before.files = false;
     }
     writeJSON(logKey(key), fresh);
     refreshSavedImports();
-    pushToCloud(); // the list syncs (not the files)
+    pushToCloud();
+  }
+  // Files an earlier version kept on this device (IndexedDB) move up to the
+  // cloud once, and the local copy is deleted.
+  async function moveLocalFilesToCloud() {
+    if (!window.indexedDB || !canCloud()) return false;
+    const db = await new Promise(resolve => {
+      const req = indexedDB.open('ig-checker-files', 1);
+      req.onupgradeneeded = () => req.result.createObjectStore('imports');
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    });
+    if (!db) return true;
+    const all = await new Promise(resolve => {
+      const out = [];
+      const tx = db.transaction('imports', 'readonly');
+      const cur = tx.objectStore('imports').openCursor();
+      cur.onsuccess = () => { const c = cur.result; if (c) { out.push([c.key, c.value]); c.continue(); } };
+      tx.oncomplete = () => resolve(out);
+      tx.onerror = () => resolve(out);
+    });
+    let ok = true;
+    for (const [id, rec] of all) {
+      const [key, n] = String(id).split('|');
+      const log = readJSON(logKey(key), []);
+      const entry = log.find(x => String(x.n) === n);
+      if (!entry || !rec || !rec.files || !rec.files.length) continue;
+      try {
+        await cloudPut(key, entry.n, makeZip(rec.files, entry.date));
+        entry.files = true;
+        writeJSON(logKey(key), log);
+      } catch (err) { ok = false; console.error('[features] moving import files to the cloud failed:', err); }
+    }
+    db.close();
+    if (ok) indexedDB.deleteDatabase('ig-checker-files');
+    if (all.length) { pushToCloud(); refreshSavedImports(); }
+    return ok;
   }
   function refreshSavedImports() {
     const box = document.getElementById('saved-imports-box');
@@ -483,16 +521,16 @@
   async function downloadSaved(key, entry) {
     const who = key === '_global_' ? 'lists' : key;
     if (entry.files) {
-      const rec = await dbDo('readonly', store => store.get(fileKey(key, entry.n))).catch(() => null);
-      if (rec && rec.files && rec.files.length) {
-        saveFile(`ig-checker-${who}-import-${entry.n}-${fileDate(entry.date)}.zip`, makeZip(rec.files, entry.date));
+      let blob = null;
+      try { blob = canCloud() ? await cloudGet(key, entry.n) : null; } catch (err) { console.error('[features] downloading import files failed:', err); }
+      if (blob) {
+        saveFile(`ig-checker-${who}-import-${entry.n}-${fileDate(entry.date)}.zip`, blob);
         return;
       }
-      // Its files were saved on another device (or in the browser rather
-      // than the home-screen app — they keep separate storage): its changes
-      // are still here, so those download instead.
+      // Not in the cloud yet (saved by an older version on another device
+      // that hasn't been opened since): its changes download instead.
       if (!entry.changes) {
-        await showSiteAlert('files on another device', "this import's files are saved on the device (or browser) that imported them. download it there, or import again here.");
+        await showSiteAlert("couldn't download", "this import's files aren't in the cloud yet. open the app on the device that imported them once, and they'll be uploaded.");
         return;
       }
     }
@@ -509,7 +547,6 @@
   function openSavedImports() {
     savedKey = accKey();
     if (!savedOverlay) buildSavedOverlay();
-    safe(markLocalFiles, 'saved imports');
     if (savedKey === '_global_') savedKey = null;
     renderSavedImports({ fresh: true });
     showModalOverlay(savedOverlay);
@@ -540,8 +577,7 @@
         if (chip) {
           savedKey = savedKey === chip.dataset.savedAcc ? null : chip.dataset.savedAcc;
           renderSavedImports({ animate: true });
-          safe(markLocalFiles, 'saved imports');
-          return;
+                return;
         }
         const row = e.target.closest('[data-import]');
         if (!row) return;
@@ -674,22 +710,6 @@
       }
     }
   }
-  // Full saves whose files aren't on this device say so (they download
-  // their changes instead, when there are any).
-  async function markLocalFiles() {
-    let keys;
-    try { keys = new Set(await dbDo('readonly', store => store.getAllKeys())); } catch (e) { keys = new Set(); }
-    if (!savedOverlay) return;
-    savedOverlay.querySelectorAll('.saved-import[data-row-key]').forEach(row => {
-      const [acc, n] = row.dataset.rowKey.split('|');
-      const entry = readJSON(logKey(acc), []).find(x => String(x.n) === n);
-      if (!entry || !entry.files || keys.has(fileKey(acc, entry.n))) return;
-      const label = row.querySelector('.export-count');
-      const c = entry.changes;
-      const count = c ? c.lost.length + c.gained.length + c.stopped.length + c.started.length : 0;
-      if (label) label.textContent = c ? `${plural(count, 'change')} · csv` : 'files on another device';
-    });
-  }
   function closeSavedImports() {
     savedOverlay.classList.remove('show');
     unlockPageScroll();
@@ -700,6 +720,15 @@
     if (!box) return;
     box.addEventListener('click', (e) => { e.stopPropagation(); openSavedImports(); });
     refreshSavedImports();
+    // Once logged in (the session loads after this), move any files an
+    // older version left on this device up to the cloud.
+    let tries = 0;
+    const timer = setInterval(() => {
+      if (++tries > 60) { clearInterval(timer); return; }
+      if (!canCloud()) return;
+      clearInterval(timer);
+      moveLocalFilesToCloud().catch(err => console.error('[features] moving import files failed:', err));
+    }, 2000);
   }
 
   // ---------- list 3 toolbar: sort, select, today's count, reminder ----------

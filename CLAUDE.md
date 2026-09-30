@@ -30,3 +30,18 @@ timing as everything else"), they mean the motion list 3's rows use:
 **520ms, `cubic-bezier(0.4, 0, 0.2, 1)`** — `ROW_MOTION_MS` and `rowEase`
 in `script.js` (in CSS: `0.52s cubic-bezier(0.4, 0, 0.2, 1)`). Use it for
 anything entering, leaving, resizing or sliding unless told otherwise.
+
+## Saved import files live in Supabase Storage
+
+Import zips are uploaded to the Supabase Storage bucket **`imports`**, at
+`<user id>/<account>/import-<n>.zip` (features.js, "saved imports"). Nothing
+is kept on the device. The bucket and its per-user policies must exist in
+the Supabase project (SQL editor):
+
+```sql
+insert into storage.buckets (id, name, public) values ('imports', 'imports', false);
+create policy "imports: read own"   on storage.objects for select to authenticated using (bucket_id = 'imports' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "imports: add own"    on storage.objects for insert to authenticated with check (bucket_id = 'imports' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "imports: change own" on storage.objects for update to authenticated using (bucket_id = 'imports' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "imports: remove own" on storage.objects for delete to authenticated using (bucket_id = 'imports' and (storage.foldername(name))[1] = auth.uid()::text);
+```
