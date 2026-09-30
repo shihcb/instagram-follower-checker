@@ -848,6 +848,8 @@
     const oldPane = altView.querySelector('.insights-pane:not(.pane-leaving)');
     const scroll = altView.scrollTop;
     renderView();
+    // Its usernames already slid in and out like list 3's rows: done.
+    if (altView._rowsSlid) { altView.scrollTop = scroll; return; }
     altView.scrollTop = 0;
     if (!oldPane || typeof oldPane.animate !== 'function') return;
     oldPane.classList.add('pane-leaving');
@@ -888,14 +890,27 @@
 
   const followingSet = () => new Set(state.following.map(u => u.username));
   const followersSet = () => new Set(state.followers.map(u => u.username));
-  const userRowsHtml = (users, empty, action, flagOf) => users.length
-    ? `<div class="insights-list">${users.slice(0, 500).map(u => `
-        <div class="parsed-item insights-row" data-username="${esc(u.username)}">
-          <a href="${esc(safeProfileUrl(u))}" target="_blank" rel="noopener" class="parsed-username">@${esc(u.originalUsername || u.username)}</a>
-          ${flagOf && flagOf(u) ? `<span class="insights-row-flag">${flagOf(u)}</span>` : ''}
-          ${action ? `<button class="insights-row-btn" data-ins="${action.id}" data-username="${esc(u.username)}">${action.label}</button>` : ''}
-        </div>`).join('')}${users.length > 500 ? `<div class="insights-more">+ ${users.length - 500} more</div>` : ''}</div>`
-    : `<div class="dropdown-empty-message">${empty}</div>`;
+  // Every username list (changes, mutuals, fans, compare, the results
+  // tabs) uses list 3's own row box: avatar, @name, a note under it, and
+  // the profile arrow (plus the X where a row can be removed).
+  const boxRowsHtml = (users, empty, noteOf, dismiss) => (users.length
+    ? `<div class="pending-list">${users.slice(0, 500).map(u => {
+        const href = esc(safeProfileUrl(u));
+        const name = u.originalUsername || u.username;
+        const note = noteOf && noteOf(u);
+        return `<div class="user-row" data-username="${esc(u.username)}">
+          <div class="user-info">
+            <a href="${href}" target="_blank" rel="noopener" class="user-avatar-link" title="visit instagram profile"><div class="user-avatar">${esc(name.substring(0, 2))}</div></a>
+            <div class="user-details"><a href="${href}" target="_blank" rel="noopener" class="user-link">@${esc(name)}</a>${note ? `<span class="user-fullname">${esc(note)}</span>` : ''}</div>
+          </div>
+          <div class="user-meta"><div class="user-row-actions">
+            <a href="${href}" target="_blank" rel="noopener" class="action-arrow" aria-label="visit instagram profile" title="visit instagram profile">${ARROW_ICON}</a>
+            ${dismiss ? `<button class="action-dismiss" aria-label="remove from this list" title="remove from this list">${X_ICON}</button>` : ''}
+          </div></div>
+        </div>`;
+      }).join('')}${users.length > 500 ? `<div class="insights-more">+ ${users.length - 500} more</div>` : ''}</div>`
+    : `<div class="dropdown-empty-message">${empty}</div>`);
+  const userRowsHtml = (users, empty, action, flagOf) => boxRowsHtml(users, empty, flagOf, false);
   // Stats: six boxes, each with its own color, and a bar per box in the
   // graph below in the same color. No data yet: a greyed-out example graph.
   // A calm, professional palette; a box and its bar share one.
@@ -1121,8 +1136,8 @@
         const chevron = '<svg class="compare-pick-chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
         const pick = (v) => `<label class="compare-pick"><span class="compare-pick-label">${nameOf(v)}</span>${chevron}<select class="compare-select" aria-label="account">${opts(v)}</select></label>`;
         html = `<div class="compare-pickers">${pick(a)}<span>vs</span>${pick(b)}</div>
-          <div class="insights-section"><div class="insights-section-title">only follows ${nameOf(a)}</div>${userRowsHtml(fa.filter(u => !sb.has(u.username)), 'no accounts here')}</div>
-          <div class="insights-section"><div class="insights-section-title">only follows ${nameOf(b)}</div>${userRowsHtml(fb.filter(u => !sa.has(u.username)), 'no accounts here')}</div>`;
+          <div class="insights-section"><div class="insights-section-title">follows the first account but not the second account</div>${userRowsHtml(fa.filter(u => !sb.has(u.username)), 'no accounts here')}</div>
+          <div class="insights-section"><div class="insights-section-title">follows the second account but not the first account</div>${userRowsHtml(fb.filter(u => !sa.has(u.username)), 'no accounts here')}</div>`;
       }
     }
     if (dry) return html;
@@ -1139,7 +1154,9 @@
     const oldTl = body.querySelector('.insights-pane:not(.pane-leaving) .timeline:not(.timeline-leaving)');
     if (oldTl) oldTl.remove();
     body.querySelectorAll('.pane-leaving').forEach(el => el.remove());
+    const rowsBefore = captureViewRows(body);
     body.innerHTML = `<div class="insights-pane" data-view="${currentView}">${html}</div>`;
+    body._rowsSlid = !!safe(() => slideViewRows(body, rowsBefore), 'view rows');
     placeChangesIndicator();
     const newStats = body.querySelector('.insights-stats');
     if (newStats && oldStats) { newStats.replaceWith(oldStats); updateStats(oldStats, newStats); }
@@ -1164,6 +1181,64 @@
     }
     applyPopped();
     centerSoon();
+  }
+
+  // A view's lists change like list 3 (an account picked, files imported,
+  // the compare picks): usernames that stay stay put (or glide to their
+  // new spot), gone ones slide out, new ones slide in — list 3's own row
+  // engine (animateResultsExits / animateResultsReentry in script.js).
+  // Only for the same view already on screen; switching views keeps its
+  // sideways push.
+  const listKey = (list) => {
+    const pane = list.closest('.changes-pane');
+    const lists = [...(pane || list.closest('.insights-pane')).querySelectorAll('.pending-list')];
+    return `${pane ? pane.dataset.pane : ''}#${lists.indexOf(list)}`;
+  };
+  function captureViewRows(body) {
+    const pane = body.querySelector(':scope > .insights-pane:not(.pane-leaving)');
+    if (!pane || pageLoading || !pane.getClientRects().length) return null;
+    const out = { view: pane.dataset.view, lists: new Map() };
+    pane.querySelectorAll('.pending-list').forEach(list => {
+      if (!list.getClientRects().length) return;
+      const tops = new Map(), rows = new Map();
+      list.querySelectorAll(':scope > .user-row:not(.username-exit)').forEach(r => {
+        stopRowMotion(r);
+        const rect = r.getBoundingClientRect();
+        tops.set(r.dataset.username, rect.top);
+        rows.set(r, { top: rect.top, bottom: rect.bottom, left: rect.left, width: rect.width, pitch: r.offsetHeight + (parseFloat(getComputedStyle(r).marginBottom) || 0) });
+      });
+      out.lists.set(listKey(list), { tops, rows });
+    });
+    return out;
+  }
+  // True when it played (the same lists before and after); otherwise the
+  // view swaps as one block (refreshView's fade).
+  function slideViewRows(body, before) {
+    if (!before || !before.lists.size) return false;
+    const pane = body.querySelector(':scope > .insights-pane');
+    if (!pane || pane.dataset.view !== before.view) return false;
+    const lists = [...pane.querySelectorAll('.pending-list')].filter(l => l.getClientRects().length);
+    const keys = lists.map(listKey);
+    if (keys.length !== before.lists.size || !keys.every(k => before.lists.has(k))) return false;
+    lists.forEach((list, i) => {
+      const was = before.lists.get(keys[i]);
+      // Gone ones: pinned where they were drawn, sliding out like a row
+      // removed from list 3 (the list itself can be shorter now, so they're
+      // placed against it rather than clipped to it).
+      const stay = new Set([...list.querySelectorAll(':scope > .user-row')].map(r => r.dataset.username));
+      const lr = list.getBoundingClientRect();
+      const k = list.offsetWidth ? lr.width / list.offsetWidth : 1;
+      const margin = window.innerHeight || 800;
+      was.rows.forEach((rect, r) => {
+        if (stay.has(r.dataset.username) || rect.bottom < -margin || rect.top > window.innerHeight + margin) return;
+        Object.assign(r.style, { position: 'absolute', top: `${(rect.top - lr.top) / k}px`, left: `${(rect.left - lr.left) / k}px`, width: `${rect.width / k}px`, margin: '0', zIndex: '1' });
+        r.classList.add('username-exit');
+        list.appendChild(r);
+        slideRowOut(r, rect.pitch, ROW_MOTION_MS, () => r.remove());
+      });
+      animateResultsReentry(list, was.tops);
+    });
+    return true;
   }
 
   // The stats graph. First time in: the bars grow up. Switching between
@@ -1515,22 +1590,7 @@
   // there) and the X (takes it off the list once you have).
   const X_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
   const ARROW_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
-  const pendingRowsHtml = (users, empty, noteOf) => (users.length
-    ? `<div class="pending-list">${users.slice(0, 500).map(u => {
-        const href = esc(safeProfileUrl(u));
-        const name = u.originalUsername || u.username;
-        return `<div class="user-row" data-username="${esc(u.username)}">
-          <div class="user-info">
-            <a href="${href}" target="_blank" rel="noopener" class="user-avatar-link" title="visit instagram profile"><div class="user-avatar">${esc(name.substring(0, 2))}</div></a>
-            <div class="user-details"><a href="${href}" target="_blank" rel="noopener" class="user-link">@${esc(name)}</a>${noteOf && noteOf(u) ? `<span class="user-fullname">${esc(noteOf(u))}</span>` : ''}</div>
-          </div>
-          <div class="user-meta"><div class="user-row-actions">
-            <a href="${href}" target="_blank" rel="noopener" class="action-arrow" aria-label="visit instagram profile" title="visit instagram profile">${ARROW_ICON}</a>
-            <button class="action-dismiss" aria-label="remove from this list" title="remove from this list">${X_ICON}</button>
-          </div></div>
-        </div>`;
-      }).join('')}</div>`
-    : `<div class="dropdown-empty-message">${empty}</div>`);
+  const pendingRowsHtml = (users, empty, noteOf) => boxRowsHtml(users, empty, noteOf, true);
   // Straight to a results tab, no slide (for when the results aren't on
   // screen). The highlight is re-placed once the switcher shows again.
   function jumpResultsSub(id) {
@@ -1559,8 +1619,7 @@
       users = [...list.filter(u => !f.has(u.username)), ...list.filter(u => f.has(u.username))];
       flagOf = (u) => (f.has(u.username) ? '' : "doesn't follow you back");
     }
-    if (id === 'pending' || id === 'closeFriends') return { sub: text.sub, body: pendingRowsHtml(users, text.empty, flagOf) };
-    return { sub: text.sub, body: userRowsHtml(users, text.empty, null, flagOf) };
+    return { sub: text.sub, body: pendingRowsHtml(users, text.empty, flagOf) };
   }
   // A list's content changed (an account picked, files imported): like list
   // 3's views, the old goes like the instructions window closes and the new
@@ -1583,7 +1642,7 @@
       pane.appendChild(fresh);
       return;
     }
-    if (id === 'pending' || id === 'closeFriends') { swapPendingRows(pane, old, fresh); return; }
+    swapPendingRows(pane, old, fresh); return;
     const scroll = old.scrollTop;
     old.classList.add('extra-leaving');
     old.scrollTop = scroll;

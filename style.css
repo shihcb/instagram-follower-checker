@@ -6054,7 +6054,8 @@ select,
   animation-play-state: paused;
 }
 /* Pending requests: list 3's rows, sliding in and out inside this list. */
-.results-extra .pending-list {
+.results-extra .pending-list,
+.list3-alt-view .pending-list {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -6224,4 +6225,42 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 }
 .app-version:empty {
   display: none;
+}
+
+/* -------------------------------------------------------------
+ * Unfollowed / starred submenus: each username in list 3's own row box,
+ * scaled down to fit the menu (smaller avatar, padding and text). The
+ * star / X buttons keep their full 28px size.
+ * ------------------------------------------------------------- */
+.dropdown-scroll-items > .parsed-item {
+  padding: 6px 6px 6px 8px !important;
+  border-radius: 10px !important;
+  background-color: var(--card-bg) !important;
+  border: 1px solid var(--card-border) !important;
+  gap: 6px;
+  box-sizing: border-box;
+}
+[data-theme="dark"] .dropdown-scroll-items > .parsed-item {
+  background-color: transparent !important;
+}
+.parsed-item .parsed-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.parsed-item .parsed-user .user-avatar-link {
+  flex: none;
+  display: inline-flex;
+}
+.parsed-item .user-avatar {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  font-size: 0.6rem;
+}
+.parsed-item .parsed-user .parsed-username {
+  font-size: 0.78rem;
 }

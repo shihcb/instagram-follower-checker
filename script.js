@@ -944,7 +944,7 @@ function updateUnfollowedUI(enteringUsername) {
       <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; max-height: 440px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
           <div class="parsed-item" data-username="${escapeHtml(user.username)}" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-            <a href="${escapeHtml(safeProfileUrl(user))}" target="_blank" rel="noopener" class="parsed-username">@${escapeHtml(user.originalUsername)}</a>
+            <div class="parsed-user"><a href="${escapeHtml(safeProfileUrl(user))}" target="_blank" rel="noopener" class="user-avatar-link" tabindex="-1" aria-hidden="true"><div class="user-avatar">${escapeHtml(user.originalUsername.substring(0, 2))}</div></a><a href="${escapeHtml(safeProfileUrl(user))}" target="_blank" rel="noopener" class="parsed-username">@${escapeHtml(user.originalUsername)}</a></div>
             <div style="display: flex; align-items: center; gap: 6px;">
               <span>${escapeHtml(user.fullName || '')}</span>
               <div class="dropdown-actions-group">
@@ -1053,7 +1053,7 @@ function updateStarredUI(enteringUsername) {
       <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; max-height: 440px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
           <div class="parsed-item" data-username="${escapeHtml(user.username)}" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-            <a href="${escapeHtml(safeProfileUrl(user))}" target="_blank" rel="noopener" class="parsed-username">@${escapeHtml(user.originalUsername)}</a>
+            <div class="parsed-user"><a href="${escapeHtml(safeProfileUrl(user))}" target="_blank" rel="noopener" class="user-avatar-link" tabindex="-1" aria-hidden="true"><div class="user-avatar">${escapeHtml(user.originalUsername.substring(0, 2))}</div></a><a href="${escapeHtml(safeProfileUrl(user))}" target="_blank" rel="noopener" class="parsed-username">@${escapeHtml(user.originalUsername)}</a></div>
             <div style="display: flex; align-items: center; gap: 6px;">
               <span>${escapeHtml(user.fullName || '')}</span>
               <div class="dropdown-actions-group">
