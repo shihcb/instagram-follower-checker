@@ -6284,3 +6284,12 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 @keyframes rows-more-spin {
   to { transform: rotate(360deg); }
 }
+
+/* A stat box tapped (following / followers): its list gets a brief outline. */
+@keyframes card-flash {
+  0%, 100% { box-shadow: var(--card-shadow), 0 0 0 0 transparent; }
+  30% { box-shadow: var(--card-shadow), 0 0 0 2px var(--text-main); }
+}
+.card.card-flash {
+  animation: card-flash 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}

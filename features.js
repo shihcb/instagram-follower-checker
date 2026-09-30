@@ -637,7 +637,7 @@
     altView.addEventListener('change', (e) => { if (e.target.matches('.compare-select')) renderView(); });
     altView.addEventListener('click', (e) => {
       const box = e.target.closest('.insights-stat');
-      if (box) { setPopped([...box.parentNode.children].indexOf(box)); return; }
+      if (box) { safe(() => goToStat([...box.parentNode.children].indexOf(box)), 'stat box'); return; }
       const tab = e.target.closest('[data-sub]');
       if (tab) { e.stopPropagation(); showAltSub(tab.dataset.sub); }
     });
@@ -1394,6 +1394,34 @@
       };
       requestAnimationFrame(step);
     });
+  }
+  // Tapping a stat box takes you to its list: following / followers →
+  // list 1 / list 2 (brought into view with a brief outline), follow you
+  // back → mutuals, don't follow you back → list 3's results, unfollowed /
+  // starred → their submenus open.
+  function goToStat(i) {
+    if (i === 0 || i === 1) {
+      const card = document.getElementById(i === 0 ? 'card-following' : 'card-followers');
+      if (!card) return;
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      card.classList.remove('card-flash');
+      void card.offsetWidth;
+      card.classList.add('card-flash');
+      setTimeout(() => card.classList.remove('card-flash'), 1300);
+    } else if (i === 2) {
+      showView('mutuals');
+    } else if (i === 3) {
+      jumpResultsSub('unfollowers');
+      showView('results');
+    } else if (i === 4 || i === 5) {
+      const toggle = document.getElementById(i === 4 ? 'toggle-preview-unfollowed' : 'toggle-preview-starred');
+      const menu = document.getElementById(i === 4 ? 'list-unfollowed' : 'list-starred');
+      if (!toggle || !menu || toggle.getAttribute('aria-disabled') === 'true') return;
+      toggle.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      // After this tap has finished (the page's "tap outside closes menus"
+      // would shut it straight away otherwise).
+      if (!menu.classList.contains('show')) setTimeout(() => toggle.click(), 0);
+    }
   }
   // Tapping a stat box pops its bar out and keeps it there (tap it again,
   // or another box, to change that); the box gets a matching outline.
