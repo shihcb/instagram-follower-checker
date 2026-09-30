@@ -1357,11 +1357,13 @@
       animateResultsReentry(list, was.tops);
     });
     // Lists that are gone altogether (now empty): their rows slide out over
-    // where they were.
-    if (getComputedStyle(pane).position === 'static') pane.style.position = 'relative';
+    // where they were, laid over the view's own box (never by making the
+    // view's content a positioned box: the sub-tabs' slide pins its panes
+    // against the view's box, and a positioned parent in between put the
+    // leaving pane lower by the switcher's height).
     before.lists.forEach((was, key) => {
       if (used.has(key)) return;
-      was.rows.forEach((rect, r) => { if (onScreen(rect)) { pinOut(pane, rect, r); left++; } });
+      left += pinRowsOut(body, was.rows, null);
     });
     // Its empty text only once those rows have left.
     if (left) pane.querySelectorAll('.dropdown-empty-message').forEach(m => { if (m.getClientRects().length) fadeEmptyIn(m, ROW_MOTION_MS); });
@@ -1831,7 +1833,7 @@
     let n = 0;
     rows.forEach((rect, r) => {
       if (stay.has(r.dataset.username) || rect.bottom < -margin || rect.top > window.innerHeight + margin) return;
-      Object.assign(r.style, { position: 'absolute', top: `${(rect.top - hr.top) / k - host.clientTop}px`, left: `${(rect.left - hr.left) / k - host.clientLeft}px`, width: `${rect.width / k}px`, margin: '0', zIndex: '1' });
+      Object.assign(r.style, { position: 'absolute', top: `${(rect.top - hr.top) / k - host.clientTop + host.scrollTop}px`, left: `${(rect.left - hr.left) / k - host.clientLeft}px`, width: `${rect.width / k}px`, margin: '0', zIndex: '1' });
       r.classList.add('username-exit');
       host.appendChild(r);
       slideRowOut(r, rect.pitch, ROW_MOTION_MS, () => r.remove());
