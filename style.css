@@ -4959,9 +4959,16 @@ button:focus-visible,
   cursor: pointer;
   transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
+/* Selecting: each row's buttons slide out to the right and fade away, and
+   slide back in when it ends — with the list 3 slide. */
+#list-unfollowers .user-row-actions,
+.results-extra .user-row-actions {
+  transition: opacity 0.52s cubic-bezier(0.4, 0, 0.2, 1), transform 0.52s cubic-bezier(0.4, 0, 0.2, 1);
+}
 #list-unfollowers.select-mode .user-row-actions,
 .results-extra.select-mode .user-row-actions {
-  opacity: 0.35;
+  opacity: 0;
+  transform: translateX(12px); /* stays inside the box's padding */
   pointer-events: none;
 }
 #list-unfollowers .user-row.multi-selected,
