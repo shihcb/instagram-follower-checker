@@ -1,0 +1,12 @@
+{
+  // Cloudflare: build the site into ./public, then serve only that folder
+  // (serving the repo root also uploaded node_modules, over the size limit).
+  "name": "instagram-follower-checker",
+  "compatibility_date": "2026-09-26",
+  "build": {
+    "command": "npm run build"
+  },
+  "assets": {
+    "directory": "./public"
+  }
+}
