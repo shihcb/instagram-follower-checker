@@ -513,14 +513,24 @@
           </div>
         </div>`;
       document.body.appendChild(savedOverlay);
+      // Its clicks stay inside it: the settings panel under it closes on any
+      // click outside itself, and closing this window shouldn't close that.
+      ['pointerdown', 'mousedown', 'touchstart'].forEach(type => savedOverlay.addEventListener(type, (e) => e.stopPropagation()));
       savedOverlay.addEventListener('click', (e) => {
+        e.stopPropagation();
         if (e.target === savedOverlay || e.target.closest('[data-saved="close"]')) { closeSavedImports(); return; }
         const row = e.target.closest('[data-import]');
         if (!row) return;
         const entry = readJSON(logKey(accKey()), []).find(x => String(x.n) === row.dataset.import);
         if (entry) downloadSaved(accKey(), entry).catch(err => { console.error('[features] download failed:', err); showSiteAlert("couldn't download", "that import's files aren't on this device."); });
       });
-      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && savedOverlay && !savedOverlay.classList.contains('hidden')) closeSavedImports(); });
+      // Escape closes just this window (not the settings panel as well).
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape' || !savedOverlay || !savedOverlay.classList.contains('show')) return;
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        closeSavedImports();
+      }, true);
     }
     const listEl = savedOverlay.querySelector('.saved-imports-list');
     listEl.innerHTML = log.length ? log.slice().reverse().map(entry => {
