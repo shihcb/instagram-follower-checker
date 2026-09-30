@@ -6488,18 +6488,23 @@ document.addEventListener('DOMContentLoaded', () => {
   updateStorageProgressBar();
 });
 
-// Prevent wheel pinch-to-zoom and keyboard zoom scaling
-window.addEventListener('wheel', (e) => {
-  if (e.ctrlKey) {
-    e.preventDefault();
-  }
-}, { passive: false });
+// Prevent wheel pinch-to-zoom and keyboard zoom scaling — except on a Mac,
+// where trackpad pinch and Cmd +/-/0 zoom the page as usual. (An iPad also
+// reports "Mac" but has touch points; its zoom is the viewport tag's call.)
+const IS_MAC = /Mac/i.test(navigator.platform || navigator.userAgent) && !(navigator.maxTouchPoints > 1);
+if (!IS_MAC) {
+  window.addEventListener('wheel', (e) => {
+    if (e.ctrlKey) {
+      e.preventDefault();
+    }
+  }, { passive: false });
 
-window.addEventListener('keydown', (e) => {
-  if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) {
-    e.preventDefault();
-  }
-});
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) {
+      e.preventDefault();
+    }
+  });
+}
 
 // -------------------------------------------------------------
 // Haptic Feedback (mobile only)
