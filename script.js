@@ -1932,6 +1932,21 @@ function extractUsernameFromFile(file) {
   });
 }
 
+// At most this many account chips (the demo counts as one). Accounts saved
+// before the limit stay; only adding a new one past it is refused.
+const MAX_ACCOUNTS = 3;
+function isNewAccountOverLimit(username) {
+  normalizeInstagramAccounts();
+  const lower = String(username || '').toLowerCase();
+  const accounts = state.instagramAccounts || [];
+  const exists = accounts.some(acc => acc.originalUsername.toLowerCase() === lower
+    || (isDemoAccount(acc) && acc.username.toLowerCase() === lower));
+  return !exists && accounts.length >= MAX_ACCOUNTS;
+}
+function showAccountLimitAlert() {
+  return showSiteAlert('account limit reached', `you can have up to ${MAX_ACCOUNTS} accounts. delete one to add another.`);
+}
+
 /**
  * Ensures an Instagram account exists and is selected. If the account doesn't exist,
  * it creates it. Then selects it and loads its data so imports go to the right account.
@@ -2184,6 +2199,10 @@ async function processImportFiles(files, isFolderUpload = false) {
       if (fallback && fallback.trim() !== '') {
         extractedUsername = fallback.trim();
       }
+    }
+    if (extractedUsername && isNewAccountOverLimit(extractedUsername)) {
+      await showAccountLimitAlert();
+      return false;
     }
     if (extractedUsername) {
       // List 3 isn't redrawn with the account's old data first: it goes
@@ -2667,6 +2686,12 @@ function saveAccountFromModal() {
   if (!username) return;
 
   normalizeInstagramAccounts();
+
+  if (state.editingAccountIndex < 0 && isNewAccountOverLimit(username)) {
+    closeAccountModal();
+    setTimeout(showAccountLimitAlert, OVERLAY_CLEAR_MS);
+    return;
+  }
 
   // The window closes first; the chip changes once it has cleared (it
   // covers the chip row while fading), so a new chip's entrance is seen.
@@ -3542,6 +3567,11 @@ function clearDemoData() {
 }
 
 function startDemo() {
+  normalizeInstagramAccounts();
+  if (!(state.instagramAccounts || []).some(isDemoAccount) && state.instagramAccounts.length >= MAX_ACCOUNTS) {
+    showAccountLimitAlert();
+    return;
+  }
   normalizeInstagramAccounts();
   if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() !== DEMO_ID) {
     saveCurrentAccountData();
