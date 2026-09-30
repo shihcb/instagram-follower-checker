@@ -1786,14 +1786,16 @@ body.hide-shortcuts #keyboard-hints {
   overflow: visible;
 }
 
-/* Up to 3 chips always fit list 3's width, evenly: each is exactly a third
-   of the row (minus the two 8px gaps), so three fill it edge to edge, and
-   a username too long for its chip ends in "…" instead of running off. */
+/* Chips keep their own size. Only when they don't all fit does the last
+   one give way, ending its username in "…" at list 3's edge (the others
+   only shrink if even that isn't enough). */
 .account-chips-list .account-chip {
-  flex: 0 0 calc((100% - 16px) / 3);
+  flex: 0 1 auto;
   min-width: 0;
-  max-width: calc((100% - 16px) / 3);
-  padding: 0 12px;
+}
+.account-chips-list .account-chip:last-child {
+  flex-shrink: 1000;
+  min-width: 72px; /* always shows a few letters and the "…" */
 }
 .account-chip .chip-text {
   min-width: 0;
