@@ -2298,7 +2298,9 @@
     const tag = accKey();
     const target = kind === 'star' ? state.starred : state.unfollowed;
     const have = new Set(target.map(u => u.username));
-    users.forEach(u => { if (!have.has(u.username)) target.unshift({ ...cleanExtraEntry(u), account: tag }); });
+    // Marked as coming from pending requests: taken back out of the
+    // submenu, it returns to pending (it was never in list 1 or 3).
+    users.forEach(u => { if (!have.has(u.username)) target.unshift({ ...cleanExtraEntry(u), account: tag, fromPending: true }); });
     lists.pending = before.filter(u => !pick.has(u.username));
     writeExtraLists(acc, lists);
     saveCurrentAccountData();

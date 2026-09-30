@@ -3727,6 +3727,21 @@ function startDemo() {
   loadAccountData(DEMO_ID, true, true);
 }
 
+// A pending request starred or marked unfollowed (features.js) that's taken
+// back out of those submenus returns to the pending requests list — it was
+// never in list 1, so "back to list 3" would lose it.
+function returnToPending(userObj) {
+  if (!userObj || !userObj.fromPending) return;
+  const acc = state.selectedAccountUsername;
+  const lists = readExtraLists(acc);
+  const pending = Array.isArray(lists.pending) ? lists.pending : [];
+  if (pending.some(u => u.username === userObj.username)) return;
+  const { fromPending, account, ...entry } = userObj;
+  lists.pending = [entry, ...pending];
+  writeExtraLists(acc, lists);
+  if (typeof extraListsChanged === 'function') extraListsChanged(); // it slides back in
+}
+
 function setupEventListeners() {
   // Instagram Account Management Event Listeners
   if (elements.btnAddAccount) {
@@ -4399,6 +4414,7 @@ function updateInstructionsStepUI() {
       const username = targetBtn.getAttribute('data-username');
       const itemEl = targetBtn.closest('.parsed-item');
       if (!itemEl) return;
+      returnToPending(state.starred.find(u => u.username === username));
 
       const menuEl = itemEl.closest('.dropdown-menu');
       const finalBoxHeight = (menuEl && isLastVisibleRow(itemEl))
@@ -4511,6 +4527,7 @@ function updateInstructionsStepUI() {
       // The username goes back into list 3 right away — the same moment a
       // chip switch updates it — sliding in there while its row slides out
       // of this submenu, rather than only once that slide has finished.
+      returnToPending(state.unfollowed.find(u => u.username === username));
       state.unfollowed = state.unfollowed.filter(u => u.username !== username);
 
       const followersSet = new Set(state.followers.map(user => user.username));
