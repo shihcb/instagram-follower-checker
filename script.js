@@ -170,7 +170,6 @@ const elements = {
   addAccountDropdownMenu: document.getElementById('add-account-dropdown-menu'),
   btnUploadFiles: document.getElementById('btn-upload-files'),
   btnUploadFolder: document.getElementById('btn-upload-folder'),
-  toggleShowKeyboard: document.getElementById('toggle-show-keyboard'),
   btnInstructionsInfo: document.getElementById('btn-instructions-info'),
   btnEmptyInstructions: document.getElementById('btn-empty-instructions'),
   instructionsModalOverlay: document.getElementById('instructions-modal-overlay'),
@@ -1225,7 +1224,6 @@ function renderUnfollowerRowHtml(user, index) {
       </div>
       <div class="user-meta">
         <div class="user-row-actions">
-          ${index < 10 ? `<span class="row-shortcut-key" title="press ${index === 9 ? 0 : index + 1} to open this profile">${index === 9 ? 0 : index + 1}</span>` : ''}
           <button class="action-star" aria-label="star this account" title="star this account to keep it out of the results">
             <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
@@ -2569,18 +2567,6 @@ function renderAccountChips(animate = false, { force = false } = {}) {
     chip.setAttribute('data-index', index);
     const text = chip.querySelector('.chip-text');
     if (text.textContent !== `@${acc.username}`) text.textContent = `@${acc.username}`;
-    let badge = chip.querySelector('.account-chip-badge');
-    if (index < 10) {
-      if (!badge) {
-        badge = document.createElement('span');
-        badge.className = 'account-chip-badge';
-        chip.appendChild(badge);
-      }
-      const key = `cmd ${index === 9 ? 0 : index + 1}`;
-      if (badge.textContent !== key) badge.textContent = key;
-    } else if (badge) {
-      badge.remove();
-    }
     chip.classList.toggle('active', name === selected);
     // In order; only moved when it isn't already in place (moving an
     // element restarts its animations and transitions).
@@ -3030,28 +3016,9 @@ function getLiveUnfollowerRows() {
   return Array.from(elements.listUnfollowers.querySelectorAll('.user-row:not(.username-exit)'));
 }
 
-// Also renumbers the rows' visible 1-9/0 shortcut badges — they used to
-// keep their original numbers after a row above was removed, so the
-// badge shown on a row and the key that opens it disagreed.
 function reindexUnfollowerRows() {
   getLiveUnfollowerRows().forEach((row, i) => {
     row.setAttribute('data-index', i);
-    const actions = row.querySelector('.user-row-actions');
-    let badge = row.querySelector('.row-shortcut-key');
-    if (i < 10) {
-      const key = i === 9 ? 0 : i + 1;
-      if (!badge && actions) {
-        badge = document.createElement('span');
-        badge.className = 'row-shortcut-key';
-        actions.insertBefore(badge, actions.firstChild);
-      }
-      if (badge) {
-        badge.textContent = String(key);
-        badge.title = `press ${key} to open this profile`;
-      }
-    } else if (badge) {
-      badge.remove();
-    }
   });
 }
 
@@ -4598,135 +4565,6 @@ function updateInstructionsStepUI() {
         e.preventDefault();
         e.stopPropagation();
       }
-    }
-  });
-
-  // Keyboard navigation shortcuts (Computer / Desktop)
-  document.addEventListener('keydown', (e) => {
-    // Cmd / Ctrl + Number keys (Cmd 1, Cmd 2, Cmd 3, etc.) to switch Instagram accounts
-    if ((e.metaKey || e.ctrlKey) && /^[0-9]$/.test(e.key)) {
-      normalizeInstagramAccounts();
-      const accounts = state.instagramAccounts || [];
-      if (accounts.length > 0) {
-        const num = parseInt(e.key, 10);
-        const accIndex = (num === 0) ? 9 : (num - 1);
-        if (accounts.length > accIndex) {
-          e.preventDefault();
-          e.stopPropagation();
-          const targetAcc = accounts[accIndex];
-          if (targetAcc && targetAcc.originalUsername) {
-            selectAccount(targetAcc.originalUsername);
-          }
-        }
-      }
-      return;
-    }
-
-    // Ignore shortcuts while typing anywhere but list 3's search (a note,
-    // tags, a username, email, password, lists 1 and 2), while a pop-up is
-    // open, or while another view covers list 3 — any of those let a typed
-    // number unfollow a row.
-    const active = document.activeElement;
-    const searchInput = elements.searchUnfollowers;
-    if (active && active !== searchInput && (active.matches('input, textarea, select') || active.isContentEditable)) {
-      return;
-    }
-    if (document.querySelector('.modal-overlay.show')) return;
-    if (document.querySelector('#card-unfollowers .results-container.showing-alt, #card-unfollowers .results-container.sub-extra') && e.key !== '/') return;
-    const isSearchFocused = active === searchInput;
-
-    // Ignore shortcuts if search input is focused AND user is typing a text search query (not empty)
-    if (isSearchFocused && searchInput.value.trim() !== '') {
-      if (e.key === 'Escape') {
-        searchInput.blur();
-        e.preventDefault();
-      }
-      return;
-    }
-
-    // 1. If search filter is active but empty
-    if (isSearchFocused) {
-      if (e.key === 'Escape') {
-        searchInput.blur();
-        e.preventDefault();
-        return;
-      } else if (e.key === 'ArrowDown') {
-        const rows = getLiveUnfollowerRows();
-        if (rows.length > 0) {
-          state.selectedIndex = 0;
-          highlightRow(0);
-          searchInput.blur();
-          e.preventDefault();
-        }
-        return;
-      }
-    }
-
-    // 2. If slash key pressed to focus search
-    if (e.key === '/') {
-      if (searchInput) {
-        searchInput.focus();
-        setTimeout(() => searchInput.select(), 0);
-        e.preventDefault();
-      }
-      return;
-    }
-
-    const rows = getLiveUnfollowerRows();
-    if (rows.length === 0) return;
-
-    // Number keys 1-9 and 0 bound to usernames at index 0..9
-    if (/^[0-9]$/.test(e.key)) {
-      const keyNum = parseInt(e.key, 10);
-      const targetIndex = (keyNum === 0) ? 9 : (keyNum - 1);
-      
-      if (rows.length > targetIndex) {
-        e.preventDefault();
-        if (isSearchFocused && searchInput) searchInput.blur();
-        state.selectedIndex = targetIndex;
-        highlightRow(targetIndex);
-        
-        unfollowAndExitRow(rows[targetIndex]);
-      }
-      return;
-    }
-
-    if (e.key === 'ArrowDown' || e.key === 'j') {
-      e.preventDefault();
-      state.selectedIndex++;
-      if (state.selectedIndex >= rows.length) {
-        state.selectedIndex = 0; // Wrap back to start
-      }
-      highlightRow(state.selectedIndex);
-    } else if (e.key === 'ArrowUp' || e.key === 'k') {
-      e.preventDefault();
-      state.selectedIndex--;
-      if (state.selectedIndex < 0) {
-        state.selectedIndex = rows.length - 1; // Wrap back to end
-      }
-      highlightRow(state.selectedIndex);
-    } else if (e.key === 'Enter' || e.key === 'o') {
-      e.preventDefault();
-      if (state.selectedIndex >= 0 && state.selectedIndex < rows.length) {
-        unfollowAndExitRow(rows[state.selectedIndex], { keepSelection: true });
-
-        // Selection stays at the same index, which now points to the next
-        // row (the removed one no longer counts, even while it slides out).
-        // If that was the last row, clip to the new end.
-        const newRows = getLiveUnfollowerRows();
-        if (newRows.length > 0) {
-          if (state.selectedIndex >= newRows.length) {
-            state.selectedIndex = newRows.length - 1;
-          }
-          highlightRow(state.selectedIndex);
-        } else {
-          state.selectedIndex = -1;
-        }
-      }
-    } else if (e.key === 'Escape') {
-      state.selectedIndex = -1;
-      highlightRow(-1);
-      e.preventDefault();
     }
   });
 
@@ -6357,38 +6195,12 @@ function updateStorageProgressBar() {
 // Settings Management (Inline in Auth Dropdown)
 // -------------------------------------------------------------
 function initSettings() {
-  if (storageGet('show_keyboard') === null) {
-    storageSet('show_keyboard', 'true');
-  }
-
-  if (elements.toggleShowKeyboard) {
-    elements.toggleShowKeyboard.checked = storageGet('show_keyboard') !== 'false';
-  }
-
+  storageRemove('show_keyboard'); // the keyboard shortcuts setting was removed
   applySettings();
   updateResetReminderUI();
-
-  if (elements.toggleShowKeyboard) {
-    elements.toggleShowKeyboard.addEventListener('change', (e) => {
-      storageSet('show_keyboard', e.target.checked ? 'true' : 'false');
-      applySettings();
-    });
-  }
 }
 
 function applySettings() {
-  const keyboardHints = document.getElementById('keyboard-hints');
-  const showKeyboard = storageGet('show_keyboard') !== 'false';
-
-  document.documentElement.classList.toggle('hide-shortcuts', !showKeyboard);
-  if (document.body) {
-    document.body.classList.toggle('hide-shortcuts', !showKeyboard);
-  }
-
-  if (keyboardHints) {
-    keyboardHints.classList.toggle('hidden-hints', !showKeyboard);
-  }
-
   // Clean up temporary early settings styles block
   const earlyStyle = document.getElementById('early-settings-style');
   if (earlyStyle) earlyStyle.remove();

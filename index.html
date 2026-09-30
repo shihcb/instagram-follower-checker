@@ -47,9 +47,6 @@
       const theme = savedTheme || (prefersDark ? 'dark' : 'light');
       document.documentElement.setAttribute('data-theme', theme);
       document.querySelector('meta[name="color-scheme"]').setAttribute('content', theme === 'dark' ? 'dark' : 'light');
-      if (localStorage.getItem('show_keyboard') === 'false') {
-        document.documentElement.classList.add('hide-shortcuts');
-      }
 
       // Synchronously check for active auth session in localStorage before frame 1 paint
       try {
@@ -84,7 +81,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=380">
+  <link rel="stylesheet" href="style.css?v=381">
   <!-- Supabase Client Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -199,16 +196,6 @@
                     </div>
                     <label class="switch">
                       <input type="checkbox" id="auto-open-toggle">
-                      <span class="slider"></span>
-                    </label>
-                  </div>
-                  <div class="setting-item-row desktop-only" style="margin-top: 8px;">
-                    <div class="setting-label-group">
-                      <span class="setting-label">show keyboard shortcuts</span>
-                      <span class="setting-desc">show keyboard shortcut hints for list 3</span>
-                    </div>
-                    <label class="switch">
-                      <input type="checkbox" id="toggle-show-keyboard" checked>
                       <span class="slider"></span>
                     </label>
                   </div>
@@ -363,7 +350,7 @@
                           </svg>
                         </div>
                         <h3>instant comparison and auto-open</h3>
-                        <p>instantly find accounts that don't follow you back, then open their profiles one after another, with keyboard shortcuts on desktop.</p>
+                        <p>instantly find accounts that don't follow you back, then open their profiles one after another.</p>
                       </div>
 
                       <div class="feature-card glass">
@@ -504,11 +491,6 @@
                                 <div class="results-list hidden" id="list-unfollowers"></div>
                               </div>
 
-                              <div class="keyboard-hints" id="keyboard-hints" style="margin-top: 12px; margin-bottom: 0;">
-                                <span><kbd>↑</kbd> <kbd>↓</kbd> select</span>
-                                <span><kbd>enter</kbd> open</span>
-                                <span><kbd>/</kbd> search</span>
-                              </div>
                             </div>
                           </div>
                         </section>
@@ -732,7 +714,7 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="script.js?v=362"></script>
+  <script src="script.js?v=363"></script>
   <script src="features.js?v=102"></script>
 </body>
 </html>

@@ -1870,7 +1870,6 @@ body.hide-shortcuts #keyboard-hints {
 
 @media (hover: hover) {
   .account-chip:hover {
-    transform: scale(1.02) !important;
     border-color: var(--text-main) !important;
     box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.12) !important;
   }
@@ -1880,7 +1879,6 @@ body.hide-shortcuts #keyboard-hints {
   }
 }
 
-.account-chip:active,
 #btn-add-account:active {
   transform: translateY(0) scale(0.96) !important;
   transition: transform 0.1s ease !important;
@@ -3239,15 +3237,6 @@ body.is-capacitor.auth-logged-out #theme-toggle {
   .card-body {
     flex: 1;
     min-height: 0;
-  }
-
-  /* List 3 holds the most (search + three buttons, account chips, two tab
-     bars, rows with five actions) while lists 1 & 2 are plain text boxes,
-     so it gets the larger share of the row instead of an even third —
-     otherwise its tabs, buttons and usernames get cut off on desktop. */
-  #card-unfollowers {
-    flex: 1.6 1 0px;
-    min-width: 380px;
   }
 }
 
