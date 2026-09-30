@@ -1700,7 +1700,9 @@ function reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, rename
   });
   const fragment = document.createDocumentFragment();
   ordered.forEach(row => fragment.appendChild(row));
-  listEl.insertBefore(fragment, listEl.firstChild);
+  // (After a blank a bottom removal left at the top, which stays first.)
+  const first = listEl.firstChild;
+  listEl.insertBefore(fragment, first && first.classList && first.classList.contains('row-top-spacer') ? first.nextSibling : first);
   // Still-sliding-out rows stay (out of flow, so order doesn't matter).
   keptExits.forEach(row => { if (row.parentElement !== listEl) listEl.appendChild(row); });
   reindexUnfollowerRows();
@@ -3436,10 +3438,15 @@ function dropExitSpacerWhenHidden(spacer) {
   target.addEventListener('scroll', onScroll, { passive: true });
 }
 // Step two of removing a list's last row (after it has slid up out of
-// sight): its blank goes and the usernames above slide down into the space
-// with list 3's own row motion (the FLIP shift list 3's rows use when they
-// move): the space and any scroll change in one go, then each username on
-// screen starts from where it was and glides to where it is now.
+// sight): the usernames above slide down into its space, with the list 3
+// slide — without the list's scroll length or scroll position changing at
+// all. iPhone Safari runs a list's scrolling on its own layer and snaps the
+// scroll by itself the moment a scrolled-to-the-end list gets shorter
+// (whatever the page animates), so instead the blank at the bottom shrinks
+// while a blank at the top grows by exactly as much, frame by frame: the
+// length stays the same, nothing scrolls, and everything above slides down
+// as the space above it opens. That top blank is taken away later, only
+// while it's out of sight and the list isn't moving (dropTopSpacer).
 function closeExitSpace(spacer, distance, duration) {
   if (!spacer.isConnected) return;
   const list = spacer.parentElement;
@@ -3448,32 +3455,81 @@ function closeExitSpace(spacer, distance, duration) {
     scroller = scroller.parentElement;
   }
   if (scroller === document.body) scroller = null;
-  const view = scroller ? scroller.getBoundingClientRect() : { top: 0, bottom: window.innerHeight };
-  const rows = Array.from(list.children).filter(el => el !== spacer && !el.classList.contains('username-exit') && !el.classList.contains('row-exit-spacer') && !el.classList.contains('rows-more'));
-  const before = new Map();
-  rows.forEach(r => {
-    const rect = r.getBoundingClientRect();
-    if (rect.bottom > view.top - 200 && rect.top < view.bottom + 200) before.set(r, rect.top);
-  });
-  const startTop = scroller ? scroller.scrollTop : 0;
-  spacer.remove();
-  if (scroller) {
-    const max = scroller.scrollHeight - scroller.clientHeight;
-    scroller.scrollTop = Math.min(startTop, max);
+  // Not scrolled to the end (or not scrolling at all): nothing above has
+  // to move — the blank just goes (below the fold) or eases shut.
+  const atEnd = scroller && scroller.scrollTop > 0 && scroller.scrollTop >= scroller.scrollHeight - scroller.clientHeight - distance - 1;
+  if (!atEnd) {
+    const r = spacer.getBoundingClientRect();
+    const view = scroller ? scroller.getBoundingClientRect() : { top: 0, bottom: window.innerHeight };
+    if (r.top >= view.bottom - 1 || r.bottom <= view.top + 1) { spacer.remove(); return; }
+    const drop = () => spacer.remove();
+    if (typeof spacer.animate === 'function') {
+      spacer.animate([{ height: `${distance}px` }, { height: '0px' }], { duration, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' }).finished.then(drop, drop);
+    } else drop();
+    return;
   }
-  const listRect = list.getBoundingClientRect();
-  const scale = (listRect.height / list.offsetHeight) || 1;
-  before.forEach((top, r) => {
-    const dy = (top - r.getBoundingClientRect().top) / scale;
-    if (Math.abs(dy) > 0.5) addRowShift(r, dy, duration);
-  });
-  stepRowMotion();
+  // The top blank (one per list, reused by later removals).
+  let top = list.querySelector(':scope > .row-top-spacer');
+  if (!top) {
+    top = document.createElement('div');
+    top.className = 'row-exit-spacer row-top-spacer';
+    top.setAttribute('aria-hidden', 'true');
+    top.style.height = '0px';
+    list.insertBefore(top, list.firstChild);
+  }
+  const topStart = parseFloat(top.style.height) || 0;
+  let t0 = null;
+  const step = (now) => {
+    if (!spacer.isConnected || !top.isConnected) return;
+    if (t0 === null) t0 = now;
+    const raw = Math.min(1, (now - t0) / duration);
+    const moved = distance * rowEase(raw);
+    // Grow the top first, then shrink the bottom: the length never dips.
+    top.style.height = `${topStart + moved}px`;
+    spacer.style.height = `${distance - moved}px`;
+    if (raw < 1) requestAnimationFrame(step);
+    else { spacer.remove(); dropTopSpacer(top, scroller); }
+  };
+  requestAnimationFrame(step);
+}
+// The top blank goes once it's scrolled out of sight above and the list
+// has settled — removed together with the same scroll correction in one
+// go (nothing on screen moves), never while you're touching or scrolling.
+// Removals still animating (their slides, scroll holds and space closing):
+// the top blank never goes while one is, since it moves the scroll.
+let rowExitsInFlight = 0;
+function markRowExit(ms) {
+  rowExitsInFlight++;
+  setTimeout(() => { rowExitsInFlight = Math.max(0, rowExitsInFlight - 1); }, ms);
+}
+function dropTopSpacer(top, scroller) {
+  if (!scroller) return;
+  let idle = null;
+  const tryDrop = () => {
+    if (!top.isConnected) { cleanup(); return; }
+    if (rowExitsInFlight > 0) { clearTimeout(idle); idle = setTimeout(tryDrop, 300); return; }
+    const h = top.offsetHeight;
+    // Still showing (you're up at the top of the list): wait.
+    if (scroller.scrollTop < h + 2) return;
+    top.remove();
+    scroller.scrollTop -= h;
+    cleanup();
+  };
+  const onScroll = () => { clearTimeout(idle); idle = setTimeout(tryDrop, 250); };
+  const onTouch = () => clearTimeout(idle);
+  const cleanup = () => {
+    clearTimeout(idle);
+    scroller.removeEventListener('scroll', onScroll);
+    scroller.removeEventListener('touchstart', onTouch);
+  };
+  scroller.addEventListener('scroll', onScroll, { passive: true });
+  scroller.addEventListener('touchstart', onTouch, { passive: true });
 }
 
 // Rows about to be added at the end: a removed row's leftover space there
 // makes way for them (they fill it, so nothing on screen moves).
 function dropExitSpacers(listEl) {
-  listEl.querySelectorAll(':scope > .row-exit-spacer').forEach(el => el.remove());
+  listEl.querySelectorAll(':scope > .row-exit-spacer:not(.row-top-spacer)').forEach(el => el.remove());
 }
 
 function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
@@ -3500,6 +3556,7 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   // exactly how far the rows below it move up to close the gap. Works for
   // both list 3 rows (which vary in height) and the submenus' fixed rows.
   const exitDistance = rowEl.offsetHeight + (parseFloat(getComputedStyle(rowEl).marginBottom) || 0);
+  markRowExit(ROW_MOTION_MS * 2 + 300); // its slide, then any space closing after it
 
   // The button tapped to remove it lets go of focus first: iPhone Safari
   // scrolled to keep a focused button in view as its row slid away.
