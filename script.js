@@ -6016,6 +6016,10 @@ async function pullFromCloud(uploadLocalFirst = false) {
             if (itemData.importDate) storageSet(`import_date_${key}`, itemData.importDate);
             if (itemData.history) storageSet(`import_history_${key}`, JSON.stringify(itemData.history));
             if (itemData.diff) storageSet(`import_diff_${key}`, JSON.stringify(itemData.diff));
+            // The saved imports list (features.js). Only the list and each
+            // import's changes travel; the uploaded files stay on the device
+            // that imported them.
+            if (Array.isArray(itemData.imports)) storageSet(`import_log_${key}`, JSON.stringify(itemData.imports));
             if (itemData.extras) writeExtraLists(key, itemData.extras);
           });
         }
@@ -6181,8 +6185,9 @@ async function pushToCloudNow() {
       const history = JSON.parse(storageGet(`import_history_${key}`) || '[]');
       const diff = JSON.parse(storageGet(`import_diff_${key}`) || 'null');
       const extras = readExtraLists(key);
+      const imports = JSON.parse(storageGet(`import_log_${key}`) || '[]').slice(-100);
 
-      accountDataMap[key] = { following, followers, unfollowed, starred, importDate, history, diff, extras };
+      accountDataMap[key] = { following, followers, unfollowed, starred, importDate, history, diff, extras, imports };
 
       unfollowed.forEach(u => {
         const itemAcc = u.account || key;

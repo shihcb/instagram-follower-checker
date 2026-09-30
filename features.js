@@ -409,6 +409,7 @@
     }
     writeJSON(logKey(key), fresh);
     refreshSavedImports();
+    pushToCloud(); // the list syncs (not the files)
   }
   function refreshSavedImports() {
     const box = document.getElementById('saved-imports-box');
@@ -482,9 +483,16 @@
   async function downloadSaved(key, entry) {
     const who = key === '_global_' ? 'lists' : key;
     if (entry.files) {
-      const rec = await dbDo('readonly', store => store.get(fileKey(key, entry.n)));
+      const rec = await dbDo('readonly', store => store.get(fileKey(key, entry.n))).catch(() => null);
       if (rec && rec.files && rec.files.length) {
         saveFile(`ig-checker-${who}-import-${entry.n}-${fileDate(entry.date)}.zip`, makeZip(rec.files, entry.date));
+        return;
+      }
+      // Its files were saved on another device (or in the browser rather
+      // than the home-screen app — they keep separate storage): its changes
+      // are still here, so those download instead.
+      if (!entry.changes) {
+        await showSiteAlert('files on another device', "this import's files are saved on the device (or browser) that imported them. download it there, or import again here.");
         return;
       }
     }
@@ -501,6 +509,7 @@
   function openSavedImports() {
     savedKey = accKey();
     if (!savedOverlay) buildSavedOverlay();
+    safe(markLocalFiles, 'saved imports');
     if (savedKey === '_global_') savedKey = null;
     renderSavedImports({ fresh: true });
     showModalOverlay(savedOverlay);
@@ -531,6 +540,7 @@
         if (chip) {
           savedKey = savedKey === chip.dataset.savedAcc ? null : chip.dataset.savedAcc;
           renderSavedImports({ animate: true });
+          safe(markLocalFiles, 'saved imports');
           return;
         }
         const row = e.target.closest('[data-import]');
@@ -663,6 +673,22 @@
         ], { duration: ROW_MOTION_MS * 2 });
       }
     }
+  }
+  // Full saves whose files aren't on this device say so (they download
+  // their changes instead, when there are any).
+  async function markLocalFiles() {
+    let keys;
+    try { keys = new Set(await dbDo('readonly', store => store.getAllKeys())); } catch (e) { keys = new Set(); }
+    if (!savedOverlay) return;
+    savedOverlay.querySelectorAll('.saved-import[data-row-key]').forEach(row => {
+      const [acc, n] = row.dataset.rowKey.split('|');
+      const entry = readJSON(logKey(acc), []).find(x => String(x.n) === n);
+      if (!entry || !entry.files || keys.has(fileKey(acc, entry.n))) return;
+      const label = row.querySelector('.export-count');
+      const c = entry.changes;
+      const count = c ? c.lost.length + c.gained.length + c.stopped.length + c.started.length : 0;
+      if (label) label.textContent = c ? `${plural(count, 'change')} · csv` : 'files on another device';
+    });
   }
   function closeSavedImports() {
     savedOverlay.classList.remove('show');
