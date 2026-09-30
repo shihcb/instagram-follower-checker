@@ -1095,16 +1095,17 @@
   // A tap or a key ends it (not a scroll: touching to scroll ended it early).
   ['click', 'keydown'].forEach(ev => window.addEventListener(ev, () => { pageLoading = false; }, { once: true, capture: true }));
   let settleTimer = null;
+  // A reload shows the tab's content straight away, already in place like
+  // the rest of the page (it used to wait for the data to settle, hidden,
+  // then fade in): each step of data just redraws it where it is, with no
+  // motion, and only when it actually changed.
   function settleRender() {
     if (!altView) return;
-    altView.style.opacity = '0';
     clearTimeout(settleTimer);
-    settleTimer = setTimeout(() => {
-      if (currentView === 'results') { altView.style.opacity = ''; return; }
-      renderView();
-      altView.style.opacity = '';
-      if (typeof altView.animate === 'function') altView.animate([{ opacity: 0, transform: `translateY(${-SLIDE_Y}px)` }, { opacity: 1, transform: 'none' }], ARRIVE);
-    }, 350);
+    altView.style.opacity = '';
+    if (currentView === 'results') return;
+    if (altView._html !== undefined && renderView(true) === altView._html) return;
+    renderView();
   }
   function refreshView() {
     if (currentView === 'results' || !altView) return;
@@ -1459,14 +1460,16 @@
     body._html = html;
     // The graph's frame survives the redraw (see updateChart), so a slide
     // that's playing carries on through quick back-to-back redraws.
-    const oldWrap = body.querySelector('.insights-pane:not(.pane-leaving) .trend-wrap');
+    // (Not while the page loads: the data arrives in steps, and it's drawn
+    // straight at its numbers rather than counting up to each step's.)
+    const oldWrap = pageLoading ? null : body.querySelector('.insights-pane:not(.pane-leaving) .trend-wrap');
     if (oldWrap) oldWrap.remove();
     // Same for the stat boxes: kept, and their numbers count to the new
     // values (rebuilding them re-ran their fade-in: a flicker).
-    const oldStats = body.querySelector('.insights-pane:not(.pane-leaving) .insights-stats');
+    const oldStats = pageLoading ? null : body.querySelector('.insights-pane:not(.pane-leaving) .insights-stats');
     if (oldStats) oldStats.remove();
     // And the timeline: kept while its numbers are the same.
-    const oldTl = body.querySelector('.insights-pane:not(.pane-leaving) .timeline:not(.timeline-leaving)');
+    const oldTl = pageLoading ? null : body.querySelector('.insights-pane:not(.pane-leaving) .timeline:not(.timeline-leaving)');
     if (oldTl) oldTl.remove();
     body.querySelectorAll('.pane-leaving').forEach(el => el.remove());
     const rowsBefore = captureViewRows(body);
@@ -1475,13 +1478,13 @@
     placeChangesIndicator();
     const newStats = body.querySelector('.insights-stats');
     if (newStats && oldStats) { newStats.replaceWith(oldStats); updateStats(oldStats, newStats); }
-    else if (newStats) {
+    else if (newStats && !pageLoading) { // a reload: already in place, no entrance
       newStats.classList.add('stats-enter');
       setTimeout(() => newStats.classList.remove('stats-enter'), 500); // so moving it later can't replay it
     }
     const newWrap = body.querySelector('.trend-wrap');
     if (newWrap && oldWrap) { newWrap.replaceWith(oldWrap); updateChart(oldWrap, newWrap); }
-    else if (newWrap) growChart(newWrap.querySelector('.trend-chart'));
+    else if (newWrap && !pageLoading) growChart(newWrap.querySelector('.trend-chart'));
     const newTl = body.querySelector('.timeline');
     if (newTl) {
       const tlPane = newTl.parentNode;
@@ -1492,7 +1495,7 @@
         // last account's), like the stat boxes' numbers do.
         newTl.replaceWith(oldTl);
         morphTimeline(oldTl, newTl);
-      } else if (showing) drawTimeline(tlPane);
+      } else if (showing && !pageLoading) drawTimeline(tlPane);
     }
     applyPopped();
     centerSoon();
