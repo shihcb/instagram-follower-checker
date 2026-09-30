@@ -543,72 +543,59 @@
     saveFile(`ig-checker-${who}-import-${entry.n}-changes-${fileDate(entry.date)}.csv`, new Blob([rows.map(r => r.map(cell).join(',')).join('\n')], { type: 'text/csv' }));
   }
   let savedOverlay = null;
-  let savedKey = null; // whose imports the window is showing (a chip)
+  let savedKey = null; // whose imports the window is showing (its tab)
+  const savedAccounts = () => (state.instagramAccounts || []).filter(a => !isDemoAccount(a))
+    .map(a => [a.originalUsername.toLowerCase(), `@${a.username}`]);
   function openSavedImports() {
-    savedKey = accKey();
     if (!savedOverlay) buildSavedOverlay();
-    if (savedKey === '_global_') savedKey = null;
-    renderSavedImports({ fresh: true });
+    const tabs = savedAccounts();
+    savedKey = tabs.some(([k]) => k === accKey()) ? accKey() : (tabs[0] ? tabs[0][0] : null);
+    renderSavedImports();
     showModalOverlay(savedOverlay);
     lockPageScroll();
+    const nav = savedOverlay.querySelector('.saved-imports-nav .changes-nav');
+    if (nav) requestAnimationFrame(() => placeSubIndicator(nav));
   }
   function buildSavedOverlay() {
-    {
-      savedOverlay = document.createElement('div');
-      savedOverlay.className = 'modal-overlay hidden export-overlay saved-imports-overlay';
-      savedOverlay.innerHTML = `
-        <div class="account-modal-card glass export-card">
-          <div class="account-modal-header"><h3>saved imports</h3></div>
-          <div class="saved-imports-chips"></div>
-          <div class="insights-sub saved-imports-help">click an import to download it<br><b>full folder</b>: the exact files you uploaded<br><b>changes</b>: who followed or unfollowed since the import before it</div>
-          <div class="export-options saved-imports-list"></div>
-          <div class="account-modal-actions">
-            <button class="btn btn-secondary" data-saved="close">close</button>
-          </div>
-        </div>`;
-      document.body.appendChild(savedOverlay);
-      // Its clicks stay inside it: the settings panel under it closes on any
-      // click outside itself, and closing this window shouldn't close that.
-      ['pointerdown', 'mousedown', 'touchstart'].forEach(type => savedOverlay.addEventListener(type, (e) => e.stopPropagation()));
-      savedOverlay.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (e.target === savedOverlay || e.target.closest('[data-saved="close"]')) { closeSavedImports(); return; }
-        const chip = e.target.closest('[data-saved-acc]');
-        if (chip) {
-          savedKey = savedKey === chip.dataset.savedAcc ? null : chip.dataset.savedAcc;
-          renderSavedImports({ animate: true });
-                return;
-        }
-        const row = e.target.closest('[data-import]');
-        if (!row) return;
-        if (!savedKey || row.classList.contains('username-exit')) return;
-        const entry = readJSON(logKey(savedKey), []).find(x => String(x.n) === row.dataset.import);
-        if (entry) downloadSaved(savedKey, entry).catch(err => { console.error('[features] download failed:', err); showSiteAlert("couldn't download", "that import's files aren't on this device."); });
-      });
-      // Escape closes just this window (not the settings panel as well).
-      document.addEventListener('keydown', (e) => {
-        if (e.key !== 'Escape' || !savedOverlay || !savedOverlay.classList.contains('show')) return;
-        e.stopImmediatePropagation();
-        e.preventDefault();
-        closeSavedImports();
-      }, true);
-    }
-  }
-  // The list for the chip picked at the top (the account on screen first).
-  // Chips work like list 3's: tapping one picks it (its green highlight
-  // eases in, the other's eases out), tapping the picked one unpicks it.
-  // The imports come and go like list 3's usernames (the same row slide,
-  // each row sliding out or in on its own) and the window eases to its new
-  // height — all with the list 3 slide.
-  function savedChipsHtml() {
-    const accounts = (state.instagramAccounts || []).filter(a => !isDemoAccount(a));
-    return accounts.map(a => {
-      const k = a.originalUsername.toLowerCase();
-      return `<button type="button" class="account-chip" data-saved-acc="${esc(k)}"><span class="chip-text">@${esc(a.username)}</span></button>`;
-    }).join('');
+    savedOverlay = document.createElement('div');
+    savedOverlay.className = 'modal-overlay hidden export-overlay saved-imports-overlay';
+    savedOverlay.innerHTML = `
+      <div class="account-modal-card glass export-card">
+        <div class="account-modal-header"><h3>saved imports</h3></div>
+        <div class="saved-imports-nav"></div>
+        <div class="insights-sub saved-imports-help">click an import to download it<br><b>full folder</b>: the exact files you uploaded<br><b>changes</b>: who followed or unfollowed since the import before it</div>
+        <div class="saved-imports-panes"></div>
+        <div class="account-modal-actions">
+          <button class="btn btn-secondary" data-saved="close">close</button>
+        </div>
+      </div>`;
+    document.body.appendChild(savedOverlay);
+    // Its clicks stay inside it: the settings panel under it closes on any
+    // click outside itself, and closing this window shouldn't close that.
+    ['pointerdown', 'mousedown', 'touchstart'].forEach(type => savedOverlay.addEventListener(type, (e) => e.stopPropagation()));
+    savedOverlay.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (e.target === savedOverlay || e.target.closest('[data-saved="close"]')) { closeSavedImports(); return; }
+      const tab = e.target.closest('.saved-imports-nav [data-sub]');
+      if (tab) { switchSavedTab(tab.dataset.sub); return; }
+      const row = e.target.closest('[data-import]');
+      if (!row) return;
+      const pane = row.closest('.saved-pane');
+      const key = pane && pane.dataset.acc;
+      if (!key) return;
+      const entry = readJSON(logKey(key), []).find(x => String(x.n) === row.dataset.import);
+      if (entry) downloadSaved(key, entry).catch(err => { console.error('[features] download failed:', err); showSiteAlert("couldn't download", "that import's files aren't in the cloud yet."); });
+    });
+    // Escape closes just this window (not the settings panel as well).
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || !savedOverlay || !savedOverlay.classList.contains('show')) return;
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      closeSavedImports();
+    }, true);
   }
   function savedRowsHtml(key) {
-    if (!key) return '<div class="dropdown-empty-message">pick an account to see its saved imports</div>';
+    if (!key) return '<div class="dropdown-empty-message">no imports saved yet</div>';
     const log = key === DEMO_ID ? [] : readJSON(logKey(key), []);
     if (!log.length) return '<div class="dropdown-empty-message">no imports saved yet</div>';
     return log.slice().reverse().map(entry => {
@@ -621,94 +608,33 @@
         </button>`;
     }).join('');
   }
-  function renderSavedImports({ animate = false, fresh = false } = {}) {
-    const chips = savedOverlay.querySelector('.saved-imports-chips');
-    if (fresh) chips.innerHTML = savedChipsHtml();
-    chips.querySelectorAll('[data-saved-acc]').forEach(c => c.classList.toggle('active', c.dataset.savedAcc === savedKey));
-    chips.hidden = chips.children.length < 2;
-    const card = savedOverlay.querySelector('.export-card');
-    const listEl = savedOverlay.querySelector('.saved-imports-list');
-    const html = savedRowsHtml(savedKey);
-    if (!animate || typeof card.animate !== 'function') {
-      listEl.querySelectorAll('.saved-import').forEach(stopRowMotion);
-      listEl.innerHTML = html; // opening: already in place (only a chip tap animates)
-      return;
-    }
-    // What's on screen now, to slide from. (The list is what changes size:
-    // it eases between its heights, and the close button and the window's
-    // edge ride along with it. Easing the window alone let the button jump
-    // to its new spot straight away.)
-    listEl.getAnimations().forEach(an => an.cancel());
-    clearTimeout(listEl._rowsTimer); // rows still waiting for a resize that's been cut short
-    const startHeight = listEl.getBoundingClientRect().height;
-    const lr = listEl.getBoundingClientRect();
-    const was = [...listEl.querySelectorAll(':scope > .saved-import:not(.username-exit)')].map(r => {
-      stopRowMotion(r);
-      const rect = r.getBoundingClientRect();
-      return { r, key: r.dataset.rowKey, top: rect.top, left: rect.left, width: rect.width, pitch: r.offsetHeight + (parseFloat(getComputedStyle(r).marginBottom) || 0) };
-    });
-    // Its empty text (if any): fades out, and the new one fades in once the
-    // old has gone — the sub-tabs' empty-text behavior. The same text
-    // staying just stays.
-    const oldMsg = listEl.querySelector(':scope > .dropdown-empty-message');
-    const newText = (html.match(/dropdown-empty-message">([^<]*)</) || [])[1];
-    const sameText = !!oldMsg && oldMsg.textContent === newText;
-    const ghosts = oldMsg && !sameText ? [captureGhost(oldMsg)].filter(Boolean) : [];
-    listEl.querySelectorAll(':scope > .username-exit').forEach(r => r.remove());
-    const prevTops = new Map(was.map(w => [w.key, w.top]));
-    listEl.innerHTML = html;
-    const stay = new Set([...listEl.querySelectorAll(':scope > .saved-import')].map(r => r.dataset.rowKey));
-    ghosts.forEach(play => play());
-    // Gone: pinned where they were, sliding out one by one.
-    const nr = listEl.getBoundingClientRect();
-    let left = 0;
-    was.forEach(w => {
-      if (stay.has(w.key)) return;
-      Object.assign(w.r.style, { position: 'absolute', top: `${w.top - nr.top + listEl.scrollTop}px`, left: `${w.left - nr.left}px`, width: `${w.width}px`, margin: '0', zIndex: '1' });
-      w.r.classList.add('username-exit');
-      listEl.appendChild(w.r);
-      slideRowOut(w.r, w.pitch, ROW_MOTION_MS, () => w.r.remove());
-      left++;
-    });
-    // Coming in (or staying, gliding to their new spot): list 3's own code.
-    listEl.querySelectorAll(':scope > .saved-import').forEach(r => { r.dataset.username = r.dataset.rowKey; });
-    const msg = listEl.querySelector(':scope > .dropdown-empty-message');
-    // The list's height changes too. Resizing it while the rows slide cut
-    // them off at its moving edge, so the two take turns and every row
-    // plays list 3's full slide: shorter — the rows go first, then the
-    // list eases up; longer — the list eases down first, then the rows
-    // come in. (Its edge carries the close button and the window's edge.)
-    const endHeight = listEl.getBoundingClientRect().height;
-    const resize = Math.abs(endHeight - startHeight) > 0.5;
-    const grow = resize && endHeight > startHeight;
-    const ease = 'cubic-bezier(0.4, 0, 0.2, 1)'; // the list 3 slide
-    const tops = new Map(prevTops);
-    const rowsIn = () => {
-      listEl.querySelectorAll(':scope > .saved-import').forEach(r => { r.style.clipPath = ''; r.style.webkitClipPath = ''; });
-      animateResultsReentry(listEl, tops, new Map(), { rowSelector: '.saved-import' });
-      stepRowMotion();
-    };
-    const textIn = (delay) => { if (msg && !sameText) fadeEmptyIn(msg, delay); };
-    if (grow) {
-      // Hidden until their turn (each then slides in from its own top edge).
-      listEl.querySelectorAll(':scope > .saved-import').forEach(r => { if (!stay.has(r.dataset.rowKey) || !prevTops.has(r.dataset.rowKey)) { r.style.clipPath = 'inset(100% 0 0 0)'; r.style.webkitClipPath = 'inset(100% 0 0 0)'; } });
-      stepRowMotion();
-      listEl.animate([{ height: `${startHeight}px`, overflow: 'hidden' }, { height: `${endHeight}px`, overflow: 'hidden' }], { duration: ROW_MOTION_MS, easing: ease });
-      clearTimeout(listEl._rowsTimer);
-      listEl._rowsTimer = setTimeout(rowsIn, ROW_MOTION_MS);
-      textIn(ROW_MOTION_MS);
-    } else {
-      rowsIn();
-      textIn(left ? ROW_MOTION_MS : (ghosts.length ? EMPTY_FADE.duration : 0));
-      if (resize) {
-        // Held at its old height while the rows slide out, then eases up.
-        listEl.animate([
-          { height: `${startHeight}px`, overflow: 'hidden' },
-          { height: `${startHeight}px`, overflow: 'hidden', offset: 0.5, easing: ease },
-          { height: `${endHeight}px`, overflow: 'hidden' }
-        ], { duration: ROW_MOTION_MS * 2 });
-      }
-    }
+  // One tab per account (list 3's own tab bar and sliding highlight), each
+  // with its own list of imports; switching slides the lists sideways with
+  // list 3's tab push (slideSub — the same code list 3's tabs run).
+  function renderSavedImports() {
+    const tabs = savedAccounts();
+    const navHost = savedOverlay.querySelector('.saved-imports-nav');
+    const host = savedOverlay.querySelector('.saved-imports-panes');
+    settleSub(host);
+    navHost.innerHTML = tabs.length > 1 ? subNavHtml(tabs, savedKey) : '';
+    navHost.hidden = tabs.length < 2;
+    host._subAll = null;
+    host.innerHTML = tabs.length
+      ? tabs.map(([k]) => `<div class="saved-pane export-options saved-imports-list${k === savedKey ? ' active' : ''}" data-acc="${esc(k)}">${savedRowsHtml(k)}</div>`).join('')
+      : `<div class="saved-pane export-options saved-imports-list active">${savedRowsHtml(null)}</div>`;
+  }
+  function switchSavedTab(id) {
+    if (!id || id === savedKey) return;
+    const order = savedAccounts().map(([k]) => k);
+    const host = savedOverlay.querySelector('.saved-imports-panes');
+    const nav = savedOverlay.querySelector('.saved-imports-nav .changes-nav');
+    const panes = [...host.querySelectorAll(':scope > .saved-pane')];
+    const target = panes.find(p => p.dataset.acc === id);
+    if (!target || !nav) return;
+    const dir = order.indexOf(id) > order.indexOf(savedKey) ? 1 : -1;
+    savedKey = id;
+    selectSubTab(nav, id);
+    slideSub(host, panes, [target], 'active', p => order.indexOf(p.dataset.acc), dir);
   }
   function closeSavedImports() {
     savedOverlay.classList.remove('show');
