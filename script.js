@@ -3435,6 +3435,37 @@ function dropExitSpacerWhenHidden(spacer) {
   };
   target.addEventListener('scroll', onScroll, { passive: true });
 }
+// Step two of removing a list's last row (after it has slid up out of
+// sight): its blank eases away, and if the list is scrolled to its end the
+// scroll comes down with it, frame by frame — so the usernames above slide
+// down into the space, with the list 3 slide.
+function closeExitSpace(spacer, distance, duration) {
+  if (!spacer.isConnected) return;
+  let scroller = spacer.parentElement;
+  while (scroller && scroller !== document.body && !(/(auto|scroll)/.test(getComputedStyle(scroller).overflowY) && scroller.scrollHeight > scroller.clientHeight + 1)) {
+    scroller = scroller.parentElement;
+  }
+  if (scroller === document.body) scroller = null;
+  const startTop = scroller ? scroller.scrollTop : 0;
+  const need = scroller ? Math.max(0, Math.min(distance, startTop - (scroller.scrollHeight - distance - scroller.clientHeight))) : 0;
+  let released = false;
+  const release = () => { released = true; };
+  ['touchstart', 'wheel'].forEach(type => window.addEventListener(type, release, { passive: true, once: true, capture: true }));
+  let t0 = null;
+  const step = (now) => {
+    if (!spacer.isConnected) return;
+    if (t0 === null) t0 = now;
+    const raw = Math.min(1, (now - t0) / duration);
+    const e = rowEase(raw);
+    spacer.style.height = `${distance * (1 - e)}px`;
+    if (need > 0 && scroller && !released) scroller.scrollTop = startTop - need * e;
+    if (raw < 1) requestAnimationFrame(step);
+    else spacer.remove();
+  };
+  requestAnimationFrame(step);
+  setTimeout(() => spacer.remove(), duration + 500);
+}
+
 // Rows about to be added at the end: a removed row's leftover space there
 // makes way for them (they fill it, so nothing on screen moves).
 function dropExitSpacers(listEl) {
@@ -3505,7 +3536,7 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
       spacer.style.height = `${exitDistance}px`;
       if (rowEl.parentElement) rowEl.replaceWith(spacer); else rowEl.remove();
       onComplete();
-      setTimeout(() => dropExitSpacerWhenHidden(spacer), 60);
+      closeExitSpace(spacer, exitDistance, DURATION);
     });
     onRowExitStarted(rowEl);
     stepRowMotion();
