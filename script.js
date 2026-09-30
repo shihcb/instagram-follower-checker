@@ -946,7 +946,6 @@ function updateUnfollowedUI(enteringUsername) {
           <div class="parsed-item" data-username="${escapeHtml(user.username)}" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <a href="${escapeHtml(safeProfileUrl(user))}" target="_blank" rel="noopener" class="parsed-username">@${escapeHtml(user.originalUsername)}</a>
             <div style="display: flex; align-items: center; gap: 6px;">
-              <span>${escapeHtml(user.fullName || '')}</span>
               <div class="dropdown-actions-group">
                 <button class="star-unfollowed-btn" data-username="${escapeHtml(user.username)}" aria-label="star this account" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-main); padding: 2px;" title="move to the starred list">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1055,7 +1054,6 @@ function updateStarredUI(enteringUsername) {
           <div class="parsed-item" data-username="${escapeHtml(user.username)}" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
             <a href="${escapeHtml(safeProfileUrl(user))}" target="_blank" rel="noopener" class="parsed-username">@${escapeHtml(user.originalUsername)}</a>
             <div style="display: flex; align-items: center; gap: 6px;">
-              <span>${escapeHtml(user.fullName || '')}</span>
               <div class="dropdown-actions-group">
                 <button class="unstar-btn" data-username="${escapeHtml(user.username)}" aria-label="unstar this account" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px;" title="unstar this account">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
