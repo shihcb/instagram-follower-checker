@@ -909,7 +909,7 @@
           </div></div>
         </div>`;
       }).join('')}${users.length > 500 ? `<div class="insights-more">+ ${users.length - 500} more</div>` : ''}</div>`
-    : `<div class="dropdown-empty-message">${empty}</div>`);
+    : (empty ? `<div class="dropdown-empty-message">${empty}</div>` : ''));
   const userRowsHtml = (users, empty, action, flagOf) => boxRowsHtml(users, empty, flagOf, false);
   // Stats: six boxes, each with its own color, and a bar per box in the
   // graph below in the same color. No data yet: a greyed-out example graph.
@@ -1136,8 +1136,8 @@
         const chevron = '<svg class="compare-pick-chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
         const pick = (v) => `<label class="compare-pick"><span class="compare-pick-label">${nameOf(v)}</span>${chevron}<select class="compare-select" aria-label="account">${opts(v)}</select></label>`;
         html = `<div class="compare-pickers">${pick(a)}<span>vs</span>${pick(b)}</div>
-          <div class="insights-section"><div class="insights-section-title">follows the first account but not the second account</div>${userRowsHtml(fa.filter(u => !sb.has(u.username)), 'no accounts here')}</div>
-          <div class="insights-section"><div class="insights-section-title">follows the second account but not the first account</div>${userRowsHtml(fb.filter(u => !sa.has(u.username)), 'no accounts here')}</div>`;
+          <div class="insights-section"><div class="insights-section-title">follows the first account but not the second account</div>${userRowsHtml(fa.filter(u => !sb.has(u.username)), '')}</div>
+          <div class="insights-section"><div class="insights-section-title">follows the second account but not the first account</div>${userRowsHtml(fb.filter(u => !sa.has(u.username)), '')}</div>`;
       }
     }
     if (dry) return html;
