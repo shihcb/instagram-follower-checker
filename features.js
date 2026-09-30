@@ -175,6 +175,37 @@
       undoBtn.animate([{ scale: 0.85 }, { scale: 1 }], { duration: 380, easing: EASE });
     }
   }
+  // An open unfollowed/starred submenu closes first (its usual close
+  // animation), and the undo plays out once it's gone. Undos tapped while
+  // it's closing wait their turn, in order.
+  let undoQueue = null;
+  function afterSubmenusClose(fn) {
+    if (undoQueue) { undoQueue.push(fn); return; }
+    const open = [['list-unfollowed', 'toggle-preview-unfollowed'], ['list-starred', 'toggle-preview-starred']]
+      .map(([list, toggle]) => [document.getElementById(list), document.getElementById(toggle)])
+      .filter(([list]) => list && list.classList.contains('show'));
+    if (!open.length) { fn(); return; }
+    undoQueue = [fn];
+    let done = false;
+    const run = () => {
+      if (done) return;
+      done = true;
+      const queued = undoQueue;
+      undoQueue = null;
+      queued.forEach(f => f());
+    };
+    open.forEach(([list, toggle]) => {
+      list.addEventListener('transitionend', function onEnd(ev) {
+        if (ev.target !== list || ev.propertyName !== 'opacity') return;
+        list.removeEventListener('transitionend', onEnd);
+        run();
+      });
+      list.classList.remove('show');
+      if (toggle) toggle.classList.remove('active');
+    });
+    setTimeout(run, 700); // no transitionend (reduced motion, hidden tab)
+  }
+
   function buildUndoButton() {
     const info = document.getElementById('btn-instructions-info');
     if (!info || document.getElementById('btn-undo')) return;
@@ -189,7 +220,7 @@
       for (let i = undoStack.length - 1; i >= 0; i--) {
         if (undoStack[i].snap.acc !== accKey()) continue;
         const [{ snap }] = undoStack.splice(i, 1);
-        restore(snap);
+        afterSubmenusClose(() => restore(snap));
         break;
       }
       refreshUndo();
