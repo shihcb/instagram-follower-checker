@@ -3436,40 +3436,38 @@ function dropExitSpacerWhenHidden(spacer) {
   target.addEventListener('scroll', onScroll, { passive: true });
 }
 // Step two of removing a list's last row (after it has slid up out of
-// sight): the usernames above slide down into its space. Scrolled to the
-// end of a long list, that's the list scrolling up by one row — handed to
-// the browser's own smooth scroll, which iPhone Safari runs natively on
-// its scrolling layer (every version that moved the scroll position or
-// the rows from script, frame by frame, came out snapping there). The
-// blank itself is only taken away once it's out of sight, so removing it
-// can't move anything. A list that isn't scrolled to its end just lets the
-// blank ease shut (nothing above it moves).
+// sight): its blank goes and the usernames above slide down into the space
+// with list 3's own row motion (the FLIP shift list 3's rows use when they
+// move): the space and any scroll change in one go, then each username on
+// screen starts from where it was and glides to where it is now.
 function closeExitSpace(spacer, distance, duration) {
   if (!spacer.isConnected) return;
-  let scroller = spacer.parentElement;
+  const list = spacer.parentElement;
+  let scroller = list;
   while (scroller && scroller !== document.body && !(/(auto|scroll)/.test(getComputedStyle(scroller).overflowY) && scroller.scrollHeight > scroller.clientHeight + 1)) {
     scroller = scroller.parentElement;
   }
   if (scroller === document.body) scroller = null;
-  const startTop = scroller ? scroller.scrollTop : 0;
-  const need = scroller ? Math.max(0, Math.min(distance, startTop - (scroller.scrollHeight - distance - scroller.clientHeight))) : 0;
-  if (need > 0.5 && typeof scroller.scrollTo === 'function') {
-    try { scroller.scrollTo({ top: startTop - need, behavior: 'smooth' }); } catch (e) { scroller.scrollTop = startTop - need; }
-    // Out of sight once the scroll has come up by its height: then it goes.
-    const finish = () => dropExitSpacerWhenHidden(spacer);
-    if ('onscrollend' in scroller) scroller.addEventListener('scrollend', finish, { once: true });
-    setTimeout(finish, duration + 700);
-    return;
-  }
-  // Not at the end: the blank is below the fold (goes now) or in a list
-  // that doesn't scroll (eases shut, with the list 3 slide).
-  const r = spacer.getBoundingClientRect();
   const view = scroller ? scroller.getBoundingClientRect() : { top: 0, bottom: window.innerHeight };
-  if (r.top >= view.bottom - 1 || r.bottom <= view.top + 1) { spacer.remove(); return; }
-  const drop = () => spacer.remove();
-  if (typeof spacer.animate === 'function') {
-    spacer.animate([{ height: `${distance}px` }, { height: '0px' }], { duration, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' }).finished.then(drop, drop);
-  } else drop();
+  const rows = Array.from(list.children).filter(el => el !== spacer && !el.classList.contains('username-exit') && !el.classList.contains('row-exit-spacer') && !el.classList.contains('rows-more'));
+  const before = new Map();
+  rows.forEach(r => {
+    const rect = r.getBoundingClientRect();
+    if (rect.bottom > view.top - 200 && rect.top < view.bottom + 200) before.set(r, rect.top);
+  });
+  const startTop = scroller ? scroller.scrollTop : 0;
+  spacer.remove();
+  if (scroller) {
+    const max = scroller.scrollHeight - scroller.clientHeight;
+    scroller.scrollTop = Math.min(startTop, max);
+  }
+  const listRect = list.getBoundingClientRect();
+  const scale = (listRect.height / list.offsetHeight) || 1;
+  before.forEach((top, r) => {
+    const dy = (top - r.getBoundingClientRect().top) / scale;
+    if (Math.abs(dy) > 0.5) addRowShift(r, dy, duration);
+  });
+  stepRowMotion();
 }
 
 // Rows about to be added at the end: a removed row's leftover space there
