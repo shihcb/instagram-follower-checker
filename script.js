@@ -3522,7 +3522,34 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
     spacer.setAttribute('aria-hidden', 'true');
     spacer.style.height = `${exitDistance}px`;
     container.appendChild(spacer);
-    setTimeout(() => dropExitSpacerWhenHidden(spacer), DURATION + 60);
+    // And the scroll stays exactly where it is while the row leaves. iPhone
+    // Safari still nudged the list down as the row came out of flow (its
+    // scroll length came up short), so every frame the scroll is put back —
+    // and if the scroll length did come up short, the space grows by just
+    // that much first. Touching or scrolling the list hands it back to you.
+    let scroller = container;
+    while (scroller && scroller !== document.body && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY)) scroller = scroller.parentElement;
+    if (scroller && scroller !== document.body) {
+      const keepTop = scroller.scrollTop;
+      let spacerHeight = exitDistance;
+      let released = false;
+      const release = () => { released = true; };
+      ['touchstart', 'wheel', 'pointerdown'].forEach(type => scroller.addEventListener(type, release, { passive: true, once: true }));
+      const until = performance.now() + DURATION + 120;
+      const hold = () => {
+        if (released || !spacer.isConnected) return;
+        const max = scroller.scrollHeight - scroller.clientHeight;
+        if (max < keepTop - 0.5) {
+          spacerHeight += keepTop - max;
+          spacer.style.height = `${spacerHeight}px`;
+        }
+        if (Math.abs(scroller.scrollTop - keepTop) > 0.5) scroller.scrollTop = keepTop;
+        if (performance.now() < until) requestAnimationFrame(hold);
+      };
+      hold();
+      requestAnimationFrame(hold);
+    }
+    setTimeout(() => dropExitSpacerWhenHidden(spacer), DURATION + 160);
   }
 
   if (shrinkBox) {
