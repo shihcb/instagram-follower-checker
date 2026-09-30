@@ -1512,22 +1512,66 @@ function initialRowBudget(listEl) {
 // Builds list 3's rows from `from` onwards in batches, one per frame,
 // after `delay` — so they never compete with the slide. A newer render
 // cancels it (it builds its own).
+// Long lists load in pages: LIST_PAGE usernames at first, and scrolling
+// to the end shows a small loading sign, then the next LIST_PAGE come in.
+// (Every row of a big account at once slowed the whole page down.)
+const LIST_PAGE = 60;
+const ROWS_MORE_MS = 350; // how long the loading sign shows
+let rowsMoreObserver = null;
+// A loading sign at the end of a list; loadNext runs once it has been
+// scrolled into view (and shown for a moment). It removes itself first.
+function makeRowsMore(loadNext) {
+  const el = document.createElement('div');
+  el.className = 'rows-more';
+  el.innerHTML = '<span class="rows-more-spinner" aria-hidden="true"></span>';
+  el.setAttribute('role', 'status');
+  el.setAttribute('aria-label', 'loading more');
+  el._loadMore = loadNext;
+  watchRowsMore(el);
+  return el;
+}
+function watchRowsMore(el) {
+  if (typeof IntersectionObserver !== 'function') { requestAnimationFrame(() => fireRowsMore(el)); return; }
+  if (!rowsMoreObserver) {
+    rowsMoreObserver = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) fireRowsMore(e.target); }), { rootMargin: '0px 0px 80px 0px' });
+  }
+  rowsMoreObserver.observe(el);
+}
+function fireRowsMore(el) {
+  if (el._firing || !el.isConnected) return;
+  el._firing = true;
+  if (rowsMoreObserver) rowsMoreObserver.unobserve(el);
+  el.classList.add('loading');
+  setTimeout(() => {
+    if (!el.isConnected) return;
+    const load = el._loadMore;
+    el.remove();
+    if (load) load();
+  }, ROWS_MORE_MS);
+}
+
 function appendRowTail(listEl, filtered, from, delay) {
+  listEl.querySelectorAll(':scope > .rows-more').forEach(el => el.remove());
   if (from >= filtered.length) return;
   const token = (listEl._rowTailToken = {});
   let index = from;
+  // This page: up to LIST_PAGE rows in the list (at least one batch).
+  let pageEnd = Math.min(filtered.length, Math.max(LIST_PAGE, from));
   const run = () => {
     if (listEl._rowTailToken !== token) return;
-    const end = Math.min(filtered.length, index + 150);
+    const end = Math.min(pageEnd, index + 150);
     listEl.insertAdjacentHTML('beforeend', filtered.slice(index, end)
       .map((user, i) => renderUnfollowerRowHtml(user, index + i).replace('class="user-row', 'class="user-row row-tail'))
       .join(''));
     index = end;
-    if (index < filtered.length) requestAnimationFrame(run);
-    else {
-      listEl._rowTailToken = null;
-      reindexUnfollowerRows();
-    }
+    if (index < pageEnd) { requestAnimationFrame(run); return; }
+    reindexUnfollowerRows();
+    if (index >= filtered.length) { listEl._rowTailToken = null; return; }
+    listEl.appendChild(makeRowsMore(() => {
+      if (listEl._rowTailToken !== token) return;
+      pageEnd = Math.min(filtered.length, index + LIST_PAGE);
+      requestAnimationFrame(run);
+    }));
   };
   setTimeout(() => requestAnimationFrame(run), delay);
 }

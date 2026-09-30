@@ -893,12 +893,11 @@
   // Every username list (changes, mutuals, fans, compare, the results
   // tabs) uses list 3's own row box: avatar, @name, a note under it, and
   // the profile arrow (plus the X where a row can be removed).
-  const boxRowsHtml = (users, empty, noteOf, dismiss) => (users.length
-    ? `<div class="pending-list">${users.slice(0, 500).map(u => {
-        const href = esc(safeProfileUrl(u));
-        const name = u.originalUsername || u.username;
-        const note = noteOf && noteOf(u);
-        return `<div class="user-row" data-username="${esc(u.username)}">
+  const boxRowHtml = (u, noteOf, dismiss) => {
+    const href = esc(safeProfileUrl(u));
+    const name = u.originalUsername || u.username;
+    const note = noteOf && noteOf(u);
+    return `<div class="user-row" data-username="${esc(u.username)}">
           <div class="user-info">
             <a href="${href}" target="_blank" rel="noopener" class="user-avatar-link" title="visit instagram profile"><div class="user-avatar">${esc(name.substring(0, 2))}</div></a>
             <div class="user-details"><a href="${href}" target="_blank" rel="noopener" class="user-link">@${esc(name)}</a>${note ? `<span class="user-fullname">${esc(note)}</span>` : ''}</div>
@@ -908,8 +907,49 @@
             ${dismiss ? `<button class="action-dismiss" aria-label="remove from this list" title="remove from this list">${X_ICON}</button>` : ''}
           </div></div>
         </div>`;
-      }).join('')}${users.length > 500 ? `<div class="insights-more">+ ${users.length - 500} more</div>` : ''}</div>`
-    : (empty ? `<div class="dropdown-empty-message">${empty}</div>` : ''));
+  };
+  // Long lists: the first LIST_PAGE (script.js) now, the rest a page at a
+  // time behind a loading sign at the end (wireRowsMore). The rest waits
+  // here under a key made from the list itself, so the same list gives the
+  // same HTML (the views compare HTML to skip needless redraws).
+  const moreRows = new Map();
+  const boxRowsHtml = (users, empty, noteOf, dismiss) => {
+    if (!users.length) return empty ? `<div class="dropdown-empty-message">${empty}</div>` : '';
+    let more = '';
+    if (users.length > LIST_PAGE) {
+      const key = `${users.length}|${users[0].username}|${users[users.length - 1].username}|${dismiss ? 1 : 0}`;
+      if (moreRows.size > 40) moreRows.clear();
+      moreRows.set(key, { users, noteOf, dismiss });
+      more = `<div class="rows-more" data-more-key="${esc(key)}" role="status" aria-label="loading more"><span class="rows-more-spinner" aria-hidden="true"></span></div>`;
+    }
+    return `<div class="pending-list">${users.slice(0, LIST_PAGE).map(u => boxRowHtml(u, noteOf, dismiss)).join('')}${more}</div>`;
+  };
+  // Hooks up each new loading sign: once scrolled to, the next page comes
+  // in (and a new sign after it, if there's still more).
+  function wireRowsMore(root) {
+    root.querySelectorAll('.rows-more[data-more-key]').forEach(el => {
+      if (el._loadMore) return;
+      const entry = moreRows.get(el.dataset.moreKey);
+      if (!entry) { el.remove(); return; }
+      const list = el.parentNode;
+      el._loadMore = () => {
+        const shown = list.querySelectorAll(':scope > .user-row:not(.username-exit)').length;
+        const next = entry.users.slice(shown, shown + LIST_PAGE);
+        list.insertAdjacentHTML('beforeend', next.map(u => boxRowHtml(u, entry.noteOf, entry.dismiss)).join(''));
+        if (shown + next.length < entry.users.length) {
+          const sign = makeRowsMore(el._loadMore);
+          list.appendChild(sign);
+        }
+      };
+      watchRowsMore(el);
+    });
+  }
+  let wireQueued = false;
+  new MutationObserver(() => {
+    if (wireQueued) return;
+    wireQueued = true;
+    requestAnimationFrame(() => { wireQueued = false; safe(() => wireRowsMore(document.getElementById('card-unfollowers') || document), 'more rows'); });
+  }).observe(document.body, { childList: true, subtree: true });
   const userRowsHtml = (users, empty, action, flagOf) => boxRowsHtml(users, empty, flagOf, false);
   // Stats: six boxes, each with its own color, and a bar per box in the
   // graph below in the same color. No data yet: a greyed-out example graph.
@@ -1135,9 +1175,13 @@
         const nameOf = (v) => `@${esc((accounts.find(x => x.originalUsername.toLowerCase() === v) || {}).username || v)}`;
         const chevron = '<svg class="compare-pick-chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
         const pick = (v) => `<label class="compare-pick"><span class="compare-pick-label">${nameOf(v)}</span>${chevron}<select class="compare-select" aria-label="account">${opts(v)}</select></label>`;
+        // A side with nobody in it isn't shown at all (its heading on its
+        // own read as the other side's heading repeated).
+        const onlyA = fa.filter(u => !sb.has(u.username)), onlyB = fb.filter(u => !sa.has(u.username));
+        const section = (title, users) => (users.length ? `<div class="insights-section"><div class="insights-section-title">${title}</div>${userRowsHtml(users, '')}</div>` : '');
         html = `<div class="compare-pickers">${pick(a)}<span>vs</span>${pick(b)}</div>
-          <div class="insights-section"><div class="insights-section-title">follows the first account but not the second account</div>${userRowsHtml(fa.filter(u => !sb.has(u.username)), '')}</div>
-          <div class="insights-section"><div class="insights-section-title">follows the second account but not the first account</div>${userRowsHtml(fb.filter(u => !sa.has(u.username)), '')}</div>`;
+          ${section('follows the first account but not the second account', onlyA)}
+          ${section('follows the second account but not the first account', onlyB)}`;
       }
     }
     if (dry) return html;
