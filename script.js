@@ -3095,7 +3095,7 @@ function isLastVisibleRow(rowEl) {
   const container = rowEl.parentElement;
   if (!container) return false;
   return Array.from(container.children)
-    .filter(el => el !== rowEl && !el.classList.contains('username-exit')).length === 0;
+    .filter(el => el !== rowEl && !el.classList.contains('username-exit') && !el.classList.contains('row-exit-spacer')).length === 0;
 }
 
 // How many exitListRow animations are currently using each shrinkBox /
@@ -3456,7 +3456,7 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
 
   // Rows still in the list (ones already sliding out are out of flow).
   const siblings = Array.from(container.children)
-    .filter(el => el !== rowEl && !el.classList.contains('username-exit'));
+    .filter(el => el !== rowEl && !el.classList.contains('username-exit') && !el.classList.contains('row-exit-spacer'));
 
   // BEFORE: layout positions/heights (unaffected by the transforms and
   // height animations earlier removals may still be running).
@@ -3479,6 +3479,23 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   // AFTER: every row below moved up in layout by this removal alone; add
   // exactly that as a new slide on top of whatever each is already doing.
   siblings.forEach((el, i) => addRowShift(el, topsBefore[i] - el.offsetTop, DURATION));
+
+  // The list keeps its length while the row slides out, then gives the
+  // space back with the same slide: taking the row out of flow shortened
+  // it at once, and scrolled to the bottom of a long list the page (iPhone
+  // Safari especially) snapped the scroll up — the row vanished and the
+  // rest jumped. Now the rows above ease down into the space instead.
+  if (!shrinkBox && typeof container.animate === 'function') {
+    const spacer = document.createElement('div');
+    spacer.className = 'row-exit-spacer';
+    spacer.setAttribute('aria-hidden', 'true');
+    spacer.style.height = '0px';
+    container.appendChild(spacer);
+    const drop = () => spacer.remove();
+    spacer.animate([{ height: `${exitDistance}px` }, { height: '0px' }], { duration: DURATION, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' })
+      .finished.then(drop, drop);
+    setTimeout(drop, DURATION + 400);
+  }
 
   if (shrinkBox) {
     // The list's own height (it hugs its rows below its 10-row cap) shrinks
