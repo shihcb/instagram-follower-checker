@@ -2137,6 +2137,35 @@ body.hide-shortcuts #keyboard-hints {
   display: none;
 }
 
+/* A bar with more tabs past an edge fades that edge out, so a tab running
+   off the side reads as "scroll for more" instead of cut off (the classes
+   come from setupNavOverflow in features.js). Three mask layers: the
+   border ring stays solid (border-box minus padding-box), and only the
+   inside fades. */
+@property --nav-fade-l { syntax: '<length>'; inherits: false; initial-value: 0px; }
+@property --nav-fade-r { syntax: '<length>'; inherits: false; initial-value: 0px; }
+.instructions-steps-nav {
+  --nav-fade-l: 0px;
+  --nav-fade-r: 0px;
+  transition: --nav-fade-l 0.25s ease, --nav-fade-r 0.25s ease;
+}
+.instructions-steps-nav.fade-left { --nav-fade-l: 28px; }
+.instructions-steps-nav.fade-right { --nav-fade-r: 28px; }
+.instructions-steps-nav {
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0, #000 var(--nav-fade-l), #000 calc(100% - var(--nav-fade-r)), transparent 100%),
+    linear-gradient(#000, #000),
+    linear-gradient(#000, #000);
+  mask-image:
+    linear-gradient(to right, transparent 0, #000 var(--nav-fade-l), #000 calc(100% - var(--nav-fade-r)), transparent 100%),
+    linear-gradient(#000, #000),
+    linear-gradient(#000, #000);
+  -webkit-mask-clip: padding-box, padding-box, border-box;
+  mask-clip: padding-box, padding-box, border-box;
+  -webkit-mask-composite: source-over, xor;
+  mask-composite: add, exclude;
+}
+
 .instructions-nav-indicator {
   position: absolute;
   top: 4px;
@@ -3210,6 +3239,15 @@ body.is-capacitor.auth-logged-out #theme-toggle {
   .card-body {
     flex: 1;
     min-height: 0;
+  }
+
+  /* List 3 holds the most (search + three buttons, account chips, two tab
+     bars, rows with five actions) while lists 1 & 2 are plain text boxes,
+     so it gets the larger share of the row instead of an even third —
+     otherwise its tabs, buttons and usernames get cut off on desktop. */
+  #card-unfollowers {
+    flex: 1.6 1 0px;
+    min-width: 380px;
   }
 }
 

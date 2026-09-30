@@ -1942,10 +1942,44 @@
     } catch (e) {}
   }
 
+  // Tab bars too narrow for all their tabs scroll sideways. On desktop that
+  // just looked like a tab cut off mid-word, so the edge that has more
+  // tabs past it fades out (.fade-left / .fade-right, see style.css), and
+  // a mouse wheel over the bar scrolls it sideways (there's no swipe).
+  function setupNavOverflow() {
+    const NAV = '.instructions-steps-nav';
+    const update = nav => {
+      const max = nav.scrollWidth - nav.clientWidth;
+      nav.classList.toggle('fade-left', max > 1 && nav.scrollLeft > 1);
+      nav.classList.toggle('fade-right', max > 1 && nav.scrollLeft < max - 1);
+    };
+    let queued = false;
+    const updateAll = () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => { queued = false; document.querySelectorAll(NAV).forEach(update); });
+    };
+    document.addEventListener('scroll', e => { if (e.target.matches && e.target.matches(NAV)) update(e.target); }, true);
+    document.addEventListener('wheel', e => {
+      const nav = e.target.closest && e.target.closest(NAV);
+      if (!nav || e.ctrlKey || Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;
+      const max = nav.scrollWidth - nav.clientWidth;
+      if (max <= 1) return;
+      e.preventDefault();
+      nav.scrollLeft = Math.max(0, Math.min(max, nav.scrollLeft + e.deltaY));
+    }, { passive: false });
+    window.addEventListener('resize', updateAll);
+    // Bars are built, re-filled and shown/hidden as views change.
+    new MutationObserver(updateAll).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(updateAll);
+    updateAll();
+  }
+
   function init() {
     // Each part on its own: one failing can't take the rest (or the app)
     // down with it.
     safe(clearOldTally, 'cleanup');
+    safe(setupNavOverflow, 'tab bars');
     safe(buildToolbar, 'toolbar');
     safe(buildViewSwitcher, 'views');
     safe(buildResultsSwitcher, 'results tabs');
