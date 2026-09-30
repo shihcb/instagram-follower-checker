@@ -1290,6 +1290,9 @@
   // Only for the same view already on screen; switching views keeps its
   // sideways push.
   const listKey = (list) => {
+    const section = list.closest('.insights-section');
+    const title = section && section.querySelector('.insights-section-title');
+    if (title) return `section:${title.textContent}`;
     const pane = list.closest('.changes-pane');
     const lists = [...(pane || list.closest('.insights-pane')).querySelectorAll('.pending-list')];
     return `${pane ? pane.dataset.pane : ''}#${lists.indexOf(list)}`;
@@ -1796,38 +1799,45 @@
   // imported): the boxes on screen slide out, the new ones slide in, each
   // with list 3's own row slide (script.js's row engine).
   function swapPendingRows(pane, old, fresh) {
-    const oldRows = [...old.querySelectorAll('.pending-list > .user-row:not(.username-exit)')];
-    const gapOf = (r) => (r ? parseFloat(getComputedStyle(r).marginBottom) || 0 : 6);
-    const gap = gapOf(oldRows[0]);
-    const was = oldRows.map(r => ({ r, rect: r.getBoundingClientRect(), pitch: r.offsetHeight + gap }));
-    oldRows.forEach(r => stopRowMotion(r));
-    old.querySelectorAll('.dropdown-empty-message').forEach(m => fadeGhostOut(m));
+    // Exactly list 3's own row motion: usernames that stay keep their box
+    // and glide to their new spot, gone ones slide out one by one where
+    // they were, new ones slide in — the list as a whole never swaps.
+    const before = { rows: new Map(), tops: new Map() };
+    old.querySelectorAll('.pending-list > .user-row:not(.username-exit)').forEach(r => {
+      stopRowMotion(r);
+      const rect = r.getBoundingClientRect();
+      before.tops.set(r.dataset.username, rect.top);
+      before.rows.set(r, { top: rect.top, bottom: rect.bottom, left: rect.left, width: rect.width, pitch: r.offsetHeight + (parseFloat(getComputedStyle(r).marginBottom) || 0) });
+    });
+    const ghosts = [...old.querySelectorAll('.dropdown-empty-message')].map(m => captureGhost(m)).filter(Boolean);
     old.replaceWith(fresh);
     const list = fresh.querySelector('.pending-list');
-    const host = list || fresh;
+    if (!list) ghosts.length = 0; // still empty: the text stays as it is
+    ghosts.forEach(play => play());
+    const left = pinRowsOut(list || fresh, before.rows, list);
+    if (list) animateResultsReentry(list, before.tops);
+    const msg = fresh.querySelector('.dropdown-empty-message');
+    if (msg && left) fadeEmptyIn(msg, ROW_MOTION_MS);
+    stepRowMotion();
+  }
+  // Rows that aren't in `list` any more slide out where they were drawn,
+  // laid over `host` (the list itself, or its pane once the list is gone).
+  function pinRowsOut(host, rows, list) {
+    const stay = new Set(list ? [...list.querySelectorAll(':scope > .user-row')].map(r => r.dataset.username) : []);
+    if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
     const hr = host.getBoundingClientRect();
     const k = host.offsetWidth ? hr.width / host.offsetWidth : 1;
     const margin = window.innerHeight || 800;
-    const seen = (top, bottom) => bottom > -margin && top < window.innerHeight + margin;
-    // Leaving: pinned where they were drawn, sliding out like a removed row.
-    was.forEach(({ r, rect, pitch }) => {
-      if (!seen(rect.top, rect.bottom)) return;
-      Object.assign(r.style, { position: 'absolute', top: `${(rect.top - hr.top) / k - host.clientTop + host.scrollTop}px`, left: `${(rect.left - hr.left) / k - host.clientLeft}px`, width: `${rect.width / k}px`, margin: '0', zIndex: '1' });
+    let n = 0;
+    rows.forEach((rect, r) => {
+      if (stay.has(r.dataset.username) || rect.bottom < -margin || rect.top > window.innerHeight + margin) return;
+      Object.assign(r.style, { position: 'absolute', top: `${(rect.top - hr.top) / k - host.clientTop}px`, left: `${(rect.left - hr.left) / k - host.clientLeft}px`, width: `${rect.width / k}px`, margin: '0', zIndex: '1' });
       r.classList.add('username-exit');
       host.appendChild(r);
-      slideRowOut(r, pitch, ROW_MOTION_MS, () => r.remove());
+      slideRowOut(r, rect.pitch, ROW_MOTION_MS, () => r.remove());
+      n++;
     });
-    // Coming: each slides down into its place, like a row added to list 3.
-    if (list) {
-      list.querySelectorAll(':scope > .user-row:not(.username-exit)').forEach(r => {
-        const rr = r.getBoundingClientRect();
-        if (seen(rr.top, rr.bottom)) slideRowIn(r, r.offsetHeight + gapOf(r), ROW_MOTION_MS);
-      });
-    } else {
-      // Now empty: its text comes in once the boxes have gone.
-      const msg = fresh.querySelector('.dropdown-empty-message');
-      if (msg) fadeEmptyIn(msg, was.length ? ROW_MOTION_MS : 0);
-    }
+    return n;
   }
   function renderExtras(animate = true) {
     Object.keys(extraPanes).forEach(id => renderExtra(id, animate));
