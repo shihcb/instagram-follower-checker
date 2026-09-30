@@ -1906,7 +1906,12 @@
       box.parentNode.insertBefore(row, box);
       row.appendChild(box);
       const btn = makeIconButton(`btn-export-${kind}`, title);
-      row.appendChild(btn);
+      // The button keeps its full size and outline; this wrapper opens and
+      // closes around it (see .export-wrap in style.css).
+      const wrap = document.createElement('span');
+      wrap.className = 'export-wrap';
+      wrap.appendChild(btn);
+      row.appendChild(wrap);
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (!listFor(kind).length) return;
@@ -1925,10 +1930,12 @@
       if (!btn || !ta) return;
       const off = ta.value.trim() === '';
       if (btn.classList.contains('export-off') === off) return;
-      if (!animate) btn.classList.add('no-anim');
+      const wrap = btn.parentElement;
+      if (!animate) { btn.classList.add('no-anim'); wrap.classList.add('no-anim'); }
       btn.classList.toggle('export-off', off);
+      wrap.classList.toggle('export-off', off);
       btn.tabIndex = off ? -1 : 0;
-      if (!animate) { void btn.offsetWidth; btn.classList.remove('no-anim'); }
+      if (!animate) { void btn.offsetWidth; btn.classList.remove('no-anim'); wrap.classList.remove('no-anim'); }
     });
   }
   // updateListUI runs whenever list 1 or 2 changes (typing, import,

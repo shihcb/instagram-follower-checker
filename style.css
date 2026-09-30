@@ -5452,30 +5452,44 @@ button:focus-visible,
 }
 
 /* Lists 1/2 export button: collapses away (and the search box eases back
-   to full width) while its text box is empty. */
-.list-search-row > .preview-toggle {
+   to full width) while its text box is empty. The button itself never
+   changes size or outline — animating its width and border drew the
+   outline part-pixel thin (a lighter shade) until it snapped back to 1px
+   at the end. Instead this wrapper opens and closes around it, clipping
+   it from the left. Its 4px padding (cancelled by the negative margins)
+   keeps the button's shadow from being clipped. */
+.list-search-row > .export-wrap {
+  display: flex;
+  justify-content: flex-end;
+  flex: none;
+  box-sizing: content-box;
+  width: 32px;
+  padding: 4px;
+  margin: -4px -4px -4px -4px;
   overflow: hidden;
-  transition: width 0.32s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.32s cubic-bezier(0.4, 0, 0.2, 1),
-              margin-left 0.32s cubic-bezier(0.4, 0, 0.2, 1), padding 0.32s cubic-bezier(0.4, 0, 0.2, 1),
-              border-width 0.32s ease !important;
+  transition: width 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+              margin 0.32s cubic-bezier(0.4, 0, 0.2, 1);
 }
-/* No fade: the button just opens and closes. Fading it made its outline
-   look a different shade until the fade finished; it only turns invisible
-   once it has fully closed (so its shadow doesn't linger as a sliver). */
-.list-search-row > .preview-toggle.export-off {
-  transition: width 0.32s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.32s cubic-bezier(0.4, 0, 0.2, 1),
-              margin-left 0.32s cubic-bezier(0.4, 0, 0.2, 1), padding 0.32s cubic-bezier(0.4, 0, 0.2, 1),
-              border-width 0.32s ease, opacity 0s linear 0.32s !important;
-  width: 0 !important;
-  min-width: 0 !important;
+.list-search-row > .export-wrap.export-off {
+  width: 0;
+  padding-left: 0;
+  padding-right: 0;
   margin-left: -8px; /* the row's gap closes with it */
-  opacity: 0;
-  border-width: 0 !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-  pointer-events: none;
+  margin-right: 0;
 }
-.list-search-row > .preview-toggle.no-anim {
+.list-search-row > .export-wrap > .preview-toggle {
+  flex: none;
+  transition: opacity 0s, background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease !important;
+}
+/* Invisible only once fully closed (so no sliver of shadow lingers). */
+.list-search-row > .export-wrap > .preview-toggle.export-off {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0s linear 0.32s !important;
+}
+.list-search-row .no-anim,
+.list-search-row .no-anim.export-off {
   transition: none !important;
 }
 
