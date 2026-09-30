@@ -6348,3 +6348,27 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 .setting-item-row.reset-due .setting-desc {
   color: #ef4444;
 }
+/* TEMPORARY: the saved imports window's example note. */
+.saved-imports-example {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #d97706;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+/* TEMPORARY: the saved imports window's example note. */
+.saved-imports-example {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #d97706;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 10px;
+  text-align: center;
+}
