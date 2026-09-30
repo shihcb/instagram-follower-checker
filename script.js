@@ -1579,6 +1579,7 @@ function appendRowTail(listEl, filtered, from, delay) {
   const run = () => {
     if (listEl._rowTailToken !== token) return;
     const end = Math.min(pageEnd, index + 150);
+    dropExitSpacers(listEl);
     listEl.insertAdjacentHTML('beforeend', filtered.slice(index, end)
       .map((user, i) => renderUnfollowerRowHtml(user, index + i).replace('class="user-row', 'class="user-row row-tail'))
       .join(''));
@@ -3412,6 +3413,34 @@ function naturalContentHeight(container) {
   return Number.isFinite(cap) ? Math.min(height, cap) : height;
 }
 
+// A removed row's space at the end of a list (see exitListRow): gone as
+// soon as it's out of sight — straight away if it already is — so taking
+// it away never moves anything on screen.
+function dropExitSpacerWhenHidden(spacer) {
+  if (!spacer.isConnected) return;
+  let scroller = spacer.parentElement;
+  while (scroller && scroller !== document.body && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY)) scroller = scroller.parentElement;
+  const view = scroller && scroller !== document.body ? scroller.getBoundingClientRect() : { top: 0, bottom: window.innerHeight };
+  const hidden = () => {
+    const r = spacer.getBoundingClientRect();
+    return !spacer.getClientRects().length || r.top >= view.bottom - 1 || r.bottom <= view.top + 1;
+  };
+  if (hidden()) { spacer.remove(); return; }
+  const target = scroller && scroller !== document.body ? scroller : window;
+  const onScroll = () => {
+    if (!spacer.isConnected) { target.removeEventListener('scroll', onScroll); return; }
+    const v = scroller && scroller !== document.body ? scroller.getBoundingClientRect() : { top: 0, bottom: window.innerHeight };
+    const r = spacer.getBoundingClientRect();
+    if (r.top >= v.bottom - 1 || r.bottom <= v.top + 1) { spacer.remove(); target.removeEventListener('scroll', onScroll); }
+  };
+  target.addEventListener('scroll', onScroll, { passive: true });
+}
+// Rows about to be added at the end: a removed row's leftover space there
+// makes way for them (they fill it, so nothing on screen moves).
+function dropExitSpacers(listEl) {
+  listEl.querySelectorAll(':scope > .row-exit-spacer').forEach(el => el.remove());
+}
+
 function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   // A row already sliding out ignores any further attempt to remove it
   // again (rapid repeat clicks on the same button used to stack a second
@@ -3480,41 +3509,20 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   // exactly that as a new slide on top of whatever each is already doing.
   siblings.forEach((el, i) => addRowShift(el, topsBefore[i] - el.offsetTop, DURATION));
 
-  // The list keeps its length while the row slides out, then gives the
-  // space back with the same slide — driven frame by frame, together with
-  // the scroll position: taking the row out of flow shortened the list at
-  // once, and scrolled to the bottom of a long list the page (iPhone
-  // Safari especially) snapped the scroll up and then back when the row
-  // was finally removed — the row vanished and the rest jumped. Now the
-  // rows above ease down into the space instead.
+  // The list keeps its length: only the row itself moves (it slides out,
+  // like any other removal), and its space stays at the end of the list
+  // instead of closing up. Closing it at the bottom of a scrolled list
+  // meant the whole list sliding down (or, on iPhone Safari, the scroll
+  // snapping) — the rest jumped. The space is taken away later, unseen:
+  // once it's scrolled out of view (dropExitSpacerWhenHidden), or when
+  // more usernames load into it.
   if (!shrinkBox) {
     const spacer = document.createElement('div');
     spacer.className = 'row-exit-spacer';
     spacer.setAttribute('aria-hidden', 'true');
     spacer.style.height = `${exitDistance}px`;
     container.appendChild(spacer);
-    // The box that scrolls (the list itself, or one of its parents).
-    let scroller = container;
-    while (scroller && scroller !== document.body && !(/(auto|scroll)/.test(getComputedStyle(scroller).overflowY) && scroller.scrollHeight > scroller.clientHeight + 1)) {
-      scroller = scroller.parentElement;
-    }
-    if (scroller === document.body) scroller = null;
-    // How far the scroll has to come down as the space closes (only when
-    // the bottom of the list is on screen).
-    const startTop = scroller ? scroller.scrollTop : 0;
-    const need = scroller ? Math.max(0, Math.min(exitDistance, startTop - (scroller.scrollHeight - exitDistance - scroller.clientHeight))) : 0;
-    let t0 = null;
-    const step = (now) => {
-      if (t0 === null) t0 = now;
-      const raw = Math.min(1, (now - t0) / DURATION);
-      const e = rowEase(raw);
-      spacer.style.height = `${exitDistance * (1 - e)}px`;
-      if (need > 0 && scroller) scroller.scrollTop = startTop - need * e;
-      if (raw < 1 && spacer.isConnected) requestAnimationFrame(step);
-      else spacer.remove();
-    };
-    requestAnimationFrame(step);
-    setTimeout(() => spacer.remove(), DURATION + 400);
+    setTimeout(() => dropExitSpacerWhenHidden(spacer), DURATION + 60);
   }
 
   if (shrinkBox) {

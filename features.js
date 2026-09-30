@@ -1381,6 +1381,7 @@
       el._loadMore = () => {
         const shown = list.querySelectorAll(':scope > .user-row:not(.username-exit)').length;
         const next = entry.users.slice(shown, shown + LIST_PAGE);
+        dropExitSpacers(list);
         list.insertAdjacentHTML('beforeend', next.map(u => boxRowHtml(u, entry.noteOf, entry.dismiss)).join(''));
         if (shown + next.length < entry.users.length) {
           const sign = makeRowsMore(el._loadMore);
