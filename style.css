@@ -5477,9 +5477,11 @@ button:focus-visible,
   padding: 4px;
   margin: -4px -4px -4px -4px;
   overflow: hidden;
-  transition: width 0.32s cubic-bezier(0.4, 0, 0.2, 1),
-              padding 0.32s cubic-bezier(0.4, 0, 0.2, 1),
-              margin 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  /* The list 3 slide: 520ms, cubic-bezier(0.4, 0, 0.2, 1) — the same
+     motion as list 3's rows (ROW_MOTION_MS / rowEase in script.js). */
+  transition: width 0.52s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.52s cubic-bezier(0.4, 0, 0.2, 1),
+              margin 0.52s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .list-search-row > .export-wrap.export-off {
   width: 0;
@@ -5496,7 +5498,7 @@ button:focus-visible,
 .list-search-row > .export-wrap > .preview-toggle.export-off {
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0s linear 0.32s !important;
+  transition: opacity 0s linear 0.52s !important;
 }
 .list-search-row .no-anim,
 .list-search-row .no-anim.export-off {

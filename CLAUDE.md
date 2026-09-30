@@ -22,3 +22,11 @@ tell whether a device has the latest update. Never merge a change to
 When a change is done, commit it and push it straight to `main` (after
 bumping the version tags above) — that's what deploys the app (Vercel).
 Don't leave work only on a side branch or ask first.
+
+## "The list 3 slide" — the app's standard motion
+
+When the user says **"the list 3 slide"** (or "the app's animation", "same
+timing as everything else"), they mean the motion list 3's rows use:
+**520ms, `cubic-bezier(0.4, 0, 0.2, 1)`** — `ROW_MOTION_MS` and `rowEase`
+in `script.js` (in CSS: `0.52s cubic-bezier(0.4, 0, 0.2, 1)`). Use it for
+anything entering, leaving, resizing or sliding unless told otherwise.
