@@ -81,7 +81,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=395">
+  <link rel="stylesheet" href="style.css?v=396">
   <!-- Supabase Client Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -156,6 +156,35 @@
               <div id="auth-profile-view" class="auth-view hidden">
                 <p class="auth-status-text">logged in as <strong id="auth-user-email">email@domain.com</strong></p>
                 
+                <!-- Weekly List Reset Reminder -->
+                <div class="reset-reminder-box" id="reset-reminder-box">
+                  <div class="storage-info">
+                    <span class="storage-label">list reset reminder</span>
+                    <span class="storage-value" id="reset-reminder-value">not started</span>
+                  </div>
+                  <div class="storage-progress-bar">
+                    <div class="storage-progress-fill" id="reset-reminder-progress-fill" style="width: 0%;"></div>
+                  </div>
+                  <div class="storage-details">
+                    <span id="reset-reminder-detail">import your files to start the weekly reminder</span>
+                  </div>
+                </div>
+
+                <!-- Saved imports: every 5th import is a full save -->
+                <button type="button" class="reset-reminder-box saved-imports-box" id="saved-imports-box" title="download your saved imports">
+                  <div class="storage-info">
+                    <span class="storage-label">saved imports</span>
+                    <span class="storage-value" id="saved-imports-value">not started</span>
+                  </div>
+                  <div class="storage-progress-bar">
+                    <div class="storage-progress-fill" id="saved-imports-fill" style="width: 0%;"></div>
+                  </div>
+                  <div class="storage-details">
+                    <span id="saved-imports-detail">import your files to start saving them</span>
+                    <span id="saved-imports-count"></span>
+                  </div>
+                </button>
+
                 <!-- Supabase Cloud Storage Progress -->
                 <div class="supabase-storage-box">
                   <div class="storage-info">
@@ -175,20 +204,6 @@
 
                 <!-- Settings Toggles -->
                 <div class="auth-settings-section" style="margin-bottom: 12px;">
-                  <!-- Weekly List Reset Reminder -->
-                  <div class="reset-reminder-box" id="reset-reminder-box">
-                    <div class="storage-info">
-                      <span class="storage-label">list reset reminder</span>
-                      <span class="storage-value" id="reset-reminder-value">not started</span>
-                    </div>
-                    <div class="storage-progress-bar">
-                      <div class="storage-progress-fill" id="reset-reminder-progress-fill" style="width: 0%;"></div>
-                    </div>
-                    <div class="storage-details">
-                      <span id="reset-reminder-detail">import your files to start the weekly reminder</span>
-                    </div>
-                  </div>
-
                   <div class="setting-item-row">
                     <div class="setting-label-group">
                       <span class="setting-label">auto-open next profile</span>
@@ -714,7 +729,7 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="script.js?v=374"></script>
-  <script src="features.js?v=114"></script>
+  <script src="script.js?v=375"></script>
+  <script src="features.js?v=115"></script>
 </body>
 </html>

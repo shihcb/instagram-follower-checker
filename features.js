@@ -84,6 +84,7 @@
     state.unfollowers = list;
     }, 'sort');
     safe(refreshUndo, 'undo'); // the steps belong to the account on screen
+    safe(refreshSavedImports, 'saved imports');
     // The toolbar first: its reminder pill showing or hiding moves list 3's
     // box, and doing that after the rows were placed left one unanimated.
     safe(refreshToolbar, 'toolbar');
@@ -319,10 +320,11 @@
     const following = state.following.map(u => u.username);
     const followers = state.followers.map(u => u.username);
     const unfollowers = state.unfollowers.length;
+    let diff = null;
     if (prev && prev.followingList) {
       const pf = new Set(prev.followingList), pr = new Set(prev.followersList);
       const nf = new Set(following), nr = new Set(followers);
-      const diff = {
+      diff = {
         date: Date.now(),
         since: prev.date,
         lostFollowers: prev.followersList.filter(n => !nr.has(n)),
@@ -340,6 +342,209 @@
     history.forEach(h => { delete h.followingList; delete h.followersList; });
     history.push({ date: Date.now(), following: following.length, followers: followers.length, unfollowers, followingList: following, followersList: followers });
     writeJSON(`import_history_${key}`, history.slice(-24));
+    safe(() => saveImport(key, diff).catch(err => console.error('[features] saved imports failed:', err)), 'saved imports');
+  }
+
+  // ---------- saved imports ----------
+  // Every import is logged with what changed since the one before. The
+  // uploaded files themselves are kept (on this device, in IndexedDB — far
+  // too big for the 5 mb cloud) for the first import, every 5th import and
+  // the latest one; an import in between keeps only its changes once a
+  // newer one comes in. Settings shows how close the next full save is,
+  // and tapping it lists every import to download: the files as a zip, or
+  // just the changes as a spreadsheet.
+  const FULL_EVERY = 5;
+  const logKey = (key) => `import_log_${key}`;
+  const fileKey = (key, n) => `${key}|${n}`;
+  let dbPromise = null;
+  function filesDb() {
+    if (!dbPromise) {
+      dbPromise = new Promise((resolve, reject) => {
+        if (!window.indexedDB) { reject(new Error('no IndexedDB')); return; }
+        const req = indexedDB.open('ig-checker-files', 1);
+        req.onupgradeneeded = () => req.result.createObjectStore('imports');
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      dbPromise.catch(() => { dbPromise = null; });
+    }
+    return dbPromise;
+  }
+  async function dbDo(mode, fn) {
+    const db = await filesDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('imports', mode);
+      const req = fn(tx.objectStore('imports'));
+      tx.oncomplete = () => resolve(req && req.result);
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+  }
+  const isFullSave = (n) => n === 1 || n % FULL_EVERY === 0;
+  async function saveImport(key, diff) {
+    const log = readJSON(logKey(key), []);
+    const prev = log[log.length - 1];
+    const n = (prev ? prev.n : 0) + 1;
+    const entry = {
+      n, date: Date.now(), full: isFullSave(n), files: false,
+      following: state.following.length, followers: state.followers.length,
+      changes: diff ? { lost: diff.lostFollowers, gained: diff.newFollowers, stopped: diff.stoppedFollowing, started: diff.startedFollowing } : null
+    };
+    log.push(entry);
+    writeJSON(logKey(key), log);
+    refreshSavedImports();
+    const files = (typeof lastImportFiles !== 'undefined' ? lastImportFiles : []) || [];
+    if (!files.length) return;
+    const stored = await Promise.all(files.map(async file => ({ name: file.webkitRelativePath || file.name, type: file.type || '', data: await file.arrayBuffer() })));
+    await dbDo('readwrite', store => store.put({ files: stored }, fileKey(key, n)));
+    const fresh = readJSON(logKey(key), []);
+    const mine = fresh.find(x => x.n === n);
+    if (mine) mine.files = true;
+    // The import before this one is no longer the latest: unless it was a
+    // full save, it keeps just its changes.
+    const before = fresh.find(x => x.n === n - 1);
+    if (before && before.files && !before.full) {
+      await dbDo('readwrite', store => store.delete(fileKey(key, before.n)));
+      before.files = false;
+    }
+    writeJSON(logKey(key), fresh);
+    refreshSavedImports();
+  }
+  function refreshSavedImports() {
+    const box = document.getElementById('saved-imports-box');
+    if (!box) return;
+    const key = accKey();
+    const log = key === DEMO_ID ? [] : readJSON(logKey(key), []);
+    const set = (id, text) => { const el = document.getElementById(id); if (el && el.textContent !== text) el.textContent = text; };
+    const fill = document.getElementById('saved-imports-fill');
+    if (!log.length) {
+      set('saved-imports-value', 'not started');
+      set('saved-imports-detail', 'import your files to start saving them');
+      set('saved-imports-count', '');
+      if (fill) fill.style.width = '0%';
+      box.classList.add('empty');
+      return;
+    }
+    box.classList.remove('empty');
+    const n = log[log.length - 1].n;
+    const step = n % FULL_EVERY || FULL_EVERY; // 1..5 into this round
+    const left = FULL_EVERY - step;
+    set('saved-imports-value', `${step}/${FULL_EVERY}`);
+    set('saved-imports-detail', left ? `full save in ${plural(left, 'import')}` : 'full save done');
+    set('saved-imports-count', `${plural(log.length, 'import')} saved`);
+    if (fill) fill.style.width = `${(step / FULL_EVERY) * 100}%`;
+  }
+
+  // A plain zip (stored, not compressed) of the saved files.
+  const CRC_TABLE = (() => {
+    const t = new Uint32Array(256);
+    for (let i = 0; i < 256; i++) { let c = i; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[i] = c >>> 0; }
+    return t;
+  })();
+  const crc32 = (bytes) => { let c = 0xffffffff; for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+  function makeZip(files, when) {
+    const enc = new TextEncoder();
+    const d = new Date(when);
+    const time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+    const date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+    const parts = [], central = [];
+    let offset = 0;
+    const used = new Set();
+    files.forEach(file => {
+      let name = file.name;
+      for (let i = 2; used.has(name); i++) name = file.name.replace(/(\.[^.]*)?$/, `_${i}$1`);
+      used.add(name);
+      const nameBytes = enc.encode(name);
+      const data = new Uint8Array(file.data);
+      const crc = crc32(data);
+      const local = new DataView(new ArrayBuffer(30));
+      local.setUint32(0, 0x04034b50, true); local.setUint16(4, 20, true); local.setUint16(6, 0x0800, true);
+      local.setUint16(8, 0, true); local.setUint16(10, time, true); local.setUint16(12, date, true);
+      local.setUint32(14, crc, true); local.setUint32(18, data.length, true); local.setUint32(22, data.length, true);
+      local.setUint16(26, nameBytes.length, true); local.setUint16(28, 0, true);
+      parts.push(local.buffer, nameBytes, data);
+      const cen = new DataView(new ArrayBuffer(46));
+      cen.setUint32(0, 0x02014b50, true); cen.setUint16(4, 20, true); cen.setUint16(6, 20, true); cen.setUint16(8, 0x0800, true);
+      cen.setUint16(10, 0, true); cen.setUint16(12, time, true); cen.setUint16(14, date, true);
+      cen.setUint32(16, crc, true); cen.setUint32(20, data.length, true); cen.setUint32(24, data.length, true);
+      cen.setUint16(28, nameBytes.length, true); cen.setUint32(42, offset, true);
+      central.push(cen.buffer, nameBytes);
+      offset += 30 + nameBytes.length + data.length;
+    });
+    const size = central.reduce((s, p) => s + p.byteLength, 0);
+    const end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+    end.setUint32(12, size, true); end.setUint32(16, offset, true);
+    return new Blob([...parts, ...central, end.buffer], { type: 'application/zip' });
+  }
+  const fileDate = (t) => new Date(t).toISOString().slice(0, 10);
+  const longDate = (t) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  async function downloadSaved(key, entry) {
+    const who = key === '_global_' ? 'lists' : key;
+    if (entry.files) {
+      const rec = await dbDo('readonly', store => store.get(fileKey(key, entry.n)));
+      if (rec && rec.files && rec.files.length) {
+        saveFile(`ig-checker-${who}-import-${entry.n}-${fileDate(entry.date)}.zip`, makeZip(rec.files, entry.date));
+        return;
+      }
+    }
+    // Just the changes: one row per username, with what happened.
+    const c = entry.changes || {};
+    const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rows = [['change', 'username']];
+    [['lost', 'unfollowed you'], ['gained', 'new follower'], ['stopped', 'you stopped following'], ['started', 'you started following']]
+      .forEach(([k, label]) => (c[k] || []).forEach(name => rows.push([label, name])));
+    saveFile(`ig-checker-${who}-import-${entry.n}-changes-${fileDate(entry.date)}.csv`, new Blob([rows.map(r => r.map(cell).join(',')).join('\n')], { type: 'text/csv' }));
+  }
+  let savedOverlay = null;
+  function openSavedImports() {
+    const key = accKey();
+    const log = key === DEMO_ID ? [] : readJSON(logKey(key), []);
+    if (!savedOverlay) {
+      savedOverlay = document.createElement('div');
+      savedOverlay.className = 'modal-overlay hidden export-overlay saved-imports-overlay';
+      savedOverlay.innerHTML = `
+        <div class="account-modal-card glass export-card">
+          <div class="account-modal-header"><h3>saved imports</h3></div>
+          <div class="insights-sub">full saves download the files you uploaded as a zip; the imports in between download just what changed</div>
+          <div class="export-options saved-imports-list"></div>
+          <div class="account-modal-actions">
+            <button class="btn btn-secondary" data-saved="close">close</button>
+          </div>
+        </div>`;
+      document.body.appendChild(savedOverlay);
+      savedOverlay.addEventListener('click', (e) => {
+        if (e.target === savedOverlay || e.target.closest('[data-saved="close"]')) { closeSavedImports(); return; }
+        const row = e.target.closest('[data-import]');
+        if (!row) return;
+        const entry = readJSON(logKey(accKey()), []).find(x => String(x.n) === row.dataset.import);
+        if (entry) downloadSaved(accKey(), entry).catch(err => { console.error('[features] download failed:', err); showSiteAlert("couldn't download", "that import's files aren't on this device."); });
+      });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && savedOverlay && !savedOverlay.classList.contains('hidden')) closeSavedImports(); });
+    }
+    const listEl = savedOverlay.querySelector('.saved-imports-list');
+    listEl.innerHTML = log.length ? log.slice().reverse().map(entry => {
+      const c = entry.changes;
+      const count = c ? c.lost.length + c.gained.length + c.stopped.length + c.started.length : 0;
+      const kind = entry.files ? 'full folder · zip' : (c ? `${plural(count, 'change')} · csv` : 'no changes saved');
+      return `<button class="export-option saved-import" data-import="${entry.n}"${!entry.files && !c ? ' disabled' : ''}>
+          <span class="export-label">import ${entry.n}<span class="saved-import-date">${esc(longDate(entry.date))}</span></span>
+          <span class="export-count">${esc(kind)}</span>
+        </button>`;
+    }).join('') : '<div class="dropdown-empty-message">no imports saved yet</div>';
+    showModalOverlay(savedOverlay);
+    lockPageScroll();
+  }
+  function closeSavedImports() {
+    savedOverlay.classList.remove('show');
+    unlockPageScroll();
+    scheduleOverlayHide(savedOverlay, () => savedOverlay.classList.add('hidden'));
+  }
+  function setupSavedImports() {
+    const box = document.getElementById('saved-imports-box');
+    if (!box) return;
+    box.addEventListener('click', (e) => { e.stopPropagation(); openSavedImports(); });
+    refreshSavedImports();
   }
 
   // ---------- list 3 toolbar: sort, select, today's count, reminder ----------
@@ -2285,6 +2490,7 @@
     // down with it.
     safe(clearOldTally, 'cleanup');
     safe(setupNavOverflow, 'tab bars');
+    safe(setupSavedImports, 'saved imports');
     safe(buildToolbar, 'toolbar');
     safe(buildViewSwitcher, 'views');
     safe(buildResultsSwitcher, 'results tabs');

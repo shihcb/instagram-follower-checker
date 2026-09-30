@@ -6293,3 +6293,44 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 .card.card-flash {
   animation: card-flash 1.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* Settings: saved imports (features.js). Same box as the reminder above
+   it, but a button: tapping it lists the imports to download. */
+.saved-imports-box {
+  width: 100%;
+  margin-top: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color 0.25s ease;
+}
+@media (hover: hover) {
+  .saved-imports-box:hover {
+    border-color: var(--text-muted);
+  }
+}
+.saved-imports-box .storage-info,
+.saved-imports-box .storage-details {
+  width: 100%;
+}
+.saved-imports-list {
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+}
+.saved-import .export-label {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.saved-import-date {
+  font-weight: 500;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
+.saved-import:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

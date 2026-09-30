@@ -2165,6 +2165,9 @@ async function usernameFromPersonalInfo(file) {
   }
 }
 
+// The files of the import that just finished (features.js saves them).
+let lastImportFiles = [];
+
 async function processImportFiles(files, isFolderUpload = false) {
   if (!files || files.length === 0) return false;
 
@@ -2289,6 +2292,7 @@ async function processImportFiles(files, isFolderUpload = false) {
       state.freshRows = true; // imported files: the list comes in whole
       calculateUnfollowers({ animate: true });
       // Restart the weekly reset reminder from this fresh import.
+      lastImportFiles = validFilesToProcess.map(item => item.file); // kept by features.js (saved imports)
       recordImportDate(state.selectedAccountUsername);
       saveCurrentAccountData();
     } else {
