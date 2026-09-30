@@ -995,6 +995,7 @@ function updateUnfollowedUI(enteringUsername) {
     } else {
       resetUnfollowedBtn.setAttribute('disabled', 'true');
     }
+    updateResetReminderUI();
   }
 
   // After the label update above, since the occupied-dot indicator it can
@@ -1109,6 +1110,7 @@ function updateStarredUI(enteringUsername) {
     } else {
       resetStarredBtn.setAttribute('disabled', 'true');
     }
+    updateResetReminderUI();
   }
 
   // After the label update above, since the occupied-dot indicator it can
@@ -4672,6 +4674,7 @@ function updateInstructionsStepUI() {
       const confirmed = await showSiteConfirm('reset list', `are you sure you want to reset ${listName}?`, 'reset', 'cancel');
       if (confirmed) {
         state.unfollowed = [];
+        storageSet(listResetKey('unfollowed'), String(Date.now()));
         if (currentAcc) {
           storageSet(`unfollowed_users_${currentAcc}`, JSON.stringify([]));
           // Clean global shared list matching this account
@@ -4686,6 +4689,7 @@ function updateInstructionsStepUI() {
         saveCurrentAccountData();
         calculateUnfollowers({ animate: true }); // usernames return to list 3 — slide them in
         updateUnfollowedUI();
+        updateResetReminderUI();
         await pushToCloud();
       }
     });
@@ -4701,6 +4705,7 @@ function updateInstructionsStepUI() {
       const confirmed = await showSiteConfirm('reset list', `are you sure you want to reset ${listName}?`, 'reset', 'cancel');
       if (confirmed) {
         state.starred = [];
+        storageSet(listResetKey('starred'), String(Date.now()));
         if (currentAcc) {
           storageSet(`starred_users_${currentAcc}`, JSON.stringify([]));
           // Clean global shared list matching this account
@@ -4714,6 +4719,7 @@ function updateInstructionsStepUI() {
         saveCurrentAccountData();
         calculateUnfollowers({ animate: true }); // usernames return to list 3 — slide them in
         updateStarredUI();
+        updateResetReminderUI();
         await pushToCloud();
       }
     });
@@ -6322,6 +6328,30 @@ function recordImportDate(accountUsername) {
   updateResetReminderUI();
 }
 
+// When the weekly reset is due, each reset button in settings says so (and
+// its row turns red) until that list has been reset — or is empty.
+const RESET_LISTS = [['unfollowed', 'settings-reset-unfollowed-btn'], ['starred', 'settings-reset-starred-btn']];
+const listResetKey = (type) => `list_reset_${type}_${state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '_global_'}`;
+function listNeedsReset(type, dueAt) {
+  if (!dueAt || Date.now() < dueAt || !(state[type] || []).length) return false;
+  return (parseInt(storageGet(listResetKey(type)) || '0', 10) || 0) < dueAt;
+}
+function resetStillDue(dueAt) {
+  return RESET_LISTS.some(([type]) => listNeedsReset(type, dueAt));
+}
+function applyResetDue(dueAt) {
+  RESET_LISTS.forEach(([type, id]) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    const due = listNeedsReset(type, dueAt);
+    btn.classList.toggle('reset-due', due);
+    const text = due ? 'reset due' : 'reset';
+    if (btn.textContent !== text) btn.textContent = text;
+    const row = btn.closest('.setting-item-row');
+    if (row) row.classList.toggle('reset-due', due);
+  });
+}
+
 function updateResetReminderUI() {
   const box = document.getElementById('reset-reminder-box');
   const valueEl = document.getElementById('reset-reminder-value');
@@ -6330,6 +6360,8 @@ function updateResetReminderUI() {
   if (!box || !valueEl || !detailEl || !fillEl) return;
 
   const importedAtRaw = storageGet(getImportDateKey(state.selectedAccountUsername));
+
+  applyResetDue(importedAtRaw ? parseInt(importedAtRaw, 10) + RESET_REMINDER_MS : null);
 
   if (!importedAtRaw) {
     box.classList.remove('overdue');
@@ -6345,11 +6377,17 @@ function updateResetReminderUI() {
   const importedDateText = new Date(importedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   const dayMs = 24 * 60 * 60 * 1000;
 
-  if (remainingMs <= 0) {
+  if (remainingMs <= 0 && !resetStillDue(importedAt + RESET_REMINDER_MS)) {
+    // Both lists have been reset since it came due: done until the next import.
+    box.classList.remove('overdue');
+    valueEl.textContent = 'lists reset';
+    detailEl.textContent = `imported ${importedDateText}`;
+    fillEl.style.width = '100%';
+  } else if (remainingMs <= 0) {
     const overdueDays = Math.floor(-remainingMs / dayMs);
     box.classList.add('overdue');
     valueEl.textContent = overdueDays > 0 ? `overdue by ${plural(overdueDays, 'day')}` : 'overdue';
-    detailEl.textContent = `imported ${importedDateText} — time to reset your unfollowed and starred lists`;
+    detailEl.textContent = `imported ${importedDateText}`;
     fillEl.style.width = '100%';
   } else {
     box.classList.remove('overdue');
@@ -6357,7 +6395,7 @@ function updateResetReminderUI() {
     const remainingHours = Math.floor((remainingMs % dayMs) / (60 * 60 * 1000));
     const remainingText = remainingDays > 0 ? plural(remainingDays, 'day') : plural(remainingHours, 'hour');
     valueEl.textContent = `${remainingText} left`;
-    detailEl.textContent = `imported ${importedDateText} — reset your lists in ${remainingText}`;
+    detailEl.textContent = `imported ${importedDateText}`;
     fillEl.style.width = `${Math.min(100, Math.max(0, ((now - importedAt) / RESET_REMINDER_MS) * 100))}%`;
   }
 }

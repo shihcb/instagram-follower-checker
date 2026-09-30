@@ -6334,3 +6334,17 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
   opacity: 0.5;
   cursor: default;
 }
+
+/* Weekly reset due (applyResetDue in script.js): the reset button says so,
+   filled red, and its row's text turns red, until that list is reset. */
+.btn-danger-soft.reset-due,
+[data-theme="dark"] .btn-danger-soft.reset-due {
+  background: #ef4444 !important;
+  background-color: #ef4444 !important;
+  color: #ffffff !important;
+  border-color: #ef4444 !important;
+}
+.setting-item-row.reset-due .setting-label,
+.setting-item-row.reset-due .setting-desc {
+  color: #ef4444;
+}
