@@ -3466,6 +3466,12 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   // both list 3 rows (which vary in height) and the submenus' fixed rows.
   const exitDistance = rowEl.offsetHeight + (parseFloat(getComputedStyle(rowEl).marginBottom) || 0);
 
+  // The button tapped to remove it lets go of focus first: iPhone Safari
+  // scrolled to keep a focused button in view as its row slid away.
+  if (rowEl.contains(document.activeElement) && typeof document.activeElement.blur === 'function') {
+    document.activeElement.blur();
+  }
+
   const DURATION = ROW_MOTION_MS;
   const container = rowEl.parentElement;
 
@@ -3481,6 +3487,29 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
 
   if (getComputedStyle(container).position === 'static') {
     container.style.position = 'relative';
+  }
+
+  // The last row in a list (nothing below it has to move up): it slides
+  // out right where it is, never leaving the layout, and once it's gone a
+  // blank of exactly its size takes its place. Taking it out of the layout
+  // made iPhone Safari nudge a scrolled list down as the slide began.
+  const isRow = (el) => el !== rowEl && !el.classList.contains('username-exit') && !el.classList.contains('row-exit-spacer') && !el.classList.contains('rows-more');
+  let below = rowEl.nextElementSibling;
+  while (below && !isRow(below)) below = below.nextElementSibling;
+  if (!below && !shrinkBox) {
+    rowEl.classList.add('username-exit');
+    slideRowOut(rowEl, exitDistance, DURATION, () => {
+      const spacer = document.createElement('div');
+      spacer.className = 'row-exit-spacer';
+      spacer.setAttribute('aria-hidden', 'true');
+      spacer.style.height = `${exitDistance}px`;
+      if (rowEl.parentElement) rowEl.replaceWith(spacer); else rowEl.remove();
+      onComplete();
+      setTimeout(() => dropExitSpacerWhenHidden(spacer), 60);
+    });
+    onRowExitStarted(rowEl);
+    stepRowMotion();
+    return;
   }
 
   // Rows still in the list (ones already sliding out are out of flow).
@@ -3527,28 +3556,34 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
     // scroll length came up short), so every frame the scroll is put back —
     // and if the scroll length did come up short, the space grows by just
     // that much first. Touching or scrolling the list hands it back to you.
-    let scroller = container;
-    while (scroller && scroller !== document.body && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY)) scroller = scroller.parentElement;
-    if (scroller && scroller !== document.body) {
-      const keepTop = scroller.scrollTop;
-      let spacerHeight = exitDistance;
-      let released = false;
-      const release = () => { released = true; };
-      ['touchstart', 'wheel', 'pointerdown'].forEach(type => scroller.addEventListener(type, release, { passive: true, once: true }));
-      const until = performance.now() + DURATION + 120;
-      const hold = () => {
-        if (released || !spacer.isConnected) return;
-        const max = scroller.scrollHeight - scroller.clientHeight;
-        if (max < keepTop - 0.5) {
-          spacerHeight += keepTop - max;
+    // Every box that can scroll around the list (which one actually
+    // scrolls differs between phone and desktop layouts), and the page.
+    const scrollers = [];
+    for (let el = container; el && el !== document.body && el !== document.documentElement; el = el.parentElement) {
+      if (/(auto|scroll)/.test(getComputedStyle(el).overflowY)) scrollers.push(el);
+    }
+    const page = document.scrollingElement || document.documentElement;
+    scrollers.push(page);
+    const kept = scrollers.map(el => el.scrollTop);
+    let spacerHeight = exitDistance;
+    let released = false;
+    const release = () => { released = true; };
+    ['touchstart', 'wheel'].forEach(type => window.addEventListener(type, release, { passive: true, once: true, capture: true }));
+    const until = performance.now() + DURATION + 160;
+    const hold = () => {
+      if (released || !spacer.isConnected) return;
+      scrollers.forEach((el, i) => {
+        const max = el.scrollHeight - el.clientHeight;
+        if (el !== page && max < kept[i] - 0.5) {
+          spacerHeight += kept[i] - max;
           spacer.style.height = `${spacerHeight}px`;
         }
-        if (Math.abs(scroller.scrollTop - keepTop) > 0.5) scroller.scrollTop = keepTop;
-        if (performance.now() < until) requestAnimationFrame(hold);
-      };
-      hold();
-      requestAnimationFrame(hold);
-    }
+        if (Math.abs(el.scrollTop - kept[i]) > 0.5) el.scrollTop = kept[i];
+      });
+      if (performance.now() < until) requestAnimationFrame(hold);
+    };
+    hold();
+    requestAnimationFrame(hold);
     setTimeout(() => dropExitSpacerWhenHidden(spacer), DURATION + 160);
   }
 
