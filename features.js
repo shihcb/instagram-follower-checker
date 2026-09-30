@@ -600,9 +600,12 @@
       }
       return;
     }
-    // What's on screen now, to slide from.
-    const startHeight = card.getBoundingClientRect().height;
-    card.getAnimations().forEach(an => an.cancel());
+    // What's on screen now, to slide from. (The list is what changes size:
+    // it eases between its heights, and the close button and the window's
+    // edge ride along with it. Easing the window alone let the button jump
+    // to its new spot straight away.)
+    listEl.getAnimations().forEach(an => an.cancel());
+    const startHeight = listEl.getBoundingClientRect().height;
     const lr = listEl.getBoundingClientRect();
     const was = [...listEl.querySelectorAll(':scope > .saved-import:not(.username-exit)')].map(r => {
       stopRowMotion(r);
@@ -633,10 +636,10 @@
     const msg = listEl.querySelector(':scope > .dropdown-empty-message');
     if (msg) fadeEmptyIn(msg, left ? ROW_MOTION_MS : 0);
     stepRowMotion();
-    // The window eases to its new height.
-    const endHeight = card.getBoundingClientRect().height;
+    // The list (and with it the window) eases to its new height.
+    const endHeight = listEl.getBoundingClientRect().height;
     if (Math.abs(endHeight - startHeight) > 0.5) {
-      card.animate([{ height: `${startHeight}px`, overflow: 'hidden' }, { height: `${endHeight}px`, overflow: 'hidden' }],
+      listEl.animate([{ height: `${startHeight}px`, overflow: 'hidden' }, { height: `${endHeight}px`, overflow: 'hidden' }],
         { duration: ROW_MOTION_MS, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }); // the list 3 slide
     }
   }
