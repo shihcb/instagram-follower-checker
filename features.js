@@ -597,6 +597,7 @@
     // edge ride along with it. Easing the window alone let the button jump
     // to its new spot straight away.)
     listEl.getAnimations().forEach(an => an.cancel());
+    clearTimeout(listEl._rowsTimer); // rows still waiting for a resize that's been cut short
     const startHeight = listEl.getBoundingClientRect().height;
     const lr = listEl.getBoundingClientRect();
     const was = [...listEl.querySelectorAll(':scope > .saved-import:not(.username-exit)')].map(r => {
@@ -629,16 +630,42 @@
     });
     // Coming in (or staying, gliding to their new spot): list 3's own code.
     listEl.querySelectorAll(':scope > .saved-import').forEach(r => { r.dataset.username = r.dataset.rowKey; });
-    const tops = new Map(prevTops);
-    animateResultsReentry(listEl, tops, new Map(), { rowSelector: '.saved-import' });
     const msg = listEl.querySelector(':scope > .dropdown-empty-message');
-    if (msg && !sameText) fadeEmptyIn(msg, left ? ROW_MOTION_MS : (ghosts.length ? EMPTY_FADE.duration : 0));
-    stepRowMotion();
-    // The list (and with it the window) eases to its new height.
+    // The list's height changes too. Resizing it while the rows slide cut
+    // them off at its moving edge, so the two take turns and every row
+    // plays list 3's full slide: shorter — the rows go first, then the
+    // list eases up; longer — the list eases down first, then the rows
+    // come in. (Its edge carries the close button and the window's edge.)
     const endHeight = listEl.getBoundingClientRect().height;
-    if (Math.abs(endHeight - startHeight) > 0.5) {
-      listEl.animate([{ height: `${startHeight}px`, overflow: 'hidden' }, { height: `${endHeight}px`, overflow: 'hidden' }],
-        { duration: ROW_MOTION_MS, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }); // the list 3 slide
+    const resize = Math.abs(endHeight - startHeight) > 0.5;
+    const grow = resize && endHeight > startHeight;
+    const ease = 'cubic-bezier(0.4, 0, 0.2, 1)'; // the list 3 slide
+    const tops = new Map(prevTops);
+    const rowsIn = () => {
+      listEl.querySelectorAll(':scope > .saved-import').forEach(r => { r.style.clipPath = ''; r.style.webkitClipPath = ''; });
+      animateResultsReentry(listEl, tops, new Map(), { rowSelector: '.saved-import' });
+      stepRowMotion();
+    };
+    const textIn = (delay) => { if (msg && !sameText) fadeEmptyIn(msg, delay); };
+    if (grow) {
+      // Hidden until their turn (each then slides in from its own top edge).
+      listEl.querySelectorAll(':scope > .saved-import').forEach(r => { if (!stay.has(r.dataset.rowKey) || !prevTops.has(r.dataset.rowKey)) { r.style.clipPath = 'inset(100% 0 0 0)'; r.style.webkitClipPath = 'inset(100% 0 0 0)'; } });
+      stepRowMotion();
+      listEl.animate([{ height: `${startHeight}px`, overflow: 'hidden' }, { height: `${endHeight}px`, overflow: 'hidden' }], { duration: ROW_MOTION_MS, easing: ease });
+      clearTimeout(listEl._rowsTimer);
+      listEl._rowsTimer = setTimeout(rowsIn, ROW_MOTION_MS);
+      textIn(ROW_MOTION_MS);
+    } else {
+      rowsIn();
+      textIn(left ? ROW_MOTION_MS : (ghosts.length ? EMPTY_FADE.duration : 0));
+      if (resize) {
+        // Held at its old height while the rows slide out, then eases up.
+        listEl.animate([
+          { height: `${startHeight}px`, overflow: 'hidden' },
+          { height: `${startHeight}px`, overflow: 'hidden', offset: 0.5, easing: ease },
+          { height: `${endHeight}px`, overflow: 'hidden' }
+        ], { duration: ROW_MOTION_MS * 2 });
+      }
     }
   }
   function closeSavedImports() {
