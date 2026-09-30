@@ -1145,10 +1145,52 @@ function deduplicateEntries(entries) {
 // UI Renderers & State Syncing
 // -------------------------------------------------------------
 
+// The lists' count badges ("N loaded" / "N found"): the number counts from
+// the old to the new exactly like the timeline legend and the stat boxes
+// (650ms, easing out, every number in between shows), and the pill eases
+// to its new width on the same curve instead of snapping.
+const COUNT_MS = 650;
+function setCountBadge(el, n, word) {
+  if (!el) return;
+  const text = `${n} ${word}`;
+  if (el._countRaf) { cancelAnimationFrame(el._countRaf); el._countRaf = null; }
+  const shown = parseInt(el.textContent, 10);
+  const from = Number.isFinite(el._countNow) ? el._countNow : shown;
+  const startWidth = el.getBoundingClientRect().width;
+  el.style.transition = 'none';
+  el.style.width = '';
+  el.textContent = text;
+  const endWidth = el.getBoundingClientRect().width;
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reset = () => {
+    el._countNow = undefined;
+    el._countRaf = null;
+    ['transition', 'width', 'boxSizing', 'overflow', 'whiteSpace'].forEach(p => { el.style[p] = ''; });
+  };
+  if (!Number.isFinite(from) || from === n || !startWidth || !endWidth || reduced) { reset(); return; }
+  el.style.boxSizing = 'border-box';
+  el.style.overflow = 'hidden';
+  el.style.whiteSpace = 'nowrap';
+  el.style.width = `${startWidth}px`;
+  void el.offsetWidth;
+  el.style.transition = `width ${COUNT_MS}ms cubic-bezier(0.33, 1, 0.68, 1)`;
+  el.style.width = `${endWidth}px`;
+  const t0 = performance.now();
+  const step = (now) => {
+    const t = Math.min(1, (now - t0) / COUNT_MS);
+    el._countNow = Math.round(from + (n - from) * (1 - Math.pow(1 - t, 3)));
+    el.textContent = `${el._countNow} ${word}`;
+    if (t < 1 && el.isConnected) el._countRaf = requestAnimationFrame(step);
+    else { el.textContent = text; reset(); }
+  };
+  el.textContent = `${from} ${word}`;
+  el._countRaf = requestAnimationFrame(step);
+}
+
 function updateListUI(type) {
   const listData = state[type];
   const countBadge = elements[`${type}Count`];
-  countBadge.textContent = `${listData.length} loaded`;
+  setCountBadge(countBadge, listData.length, 'loaded');
 
   // Dynamically show or hide the actions container (Clear button)
   const textarea = type === 'following' ? elements.inputFollowing : elements.inputFollowers;
@@ -1369,7 +1411,7 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
   }
 
   const count = state.unfollowers.length;
-  elements.unfollowersCount.textContent = `${count} found`;
+  setCountBadge(elements.unfollowersCount, count, 'found');
 
   const query = elements.searchUnfollowers.value.toLowerCase().trim();
   const filtered = state.unfollowers.filter(user => 
@@ -4077,7 +4119,7 @@ function updateInstructionsStepUI() {
       exitListRow(userRow, () => {
         state.unfollowers = state.unfollowers.filter(u => u.username !== username);
         state.selectedIndex = -1;
-        elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
+        setCountBadge(elements.unfollowersCount, state.unfollowers.length, 'found');
         updateStarredUI(username);
 
         if (getLiveUnfollowerRows().length === 0) {
@@ -4094,7 +4136,7 @@ function updateInstructionsStepUI() {
       exitListRow(userRow, () => {
         state.unfollowers = state.unfollowers.filter(u => u.username !== username);
         state.selectedIndex = -1;
-        elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
+        setCountBadge(elements.unfollowersCount, state.unfollowers.length, 'found');
 
         if (getLiveUnfollowerRows().length === 0) {
           updateResultsUI();
@@ -4885,7 +4927,7 @@ function updateInstructionsStepUI() {
     exitListRow(userRow, () => {
       state.unfollowers = state.unfollowers.filter(u => u.username !== username);
       if (!keepSelection) state.selectedIndex = -1;
-      elements.unfollowersCount.textContent = `${state.unfollowers.length} found`;
+      setCountBadge(elements.unfollowersCount, state.unfollowers.length, 'found');
       updateUnfollowedUI(username);
 
       if (getLiveUnfollowerRows().length === 0) {
