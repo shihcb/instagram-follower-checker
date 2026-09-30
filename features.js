@@ -410,12 +410,19 @@
     writeJSON(logKey(key), fresh);
     refreshSavedImports();
   }
+  // "@name" of the account whose imports these are ('' for none / the demo).
+  function accLabel(key) {
+    if (!key || key === '_global_' || key === DEMO_ID) return '';
+    const acc = (state.instagramAccounts || []).find(a => a.originalUsername.toLowerCase() === key);
+    return `@${acc ? acc.username : key}`;
+  }
   function refreshSavedImports() {
     const box = document.getElementById('saved-imports-box');
     if (!box) return;
     const key = accKey();
     const log = key === DEMO_ID ? [] : readJSON(logKey(key), []);
     const set = (id, text) => { const el = document.getElementById(id); if (el && el.textContent !== text) el.textContent = text; };
+    set('saved-imports-acc', accLabel(key));
     const fill = document.getElementById('saved-imports-fill');
     if (!log.length) {
       set('saved-imports-value', 'not started');
@@ -511,7 +518,7 @@
       savedOverlay.className = 'modal-overlay hidden export-overlay saved-imports-overlay';
       savedOverlay.innerHTML = `
         <div class="account-modal-card glass export-card">
-          <div class="account-modal-header"><h3>saved imports</h3></div>
+          <div class="account-modal-header"><h3>saved imports<span class="saved-imports-acc"></span></h3></div>
           <div class="saved-imports-chips"></div>
           <div class="insights-sub saved-imports-help">tap an import to download it.<br><b>full folder</b>: the exact files you uploaded, in a zip.<br><b>changes</b>: who followed or unfollowed since the import before it, in a spreadsheet.</div>
           <div class="export-options saved-imports-list"></div>
@@ -551,6 +558,7 @@
       return `<button type="button" class="account-chip${k === savedKey ? ' active' : ''}" data-saved-acc="${esc(k)}"><span class="chip-text">@${esc(a.username)}</span></button>`;
     }).join('');
     chips.hidden = accounts.length < 2;
+    savedOverlay.querySelector('.account-modal-header .saved-imports-acc').textContent = accLabel(savedKey);
     const log = savedKey === DEMO_ID ? [] : readJSON(logKey(savedKey), []);
     const listEl = savedOverlay.querySelector('.saved-imports-list');
     listEl.innerHTML = log.length ? log.slice().reverse().map(entry => {

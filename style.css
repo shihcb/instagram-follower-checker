@@ -6367,3 +6367,14 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 .saved-imports-chips[hidden] {
   display: none;
 }
+
+/* Whose saved imports: the account's name, in grey, after the heading. */
+.saved-imports-acc {
+  margin-left: 6px;
+  font-size: 0.78em;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.saved-imports-acc:empty {
+  display: none;
+}
