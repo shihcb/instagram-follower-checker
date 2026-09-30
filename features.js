@@ -585,11 +585,7 @@
     const html = savedRowsHtml(savedKey);
     if (!animate || typeof card.animate !== 'function') {
       listEl.querySelectorAll('.saved-import').forEach(stopRowMotion);
-      listEl.innerHTML = html;
-      if (fresh && typeof card.animate === 'function') {
-        // Opening: the imports come in like list 3's usernames do.
-        requestAnimationFrame(() => animateResultsReentry(listEl, new Map(), new Map(), { rowSelector: '.saved-import' }));
-      }
+      listEl.innerHTML = html; // opening: already in place (only a chip tap animates)
       return;
     }
     // What's on screen now, to slide from. (The list is what changes size:
