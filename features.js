@@ -137,6 +137,7 @@
   }
   function restore(snap) {
     if (snap.acc !== accKey()) return;
+    if (snap.cleared) { restoreClearedList(snap); return; }
     state.following = snap.following;
     state.unfollowed = snap.unfollowed;
     state.starred = snap.starred;
@@ -258,6 +259,40 @@
       offerUndo(snapshot(), `${name ? name.textContent.trim() : 'account'} unfollowed`);
     }
   }, true);
+
+  // Clearing list 1 or 2 can be undone too: the list's text comes back
+  // exactly as it was (the undo button, or the toast's undo).
+  function restoreClearedList(snap) {
+    const kind = snap.cleared;
+    const ta = kind === 'following' ? elements.inputFollowing : elements.inputFollowers;
+    state[kind] = snap.list;
+    ta.value = snap.text;
+    updateListUI(kind);
+    saveCurrentAccountData();
+    calculateUnfollowers({ animate: true });
+  }
+  [['following', 'clear-following', 'list 1'], ['followers', 'clear-followers', 'list 2']].forEach(([kind, id, label]) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const ta = kind === 'following' ? elements.inputFollowing : elements.inputFollowers;
+      if (!ta || ta.value.trim() === '') return;
+      const entry = { snap: { acc: accKey(), cleared: kind, list: state[kind].slice(), text: ta.value }, message: `${label} cleared` };
+      // After the text has faded out (smoothClearTextarea, 280ms).
+      setTimeout(() => {
+        undoStack.push(entry);
+        if (undoStack.length > 50) undoStack.shift();
+        refreshUndo();
+        showToast(`${label} cleared`, 'undo', () => {
+          const i = undoStack.indexOf(entry);
+          if (i < 0) return; // already undone with the undo button
+          undoStack.splice(i, 1);
+          refreshUndo();
+          afterSubmenusClose(() => restore(entry.snap));
+        });
+      }, 320);
+    }, true);
+  });
 
   // ---------- import history & changes ----------
   // At the end of every import (recordImportDate), compare the new lists

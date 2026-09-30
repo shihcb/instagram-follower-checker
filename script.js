@@ -2583,7 +2583,19 @@ function renderAccountChips(animate = false, { force = false } = {}) {
     }
     chip.setAttribute('data-index', index);
     const text = chip.querySelector('.chip-text');
-    if (text.textContent !== `@${acc.username}`) text.textContent = `@${acc.username}`;
+    if (text.textContent !== `@${acc.username}`) {
+      // Renamed: the chip eases from its old width to the new name's
+      // instead of snapping (the other chips slide along, below).
+      const oldWidth = chip.isConnected ? chip.getBoundingClientRect().width : 0;
+      text.textContent = `@${acc.username}`;
+      if (oldWidth && typeof chip.animate === 'function') {
+        const newWidth = chip.getBoundingClientRect().width;
+        if (Math.abs(newWidth - oldWidth) > 0.5) {
+          chip.animate([{ width: `${oldWidth}px` }, { width: `${newWidth}px` }],
+            { duration: CHIP_EXIT_MS, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' });
+        }
+      }
+    }
     chip.title = `@${acc.username}`; // the full name when it's cut off with "…"
     chip.classList.toggle('active', name === selected);
     // In order; only moved when it isn't already in place (moving an

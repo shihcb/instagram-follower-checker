@@ -5457,9 +5457,15 @@ button:focus-visible,
   overflow: hidden;
   transition: width 0.32s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.32s cubic-bezier(0.4, 0, 0.2, 1),
               margin-left 0.32s cubic-bezier(0.4, 0, 0.2, 1), padding 0.32s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.25s ease, border-width 0.32s ease !important;
+              border-width 0.32s ease !important;
 }
+/* No fade: the button just opens and closes. Fading it made its outline
+   look a different shade until the fade finished; it only turns invisible
+   once it has fully closed (so its shadow doesn't linger as a sliver). */
 .list-search-row > .preview-toggle.export-off {
+  transition: width 0.32s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+              margin-left 0.32s cubic-bezier(0.4, 0, 0.2, 1), padding 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+              border-width 0.32s ease, opacity 0s linear 0.32s !important;
   width: 0 !important;
   min-width: 0 !important;
   margin-left: -8px; /* the row's gap closes with it */
