@@ -2586,6 +2586,7 @@ function renderAccountChips(animate = false, { force = false } = {}) {
     chip.setAttribute('data-index', index);
     const text = chip.querySelector('.chip-text');
     if (text.textContent !== `@${acc.username}`) text.textContent = `@${acc.username}`;
+    chip.title = `@${acc.username}`; // the full name when it's cut off with "…"
     chip.classList.toggle('active', name === selected);
     // In order; only moved when it isn't already in place (moving an
     // element restarts its animations and transitions).

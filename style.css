@@ -1781,8 +1781,25 @@ body.hide-shortcuts #keyboard-hints {
   align-items: center;
   gap: 8px;
   flex-wrap: nowrap;
-  flex-shrink: 0;
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: visible;
+}
+
+/* Up to 3 chips always fit list 3's width, evenly: each is exactly a third
+   of the row (minus the two 8px gaps), so three fill it edge to edge, and
+   a username too long for its chip ends in "…" instead of running off. */
+.account-chips-list .account-chip {
+  flex: 0 0 calc((100% - 16px) / 3);
+  min-width: 0;
+  max-width: calc((100% - 16px) / 3);
+  padding: 0 12px;
+}
+.account-chip .chip-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .account-chip {
