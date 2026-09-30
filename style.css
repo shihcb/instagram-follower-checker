@@ -6372,3 +6372,11 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
   margin-bottom: 10px;
   text-align: center;
 }
+
+.saved-imports-help {
+  line-height: 1.6;
+}
+.saved-imports-help b {
+  color: var(--text-main);
+  font-weight: 600;
+}
