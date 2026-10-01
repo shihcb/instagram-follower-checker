@@ -1208,6 +1208,10 @@
   }
   function refreshView() {
     if (currentView === 'results' || !altView) return;
+    // Mid account switch (the last account's usernames still sliding out,
+    // the new ones waiting): any redraw waits for it to finish — redrawing
+    // now put the new usernames on screen over the leaving ones.
+    if (holdRedraw(altView, refreshView)) return;
     if (pageLoading) { settleRender(); return; }
     if (currentView === 'stats') { renderView(); return; }
     if (renderView(true) === altView._html) return; // nothing changed
@@ -1573,8 +1577,12 @@
     if (oldTl) oldTl.remove();
     body.querySelectorAll('.pane-leaving').forEach(el => el.remove());
     const rowsBefore = captureViewRows(body);
+    // Another account picked: its usernames only come in once the last
+    // account's have all slid out (compare doesn't depend on the account).
+    const accSwap = body._acc !== undefined && body._acc !== key && currentView !== 'compare';
+    body._acc = key;
     body.innerHTML = `<div class="insights-pane" data-view="${currentView}">${html}</div>`;
-    body._rowsSlid = !!safe(() => slideViewRows(body, rowsBefore), 'view rows');
+    body._rowsSlid = !!safe(() => slideViewRows(body, rowsBefore, accSwap), 'view rows');
     placeChangesIndicator();
     const newStats = body.querySelector('.insights-stats');
     if (newStats && oldStats) { newStats.replaceWith(oldStats); updateStats(oldStats, newStats); }
@@ -1625,7 +1633,7 @@
       if (play) out.ghosts.push({ text: m.textContent, play });
     });
     pane.querySelectorAll('.pending-list').forEach(list => {
-      if (!list.getClientRects().length) return;
+      if (!list.getClientRects().length || list.classList.contains('rows-waiting')) return;
       const tops = new Map(), rows = new Map();
       list.querySelectorAll(':scope > .user-row:not(.username-exit)').forEach(r => {
         stopRowMotion(r);
@@ -1641,7 +1649,7 @@
   // kept usernames glide to their spot, gone ones slide out (pinned where
   // they were drawn), new ones slide in, and an empty text that's now
   // showing fades in once the rows have gone — like list 3 itself.
-  function slideViewRows(body, before) {
+  function slideViewRows(body, before, accSwap = false) {
     if (!before) return false;
     const pane = body.querySelector(':scope > .insights-pane');
     if (!pane || pane.dataset.view !== before.view) return false;
@@ -1661,18 +1669,19 @@
     };
     let left = 0;
     const used = new Set();
+    const holdNewRows = [];
     lists.forEach(list => {
       const key = listKey(list);
       const was = before.lists.get(key);
-      if (!was) { animateResultsReentry(list, new Map()); return; }
+      if (!was) { if (accSwap) holdNewRows.push(list); else animateResultsReentry(list, new Map()); return; }
       used.add(key);
-      const stay = new Set([...list.querySelectorAll(':scope > .user-row')].map(r => r.dataset.username));
+      const stay = accSwap ? new Set() : new Set([...list.querySelectorAll(':scope > .user-row')].map(r => r.dataset.username));
       was.rows.forEach((rect, r) => {
         if (stay.has(r.dataset.username) || !onScreen(rect)) return;
         pinOut(list, rect, r);
         left++;
       });
-      animateResultsReentry(list, was.tops);
+      if (accSwap) holdNewRows.push(list); else animateResultsReentry(list, was.tops);
     });
     // Lists that are gone altogether (now empty): their rows slide out over
     // where they were, laid over the view's own box (never by making the
@@ -1685,8 +1694,33 @@
     });
     // Its empty text only once those rows have left.
     if (left) pane.querySelectorAll('.dropdown-empty-message').forEach(m => { if (m.getClientRects().length) fadeEmptyIn(m, ROW_MOTION_MS); });
+    if (accSwap && left > 0) body._swapUntil = performance.now() + ROW_MOTION_MS + 30;
+    holdNewRows.forEach(list => enterAfterExits(list, left > 0));
     stepRowMotion();
     return true;
+  }
+  // Another account's usernames: they wait (unseen) until the last
+  // account's have finished sliding out, then slide in like list 3's.
+  // While a host (a view, a results tab) is mid account switch, redraws
+  // wait: `redo` runs once the switch has played out.
+  function holdRedraw(host, redo) {
+    const left = (host._swapUntil || 0) - performance.now();
+    if (left <= 0) return false;
+    if (!host._redrawQueued) {
+      host._redrawQueued = true;
+      setTimeout(() => { host._redrawQueued = false; redo(); }, left + 20);
+    }
+    return true;
+  }
+  function enterAfterExits(list, wait) {
+    if (!wait) { animateResultsReentry(list, new Map()); return; }
+    list.classList.add('rows-waiting');
+    const token = (list._enterToken = {});
+    setTimeout(() => {
+      if (list._enterToken !== token || !list.isConnected) return;
+      list.classList.remove('rows-waiting');
+      animateResultsReentry(list, new Map());
+    }, ROW_MOTION_MS + 30);
   }
 
   // The stats graph. First time in: the bars grow up. Switching between
@@ -2133,7 +2167,10 @@
     if (!pane) return;
     const { sub, body } = extraContent(id);
     const sig = `${sub}|${body}`;
+    const accSwap = pane._acc !== undefined && pane._acc !== accKey();
+    pane._acc = accKey();
     if (pane._sig === sig) return;
+    if (animate && holdRedraw(pane, () => renderExtra(id, true))) return;
     pane._sig = sig;
     const old = pane.querySelector(':scope > .extra-body:not(.extra-leaving)');
     const fresh = document.createElement('div');
@@ -2146,7 +2183,7 @@
       pane.appendChild(fresh);
       return;
     }
-    swapPendingRows(pane, old, fresh); return;
+    swapPendingRows(pane, old, fresh, accSwap); return;
     const scroll = old.scrollTop;
     old.classList.add('extra-leaving');
     old.scrollTop = scroll;
@@ -2165,12 +2202,12 @@
   // Pending requests change like list 3's rows (an account picked, files
   // imported): the boxes on screen slide out, the new ones slide in, each
   // with list 3's own row slide (script.js's row engine).
-  function swapPendingRows(pane, old, fresh) {
+  function swapPendingRows(pane, old, fresh, accSwap = false) {
     // Exactly list 3's own row motion: usernames that stay keep their box
     // and glide to their new spot, gone ones slide out one by one where
     // they were, new ones slide in — the list as a whole never swaps.
     const before = { rows: new Map(), tops: new Map() };
-    old.querySelectorAll('.pending-list > .user-row:not(.username-exit)').forEach(r => {
+    old.querySelectorAll('.pending-list:not(.rows-waiting) > .user-row:not(.username-exit)').forEach(r => {
       stopRowMotion(r);
       const rect = r.getBoundingClientRect();
       before.tops.set(r.dataset.username, rect.top);
@@ -2181,8 +2218,11 @@
     const list = fresh.querySelector('.pending-list');
     if (!list) ghosts.length = 0; // still empty: the text stays as it is
     ghosts.forEach(play => play());
-    const left = pinRowsOut(list || fresh, before.rows, list);
-    if (list) animateResultsReentry(list, before.tops);
+    // Another account picked: every old row leaves, and the new ones only
+    // come in once they have.
+    const left = pinRowsOut(list || fresh, before.rows, accSwap ? null : list);
+    if (accSwap && left > 0) pane._swapUntil = performance.now() + ROW_MOTION_MS + 30;
+    if (list) { if (accSwap) enterAfterExits(list, left > 0); else animateResultsReentry(list, before.tops); }
     const msg = fresh.querySelector('.dropdown-empty-message');
     if (msg && left) fadeEmptyIn(msg, ROW_MOTION_MS);
     stepRowMotion();

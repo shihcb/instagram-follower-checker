@@ -6431,3 +6431,12 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 .results-extra {
   overflow-anchor: none;
 }
+
+/* Another account's usernames waiting for the last one's to finish
+   sliding out (features.js, enterAfterExits). */
+.pending-list.rows-waiting > .user-row:not(.username-exit) {
+  visibility: hidden;
+  /* Hidden at once: the rows' own transition eased visibility, so they
+     stayed on screen for its length, over the leaving ones. */
+  transition: none !important;
+}

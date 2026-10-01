@@ -1370,11 +1370,19 @@ async function forceReload() {
 
 function updateResultsUI({ animate = false, matchRenames = false } = {}) {
   const listEl = elements.listUnfollowers;
-  listEl._rowTailToken = null; // this render decides the rows now
-  listEl._swapToken = null; // and replaces any new list still waiting to come in
   // Another account's list (a chip picked): the old usernames slide all
   // the way out first, and only then do the new ones slide in.
   const freshSwap = !!state.freshRows && animate;
+  // A new list is still waiting for the old one to finish leaving: it's
+  // built from whatever the lists are when it comes in, so anything that
+  // redraws list 3 meanwhile (a cloud sync, another chip) just waits too.
+  // (Redrawing here used to drop the new usernames straight in, mid-exit.)
+  if (listEl._swapToken) {
+    state.freshRows = false;
+    setCountBadge(elements.unfollowersCount, state.unfollowers.length, 'found');
+    return;
+  }
+  listEl._rowTailToken = null; // this render decides the rows now
 
   // A chip picked or files imported: a new list, so every username slides
   // in together. A username that was already on screen (in both accounts,
@@ -1497,10 +1505,19 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
         listEl._swapToken = null;
         listEl.querySelectorAll('.user-row.username-exit[data-render-exit]').forEach(row => { stopRowMotion(row); row.remove(); });
         listEl.scrollTop = 0;
-        const cut = Math.min(filtered.length, initialRowBudget(listEl));
-        listEl.insertAdjacentHTML('afterbegin', filtered.slice(0, cut).map(renderUnfollowerRowHtml).join(''));
+        setCountBadge(elements.unfollowersCount, state.unfollowers.length, 'found');
+        const q = elements.searchUnfollowers.value.toLowerCase().trim();
+        const now = state.unfollowers.filter(user => user.originalUsername.toLowerCase().includes(q) || (user.fullName && user.fullName.toLowerCase().includes(q)));
+        if (!now.length) {
+          listEl.innerHTML = '';
+          listEl.classList.add('hidden');
+          showResultsEmpty(true);
+          return;
+        }
+        const cut = Math.min(now.length, initialRowBudget(listEl));
+        listEl.insertAdjacentHTML('afterbegin', now.slice(0, cut).map(renderUnfollowerRowHtml).join(''));
         animateResultsReentry(listEl, new Map(), new Map(), { enter: true });
-        appendRowTail(listEl, filtered, cut, ROW_TAIL_DELAY);
+        appendRowTail(listEl, now, cut, ROW_TAIL_DELAY);
       }, ROW_MOTION_MS + 30);
     } else if (flip && !listWasHidden) {
       const tail = reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, renamedFrom, keptExits });
