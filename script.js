@@ -3633,7 +3633,14 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   const isRow = (el) => el !== rowEl && !el.classList.contains('username-exit') && !el.classList.contains('row-exit-spacer') && !el.classList.contains('rows-more');
   let below = rowEl.nextElementSibling;
   while (below && !isRow(below)) below = below.nextElementSibling;
-  if (!below && !shrinkBox) {
+  // Any row of a list that's scrolled to (or within a row of) its end goes
+  // the same way: the rows below can't move up into its space there — the
+  // list can't scroll any further — so, just like the last row, it slides
+  // out where it is and then everything above it slides down to fill it.
+  const endScroller = rowScrollerOf(container);
+  const atListEnd = !!endScroller && endScroller.scrollTop > 0
+    && endScroller.scrollTop >= endScroller.scrollHeight - endScroller.clientHeight - exitDistance - 1;
+  if ((!below || atListEnd) && !shrinkBox) {
     rowEl.classList.add('username-exit');
     slideRowOut(rowEl, exitDistance, DURATION, () => {
       const spacer = document.createElement('div');
@@ -3664,6 +3671,19 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   const containerBefore = shrinkBox ? naturalContentHeight(container) : null;
   const boxNow = shrinkBox ? shrinkBox.offsetHeight : null;
 
+  // Every box that can scroll around the list (which one actually scrolls
+  // differs between phone and desktop layouts), and the page — and where
+  // each is scrolled, read BEFORE anything changes. (Reading it after the
+  // row came out of flow was too late: the list was already a row shorter
+  // there, and scrolled to the end it had already snapped down a row.)
+  const scrollers = [];
+  for (let el = container; el && el !== document.body && el !== document.documentElement; el = el.parentElement) {
+    if (/(auto|scroll)/.test(getComputedStyle(el).overflowY)) scrollers.push(el);
+  }
+  const page = document.scrollingElement || document.documentElement;
+  scrollers.push(page);
+  const kept = scrollers.map(el => el.scrollTop);
+
   // Take the row out of flow, pinned at its layout slot — the layered
   // shifts it's still doing keep it visually where it was.
   const rowTop = rowEl.offsetTop;
@@ -3676,37 +3696,33 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   rowEl.style.margin = '0';
   rowEl.style.zIndex = '1';
 
-  // AFTER: every row below moved up in layout by this removal alone; add
-  // exactly that as a new slide on top of whatever each is already doing.
-  siblings.forEach((el, i) => addRowShift(el, topsBefore[i] - el.offsetTop, DURATION));
-
   // The list keeps its length: only the row itself moves (it slides out,
-  // like any other removal), and its space stays at the end of the list
-  // instead of closing up. Closing it at the bottom of a scrolled list
-  // meant the whole list sliding down (or, on iPhone Safari, the scroll
-  // snapping) — the rest jumped. The space is taken away later, unseen:
-  // once it's scrolled out of view (dropExitSpacerWhenHidden), or when
-  // more usernames load into it.
+  // like any other removal), and its space goes to the end of the list —
+  // in the same step as the row leaves the flow, so there's never a moment
+  // the list is shorter. Closing it at the bottom of a scrolled list meant
+  // the whole list sliding down (or, on iPhone Safari, the scroll
+  // snapping). The space is taken away later, unseen: once it's scrolled
+  // out of view (dropExitSpacerWhenHidden), or when more usernames load
+  // into it.
+  let spacer = null;
   if (!shrinkBox) {
-    const spacer = document.createElement('div');
+    spacer = document.createElement('div');
     spacer.className = 'row-exit-spacer';
     spacer.setAttribute('aria-hidden', 'true');
     spacer.style.height = `${exitDistance}px`;
     container.appendChild(spacer);
-    // And the scroll stays exactly where it is while the row leaves. iPhone
-    // Safari still nudged the list down as the row came out of flow (its
-    // scroll length came up short), so every frame the scroll is put back —
-    // and if the scroll length did come up short, the space grows by just
-    // that much first. Touching or scrolling the list hands it back to you.
-    // Every box that can scroll around the list (which one actually
-    // scrolls differs between phone and desktop layouts), and the page.
-    const scrollers = [];
-    for (let el = container; el && el !== document.body && el !== document.documentElement; el = el.parentElement) {
-      if (/(auto|scroll)/.test(getComputedStyle(el).overflowY)) scrollers.push(el);
-    }
-    const page = document.scrollingElement || document.documentElement;
-    scrollers.push(page);
-    const kept = scrollers.map(el => el.scrollTop);
+  }
+
+  // AFTER: every row below moved up in layout by this removal alone; add
+  // exactly that as a new slide on top of whatever each is already doing.
+  siblings.forEach((el, i) => addRowShift(el, topsBefore[i] - el.offsetTop, DURATION));
+
+  if (spacer) {
+    // And the scroll stays exactly where it is while the row leaves: put
+    // back straight away (before anything is drawn) if Safari moved it,
+    // then every frame — and if the scroll length did come up short, the
+    // space grows by just that much first. Touching or scrolling the list
+    // hands it back to you.
     let spacerHeight = exitDistance;
     let released = false;
     const release = () => { released = true; };
