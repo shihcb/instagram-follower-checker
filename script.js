@@ -6011,7 +6011,7 @@ function initAuth() {
       elements.authSubmitBtn.textContent = 'log in';
       if (elements.btnForgotPassword) elements.btnForgotPassword.classList.remove('hidden');
     }
-    clearAuthAlerts();
+    clearAuthAlerts({ instant: true });
     if (typeof form.animate === 'function') {
       form.animate([{ transform: `translateX(${dir * width}px)`, opacity: 0.35 }, { transform: 'translateX(0)', opacity: 1 }], TAB_MOTION.in);
     }
@@ -6290,11 +6290,81 @@ function initAuth() {
   });
 }
 
-function clearAuthAlerts() {
-  elements.authErrorMsg.classList.add('hidden');
-  elements.authErrorMsg.textContent = '';
-  elements.authSuccessMsg.classList.add('hidden');
-  elements.authSuccessMsg.textContent = '';
+// The log-in window's warnings come and go like a list 3 username box
+// (list 3's row engine, the list 3 slide): one slides down out of its own
+// top edge while everything under it moves down to make room, and leaves
+// the same way backwards — slides up into its top edge while the rest
+// moves up into its space. The card eases to its new height alongside.
+// (They used to drop in from above with a fade, and just vanish.)
+// `text` null: hide it. `instant`: no motion (switching tabs, where the
+// whole form slides anyway).
+function setAuthAlert(el, text, { instant = false } = {}) {
+  if (!el) return;
+  const show = text != null;
+  const card = elements.authFormView;
+  const form = el.parentElement;
+  const leaving = !!el._alertLeaving;
+  const shown = !el.classList.contains('hidden') && !leaving;
+  const restore = () => {
+    el._alertLeaving = false;
+    stopRowMotion(el);
+    ['position', 'top', 'left', 'width', 'margin', 'zIndex'].forEach(k => { el.style[k] = ''; });
+  };
+  const canMove = !instant && card && form && card.getClientRects().length && typeof card.animate === 'function';
+  if (show && shown) { el.textContent = text; return; } // already there: just the new text
+  if (!show && !shown) {
+    if (instant && leaving) { restore(); el.classList.add('hidden'); el.textContent = ''; }
+    return;
+  }
+  if (!canMove) {
+    if (leaving) restore();
+    el.classList.toggle('hidden', !show);
+    el.textContent = show ? text : '';
+    return;
+  }
+  if (getComputedStyle(form).position === 'static') form.style.position = 'relative';
+  // What's under it, and where it all is now (layout positions: anything
+  // already moving keeps moving, and this change is added on top).
+  const below = [];
+  for (let n = el.nextElementSibling; n; n = n.nextElementSibling) if (n.getClientRects().length) below.push(n);
+  const topsBefore = below.map(n => n.offsetTop);
+  const heightBefore = card.offsetHeight; // mid-resize if one is playing
+  card.getAnimations().filter(an => an._alertResize).forEach(an => an.cancel());
+  if (show) {
+    if (leaving) restore(); // on its way out: it comes back in
+    el.textContent = text;
+    el.style.animation = 'none'; // not the old drop-in fade
+    el.classList.remove('hidden');
+  } else {
+    // Out of the flow, pinned where it is, while it slides away.
+    const top = el.offsetTop, left = el.offsetLeft, width = el.offsetWidth;
+    el._alertLeaving = true;
+    Object.assign(el.style, { position: 'absolute', top: `${top}px`, left: `${left}px`, width: `${width}px`, margin: '0', zIndex: '1' });
+  }
+  const heightAfter = card.offsetHeight;
+  // One row pitch: how far everything under it moves.
+  const pitch = below.length ? Math.abs(below[0].offsetTop - topsBefore[0]) : el.offsetHeight;
+  below.forEach((n, i) => addRowShift(n, topsBefore[i] - n.offsetTop, ROW_MOTION_MS));
+  if (show) slideRowIn(el, pitch, ROW_MOTION_MS);
+  else {
+    slideRowOut(el, pitch, ROW_MOTION_MS, () => {
+      if (!el._alertLeaving) return; // shown again meanwhile
+      restore();
+      el.classList.add('hidden');
+      el.textContent = '';
+    });
+  }
+  if (Math.abs(heightAfter - heightBefore) > 0.5) {
+    const an = card.animate([{ height: `${heightBefore}px`, overflow: 'hidden' }, { height: `${heightAfter}px`, overflow: 'hidden' }],
+      { duration: ROW_MOTION_MS, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' });
+    an._alertResize = true;
+  }
+  stepRowMotion();
+}
+
+function clearAuthAlerts({ instant = false } = {}) {
+  setAuthAlert(elements.authErrorMsg, null, { instant });
+  setAuthAlert(elements.authSuccessMsg, null, { instant });
 }
 
 function restartAlertAnimation(el) {
@@ -6304,15 +6374,13 @@ function restartAlertAnimation(el) {
 }
 
 function showAuthError(msg) {
-  elements.authErrorMsg.textContent = msg.toLowerCase();
-  elements.authErrorMsg.classList.remove('hidden');
-  restartAlertAnimation(elements.authErrorMsg);
+  setAuthAlert(elements.authSuccessMsg, null);
+  setAuthAlert(elements.authErrorMsg, msg.toLowerCase());
 }
 
 function showAuthSuccess(msg) {
-  elements.authSuccessMsg.textContent = msg.toLowerCase();
-  elements.authSuccessMsg.classList.remove('hidden');
-  restartAlertAnimation(elements.authSuccessMsg);
+  setAuthAlert(elements.authErrorMsg, null);
+  setAuthAlert(elements.authSuccessMsg, msg.toLowerCase());
 }
 
 // Sync helpers
