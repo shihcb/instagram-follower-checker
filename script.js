@@ -6095,7 +6095,10 @@ function initAuth() {
   // Handle Form Submission (Sign In or Sign Up)
   elements.authForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    clearAuthAlerts();
+    // A banner already showing stays put: the result decides — the same
+    // message leaves it as it is, another one changes its text, success
+    // swaps it for the success banner. (Clearing it first made every tap
+    // slide it out and straight back in.)
     
     const email = elements.authEmail.value.trim();
     const password = elements.authPassword.value;
@@ -6136,7 +6139,7 @@ function initAuth() {
   // Handle "forgot password?" click
   if (elements.btnForgotPassword) {
     elements.btnForgotPassword.addEventListener('click', async () => {
-      clearAuthAlerts();
+      // (No clearing first: see the form's submit.)
 
       const email = elements.authEmail.value.trim();
       if (!email) {
@@ -6311,7 +6314,28 @@ function setAuthAlert(el, text, { instant = false } = {}) {
     ['position', 'top', 'left', 'width', 'margin', 'zIndex'].forEach(k => { el.style[k] = ''; });
   };
   const canMove = !instant && card && form && card.getClientRects().length && typeof card.animate === 'function';
-  if (show && shown) { el.textContent = text; return; } // already there: just the new text
+  if (show && shown) {
+    // Already there: it stays put. Only a different message changes its
+    // text (and if that takes another line, what's under it and the card
+    // ease to the new size).
+    if (el.textContent === text) return;
+    const below = [];
+    for (let n = el.nextElementSibling; n; n = n.nextElementSibling) if (n.getClientRects().length) below.push(n);
+    const topsBefore = below.map(n => n.offsetTop);
+    const heightBefore = card ? card.offsetHeight : 0;
+    if (card) card.getAnimations().filter(an => an._alertResize).forEach(an => an.cancel());
+    el.textContent = text;
+    if (!canMove) return;
+    below.forEach((n, i) => addRowShift(n, topsBefore[i] - n.offsetTop, ROW_MOTION_MS));
+    const heightAfter = card.offsetHeight;
+    if (Math.abs(heightAfter - heightBefore) > 0.5) {
+      const an = card.animate([{ height: `${heightBefore}px`, overflow: 'hidden' }, { height: `${heightAfter}px`, overflow: 'hidden' }],
+        { duration: ROW_MOTION_MS, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' });
+      an._alertResize = true;
+    }
+    stepRowMotion();
+    return;
+  }
   if (!show && !shown) {
     if (instant && leaving) { restore(); el.classList.add('hidden'); el.textContent = ''; }
     return;
