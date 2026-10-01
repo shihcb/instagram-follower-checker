@@ -729,7 +729,7 @@
     // Back to its natural width once the resize has played (a width fixed
     // from a measurement taken before layout was 0 — just the icon showed).
     clearTimeout(win._widthTimer);
-    win._widthTimer = setTimeout(() => { win.style.width = ''; }, 360);
+    win._widthTimer = setTimeout(() => { win.style.width = ''; }, ROW_MOTION_MS + 40);
     if (typeof text.animate !== 'function') { old.remove(); return; }
     const timing = { duration: 450, easing: EASE };
     old.animate([{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: 'translateX(-16px)' }], { ...timing, fill: 'forwards' })
@@ -1396,7 +1396,7 @@
   // colors, and the legend's numbers count to the new ones — like the stat
   // boxes. `tl` stays on screen and takes on `fresh`.
   const TL_W = 320, TL_H = 150, TL_MS = 450;
-  const tlEase = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  const tlEase = rowEase; // the list 3 slide's curve
   function morphTimeline(tl, fresh) {
     const parse = (el) => (el.dataset.pts || '').split(';').filter(Boolean).map(p => p.split(',').map(Number));
     const from = tl._shape || parse(tl), to = parse(fresh);
@@ -1420,7 +1420,7 @@
       const t0 = performance.now();
       // Counted exactly like the stat boxes' numbers (updateStats): 650ms,
       // easing out, so every number in between shows.
-      const step = (now) => { const t = Math.min(1, (now - t0) / 450); b.textContent = Math.round(a + (z - a) * (1 - Math.pow(1 - t, 3))); if (t < 1 && b.isConnected) requestAnimationFrame(step); };
+      const step = (now) => { const t = Math.min(1, (now - t0) / 450); b.textContent = Math.round(a + (z - a) * rowEase(t)); if (t < 1 && b.isConnected) requestAnimationFrame(step); };
       b.textContent = a;
       requestAnimationFrame(step);
     });
@@ -1739,7 +1739,7 @@
       const a = parseInt(el.textContent, 10) || 0, b = parseInt(to, 10) || 0;
       const token = (el._countToken = {});
       const t0 = performance.now(), dur = 450;
-      const ease = (t) => 1 - Math.pow(1 - t, 3);
+      const ease = rowEase; // the list 3 slide's curve
       const step = (now) => {
         if (el._countToken !== token) return;
         const t = Math.min(1, (now - t0) / dur);
@@ -1764,7 +1764,7 @@
       card.classList.remove('card-flash');
       void card.offsetWidth;
       card.classList.add('card-flash');
-      setTimeout(() => card.classList.remove('card-flash'), 1300);
+      setTimeout(() => card.classList.remove('card-flash'), 950);
     } else if (i === 2) {
       showView('mutuals');
     } else if (i === 3) {

@@ -1205,7 +1205,7 @@ function setCountBadge(el, n, word) {
   const t0 = performance.now();
   const step = (now) => {
     const t = Math.min(1, (now - t0) / COUNT_MS);
-    el._countNow = Math.round(from + (n - from) * (1 - Math.pow(1 - t, 3)));
+    el._countNow = Math.round(from + (n - from) * rowEase(t)); // the list 3 slide's curve
     el.textContent = `${el._countNow} ${word}`;
     if (t < 1 && el.isConnected) el._countRaf = requestAnimationFrame(step);
     else { el.textContent = text; reset(); }

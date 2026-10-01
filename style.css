@@ -358,7 +358,7 @@ button,
   font-weight: 600;
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   border: none;
   font-size: 0.95rem;
   white-space: nowrap;
@@ -473,7 +473,7 @@ button:disabled *,
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .icon-btn:hover {
@@ -494,7 +494,7 @@ button:disabled *,
   box-shadow: var(--card-shadow);
   border-radius: 20px;
   overflow: hidden;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  transition: border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card {
@@ -694,7 +694,7 @@ button:disabled *,
   resize: none;
   outline: none;
   line-height: 1.6;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   opacity: 1 !important;
 }
 
@@ -781,7 +781,7 @@ button:disabled *,
   -ms-user-select: none !important;
   user-select: none !important;
   -webkit-touch-callout: none !important;
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.45s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
   background-color: var(--input-bg) !important;
   background: var(--input-bg) !important;
   border: 1px solid var(--input-border) !important;
@@ -1564,7 +1564,7 @@ body.hide-shortcuts #keyboard-hints {
   background: transparent !important;
   border: none !important;
   padding: 0 !important;
-  transition: color 0.25s ease, transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: color 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
   cursor: pointer !important;
   box-sizing: border-box !important;
 }
@@ -1843,7 +1843,7 @@ body.hide-shortcuts #keyboard-hints {
   -ms-user-select: none !important;
   user-select: none !important;
   -webkit-touch-callout: none !important;
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), width 0.45s cubic-bezier(0.4, 0, 0.2, 1), padding 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), width 0.45s cubic-bezier(0.4, 0, 0.2, 1), padding 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.08), 0 1px 3px -1px rgba(0, 0, 0, 0.04);
@@ -1855,7 +1855,7 @@ body.hide-shortcuts #keyboard-hints {
   border-color: #10b981 !important;
   color: #10b981 !important;
   box-shadow: 0 3px 12px -2px rgba(16, 185, 129, 0.25), 0 1px 4px -1px rgba(16, 185, 129, 0.15) !important;
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .account-chip.active:hover {
@@ -1871,7 +1871,7 @@ body.hide-shortcuts #keyboard-hints {
   border-color: #34d399 !important;
   color: #34d399 !important;
   box-shadow: 0 3px 14px -2px rgba(52, 211, 153, 0.3), 0 1px 5px -1px rgba(52, 211, 153, 0.2) !important;
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 [data-theme="dark"] .account-chip.active:hover {
@@ -1884,7 +1884,7 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 #btn-add-account {
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 /* Pseudo-element hover hitbox shield to prevent mouse cursor flickering on edges */
@@ -2106,7 +2106,7 @@ body.hide-shortcuts #keyboard-hints {
   color: var(--text-main) !important;
   cursor: pointer;
   padding: 0 4px;
-  transition: color 0.2s ease;
+  transition: color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   outline: none !important;
   box-shadow: none !important;
   -webkit-tap-highlight-color: transparent !important;
@@ -2249,7 +2249,7 @@ body.hide-shortcuts #keyboard-hints {
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  transition: color 0.3s ease;
+  transition: color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
   outline: none !important;
   position: relative;
@@ -2334,7 +2334,7 @@ body.hide-shortcuts #keyboard-hints {
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1), padding 0.45s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s ease;
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1), padding 0.45s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
 }
 
@@ -2654,7 +2654,7 @@ html.hide-shortcuts .account-chip-badge {
   height: 7px;
   border-radius: 50%;
   background-color: var(--card-border);
-  transition: all 0.25s ease;
+  transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
 }
 
@@ -2690,7 +2690,7 @@ html.hide-shortcuts .account-chip-badge {
   color: var(--text-main);
   font-size: 0.95rem;
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .account-modal-input-group input:focus {
@@ -2817,7 +2817,7 @@ html.hide-shortcuts .account-chip-badge {
   font-family: var(--font-sans);
   font-size: 0.9rem;
   outline: none;
-  transition: all 0.2s ease;
+  transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .search-box input:focus:not(:disabled) {
@@ -2904,7 +2904,7 @@ html.hide-shortcuts .account-chip-badge {
   border-radius: 10px;
   background-color: var(--card-bg);
   border: 1px solid var(--card-border);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   min-width: 0;
   gap: 8px;
@@ -3031,7 +3031,7 @@ html.hide-shortcuts .account-chip-badge {
 .action-arrow {
   transform: rotate(0deg);
   will-change: transform;
-  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s ease !important;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .action-arrow svg {
@@ -3092,16 +3092,14 @@ html.hide-shortcuts .account-chip-badge {
 }
 
 @keyframes chip-bounce-out {
-  0% {
+  /* A deleted chip: chip-fade-in played backwards (no pop). */
+  from {
     opacity: 1;
     transform: scale(1);
   }
-  30% {
-    transform: scale(1.12);
-  }
-  100% {
+  to {
     opacity: 0;
-    transform: scale(0.2);
+    transform: scale(0.85);
   }
 }
 
@@ -3312,7 +3310,7 @@ body.is-capacitor.auth-logged-out #theme-toggle {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .user-badge svg {
@@ -3520,9 +3518,10 @@ body.auth-logged-out #auth-form-view {
 }
 
 @keyframes auth-card-entrance {
+  /* The pop-ups' own entrance: 14px up, from 95%. */
   from {
     opacity: 0;
-    transform: translateY(30px) scale(0.92);
+    transform: translateY(14px) scale(0.95);
   }
   to {
     opacity: 1;
@@ -3793,7 +3792,7 @@ body.auth-logged-out #auth-form-view {
   padding: 26px 24px;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .feature-card:hover {
@@ -4094,14 +4093,9 @@ body:not(.auth-logged-out) #theme-toggle {
 }
 
 @keyframes alert-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(-18px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  /* Like every other text that comes and goes: a plain fade. */
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .auth-warning {
@@ -4711,15 +4705,14 @@ body.auth-logged-out #auth-form-view.smooth-exit {
 }
 
 @keyframes auth-card-smooth-exit {
+  /* The pop-ups' own exit: their entrance backwards. */
   0% {
     opacity: 1;
     transform: translateY(0) scale(1);
-    filter: blur(0px);
   }
   100% {
     opacity: 0;
-    transform: translateY(24px) scale(0.94);
-    filter: blur(6px);
+    transform: translateY(14px) scale(0.95);
   }
 }
 
@@ -4767,8 +4760,9 @@ body.auth-logged-out #auth-form-view.smooth-exit {
    overshoot (it used to bounce past its spot and grow past full size,
    which read as a jump). */
 @keyframes dropdown-empty-enter {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
+  /* The one empty-text fade (no rise). */
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* A single-row panel is slightly shorter than the empty state's natural
@@ -4931,7 +4925,7 @@ button:focus-visible,
   white-space: nowrap;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .toolbar-pill:disabled {
   opacity: 0.45;
@@ -4959,7 +4953,7 @@ button:focus-visible,
 #list-unfollowers.select-mode .user-row,
 .results-extra.select-mode .user-row {
   cursor: pointer;
-  transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  transition: background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 /* Selecting: each row's buttons slide out to the right and fade away, and
    slide back in when it ends — with the list 3 slide. */
@@ -5066,7 +5060,7 @@ body.select-active #card-followers {
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-  transition: color 0.3s ease, opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+  transition: color 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .row-select-bar button:disabled {
   opacity: 0.4;
@@ -5198,7 +5192,7 @@ body.select-active #card-followers {
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  transition: color 0.3s ease;
+  transition: color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
   outline: none !important;
   position: relative;
@@ -5409,7 +5403,7 @@ body.select-active #card-followers {
    to undo, then outlined green. */
 #btn-undo.undo-btn {
   opacity: 0.4;
-  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease, color 0.3s ease, background-color 0.3s ease !important;
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 /* Blue, the usual undo color (green means "on" elsewhere in the app). */
 #btn-undo.undo-btn.ready {
@@ -5461,7 +5455,7 @@ body.select-active #card-followers {
   font-weight: 600;
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.25s ease, background-color 0.25s ease;
+  transition: border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .export-option.on {
   border-color: #10b981;
@@ -5477,7 +5471,7 @@ body.select-active #card-followers {
   border: 1px solid var(--input-border);
   color: transparent;
   flex-shrink: 0;
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .export-option.on .export-check {
   background: #10b981;
@@ -5531,7 +5525,7 @@ body.select-active #card-followers {
 }
 .list-search-row > .export-wrap > .preview-toggle {
   flex: none;
-  transition: opacity 0s, background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease !important;
+  transition: opacity 0s, background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 /* Invisible only once fully closed (so no sliver of shadow lingers). */
 .list-search-row > .export-wrap > .preview-toggle.export-off {
@@ -5819,7 +5813,7 @@ select,
   justify-content: center;
   overflow: hidden;
   white-space: nowrap;
-  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s ease !important;
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 #btn-instructions-back {
   width: 36px;
@@ -6290,10 +6284,10 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 /* A stat box tapped (following / followers): its list gets a brief outline. */
 @keyframes card-flash {
   0%, 100% { box-shadow: var(--card-shadow), 0 0 0 0 transparent; }
-  30% { box-shadow: var(--card-shadow), 0 0 0 2px var(--text-main); }
+  50% { box-shadow: var(--card-shadow), 0 0 0 2px var(--text-main); }
 }
 .card.card-flash {
-  animation: card-flash 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: card-flash 0.9s cubic-bezier(0.4, 0, 0.2, 1) /* 0.45s in, 0.45s out */;
 }
 
 /* Settings: saved imports (features.js). Same box as the reminder above
@@ -6307,7 +6301,7 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
   cursor: pointer;
   -webkit-appearance: none;
   appearance: none;
-  transition: border-color 0.25s ease;
+  transition: border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 @media (hover: hover) {
   .saved-imports-box:hover {
