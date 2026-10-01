@@ -6366,6 +6366,10 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 }
 .saved-imports-nav .changes-nav {
   margin-bottom: 12px;
+  /* Hugs its tabs, like stats' switcher (a long one still scrolls). */
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .saved-imports-panes {
   position: relative;
@@ -6460,6 +6464,10 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
   }
   .app-grid > .mobile-list-nav .changes-nav {
     margin: 0;
+    /* Hugs its three tabs, like stats' switcher. */
+    width: fit-content;
+    max-width: 100%;
+    box-sizing: border-box;
   }
   .app-grid > .card:not(.mobile-on):not(.pane-out) {
     display: none !important;
