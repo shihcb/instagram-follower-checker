@@ -1371,6 +1371,10 @@ async function forceReload() {
 function updateResultsUI({ animate = false, matchRenames = false } = {}) {
   const listEl = elements.listUnfollowers;
   listEl._rowTailToken = null; // this render decides the rows now
+  listEl._swapToken = null; // and replaces any new list still waiting to come in
+  // Another account's list (a chip picked): the old usernames slide all
+  // the way out first, and only then do the new ones slide in.
+  const freshSwap = !!state.freshRows && animate;
 
   // A chip picked or files imported: a new list, so every username slides
   // in together. A username that was already on screen (in both accounts,
@@ -1421,7 +1425,7 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
       previousTops.set(row.dataset.username, null);
       previousRows.set(row, null);
     });
-    if (willEmpty !== false) {
+    if (willEmpty !== false || freshSwap) {
       liveRows.forEach(row => {
         const rect = row.getBoundingClientRect();
         previousTops.set(row.dataset.username, rect.top);
@@ -1483,7 +1487,22 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
     // Building every row of a big account at once (hundreds) stalled the
     // page before the first frame of the slide could paint, so the list
     // appeared already in place instead of sliding in.
-    if (flip && !listWasHidden) {
+    if (freshSwap && !listWasHidden && previousRows.size > 0) {
+      listEl.innerHTML = '';
+      keptExits.forEach(row => listEl.appendChild(row));
+      animateResultsExits(listEl, previousRows);
+      const token = (listEl._swapToken = {});
+      setTimeout(() => {
+        if (listEl._swapToken !== token) return;
+        listEl._swapToken = null;
+        listEl.querySelectorAll('.user-row.username-exit[data-render-exit]').forEach(row => { stopRowMotion(row); row.remove(); });
+        listEl.scrollTop = 0;
+        const cut = Math.min(filtered.length, initialRowBudget(listEl));
+        listEl.insertAdjacentHTML('afterbegin', filtered.slice(0, cut).map(renderUnfollowerRowHtml).join(''));
+        animateResultsReentry(listEl, new Map(), new Map(), { enter: true });
+        appendRowTail(listEl, filtered, cut, ROW_TAIL_DELAY);
+      }, ROW_MOTION_MS + 30);
+    } else if (flip && !listWasHidden) {
       const tail = reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, renamedFrom, keptExits });
       appendRowTail(listEl, filtered, tail, ROW_TAIL_DELAY);
     } else {
