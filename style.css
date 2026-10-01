@@ -4846,17 +4846,11 @@ button:focus-visible,
 
 
 /* List 3's rows added in batches after the first screenful
-   (appendRowTail in script.js — hundreds for a big account): the browser
-   skips laying out and painting them while they're scrolled out of view
-   (and remembers each one's size once shown), so adding them never
-   stalls the page. Not on the first screenful: those are measured right
-   away for their slide, before the browser knows they're on screen, and
-   would be measured at the placeholder size. */
+   (appendRowTail in script.js). They're laid out like every other row:
+   skipping off-screen ones (content-visibility) gave them a placeholder
+   height that changed to their real one as they scrolled into view —
+   the list's length changed under you and iPhone Safari snapped it. */
 .results-list .user-row.row-tail {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 41px; /* + padding + border = a 63px row */
-  /* A skipped row has no content size, so the list (a flex column) would
-     squeeze it to its padding while it's out of view. */
   flex-shrink: 0;
 }
 
@@ -6415,4 +6409,18 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
   margin: 0 !important;
   padding: 0 !important;
   pointer-events: none;
+}
+
+/* No scroll anchoring in the lists: newer iPhone Safari (and Chrome) shift
+   the scroll by themselves to keep what's on screen in place when space
+   changes above it — cancelling the rows' own slide and then snapping.
+   The app moves the rows itself (exitListRow / closeExitSpace). */
+#list-unfollowers,
+.results-extra .extra-body,
+.list3-alt-view,
+.dropdown-scroll-items,
+.saved-pane,
+.results-container,
+.results-extra {
+  overflow-anchor: none;
 }
