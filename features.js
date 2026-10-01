@@ -2042,14 +2042,17 @@
       // opens the profile; a miss in the buttons' area does nothing.)
       const pendRow = e.target.closest('.results-extra[data-sub="pending"] .user-row');
       if (pendRow && !e.target.closest('.action-arrow, .action-dismiss')) {
-        e.preventDefault();
+        // The username and picture are links: like list 3's, they open the
+        // profile themselves (on iPhone straight into the Instagram app);
+        // only a tap elsewhere on the row opens it from here.
+        const link = e.target.closest('a');
+        if (pendRow.classList.contains('username-exit')) { e.preventDefault(); return; }
         e.stopPropagation();
-        if (pendRow.classList.contains('username-exit')) return;
         const firstBtn = pendRow.querySelector('.action-star');
-        if (firstBtn && e.clientX >= firstBtn.getBoundingClientRect().left) return;
+        if (!link && firstBtn && e.clientX >= firstBtn.getBoundingClientRect().left) return;
         const user = (readExtraLists(state.selectedAccountUsername).pending || []).find(u => u.username === pendRow.dataset.username);
         if (!user) return;
-        openInstagramProfile(user.originalUsername || user.username, safeProfileUrl(user));
+        if (!link) openInstagramProfile(user.originalUsername || user.username, safeProfileUrl(user));
         movePending([user.username], 'unfollow', pendRow);
         return;
       }
