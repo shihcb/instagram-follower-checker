@@ -5,9 +5,13 @@
 // history, settings) lives in memory for this page and in the cloud
 // (pushToCloud / pullFromCloud): nothing is saved on the device. The one
 // exception is the login session Supabase keeps itself (sb-…-auth-token);
-// without it every reload would log you out.
+// without it every reload would log you out. And the light/dark choice
+// keeps a copy here too (THEME_DEVICE_KEY): the page has to know it before
+// it's drawn, long before the cloud answers — without it every reload
+// came up in the device's own theme.
 const memoryStore = new Map();
-const isSessionKey = (key) => /^sb-/.test(key) || key.indexOf('supabase') !== -1;
+const THEME_DEVICE_KEY = 'ig_theme';
+const isSessionKey = (key) => /^sb-/.test(key) || key.indexOf('supabase') !== -1 || key === THEME_DEVICE_KEY;
 // What an older version saved on this device: read in (so anything not yet
 // in the cloud still gets there on login), then deleted from the device
 // once the cloud has it (dropDeviceCopy, after the first good upload).
@@ -19,6 +23,8 @@ const oldDeviceKeys = [];
       if (key && !isSessionKey(key)) oldDeviceKeys.push(key);
     }
     oldDeviceKeys.forEach(key => memoryStore.set(key, localStorage.getItem(key)));
+    const theme = localStorage.getItem(THEME_DEVICE_KEY);
+    if (theme === 'dark' || theme === 'light') memoryStore.set('theme', theme);
   } catch (e) { /* no storage: nothing to read */ }
 })();
 function dropDeviceCopy() {
@@ -29,9 +35,11 @@ function storageGet(key) {
 }
 function storageSet(key, value) {
   memoryStore.set(key, String(value));
+  if (key === 'theme') { try { localStorage.setItem(THEME_DEVICE_KEY, String(value)); } catch (e) {} }
 }
 function storageRemove(key) {
   memoryStore.delete(key);
+  if (key === 'theme') { try { localStorage.removeItem(THEME_DEVICE_KEY); } catch (e) {} }
 }
 function storageKeys() {
   return [...memoryStore.keys()];
@@ -295,7 +303,7 @@ function cancelOverlayHide(overlay) {
 // and in, on a fast-start curve, read as the new page snapping in.) Only a
 // light dim on the way out and back up on the way in.
 const TAB_MOTION = {
-  in: { duration: 720, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }
+  in: { duration: 450, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }
 };
 TAB_MOTION.out = TAB_MOTION.in;
 TAB_MOTION.slide = TAB_MOTION.in; // (older name, kept for callers)
@@ -788,7 +796,7 @@ function calculateUnfollowers({ animate = false, matchRenames = false } = {}) {
 // right where it was (0.32s), laid over its box, while whatever replaces
 // it comes in — instead of vanishing. (One fade for all of them; they
 // come in with the same fade.)
-const EMPTY_FADE = { duration: 320, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' };
+const EMPTY_FADE = { duration: 450, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' };
 function fadeGhostOut(el) {
   const play = captureGhost(el);
   if (play) play();
@@ -1167,7 +1175,7 @@ function deduplicateEntries(entries) {
 // the old to the new exactly like the timeline legend and the stat boxes
 // (650ms, easing out, every number in between shows), and the pill eases
 // to its new width on the same curve instead of snapping.
-const COUNT_MS = 650;
+const COUNT_MS = 450;
 function setCountBadge(el, n, word) {
   if (!el) return;
   const text = `${n} ${word}`;
@@ -2818,7 +2826,7 @@ function applyAccountFromModal(username, index) {
 // A menu or window fading out over the chip row has mostly cleared by now.
 const OVERLAY_CLEAR_MS = 220; // pop-ups close with an even 450ms fade: ~70% gone by now
 const CHIP_EXIT_DELAY = OVERLAY_CLEAR_MS;
-const CHIP_EXIT_MS = 380;
+const CHIP_EXIT_MS = 450;
 let chipRenderHolds = 0; // chips still animating out (the row waits for all of them)
 
 function animateChipExit(chip) {
@@ -2919,7 +2927,7 @@ function deleteAccountFromModal() {
           // was the last chip, the row now closes — still held at its
           // height (minHeight) so it eases shut instead of snapping.
           renderAccountChips(false, { force: true });
-          setTimeout(() => { elements.accountChipsList.style.minHeight = ''; }, 420); // the row's 0.38s close
+          setTimeout(() => { elements.accountChipsList.style.minHeight = ''; }, 500); // the row's 0.45s close
         }, CHIP_EXIT_MS);
       });
     } else {
@@ -3179,7 +3187,7 @@ function cubicBezierEasing(x1, y1, x2, y2) {
 const rowEase = cubicBezierEasing(0.4, 0, 0.2, 1);
 // How long every row slide takes — list 3 and the submenus, in and out,
 // and the shifts around them. (Was 800ms; shorter feels snappier.)
-const ROW_MOTION_MS = 520;
+const ROW_MOTION_MS = 450;
 
 const rowMotion = new Map(); // element -> its active motion pieces
 let rowMotionFrame = null;
@@ -3810,14 +3818,14 @@ function animatePanelHeightChange(listEl, startedShown, startHeight) {
   const endHeight = listEl.offsetHeight;
   if (endHeight === startHeight) return;
 
-  const DURATION = 420;
+  const DURATION = 450;
   listEl.style.height = `${startHeight}px`;
   void listEl.offsetHeight; // commit the locked starting height before animating away from it
   // Combined with (not replacing) the panel's own opacity/transform
   // .show-class transition from CSS — an inline `transition` overrides
   // the stylesheet's outright, and losing that mid-resize would make the
   // panel snap instantly if the user closes it before this finishes.
-  listEl.style.transition = `height ${DURATION}ms cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)`;
+  listEl.style.transition = `height ${DURATION}ms cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)`;
   listEl.style.height = `${endHeight}px`;
 
   // A newer resize takes over: an older one's cleanup used to fire in the
@@ -4261,7 +4269,7 @@ function scrollInstructionsNav(nav, target) {
 // All three share one timing, so they stay joined the whole way.
 const IND_CAP = 9;       // cap width (a little over the corner radius)
 const IND_MID_BASE = 100; // the middle's unscaled width
-const IND_MS = 560;
+const IND_MS = 450;
 // A gentle glide that starts softly: the window's fast-start curve covered
 // most of the distance in the first few frames, which read as a snap.
 const IND_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
@@ -5404,7 +5412,7 @@ function applyGuestPreviewLock(isLoggedIn) {
 // get the fade a newly added chip gets, and list 3's usernames slide in
 // with list 3's own slide (the one switching accounts uses).
 function playAppEntrance() {
-  const ease = 'cubic-bezier(0.16, 1, 0.3, 1)';
+  const ease = 'cubic-bezier(0.4, 0, 0.2, 1)';
   const grid = elements.appGrid;
   document.body.classList.add('login-entering');
   setTimeout(() => document.body.classList.remove('login-entering'), 700);
@@ -5412,7 +5420,7 @@ function playAppEntrance() {
     grid.animate([
       { opacity: 0, transform: 'translateY(16px) scale(0.97)' },
       { opacity: 1, transform: 'none' }
-    ], { duration: 600, easing: ease });
+    ], { duration: 450, easing: ease });
   }
   if (elements.accountChipsList) {
     elements.accountChipsList.querySelectorAll('.account-chip').forEach(chip => {
@@ -5447,7 +5455,7 @@ function playAppExit() {
   const menu = elements.authDropdown;
   if (menu && menu.classList.contains('show') && typeof menu.animate === 'function') {
     appExitAnimations.push(menu.animate([{ opacity: 1 }, { opacity: 0 }],
-      { duration: 250, easing, fill: 'forwards' }));
+      { duration: 450, easing, fill: 'forwards' }));
   } else if (menu) {
     menu.classList.remove('show');
   }
@@ -5776,7 +5784,7 @@ function initAuth() {
           const landing = document.getElementById('landing-page-container');
           if (landing && typeof landing.animate === 'function') {
             landing.animate([{ opacity: 0 }, { opacity: 1 }],
-              { duration: 500, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' });
+              { duration: 450, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' });
           }
         } else {
           clearData();
@@ -5824,7 +5832,7 @@ function initAuth() {
 
   // Slides the auth card from one height to another, then hands it back to
   // its natural (auto) height. A newer resize takes over from an older one.
-  function resizeAuthCard(fromHeight, toHeight, transition = 'height 0.55s cubic-bezier(0.65, 0, 0.35, 1)') {
+  function resizeAuthCard(fromHeight, toHeight, transition = 'height 0.45s cubic-bezier(0.4, 0, 0.2, 1)') {
     const card = elements.authFormView;
     const token = (card._resizeToken = {});
     const unlock = () => {
@@ -5892,7 +5900,7 @@ function initAuth() {
       // Growing uses the site's fast-start ease-out, so the card is ~90% of
       // the way there by the time the taller form starts fading in (0.26s).
       if (endHeight > fromHeight + 0.5) {
-        resizeAuthCard(fromHeight, endHeight, 'height 0.5s cubic-bezier(0.16, 1, 0.3, 1)');
+        resizeAuthCard(fromHeight, endHeight, 'height 0.45s cubic-bezier(0.4, 0, 0.2, 1)');
       }
     }
 
@@ -5909,7 +5917,7 @@ function initAuth() {
     const form = elements.authForm;
     const SLIDE = 28;
     const outX = signup ? -SLIDE : SLIDE;
-    form.style.transition = 'opacity 0.26s cubic-bezier(0.4, 0, 0.2, 1), transform 0.26s cubic-bezier(0.4, 0, 0.2, 1)';
+    form.style.transition = 'opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)';
     form.style.opacity = '0';
     form.style.transform = `translateX(${outX}px)`;
 
@@ -5932,7 +5940,7 @@ function initAuth() {
       form.style.transform = `translateX(${-outX}px)`;
       void form.offsetWidth; // commit the start position before sliding from it
       // The tab switchers' motion (TAB_MOTION): 600ms slide, softer fade.
-      form.style.transition = 'opacity 0.56s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+      form.style.transition = 'opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
       form.style.opacity = '1';
       form.style.transform = 'translateX(0)';
       setTimeout(() => {

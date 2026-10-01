@@ -14,9 +14,8 @@
 (() => {
   const EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
   // One motion for everything inside list 3's tabs, matched to the tab
-  // highlight's glide (520ms): what leaves eases out in 200ms, what arrives
-  // glides in over 320ms on the highlight's curve, so it lands with it.
-  const GLIDE = 'cubic-bezier(0.32, 0.72, 0, 1)';
+  // highlight's glide: the list 3 slide, 450ms (the instructions window's timing).
+  const GLIDE = 'cubic-bezier(0.4, 0, 0.2, 1)';
   // Content changing inside a view (an account picked, files imported):
   // the instructions window's own motion — out like it closes, in like it
   // opens: an even 0.45s, fading while sinking 14px and easing to 95%.
@@ -24,7 +23,7 @@
   const MODAL_OUT = [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(14px) scale(0.95)' }];
   const MODAL_IN = [{ opacity: 0, transform: 'translateY(14px) scale(0.95)' }, { opacity: 1, transform: 'none' }];
   const LEAVE = { duration: 450, easing: MODAL_EASE, fill: 'forwards' };
-  const ARRIVE = { duration: 320, easing: GLIDE };
+  const ARRIVE = { duration: 450, easing: GLIDE };
   const SLIDE_X = 24; // tab switches slide sideways
   // Switching tabs: a push, like iOS navigation — the view you leave slides
   // fully out one side while the new one slides in from the other, edge to
@@ -51,7 +50,7 @@
   const byName = (list) => new Map((list || []).map(u => [u.username, u]));
   const animateIn = (el, from = 'translateY(6px)') => {
     if (el && typeof el.animate === 'function') {
-      el.animate([{ opacity: 0, transform: from }, { opacity: 1, transform: 'none' }], { duration: 380, easing: EASE });
+      el.animate([{ opacity: 0, transform: from }, { opacity: 1, transform: 'none' }], { duration: 450, easing: EASE });
     }
   };
 
@@ -182,7 +181,7 @@
     undoBtn.setAttribute('aria-disabled', ready ? 'false' : 'true');
     if (!ready) undoBtn.title = 'nothing to undo';
     if (ready && !was && typeof undoBtn.animate === 'function') {
-      undoBtn.animate([{ scale: 0.85 }, { scale: 1 }], { duration: 380, easing: EASE });
+      undoBtn.animate([{ scale: 0.85 }, { scale: 1 }], { duration: 450, easing: EASE });
     }
   }
   // An open unfollowed/starred submenu closes first (its usual close
@@ -732,7 +731,7 @@
     clearTimeout(win._widthTimer);
     win._widthTimer = setTimeout(() => { win.style.width = ''; }, 360);
     if (typeof text.animate !== 'function') { old.remove(); return; }
-    const timing = { duration: 320, easing: EASE };
+    const timing = { duration: 450, easing: EASE };
     old.animate([{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: 'translateX(-16px)' }], { ...timing, fill: 'forwards' })
       .finished.then(() => old.remove(), () => old.remove());
     text.animate([{ opacity: 0, transform: 'translateX(16px)' }, { opacity: 1, transform: 'translateX(0)' }], timing);
@@ -844,7 +843,7 @@
       count.textContent = text;
       const to = count.getBoundingClientRect().width;
       if (from && Math.abs(from - to) > 0.5 && selectBar.classList.contains('show') && typeof count.animate === 'function') {
-        count._anim = count.animate([{ width: `${from}px` }, { width: `${to}px` }], { duration: 260, easing: EASE });
+        count._anim = count.animate([{ width: `${from}px` }, { width: `${to}px` }], { duration: 450, easing: EASE });
       }
     }
     selectBar.querySelectorAll('[data-bulk]:not([data-bulk="cancel"])').forEach(b => { b.disabled = selected.size === 0; });
@@ -1094,7 +1093,7 @@
           const f = at.get(p) || { x: 0, o: 0.35 };
           const rel = f.x - (a ? a.x : 0);
           const to = rel < 0 ? rel - w * 0.5 : rel + w * 0.5;
-          if (typeof p.animate === 'function') p.animate([{ transform: `translateX(${rel}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: 0 }], { duration: 300, easing: TAB_MOTION.in.easing, fill: 'forwards' });
+          if (typeof p.animate === 'function') p.animate([{ transform: `translateX(${rel}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: 0 }], { duration: 450, easing: TAB_MOTION.in.easing, fill: 'forwards' });
           else p.remove();
         });
       }
@@ -1392,7 +1391,7 @@
   // (points travelling with them), the example's grey warms into the real
   // colors, and the legend's numbers count to the new ones — like the stat
   // boxes. `tl` stays on screen and takes on `fresh`.
-  const TL_W = 320, TL_H = 150, TL_MS = 900;
+  const TL_W = 320, TL_H = 150, TL_MS = 450;
   const tlEase = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
   function morphTimeline(tl, fresh) {
     const parse = (el) => (el.dataset.pts || '').split(';').filter(Boolean).map(p => p.split(',').map(Number));
@@ -1417,7 +1416,7 @@
       const t0 = performance.now();
       // Counted exactly like the stat boxes' numbers (updateStats): 650ms,
       // easing out, so every number in between shows.
-      const step = (now) => { const t = Math.min(1, (now - t0) / 650); b.textContent = Math.round(a + (z - a) * (1 - Math.pow(1 - t, 3))); if (t < 1 && b.isConnected) requestAnimationFrame(step); };
+      const step = (now) => { const t = Math.min(1, (now - t0) / 450); b.textContent = Math.round(a + (z - a) * (1 - Math.pow(1 - t, 3))); if (t < 1 && b.isConnected) requestAnimationFrame(step); };
       b.textContent = a;
       requestAnimationFrame(step);
     });
@@ -1485,12 +1484,12 @@
     const tl = scope && scope.querySelector('.timeline:not(.timeline-leaving)');
     const svg = tl && tl.querySelector('svg');
     if (!svg || typeof svg.animate !== 'function') return;
-    const D = 900, DELAY = 120;
+    const D = 450, DELAY = 120;
     svg.animate([{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)' }], { duration: D, delay: DELAY, easing: GLIDE, fill: 'backwards' });
     tl.querySelectorAll('.tl-dot').forEach(d => {
       const at = parseFloat(d.style.getPropertyValue('--x')) || 0;
       d.animate([{ opacity: 0, transform: 'translate(-50%, -50%) scale(0.3)' }, { opacity: 1, transform: 'translate(-50%, -50%) scale(1)' }],
-        { duration: 380, delay: DELAY + D * 0.75 * at, easing: EASE, fill: 'backwards' });
+        { duration: 450, delay: DELAY + D * 0.75 * at, easing: EASE, fill: 'backwards' });
     });
   }
 
@@ -1703,7 +1702,7 @@
       const pct = to.endsWith('%');
       const a = parseInt(el.textContent, 10) || 0, b = parseInt(to, 10) || 0;
       const token = (el._countToken = {});
-      const t0 = performance.now(), dur = 650;
+      const t0 = performance.now(), dur = 450;
       const ease = (t) => 1 - Math.pow(1 - t, 3);
       const step = (now) => {
         if (el._countToken !== token) return;
@@ -1758,7 +1757,7 @@
     if (!chart || typeof chart.animate !== 'function') return;
     chart.querySelectorAll('.trend-bar').forEach((bar, i) => bar.animate(
       [{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }],
-      { duration: 700, delay: i * 50, easing: GLIDE, fill: 'backwards' }));
+      { duration: 450, delay: i * 50, easing: GLIDE, fill: 'backwards' }));
   }
   function updateChart(wrap, fresh) {
     const cur = wrap.querySelector('.trend-chart:not(.trend-leaving)');
@@ -1785,7 +1784,7 @@
         if (!to || to === bar.style.height) return;
         const from = `${bar.getBoundingClientRect().height}px`;
         bar.style.height = to;
-        if (typeof bar.animate === 'function') bar.animate([{ height: from }, { height: to }], morph ? { duration: 900, easing: MODAL_EASE } : { duration: 520, easing: GLIDE });
+        if (typeof bar.animate === 'function') bar.animate([{ height: from }, { height: to }], { duration: 450, easing: MODAL_EASE });
       });
       applyPopped();
       return;
@@ -1800,11 +1799,11 @@
     if (typeof cur.animate !== 'function') { cur.remove(); return; }
     const h = wrap.clientHeight || 1;
     cur.animate([{ transform: `translateY(${fromY}px)`, opacity: 1 - Math.min(1, fromY / h) }, { transform: 'translateY(105%)', opacity: 0 }],
-      { duration: 650, easing: 'cubic-bezier(0.55, 0, 0.45, 1)', fill: 'forwards' })
+      { duration: 450, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' })
       .finished.then(() => cur.remove(), () => cur.remove());
     setTimeout(() => cur.remove(), 1100); // never left behind
     next.animate([{ transform: 'translateY(105%)', opacity: 0 }, { transform: 'translateY(0)', opacity: 1 }],
-      { duration: 750, delay: 520, easing: GLIDE, fill: 'backwards' });
+      { duration: 450, delay: 450, easing: GLIDE, fill: 'backwards' });
   }
 
   // ---------- tab switchers inside the views (changes, stats, results) ----------

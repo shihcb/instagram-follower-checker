@@ -27,9 +27,12 @@ Don't leave work only on a side branch or ask first.
 
 When the user says **"the list 3 slide"** (or "the app's animation", "same
 timing as everything else"), they mean the motion list 3's rows use:
-**520ms, `cubic-bezier(0.4, 0, 0.2, 1)`** — `ROW_MOTION_MS` and `rowEase`
-in `script.js` (in CSS: `0.52s cubic-bezier(0.4, 0, 0.2, 1)`). Use it for
-anything entering, leaving, resizing or sliding unless told otherwise.
+**450ms, `cubic-bezier(0.4, 0, 0.2, 1)`** — `ROW_MOTION_MS` and `rowEase`
+in `script.js` (in CSS: `0.45s cubic-bezier(0.4, 0, 0.2, 1)`). That's also
+exactly the instructions modal's open/close timing: every animation in the
+app (entering, leaving, resizing, sliding, tab switches, counters, charts)
+uses it unless told otherwise. Only hover/press color feedback, loading
+spinners and looping decorations are exempt.
 
 ## Saved import files live in Supabase Storage
 

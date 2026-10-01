@@ -42,10 +42,12 @@
   <script>
     (function() {
       document.documentElement.classList.add('preload');
-      // (The chosen theme comes from the cloud once logged in; until then,
-      // the device's own light/dark setting.)
+      // The light/dark choice (script.js keeps a copy on the device so it's
+      // there before the first paint); none chosen: the device's own.
+      var chosen = null;
+      try { chosen = localStorage.getItem('ig_theme'); } catch (e) {}
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const theme = prefersDark ? 'dark' : 'light';
+      const theme = (chosen === 'dark' || chosen === 'light') ? chosen : (prefersDark ? 'dark' : 'light');
       document.documentElement.setAttribute('data-theme', theme);
       document.querySelector('meta[name="color-scheme"]').setAttribute('content', theme === 'dark' ? 'dark' : 'light');
 
@@ -82,7 +84,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=406">
+  <link rel="stylesheet" href="style.css?v=407">
   <!-- Supabase Client Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -730,7 +732,7 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="script.js?v=393"></script>
-  <script src="features.js?v=136"></script>
+  <script src="script.js?v=394"></script>
+  <script src="features.js?v=137"></script>
 </body>
 </html>

@@ -66,7 +66,7 @@ html, body {
      All of them reference these instead of each owning their own copy,
      so they're structurally guaranteed to stay identical rather than
      needing to be kept in sync by hand. */
-  --list-item-motion-duration: 0.8s;
+  --list-item-motion-duration: 0.45s;
   --list-item-motion-easing: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Grayscale Theme Gradient Colors */
@@ -505,10 +505,10 @@ button:disabled *,
   min-width: 0;
   opacity: 1;
   transform: scale(1) translateY(0);
-  transition: flex 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: flex 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .card:hover {
@@ -615,7 +615,7 @@ button:disabled *,
   align-items: stretch;
   position: relative;
   margin-top: 0;
-  transition: margin-top 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: margin-top 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .import-account-warning {
@@ -660,11 +660,11 @@ button:disabled *,
     margin-bottom: -10px;
     overflow: hidden;
     will-change: max-height, opacity, transform, margin-bottom, padding;
-    transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-                opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-                transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-                margin-bottom 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-                padding 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+                margin-bottom 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+                padding 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .import-account-warning.hidden-warning {
     opacity: 0 !important;
@@ -728,10 +728,10 @@ button:disabled *,
   margin-bottom: -16px;
   overflow: hidden;
   will-change: max-height, opacity, margin-top, margin-bottom;
-  transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-              opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-              margin-top 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-              margin-bottom 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              margin-top 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              margin-bottom 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card-actions.show {
@@ -781,7 +781,7 @@ button:disabled *,
   -ms-user-select: none !important;
   user-select: none !important;
   -webkit-touch-callout: none !important;
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.4s ease, box-shadow 0.25s ease, opacity 0.4s ease !important;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.45s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
   background-color: var(--input-bg) !important;
   background: var(--input-bg) !important;
   border: 1px solid var(--input-border) !important;
@@ -858,7 +858,7 @@ button:disabled *,
   stroke: #000000 !important;
   position: relative;
   top: 1px;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 [data-theme="dark"] .preview-toggle .chevron-icon {
@@ -1083,14 +1083,14 @@ button:disabled *,
   border: 1px solid rgba(239, 68, 68, 0.3) !important;
   font-weight: 600 !important;
   border-radius: 12px !important;
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 #reset-unfollowed-btn svg,
 [data-theme="dark"] #reset-unfollowed-btn svg {
   color: #ef4444 !important;
   stroke: #ef4444 !important;
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 #reset-unfollowed-btn:hover,
@@ -1164,10 +1164,10 @@ button:disabled *,
   margin-left: 0 !important;
   opacity: 0;
   transform: scale(0);
-  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-              margin-left 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-              opacity 0.3s ease,
-              transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              margin-left 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .occupied-dot.on {
   width: 6px !important;
@@ -1428,13 +1428,13 @@ button:disabled *,
   transform: translateY(0) scale(1);
   overflow: hidden;
   will-change: max-height, opacity, transform, margin-top, margin-bottom, padding;
-  transition: max-height 0.8s cubic-bezier(0.25, 1, 0.5, 1),
-              opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1),
-              transform 0.8s cubic-bezier(0.25, 1, 0.5, 1),
-              margin-top 0.8s cubic-bezier(0.25, 1, 0.5, 1),
-              margin-bottom 0.8s cubic-bezier(0.25, 1, 0.5, 1),
-              padding 0.8s cubic-bezier(0.25, 1, 0.5, 1),
-              border-color 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+  transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              margin-top 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              margin-bottom 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .keyboard-hints.hidden-hints,
@@ -1564,7 +1564,7 @@ body.hide-shortcuts #keyboard-hints {
   background: transparent !important;
   border: none !important;
   padding: 0 !important;
-  transition: color 0.25s ease, transform 0.25s ease !important;
+  transition: color 0.25s ease, transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
   cursor: pointer !important;
   box-sizing: border-box !important;
 }
@@ -1760,12 +1760,12 @@ body.hide-shortcuts #keyboard-hints {
   opacity: 1;
   transform: translateY(0) scale(1);
   overflow: hidden;
-  transition: max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.34s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.38s cubic-bezier(0.4, 0, 0.2, 1),
-              margin-top 0.38s cubic-bezier(0.4, 0, 0.2, 1),
-              margin-bottom 0.38s cubic-bezier(0.4, 0, 0.2, 1),
-              padding 0.38s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              margin-top 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              margin-bottom 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .account-mgmt-row.empty-chips {
@@ -1843,7 +1843,7 @@ body.hide-shortcuts #keyboard-hints {
   -ms-user-select: none !important;
   user-select: none !important;
   -webkit-touch-callout: none !important;
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease, width 0.8s cubic-bezier(0.16, 1, 0.3, 1), padding 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), width 0.45s cubic-bezier(0.4, 0, 0.2, 1), padding 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.08), 0 1px 3px -1px rgba(0, 0, 0, 0.04);
@@ -1855,7 +1855,7 @@ body.hide-shortcuts #keyboard-hints {
   border-color: #10b981 !important;
   color: #10b981 !important;
   box-shadow: 0 3px 12px -2px rgba(16, 185, 129, 0.25), 0 1px 4px -1px rgba(16, 185, 129, 0.15) !important;
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease !important;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .account-chip.active:hover {
@@ -1871,7 +1871,7 @@ body.hide-shortcuts #keyboard-hints {
   border-color: #34d399 !important;
   color: #34d399 !important;
   box-shadow: 0 3px 14px -2px rgba(52, 211, 153, 0.3), 0 1px 5px -1px rgba(52, 211, 153, 0.2) !important;
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease !important;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 [data-theme="dark"] .account-chip.active:hover {
@@ -1884,7 +1884,7 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 #btn-add-account {
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease !important;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 /* Pseudo-element hover hitbox shield to prevent mouse cursor flickering on edges */
@@ -1919,7 +1919,7 @@ body.hide-shortcuts #keyboard-hints {
 
 #btn-add-account:active {
   transform: translateY(0) scale(0.96) !important;
-  transition: transform 0.1s ease !important;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .account-chip.no-active:active,
@@ -1940,7 +1940,7 @@ body.hide-shortcuts #keyboard-hints {
   font-weight: 500;
   line-height: 1;
   cursor: pointer;
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
   white-space: nowrap;
   box-sizing: border-box;
@@ -1958,9 +1958,9 @@ body.hide-shortcuts #keyboard-hints {
   line-height: 1;
   max-width: 220px;
   opacity: 1;
-  transition: max-width 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-              opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-              margin 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: max-width 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              margin 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-add-account.compact {
@@ -2183,7 +2183,7 @@ body.hide-shortcuts #keyboard-hints {
 .instructions-steps-nav {
   --nav-fade-l: 0px;
   --nav-fade-r: 0px;
-  transition: --nav-fade-l 0.25s ease, --nav-fade-r 0.25s ease;
+  transition: --nav-fade-l 0.45s cubic-bezier(0.4, 0, 0.2, 1), --nav-fade-r 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .instructions-steps-nav.fade-left { --nav-fade-l: 28px; }
 .instructions-steps-nav.fade-right { --nav-fade-r: 28px; }
@@ -2327,14 +2327,14 @@ body.hide-shortcuts #keyboard-hints {
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1), padding 0.35s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s ease;
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1), padding 0.45s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s ease;
   white-space: nowrap;
 }
 
 .btn-next-text-span {
   display: inline-block;
   white-space: nowrap;
-  transition: opacity 0.22s ease;
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-next-text-span.fade-out {
@@ -2532,12 +2532,12 @@ body.hide-shortcuts #keyboard-hints {
   white-space: nowrap;
   box-sizing: border-box;
   will-change: max-width, margin-right, opacity, transform, padding, border-color;
-  transition: max-width 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              margin-right 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              padding 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: max-width 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              margin-right 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 @media (min-width: 601px) {
@@ -2568,12 +2568,12 @@ body.hide-shortcuts #keyboard-hints {
   transform: scale(1);
   overflow: hidden;
   white-space: nowrap;
-  transition: max-width 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              margin-left 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              padding 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: max-width 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              margin-left 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 @media (max-width: 600px) {
@@ -2586,8 +2586,8 @@ body.hide-shortcuts #keyboard-hints {
 .shortcut-hint {
   opacity: 1;
   transform: scale(1);
-  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .hide-shortcuts .shortcut-hint,
@@ -2722,7 +2722,7 @@ html.hide-shortcuts .account-chip-badge {
   border: 1px solid rgba(239, 68, 68, 0.3) !important;
   font-weight: 600 !important;
   border-radius: 12px !important;
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 #btn-confirm-ok:hover,
@@ -2777,7 +2777,7 @@ html.hide-shortcuts .account-chip-badge {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  transition: gap 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: gap 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .search-row {
@@ -3024,11 +3024,11 @@ html.hide-shortcuts .account-chip-badge {
 .action-arrow {
   transform: rotate(0deg);
   will-change: transform;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s ease !important;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s ease !important;
 }
 
 .action-arrow svg {
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   transform-origin: center;
 }
 
@@ -3075,7 +3075,7 @@ html.hide-shortcuts .account-chip-badge {
 }
 
 .account-chip.fade-in {
-  animation: chip-fade-in 0.38s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: chip-fade-in 0.45s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 /* The first chip: its row is still opening (0.38s, clipped), so the chip
@@ -3099,7 +3099,7 @@ html.hide-shortcuts .account-chip-badge {
 }
 
 .account-chip.bounce-out {
-  animation: chip-bounce-out 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+  animation: chip-bounce-out 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
 }
 
 .action-star svg {
@@ -3132,10 +3132,10 @@ html.hide-shortcuts .account-chip-badge {
   .card {
     height: 500px;
     flex: none !important;
-    transition: height 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                border-color 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    transition: height 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
   }
 
   #card-unfollowers {
@@ -3467,7 +3467,7 @@ body.auth-logged-out:not(.is-logged-in) .auth-dropdown {
   opacity: 1 !important;
   pointer-events: auto !important;
   transform: scale(1) !important;
-  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 html.is-logged-in .auth-dropdown:not(.show) {
@@ -3505,7 +3505,7 @@ body.auth-logged-out #auth-form-view {
   flex-direction: column !important;
   gap: 14px !important;
   margin: 0 auto;
-  animation: auth-card-entrance 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: auth-card-entrance 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 [data-theme="light"] body.auth-logged-out #auth-form-view {
@@ -3786,7 +3786,7 @@ body.auth-logged-out #auth-form-view {
   padding: 26px 24px;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease;
 }
 
 .feature-card:hover {
@@ -4081,7 +4081,7 @@ body:not(.auth-logged-out) #theme-toggle {
 
 /* Warnings and Alerts */
 .auth-warning, .auth-error, .auth-success {
-  animation: alert-fade-in 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: alert-fade-in 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes alert-fade-in {
@@ -4193,7 +4193,7 @@ body:not(.auth-logged-out) #theme-toggle {
   cursor: pointer;
   text-align: center;
   text-transform: lowercase;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .auth-tab:hover {
@@ -4221,7 +4221,7 @@ body:not(.auth-logged-out) #theme-toggle {
 .auth-tab {
   position: relative;
   z-index: 1;
-  transition: color 0.55s cubic-bezier(0.65, 0, 0.35, 1);
+  transition: color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .auth-tab-indicator {
@@ -4234,7 +4234,7 @@ body:not(.auth-logged-out) #theme-toggle {
   background-color: #ffffff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08),
               0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); /* the tab switchers' timing */
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1); /* the tab switchers' timing */
   pointer-events: none;
 }
 
@@ -4251,7 +4251,7 @@ body:not(.auth-logged-out) #theme-toggle {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .form-group {
@@ -4276,7 +4276,7 @@ body:not(.auth-logged-out) #theme-toggle {
   font-family: inherit;
   font-size: 0.85rem;
   outline: none;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .form-group input:focus {
@@ -4312,8 +4312,8 @@ body:not(.auth-logged-out) #theme-toggle {
   visibility: hidden;
   pointer-events: none;
   will-change: opacity, visibility;
-  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-              visibility 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .love-overlay.show {
@@ -4340,8 +4340,8 @@ body:not(.auth-logged-out) #theme-toggle {
   opacity: 0;
   transform: scale(0.85) translateY(12px);
   will-change: opacity, transform;
-  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 [data-theme="dark"] .love-card {
@@ -4388,7 +4388,7 @@ body:not(.auth-logged-out) #theme-toggle {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   outline: none !important;
   box-shadow: none !important;
   -webkit-tap-highlight-color: transparent !important;
@@ -4490,7 +4490,7 @@ body:not(.auth-logged-out) #theme-toggle {
   bottom: 0;
   background-color: var(--btn-secondary-bg);
   border: 1px solid var(--card-border);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 34px;
 }
 
@@ -4507,7 +4507,7 @@ body:not(.auth-logged-out) #theme-toggle {
   left: 3px;
   bottom: 3px;
   background-color: var(--text-muted);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 50%;
 }
 
@@ -4596,7 +4596,7 @@ textarea {
   background: linear-gradient(90deg, var(--grad-2), var(--grad-3));
   border-radius: 3px;
   width: 0%;
-  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .storage-details {
@@ -4617,7 +4617,7 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  transition: border-color 0.4s ease;
+  transition: border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 [data-theme="light"] .reset-reminder-box {
@@ -4625,7 +4625,7 @@ textarea {
 }
 
 .reset-reminder-box .storage-progress-fill {
-  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1), background 0.4s ease;
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1), background 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .reset-reminder-box.overdue {
@@ -4656,7 +4656,7 @@ textarea {
 
 .auth-dropdown.fade-out-bounce,
 body.auth-logged-out .auth-dropdown.fade-out-bounce {
-  animation: auth-overlay-fade-out 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  animation: auth-overlay-fade-out 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
 }
 
 /* Logging in: the whole login page (headline, features, card) fades out
@@ -4681,7 +4681,7 @@ body.login-leaving #auth-btn {
 }
 body.login-entering .header-logo h1,
 body.login-entering #auth-btn {
-  animation: login-header-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: login-header-in 0.45s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 @keyframes login-header-in {
   from { opacity: 0; }
@@ -4699,7 +4699,7 @@ body.logout-leaving #auth-btn {
 /* Smooth reverse entrance exit for login card (mirrors entrance) */
 #auth-form-view.smooth-exit,
 body.auth-logged-out #auth-form-view.smooth-exit {
-  animation: auth-card-smooth-exit 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  animation: auth-card-smooth-exit 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
 }
 
 @keyframes auth-card-smooth-exit {
@@ -4774,7 +4774,7 @@ body.auth-logged-out #auth-form-view.smooth-exit {
 
 .dropdown-empty-message.empty-enter {
   /* The same fade as the empty text in list 3's tabs. */
-  animation: dropdown-empty-fade 0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: dropdown-empty-fade 0.45s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 @keyframes dropdown-empty-fade {
   from { opacity: 0; }
@@ -4890,7 +4890,7 @@ button:focus-visible,
   text-align: left;
   vertical-align: top;
   /* The pill resizes to its new label with list 3's easing. */
-  transition: width 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .sort-window .toolbar-pill-text {
   display: inline-block;
@@ -4923,7 +4923,7 @@ button:focus-visible,
   white-space: nowrap;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, opacity 0.3s ease;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .toolbar-pill:disabled {
   opacity: 0.45;
@@ -4957,7 +4957,7 @@ button:focus-visible,
    slide back in when it ends — with the list 3 slide. */
 #list-unfollowers .user-row-actions,
 .results-extra .user-row-actions {
-  transition: opacity 0.52s cubic-bezier(0.4, 0, 0.2, 1), transform 0.52s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 #list-unfollowers.select-mode .user-row-actions,
 .results-extra.select-mode .user-row-actions {
@@ -4991,7 +4991,7 @@ button:focus-visible,
   pointer-events: none;
   transform: translate(-50%, 16px) scale(0.96);
   /* The list 3 slide. */
-  transition: opacity 0.52s cubic-bezier(0.4, 0, 0.2, 1), transform 0.52s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .row-select-bar.show {
   opacity: 1;
@@ -5010,12 +5010,12 @@ button:focus-visible,
 #card-following,
 #card-followers {
   /* (The cards' own transitions, plus the blur.) */
-  transition: filter 0.52s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.52s cubic-bezier(0.4, 0, 0.2, 1),
-              flex 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              height 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: filter 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              flex 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              height 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 body.select-active #card-following,
 body.select-active #card-followers {
@@ -5058,7 +5058,7 @@ body.select-active #card-followers {
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-  transition: color 0.3s ease, opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+  transition: color 0.3s ease, opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
 }
 .row-select-bar button:disabled {
   opacity: 0.4;
@@ -5098,7 +5098,7 @@ body.select-active #card-followers {
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, 16px) scale(0.96);
-  transition: opacity 0.38s cubic-bezier(0.4, 0, 0.2, 1), transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .feature-toast.no-action {
   padding: 10px 16px;
@@ -5178,7 +5178,7 @@ body.select-active #card-followers {
   animation: none;
 }
 .toolbar-pill:disabled {
-  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .insights-tab {
   flex: 0 0 auto;
@@ -5207,7 +5207,7 @@ body.select-active #card-followers {
   min-height: 160px;
 }
 .insights-pane {
-  animation: paneFadeIn 0.25s ease-out;
+  animation: paneFadeIn 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .insights-sub {
   font-size: 0.76rem;
@@ -5271,7 +5271,7 @@ body.select-active #card-followers {
 }
 /* Fade in only when the view first shows, not on every update. */
 .insights-stats.stats-enter .insights-stat {
-  animation: chip-fade-in 0.38s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: chip-fade-in 0.45s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 .insights-stat-value {
   font-family: 'Outfit', sans-serif;
@@ -5322,7 +5322,7 @@ body.select-active #card-followers {
   border-bottom: none;
   box-sizing: border-box;
   transform-origin: bottom;
-  transition: transform 0.52s cubic-bezier(0.32, 0.72, 0, 1); /* the tabs' glide */
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1); /* the tabs' glide */
 }
 /* Its box tapped: popped out and stays out. */
 .trend-bar.bar-on {
@@ -5401,7 +5401,7 @@ body.select-active #card-followers {
    to undo, then outlined green. */
 #btn-undo.undo-btn {
   opacity: 0.4;
-  transition: opacity 0.3s ease, border-color 0.3s ease, color 0.3s ease, background-color 0.3s ease !important;
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease, color 0.3s ease, background-color 0.3s ease !important;
 }
 /* Blue, the usual undo color (green means "on" elsewhere in the app). */
 #btn-undo.undo-btn.ready {
@@ -5469,7 +5469,7 @@ body.select-active #card-followers {
   border: 1px solid var(--input-border);
   color: transparent;
   flex-shrink: 0;
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .export-option.on .export-check {
   background: #10b981;
@@ -5508,11 +5508,11 @@ body.select-active #card-followers {
   padding: 4px;
   margin: -4px -4px -4px -4px;
   overflow: hidden;
-  /* The list 3 slide: 520ms, cubic-bezier(0.4, 0, 0.2, 1) — the same
+  /* The list 3 slide: 450ms, cubic-bezier(0.4, 0, 0.2, 1) — the same
      motion as list 3's rows (ROW_MOTION_MS / rowEase in script.js). */
-  transition: width 0.52s cubic-bezier(0.4, 0, 0.2, 1),
-              padding 0.52s cubic-bezier(0.4, 0, 0.2, 1),
-              margin 0.52s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              margin 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .list-search-row > .export-wrap.export-off {
   width: 0;
@@ -5529,7 +5529,7 @@ body.select-active #card-followers {
 .list-search-row > .export-wrap > .preview-toggle.export-off {
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0s linear 0.52s !important;
+  transition: opacity 0s linear 0.45s !important;
 }
 .list-search-row .no-anim,
 .list-search-row .no-anim.export-off {
@@ -5706,7 +5706,7 @@ select,
 .insights-stat[style*="--stat"] {
   border-color: color-mix(in srgb, var(--stat) 70%, transparent) !important;
   background: color-mix(in srgb, var(--stat) 26%, transparent) !important;
-  transition: box-shadow 0.52s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: box-shadow 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .insights-stat[style*="--stat"].stat-on {
   box-shadow: 0 0 0 1.5px var(--stat) inset;
@@ -5811,7 +5811,7 @@ select,
   justify-content: center;
   overflow: hidden;
   white-space: nowrap;
-  transition: opacity 0.3s ease, background-color 0.25s ease !important;
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s ease !important;
 }
 #btn-instructions-back {
   width: 36px;
@@ -5832,7 +5832,7 @@ select,
 #btn-instructions-next .btn-next-text-span {
   display: inline-flex;
   align-items: center;
-  transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 #btn-instructions-next .btn-next-text-span {
   position: absolute;
@@ -6127,17 +6127,17 @@ select,
 /* The timeline's colors ease between the example's grey and the real
    colors as its lines move (morphTimeline). */
 .tl-line {
-  transition: stroke 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: stroke 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .tl-dot {
-  transition: border-color 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .timeline-key i {
-  transition: background-color 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .timeline-mock .timeline-key b {
   color: var(--text-muted);
-  transition: color 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 /* The results switcher keeps its own layout while it slides away: made a
    flex row by .view-leaving, its tab strip grew to fit every tab and lost
@@ -6219,9 +6219,9 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 /* The bars' colors ease between the example's grey and their boxes'
    colors as they morph (updateChart). */
 .trend-bar {
-  transition: transform 0.52s cubic-bezier(0.32, 0.72, 0, 1),
-              background-color 0.9s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 /* Usernames never underline (tapped, held, hovered, select mode). */
 .user-link,
