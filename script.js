@@ -5948,97 +5948,84 @@ function initAuth() {
       if (e.target === card && e.propertyName === 'height') finish();
     }
     card.addEventListener('transitionend', onCardResized);
-    setTimeout(finish, 650); // in case the transition gets interrupted
+    setTimeout(finish, ROW_MOTION_MS + 150); // in case the transition gets interrupted
   }
 
   function switchTab(signup) {
-    const current = requestedSigningUp === null ? isSigningUp : requestedSigningUp;
-    if (current === signup) return;
-    requestedSigningUp = signup;
+    if (isSigningUp === signup) return;
+    requestedSigningUp = null;
 
-    // The card slides to its new height rather than snapping (the log-in
-    // form is taller — it has the forgot-password link). Work out that
-    // height now, by briefly applying the new tab's differences and
-    // measuring: when the card has to GROW it starts right away, while the
-    // old form slides out, so the taller form never appears inside a card
-    // still too short for it (its bottom — the log-in button — used to be
-    // cut off until the card caught up). When it SHRINKS it waits for the
-    // swap, so the outgoing, taller form isn't cut off either.
+    // Switching is list 3's tab push, with the list 3 slide's timing
+    // (TAB_MOTION, 450ms): the form you leave slides fully out one side
+    // while the other slides in from the other side, at the same time, in
+    // the direction the tab highlight moves — and the card eases to the
+    // new form's height over the same 450ms. (It used to fade the form out,
+    // swap it partway through, slide it back in over 600ms on another
+    // curve, and resize on its own schedule.)
     const card = elements.authFormView;
-    let fromHeight = null;
-    let endHeight = null;
+    const form = elements.authForm;
+    const fromHeight = card ? card.offsetHeight : null; // mid-resize if a switch is still playing
+    const endHeight = card ? measureAuthCardHeightFor(signup) : null;
     if (card) {
-      fromHeight = card.offsetHeight; // mid-resize if a previous switch is still animating
-      endHeight = measureAuthCardHeightFor(signup);
       // Only the card resizes: its container keeps the taller tab's height,
-      // so the page below doesn't slide up and down with it (it used to).
+      // so the page below doesn't slide up and down with it.
       const holder = card.parentElement;
-      if (holder) {
-        const tallest = Math.max(endHeight, measureAuthCardHeightFor(!signup));
-        holder.style.minHeight = `${tallest}px`;
-      }
-      card.style.transition = 'none';
-      card.style.height = fromHeight + 'px';
-      card.style.overflow = 'hidden';
-      // Growing uses the site's fast-start ease-out, so the card is ~90% of
-      // the way there by the time the taller form starts fading in (0.26s).
-      if (endHeight > fromHeight + 0.5) {
-        resizeAuthCard(fromHeight, endHeight, 'height 0.45s cubic-bezier(0.4, 0, 0.2, 1)');
-      }
+      if (holder) holder.style.minHeight = `${Math.max(endHeight, measureAuthCardHeightFor(!signup))}px`;
     }
 
-    // The tab switcher's pill and the tab labels move right away — the pill
-    // glides across (see .auth-tab-indicator in style.css).
+    // The tab highlight glides across (.auth-tab-indicator, 0.45s).
     elements.tabLogin.classList.toggle('active', !signup);
     elements.tabSignup.classList.toggle('active', signup);
     const tabsBar = elements.tabLogin.parentElement;
     if (tabsBar) tabsBar.classList.toggle('signup-active', signup);
 
-    // The form slides out towards the side the pill is leaving from, and
-    // the other form slides in from the opposite side — a slow sideways
-    // slide in the same direction as the pill, with the site's easing.
-    const form = elements.authForm;
-    const SLIDE = 28;
-    const outX = signup ? -SLIDE : SLIDE;
-    form.style.transition = 'opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)';
-    form.style.opacity = '0';
-    form.style.transform = `translateX(${outX}px)`;
+    // What's on screen now leaves as a copy, so the real form can come in
+    // at the same time (its fields keep what's typed in them).
+    const dir = signup ? 1 : -1; // sign up is the right-hand tab
+    const width = (card && card.clientWidth) || form.offsetWidth || 320;
+    let ghost = null;
+    if (card && typeof form.animate === 'function') {
+      card.querySelectorAll(':scope > .auth-form-ghost').forEach(el => el.remove());
+      const at = new DOMMatrixReadOnly(getComputedStyle(form).transform).m41 || 0;
+      form.getAnimations().forEach(an => an.cancel());
+      if (getComputedStyle(card).position === 'static') card.style.position = 'relative';
+      ghost = form.cloneNode(true);
+      ghost.classList.add('auth-form-ghost');
+      ghost.removeAttribute('id');
+      ghost.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+      ghost.querySelectorAll('input').forEach((el, i) => { el.value = form.querySelectorAll('input')[i].value; });
+      ghost.setAttribute('aria-hidden', 'true');
+      ghost.inert = true;
+      Object.assign(ghost.style, { position: 'absolute', top: `${form.offsetTop}px`, left: `${form.offsetLeft}px`, width: `${form.offsetWidth}px`, margin: '0', pointerEvents: 'none' });
+      card.appendChild(ghost);
+      ghost.animate([{ transform: `translateX(${at}px)`, opacity: 1 }, { transform: `translateX(${-dir * width}px)`, opacity: 0.35 }],
+        { ...TAB_MOTION.in, fill: 'forwards' }).finished.then(() => ghost.remove(), () => ghost.remove());
+      setTimeout(() => ghost.remove(), TAB_MOTION.in.duration + 300);
+    }
 
-    setTimeout(() => {
-      // A later click already asked for the other tab — let it win.
-      if (requestedSigningUp !== signup) return;
-      requestedSigningUp = null;
-      isSigningUp = signup;
-      if (signup) {
-        elements.authSubmitBtn.textContent = 'sign up';
-        if (elements.btnForgotPassword) elements.btnForgotPassword.classList.add('hidden');
-      } else {
-        elements.authSubmitBtn.textContent = 'log in';
-        if (elements.btnForgotPassword) elements.btnForgotPassword.classList.remove('hidden');
-      }
-      clearAuthAlerts();
+    isSigningUp = signup;
+    if (signup) {
+      elements.authSubmitBtn.textContent = 'sign up';
+      if (elements.btnForgotPassword) elements.btnForgotPassword.classList.add('hidden');
+    } else {
+      elements.authSubmitBtn.textContent = 'log in';
+      if (elements.btnForgotPassword) elements.btnForgotPassword.classList.remove('hidden');
+    }
+    clearAuthAlerts();
+    if (typeof form.animate === 'function') {
+      form.animate([{ transform: `translateX(${dir * width}px)`, opacity: 0.35 }, { transform: 'translateX(0)', opacity: 1 }], TAB_MOTION.in);
+    }
 
-      // Slide the new form in from the other side.
-      form.style.transition = 'none';
-      form.style.transform = `translateX(${-outX}px)`;
-      void form.offsetWidth; // commit the start position before sliding from it
-      // The tab switchers' motion (TAB_MOTION): 600ms slide, softer fade.
-      form.style.transition = 'opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
-      form.style.opacity = '1';
-      form.style.transform = 'translateX(0)';
+    // The card: clipped while the two slide across it, easing to the new
+    // height alongside them.
+    if (card) {
+      const token = (card._slideToken = {});
+      resizeAuthCard(fromHeight, endHeight, `height ${TAB_MOTION.in.duration}ms cubic-bezier(0.4, 0, 0.2, 1)`);
+      card.style.overflow = 'hidden';
       setTimeout(() => {
-        if (requestedSigningUp === null) {
-          form.style.transition = '';
-          form.style.transform = '';
-          form.style.opacity = '';
-        }
-      }, 620);
-
-      // Shrinking (or unchanged): resize now that the smaller form is in.
-      if (card && endHeight !== null && endHeight <= fromHeight + 0.5) {
-        resizeAuthCard(card.offsetHeight, endHeight);
-      }
-    }, 260);
+        if (card._slideToken === token && !card.style.height) card.style.overflow = '';
+      }, TAB_MOTION.in.duration + 40);
+    }
   }
 
   // Heights change with the width, so re-measure on the next switch.
