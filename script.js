@@ -3647,36 +3647,28 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   const atListEnd = !!endScroller && endScroller.scrollTop > 0
     && endScroller.scrollTop >= endScroller.scrollHeight - endScroller.clientHeight - exitDistance - 1;
   if ((!below || atListEnd) && !shrinkBox) {
-    // All in one go, with the same timing as a removal near the top: the
-    // row slides out while the rows above slide down into its space. Its
-    // space is handed to a blank of exactly its size in the same step it
-    // leaves the flow (the scroll is read first and put straight back if
-    // Safari moved it), and that blank closes as the one at the list's
-    // top opens (closeExitSpace) — the list's length never changes.
-    const scroller = rowScrollerOf(container);
-    const kept = scroller ? scroller.scrollTop : 0;
-    const rowTop = rowEl.offsetTop;
-    const rowLeft = rowEl.offsetLeft;
-    const rowWidth = rowEl.offsetWidth;
-    const spacer = document.createElement('div');
-    spacer.className = 'row-exit-spacer';
-    spacer.setAttribute('aria-hidden', 'true');
-    spacer.style.height = `${exitDistance}px`;
-    container.insertBefore(spacer, rowEl.nextSibling);
-    rowEl.style.position = 'absolute';
-    rowEl.style.top = `${rowTop}px`;
-    rowEl.style.left = `${rowLeft}px`;
-    rowEl.style.width = `${rowWidth}px`;
-    rowEl.style.margin = '0';
-    rowEl.style.zIndex = '1';
-    if (scroller) { void scroller.offsetHeight; if (Math.abs(scroller.scrollTop - kept) > 0.5) scroller.scrollTop = kept; }
+    // In two steps, so the two never overlap (done at once, the rows above
+    // slid down over the one still leaving and showed bits of it): first
+    // the row slides out right where it is, never leaving the layout; once
+    // it's fully gone a blank of exactly its size takes its place, and the
+    // rows above slide down into it (closeExitSpace) — the list's length
+    // never changes.
     rowEl.classList.add('username-exit');
     slideRowOut(rowEl, exitDistance, DURATION, () => {
-      rowEl.remove();
+      const spacer = document.createElement('div');
+      spacer.className = 'row-exit-spacer';
+      spacer.setAttribute('aria-hidden', 'true');
+      spacer.style.height = `${exitDistance}px`;
+      const scroller = rowScrollerOf(container);
+      const kept = scroller ? scroller.scrollTop : 0;
+      if (rowEl.parentElement) rowEl.replaceWith(spacer); else rowEl.remove();
+      // Same length as before, so the scroll can't have to move: if Safari
+      // moved it anyway (it did, now and then), it goes straight back.
+      if (scroller) { void scroller.offsetHeight; if (Math.abs(scroller.scrollTop - kept) > 0.5) scroller.scrollTop = kept; }
       onComplete();
+      closeExitSpace(spacer, exitDistance, DURATION, exitDone);
     });
     onRowExitStarted(rowEl);
-    closeExitSpace(spacer, exitDistance, DURATION, exitDone);
     stepRowMotion();
     return;
   }
