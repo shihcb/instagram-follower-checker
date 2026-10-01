@@ -1752,6 +1752,9 @@
   // back → mutuals, don't follow you back → list 3's results, unfollowed /
   // starred → their submenus open.
   function goToStat(i) {
+    // On a phone, its list comes into view first (lists 2 and 1 sit
+    // behind the switcher there).
+    if (phoneLayout.matches) showMobileList(i === 0 ? 'following' : i === 1 ? 'followers' : 'unfollowers');
     if (i === 0 || i === 1) {
       const card = document.getElementById(i === 0 ? 'card-following' : 'card-followers');
       if (!card) return;
@@ -1972,6 +1975,63 @@
     });
     host._subTimer = setTimeout(() => settleSub(host), longest + 30);
     viewGate.until = Math.max(viewGate.until || 0, performance.now() + longest * SLIDE_WAIT);
+  }
+
+  // ---------- phones: lists 3, 2 and 1 behind one switcher ----------
+  // On a phone the three lists sit one under the other, so lists 2 and 1
+  // were a long scroll away. There, a switcher under the header shows one
+  // list at a time, and switching pushes them sideways like list 3's own
+  // tabs (slideSub, the list 3 slide's timing). Bigger screens: unchanged.
+  const MOBILE_LISTS = [['unfollowers', 'unfollowers'], ['following', 'following'], ['followers', 'followers']];
+  const phoneLayout = window.matchMedia('(max-width: 640px)');
+  let mobileList = 'unfollowers';
+  let mobileNav = null;
+  const mobileCards = () => MOBILE_LISTS.map(([id]) => document.getElementById(`card-${id}`)).filter(Boolean);
+  function setupMobileLists() {
+    const grid = elements.appGrid;
+    if (!grid || mobileNav) return;
+    const saved = storageGet('mobile_list');
+    if (MOBILE_LISTS.some(t => t[0] === saved)) mobileList = saved;
+    const bar = document.createElement('div');
+    bar.className = 'mobile-list-nav';
+    bar.innerHTML = subNavHtml(MOBILE_LISTS, mobileList);
+    grid.insertBefore(bar, grid.firstChild);
+    mobileNav = bar.querySelector('.changes-nav');
+    mobileCards().forEach(c => c.classList.toggle('mobile-on', c.id === `card-${mobileList}`));
+    bar.addEventListener('click', (e) => {
+      const tab = e.target.closest('[data-sub]');
+      if (!tab) return;
+      e.stopPropagation();
+      showMobileList(tab.dataset.sub);
+    });
+    requestAnimationFrame(() => placeSubIndicator(mobileNav));
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeSubIndicator(mobileNav));
+    // Turned to a phone's width (or back): the highlight finds its tab.
+    const onChange = () => requestAnimationFrame(() => placeSubIndicator(mobileNav));
+    if (phoneLayout.addEventListener) phoneLayout.addEventListener('change', onChange);
+  }
+  function showMobileList(id, animate = true) {
+    if (!mobileNav || !MOBILE_LISTS.some(t => t[0] === id)) return;
+    if (!animate || !phoneLayout.matches) { switchMobileList(id, false); return; }
+    queueSwitch(viewGate, () => switchMobileList(id, true));
+  }
+  function switchMobileList(id, animate) {
+    if (id === mobileList) return;
+    const order = MOBILE_LISTS.map(t => t[0]);
+    const dir = order.indexOf(id) > order.indexOf(mobileList) ? 1 : -1;
+    mobileList = id;
+    storageSet('mobile_list', id);
+    pushToCloud();
+    selectSubTab(mobileNav, id);
+    const cards = mobileCards();
+    const target = document.getElementById(`card-${id}`);
+    if (!animate) {
+      settleSub(elements.appGrid);
+      cards.forEach(c => c.classList.toggle('mobile-on', c === target));
+      return;
+    }
+    slideSub(elements.appGrid, cards, [target], 'mobile-on', c => cards.indexOf(c), dir);
+    centerSoon();
   }
 
   // The switchers inside the changes and stats views.
@@ -2667,6 +2727,7 @@
     safe(setupSavedImports, 'saved imports');
     safe(buildToolbar, 'toolbar');
     safe(buildViewSwitcher, 'views');
+    safe(setupMobileLists, 'phone lists');
     safe(buildResultsSwitcher, 'results tabs');
     safe(buildExportButtons, 'export');
     safe(buildUndoButton, 'undo');
@@ -2678,5 +2739,5 @@
   else init();
 
   // For the rest of the app (and tests).
-  window.igFeatures = { showView, showToast, setSelectMode, refreshToolbar, centerEmpties: () => safe(centerEmpties, 'empty texts') };
+  window.igFeatures = { showView, showMobileList, showToast, setSelectMode, refreshToolbar, centerEmpties: () => safe(centerEmpties, 'empty texts') };
 })();

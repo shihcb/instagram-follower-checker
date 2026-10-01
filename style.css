@@ -6440,3 +6440,37 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
      stayed on screen for its length, over the leaving ones. */
   transition: none !important;
 }
+
+/* Phones: lists 3, 2 and 1 behind one switcher under the header, one at a
+   time (features.js, setupMobileLists); switching pushes them sideways
+   like list 3's own tabs. Bigger screens: no switcher, all three shown. */
+.mobile-list-nav {
+  display: none;
+}
+@media (max-width: 640px) {
+  .app-grid {
+    --mobile-nav-h: 48px;
+    /* The lists slide in from the sides without widening the page. */
+    overflow-x: clip;
+  }
+  .app-grid > .mobile-list-nav {
+    display: block;
+    flex: none;
+    height: calc(var(--mobile-nav-h) - 10px); /* + the grid's 10px gap */
+  }
+  .app-grid > .mobile-list-nav .changes-nav {
+    margin: 0;
+  }
+  .app-grid > .card:not(.mobile-on):not(.pane-out) {
+    display: none !important;
+  }
+  /* All three the same height (so switching never resizes the page), and
+     with the switcher still on one screen with the header. */
+  .app-grid > .card {
+    height: calc(100vh - 82px - var(--mobile-nav-h)) !important;
+    min-height: 452px !important;
+  }
+  body.is-capacitor .app-grid > .card {
+    height: calc(100vh - max(136px, calc(92px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px))) - var(--mobile-nav-h)) !important;
+  }
+}

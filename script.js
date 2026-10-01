@@ -207,12 +207,15 @@ const appGridLandingHome = elements.appGrid ? elements.appGrid.parentElement : n
 // Theme Management (Light/Dark)
 // -------------------------------------------------------------
 // Settings kept in the cloud with the rest (see pushToCloud).
-const CLOUD_PREFS = ['theme', 'list3_sort', 'list3_view', 'stats_sub', 'results_sub'];
+const CLOUD_PREFS = ['theme', 'list3_sort', 'list3_view', 'stats_sub', 'results_sub', 'mobile_list'];
 function applyCloudPrefs(prefs) {
   CLOUD_PREFS.forEach(k => { if (typeof prefs[k] === 'string') storageSet(k, prefs[k]); });
   if (typeof prefs.theme === 'string' && (prefs.theme === 'dark' || prefs.theme === 'light')) setTheme(prefs.theme);
   if (window.igFeatures && typeof prefs.list3_view === 'string' && typeof window.igFeatures.showView === 'function') {
     try { window.igFeatures.showView(prefs.list3_view); } catch (e) {}
+  }
+  if (window.igFeatures && typeof prefs.mobile_list === 'string' && typeof window.igFeatures.showMobileList === 'function') {
+    try { window.igFeatures.showMobileList(prefs.mobile_list, false); } catch (e) {}
   }
 }
 
