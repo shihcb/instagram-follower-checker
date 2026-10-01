@@ -31,8 +31,12 @@ timing as everything else"), they mean the motion list 3's rows use:
 in `script.js` (in CSS: `0.45s cubic-bezier(0.4, 0, 0.2, 1)`). That's also
 exactly the instructions modal's open/close timing: every animation in the
 app (entering, leaving, resizing, sliding, tab switches, counters, charts)
-uses it unless told otherwise. Only hover/press color feedback, loading
-spinners and looping decorations are exempt.
+uses it unless told otherwise — hover/press/focus color changes too. Only
+loading spinners and looping decorations are exempt. Shapes are shared
+too: pop-ups (and the log-in card) come in from 14px down at 95% scale and
+leave the same way back; usernames and banners use list 3's row engine
+(slideRowIn/slideRowOut, rows around them shifting); tab switches are the
+sideways push (slideSub / TAB_MOTION); texts just fade (fadeEmptyIn).
 
 ## Saved import files live in Supabase Storage
 
