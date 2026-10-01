@@ -1561,7 +1561,9 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
     listEl.querySelectorAll('.user-row').forEach(stopRowMotion);
     listEl.innerHTML = '';
     elements.listUnfollowers.classList.add('hidden');
-    showResultsEmpty(false);
+    // Its last username just left (the list was showing): the text fades
+    // in, the way it fades out — it used to snap into place.
+    showResultsEmpty(!listWasHidden);
   }
 }
 
@@ -3952,9 +3954,12 @@ const DEMO_NAME = 'shihcb';
 const DEMO_MUTUALS = ['maya.sunsets', 'jake_runs', 'lena.draws', 'theo.films', 'nora_bakes', 'sam.climbs',
   'ivy.reads', 'leo.surfs', 'zoe.sketches', 'max_lifts', 'ruby.travels', 'finn.codes', 'ella.sings',
   'omar.cooks', 'tara.knits', 'eli.shoots', 'mia.dances', 'ben.builds'];
-const DEMO_NO_FOLLOW_BACK = ['cloudyandhazel', 'city.lights.daily', 'retro_kicks', 'plantmom.co', 'daily.memes.hub',
-  'coffee.corner', 'vinyl.vault', 'sunday.brunch', 'pixel.art.co', 'gym.motivation', 'travel.diaries',
-  'bookish.vibes', 'street.eats', 'night.owl.photos'];
+// List 3 (the unfollowers tab) shows just these two; the made-up accounts
+// are only in the other tabs.
+const DEMO_NO_FOLLOW_BACK = ['shihcb', 'cloudyandhazel'];
+// Followed, not following back, and already in the submenus.
+const DEMO_UNFOLLOWED = ['night.owl.photos', 'street.eats'];
+const DEMO_STARRED = ['bookish.vibes', 'travel.diaries'];
 const DEMO_FANS = ['hannah.k', 'josh.m', 'priya.writes', 'carlos.v', 'amelia.rose', 'dev.notes',
   'grace.l', 'noah.paints', 'lily.hikes', 'aaron.j'];
 const DEMO_COMPARE_ID = '__demo_compare__'; // a made-up second account for the compare tab
@@ -3985,29 +3990,22 @@ function clearDemoData() {
   });
 }
 
-function startDemo() {
-  normalizeInstagramAccounts();
-  if (!(state.instagramAccounts || []).some(isDemoAccount) && state.instagramAccounts.length >= MAX_ACCOUNTS) {
-    showAccountLimitAlert();
-    return;
-  }
-  normalizeInstagramAccounts();
-  if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() !== DEMO_ID) {
-    saveCurrentAccountData();
-  }
+// The demo's made-up data (the "try a demo" chip and the guest preview
+// share it), under DEMO_ID only — never under a real account's keys.
+function seedDemoData() {
   // A fresh demo every time, with made-up accounts in every tab (nothing
   // from an earlier try). None of it is kept: it's gone on reload and when
   // the demo chip is deleted (clearDemoData), and never goes to the cloud.
   clearDemoData();
-  const all = [...DEMO_MUTUALS, ...DEMO_NO_FOLLOW_BACK];
+  const all = [...DEMO_MUTUALS, ...DEMO_NO_FOLLOW_BACK, ...DEMO_UNFOLLOWED, ...DEMO_STARRED];
   const following = all.map((name, i) => demoUser(name, 20 + ((i * 37) % 700)));
   const followers = [...DEMO_MUTUALS, ...DEMO_FANS].map(name => demoUser(name));
   const tag = (u) => ({ ...u, account: DEMO_ID });
   storageSet(`following_users_${DEMO_ID}`, JSON.stringify(following));
   storageSet(`followers_users_${DEMO_ID}`, JSON.stringify(followers));
   // Two already unfollowed and two starred (so the submenus have some).
-  storageSet(`unfollowed_users_${DEMO_ID}`, JSON.stringify(['night.owl.photos', 'street.eats'].map(n => tag(following.find(u => u.username === n)))));
-  storageSet(`starred_users_${DEMO_ID}`, JSON.stringify(['cloudyandhazel', 'bookish.vibes'].map(n => tag(following.find(u => u.username === n)))));
+  storageSet(`unfollowed_users_${DEMO_ID}`, JSON.stringify(DEMO_UNFOLLOWED.map(n => tag(following.find(u => u.username === n)))));
+  storageSet(`starred_users_${DEMO_ID}`, JSON.stringify(DEMO_STARRED.map(n => tag(following.find(u => u.username === n)))));
   storageSet(`import_date_${DEMO_ID}`, String(Date.now() - 2 * 86400000));
   // The results tab's other lists, as if the whole export was imported.
   writeExtraLists(DEMO_ID, {
@@ -4023,16 +4021,29 @@ function startDemo() {
     lostFollowers: ['old.friend.22', 'brand.deals', 'gone.quiet'],
     newFollowers: ['priya.writes', 'carlos.v', 'lily.hikes', 'aaron.j'],
     stoppedFollowing: ['news.daily', 'meme.factory'],
-    startedFollowing: ['pixel.art.co', 'vinyl.vault', 'coffee.corner']
+    startedFollowing: ['cloudyandhazel', 'ben.builds', 'mia.dances']
   }));
   // Stats' timeline: a few made-up imports, a week apart.
-  const hist = [[26, 20], [28, 22], [29, 23], [30, 25], [31, 27]];
+  const hist = [[20, 22], [21, 24], [22, 25], [23, 26], [24, 28]];
   storageSet(`import_history_${DEMO_ID}`, JSON.stringify(hist.map(([a, b], i) => ({
-    date: Date.now() - (hist.length - i) * week, following: a, followers: b, unfollowers: Math.max(0, a - 18)
+    date: Date.now() - (hist.length - i) * week, following: a, followers: b, unfollowers: 2
   }))));
   // The compare tab: a made-up second account's followers (some the same).
   storageSet(`followers_users_${DEMO_COMPARE_ID}`, JSON.stringify(
     [...DEMO_MUTUALS.slice(0, 8), ...DEMO_FANS.slice(0, 3), 'tom.bikes', 'sara.paints', 'jules.cooks', 'river.dog'].map(n => demoUser(n))));
+}
+
+function startDemo() {
+  normalizeInstagramAccounts();
+  if (!(state.instagramAccounts || []).some(isDemoAccount) && state.instagramAccounts.length >= MAX_ACCOUNTS) {
+    showAccountLimitAlert();
+    return;
+  }
+  normalizeInstagramAccounts();
+  if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() !== DEMO_ID) {
+    saveCurrentAccountData();
+  }
+  seedDemoData();
   if (!state.instagramAccounts.some(isDemoAccount)) {
     state.instagramAccounts.push({ username: DEMO_NAME, originalUsername: DEMO_ID, demo: true });
   }
@@ -5444,9 +5455,10 @@ function applyGuestPreviewLock(isLoggedIn) {
     } catch (e) {}
     state.instagramAccounts = accounts;
     const demoSelected = state.selectedAccountUsername
-      && state.selectedAccountUsername.toLowerCase() === GUEST_PREVIEW_USERNAME.toLowerCase();
+      && [GUEST_PREVIEW_USERNAME.toLowerCase(), DEMO_ID].includes(state.selectedAccountUsername.toLowerCase());
     if (demoSelected) {
       state.selectedAccountUsername = null;
+      clearDemoData();
       state.following = [];
       state.followers = [];
       elements.inputFollowing.value = '';
@@ -5459,16 +5471,13 @@ function applyGuestPreviewLock(isLoggedIn) {
     return;
   }
 
-  state.instagramAccounts = [{ username: GUEST_PREVIEW_USERNAME, originalUsername: GUEST_PREVIEW_USERNAME }];
-  state.selectedAccountUsername = GUEST_PREVIEW_USERNAME;
-  elements.inputFollowing.value = `@${GUEST_PREVIEW_USERNAME}`;
-  elements.inputFollowers.value = '';
-  state.following = deduplicateEntries(parseInput(elements.inputFollowing.value));
-  state.followers = [];
-  updateListUI('following');
-  updateListUI('followers');
-  calculateUnfollowers();
-  renderAccountChips(false);
+  // The guest preview is the demo: the same made-up accounts in every tab
+  // (list 3 just @shihcb and @cloudyandhazel), kept under the demo's own
+  // id, so nothing of it can end up in a real @shihcb's data.
+  seedDemoData();
+  state.instagramAccounts = [{ username: DEMO_NAME, originalUsername: DEMO_ID, demo: true }];
+  state.selectedAccountUsername = DEMO_ID;
+  loadAccountData(DEMO_ID);
 
   // Hide the clear button entirely while logged out (updateListUI shows it
   // whenever the textarea has content, which the demo username always does)
@@ -6827,7 +6836,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // account (and rendered it) when logged out; loadAccountData would
   // immediately overwrite that with the (empty) localStorage data for
   // that username, wiping out the demo unfollower before it's ever seen.
-  if (state.selectedAccountUsername === GUEST_PREVIEW_USERNAME) {
+  if (state.selectedAccountUsername === GUEST_PREVIEW_USERNAME || state.selectedAccountUsername === DEMO_ID) {
     // already loaded by applyGuestPreviewLock; nothing to do
   } else if (state.selectedAccountUsername) {
     loadAccountData(state.selectedAccountUsername);

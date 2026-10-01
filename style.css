@@ -6166,9 +6166,9 @@ select,
   margin: -4px -4px 12px;
 }
 /* Stats' switcher has only two tabs: it hugs them instead of filling the
-   box (same left edge as the other switchers). */
+   box, centered in it. */
 .list3-alt-view .insights-pane[data-view="stats"] > .changes-nav {
-  align-self: flex-start;
+  align-self: center;
   width: fit-content;
   max-width: calc(100% + 8px);
 }
@@ -6366,10 +6366,12 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 }
 .saved-imports-nav .changes-nav {
   margin-bottom: 12px;
-  /* Hugs its tabs, like stats' switcher (a long one still scrolls). */
+  /* Hugs its tabs, like stats' switcher (a long one still scrolls), centered. */
   width: fit-content;
   max-width: 100%;
   box-sizing: border-box;
+  margin-left: auto;
+  margin-right: auto;
 }
 .saved-imports-panes {
   position: relative;
@@ -6463,7 +6465,7 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
     height: calc(var(--mobile-nav-h) - 10px); /* + the grid's 10px gap */
   }
   .app-grid > .mobile-list-nav .changes-nav {
-    margin: 0;
+    margin: 0 auto; /* centered under the header (and the preview's text) */
     /* Hugs its three tabs, like stats' switcher. */
     width: fit-content;
     max-width: 100%;

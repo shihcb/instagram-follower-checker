@@ -2275,6 +2275,7 @@
       before.tops.set(r.dataset.username, rect.top);
       before.rows.set(r, { top: rect.top, bottom: rect.bottom, left: rect.left, width: rect.width, pitch: r.offsetHeight + (parseFloat(getComputedStyle(r).marginBottom) || 0) });
     });
+    const oldHadText = !!old.querySelector('.dropdown-empty-message');
     const ghosts = [...old.querySelectorAll('.dropdown-empty-message')].map(m => captureGhost(m)).filter(Boolean);
     old.replaceWith(fresh);
     const list = fresh.querySelector('.pending-list');
@@ -2286,7 +2287,9 @@
     if (accSwap && left > 0) pane._swapUntil = performance.now() + ROW_MOTION_MS + 30;
     if (list) { if (accSwap) enterAfterExits(list, left > 0); else animateResultsReentry(list, before.tops); }
     const msg = fresh.querySelector('.dropdown-empty-message');
-    if (msg && left) fadeEmptyIn(msg, ROW_MOTION_MS);
+    // The empty text fades in (after any rows still leaving) — also when
+    // the last row had already gone by itself: it used to snap in then.
+    if (msg && (left || !oldHadText)) fadeEmptyIn(msg, left ? ROW_MOTION_MS : 0);
     stepRowMotion();
   }
   // Rows that aren't in `list` any more slide out where they were drawn,
