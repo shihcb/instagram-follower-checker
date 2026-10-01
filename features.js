@@ -1347,7 +1347,7 @@
   // Each date keeps its time, so a change can roll it to the new one.
   const dateSpans = (times) => times.map(t => `<span data-t="${Math.round(t)}">${shortDate(t)}</span>`).join('');
   function timelineHtml(key) {
-    const hist = key === DEMO_ID ? [] : readJSON(`import_history_${key}`, [])
+    const hist = readJSON(`import_history_${key}`, [])
       .filter(h => h && Number.isFinite(h.date) && Number.isFinite(h.following) && Number.isFinite(h.followers));
     // Real as soon as there's data: each import, and now (if the lists have
     // changed since). With one point only, it's drawn as a flat line.
@@ -1538,7 +1538,9 @@
       const fset = followingSet();
       html = `<div class="insights-sub">they follow you, but you don't follow them back</div>${userRowsHtml(state.followers.filter(u => !fset.has(u.username)), 'no fan accounts yet')}`;
     } else if (currentView === 'compare') {
-      const accounts = state.instagramAccounts.filter(a => !isDemoAccount(a));
+      let accounts = state.instagramAccounts.filter(a => !isDemoAccount(a));
+      // The demo compares itself with a made-up second account.
+      if (key === DEMO_ID) accounts = [{ username: DEMO_NAME, originalUsername: DEMO_ID }, { username: DEMO_COMPARE_NAME, originalUsername: DEMO_COMPARE_ID }];
       if (accounts.length < 2) html = `<div class="dropdown-empty-message">add a second account to compare who follows each one</div>`;
       else {
         const sel = [...altView.querySelectorAll('.compare-select')].map(s => s.value);

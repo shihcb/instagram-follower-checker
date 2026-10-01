@@ -3946,7 +3946,24 @@ function unlockPageScroll() {
 // (ensureAccountSelected).
 const DEMO_ID = '__demo__';
 const DEMO_NAME = 'shihcb';
-const DEMO_FOLLOWING = ['shihcb', 'cloudyandhazel'];
+// The demo's made-up accounts, enough to fill every tab: mutuals (follow
+// each other), ones who don't follow back (list 3), fans (follow you, you
+// don't follow them), and some for the other lists.
+const DEMO_MUTUALS = ['maya.sunsets', 'jake_runs', 'lena.draws', 'theo.films', 'nora_bakes', 'sam.climbs',
+  'ivy.reads', 'leo.surfs', 'zoe.sketches', 'max_lifts', 'ruby.travels', 'finn.codes', 'ella.sings',
+  'omar.cooks', 'tara.knits', 'eli.shoots', 'mia.dances', 'ben.builds'];
+const DEMO_NO_FOLLOW_BACK = ['cloudyandhazel', 'city.lights.daily', 'retro_kicks', 'plantmom.co', 'daily.memes.hub',
+  'coffee.corner', 'vinyl.vault', 'sunday.brunch', 'pixel.art.co', 'gym.motivation', 'travel.diaries',
+  'bookish.vibes', 'street.eats', 'night.owl.photos'];
+const DEMO_FANS = ['hannah.k', 'josh.m', 'priya.writes', 'carlos.v', 'amelia.rose', 'dev.notes',
+  'grace.l', 'noah.paints', 'lily.hikes', 'aaron.j'];
+const DEMO_COMPARE_ID = '__demo_compare__'; // a made-up second account for the compare tab
+const DEMO_COMPARE_NAME = 'demo_friend';
+const demoUser = (name, daysAgo = null) => ({
+  username: name, originalUsername: name, fullName: '',
+  timestamp: daysAgo === null ? null : new Date(Date.now() - daysAgo * 86400000).toISOString(),
+  profileUrl: `https://www.instagram.com/${name}/`
+});
 
 function isDemoAccount(acc) {
   return !!acc && (acc.demo === true || String(acc.originalUsername).toLowerCase() === DEMO_ID);
@@ -3959,8 +3976,10 @@ function saveAccountsList() {
 
 // Removes every trace of the demo's data from this device.
 function clearDemoData() {
-  ['following', 'followers', 'unfollowed', 'starred', 'hidden'].forEach(type => storageRemove(`${type}_users_${DEMO_ID}`));
-  ['import_date_', 'import_history_', 'import_diff_', 'extra_lists_'].forEach(prefix => storageRemove(`${prefix}${DEMO_ID}`));
+  [DEMO_ID, DEMO_COMPARE_ID].forEach(id => {
+    ['following', 'followers', 'unfollowed', 'starred', 'hidden'].forEach(type => storageRemove(`${type}_users_${id}`));
+    ['import_date_', 'import_history_', 'import_diff_', 'import_log_', 'extra_lists_', 'list_reset_'].forEach(prefix => storageRemove(`${prefix}${id}`));
+  });
   ['last_active_instagram_account', 'selected_instagram_account'].forEach(key => {
     if (storageGet(key) === DEMO_ID) storageRemove(key);
   });
@@ -3976,20 +3995,44 @@ function startDemo() {
   if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() !== DEMO_ID) {
     saveCurrentAccountData();
   }
-  // A fresh demo every time: both usernames back, nothing unfollowed or
-  // starred from an earlier try.
+  // A fresh demo every time, with made-up accounts in every tab (nothing
+  // from an earlier try). None of it is kept: it's gone on reload and when
+  // the demo chip is deleted (clearDemoData), and never goes to the cloud.
   clearDemoData();
-  const users = DEMO_FOLLOWING.map(name => ({
-    username: name, originalUsername: name, fullName: '', timestamp: null,
-    profileUrl: `https://www.instagram.com/${name}/`
+  const all = [...DEMO_MUTUALS, ...DEMO_NO_FOLLOW_BACK];
+  const following = all.map((name, i) => demoUser(name, 20 + ((i * 37) % 700)));
+  const followers = [...DEMO_MUTUALS, ...DEMO_FANS].map(name => demoUser(name));
+  const tag = (u) => ({ ...u, account: DEMO_ID });
+  storageSet(`following_users_${DEMO_ID}`, JSON.stringify(following));
+  storageSet(`followers_users_${DEMO_ID}`, JSON.stringify(followers));
+  // Two already unfollowed and two starred (so the submenus have some).
+  storageSet(`unfollowed_users_${DEMO_ID}`, JSON.stringify(['night.owl.photos', 'street.eats'].map(n => tag(following.find(u => u.username === n)))));
+  storageSet(`starred_users_${DEMO_ID}`, JSON.stringify(['cloudyandhazel', 'bookish.vibes'].map(n => tag(following.find(u => u.username === n)))));
+  storageSet(`import_date_${DEMO_ID}`, String(Date.now() - 2 * 86400000));
+  // The results tab's other lists, as if the whole export was imported.
+  writeExtraLists(DEMO_ID, {
+    pending: ['wanderlust.jo', 'kai.music', 'studio.nine', 'bella.vlogs'].map(n => demoUser(n, 5)),
+    closeFriends: ['maya.sunsets', 'jake_runs', 'cloudyandhazel'].map(n => demoUser(n)),
+    blocked: ['spam.account.123', 'fake.giveaways'].map(n => demoUser(n)),
+    restricted: ['loud.commenter', 'old.classmate'].map(n => demoUser(n))
+  });
+  // The changes tab: what changed since a made-up import before this one.
+  const week = 7 * 86400000;
+  storageSet(`import_diff_${DEMO_ID}`, JSON.stringify({
+    date: Date.now() - 2 * 86400000, since: Date.now() - 2 * 86400000 - week,
+    lostFollowers: ['old.friend.22', 'brand.deals', 'gone.quiet'],
+    newFollowers: ['priya.writes', 'carlos.v', 'lily.hikes', 'aaron.j'],
+    stoppedFollowing: ['news.daily', 'meme.factory'],
+    startedFollowing: ['pixel.art.co', 'vinyl.vault', 'coffee.corner']
   }));
-  storageSet(`following_users_${DEMO_ID}`, JSON.stringify(users));
-  storageSet(`followers_users_${DEMO_ID}`, '[]');
-  storageSet(`unfollowed_users_${DEMO_ID}`, '[]');
-  storageSet(`starred_users_${DEMO_ID}`, '[]');
-  // The results tab's other lists, as if the whole export was imported:
-  // one close friend who doesn't follow back, the rest empty.
-  writeExtraLists(DEMO_ID, { pending: [], closeFriends: [users[1]], blocked: [], restricted: [] });
+  // Stats' timeline: a few made-up imports, a week apart.
+  const hist = [[26, 20], [28, 22], [29, 23], [30, 25], [31, 27]];
+  storageSet(`import_history_${DEMO_ID}`, JSON.stringify(hist.map(([a, b], i) => ({
+    date: Date.now() - (hist.length - i) * week, following: a, followers: b, unfollowers: Math.max(0, a - 18)
+  }))));
+  // The compare tab: a made-up second account's followers (some the same).
+  storageSet(`followers_users_${DEMO_COMPARE_ID}`, JSON.stringify(
+    [...DEMO_MUTUALS.slice(0, 8), ...DEMO_FANS.slice(0, 3), 'tom.bikes', 'sara.paints', 'jules.cooks', 'river.dog'].map(n => demoUser(n))));
   if (!state.instagramAccounts.some(isDemoAccount)) {
     state.instagramAccounts.push({ username: DEMO_NAME, originalUsername: DEMO_ID, demo: true });
   }
