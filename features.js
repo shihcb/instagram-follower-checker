@@ -2037,6 +2037,22 @@
         movePending([row.dataset.username], mv.classList.contains('action-star') ? 'star' : 'unfollow', row);
         return;
       }
+      // Tapping a pending request itself: like a list 3 row — its profile
+      // opens and it slides off into the unfollowed list. (The arrow only
+      // opens the profile; a miss in the buttons' area does nothing.)
+      const pendRow = e.target.closest('.results-extra[data-sub="pending"] .user-row');
+      if (pendRow && !e.target.closest('.action-arrow, .action-dismiss')) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (pendRow.classList.contains('username-exit')) return;
+        const firstBtn = pendRow.querySelector('.action-star');
+        if (firstBtn && e.clientX >= firstBtn.getBoundingClientRect().left) return;
+        const user = (readExtraLists(state.selectedAccountUsername).pending || []).find(u => u.username === pendRow.dataset.username);
+        if (!user) return;
+        openInstagramProfile(user.originalUsername || user.username, safeProfileUrl(user));
+        movePending([user.username], 'unfollow', pendRow);
+        return;
+      }
       const x = e.target.closest('.results-extra .user-row .action-dismiss');
       if (!x) return;
       e.stopPropagation();
