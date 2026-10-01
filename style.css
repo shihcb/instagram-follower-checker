@@ -1995,7 +1995,14 @@ body.hide-shortcuts #keyboard-hints {
   top: 0;
   left: 0;
   width: 100vw;
+  /* The screen you can actually see: on iPhone Safari 100vh is the height
+     with the toolbar hidden, so with it showing the bottom of the overlay
+     sat behind it and every pop-up was centered too low. */
   height: 100vh;
+  height: 100dvh;
+  /* Centered between the notch and the home bar, not under them. */
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  box-sizing: border-box;
   background-color: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
