@@ -6092,6 +6092,8 @@ function initAuth() {
     }
   });
 
+  let authBusy = false;
+  let forgotBusy = false;
   // Handle Form Submission (Sign In or Sign Up)
   elements.authForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -6102,25 +6104,31 @@ function initAuth() {
     
     const email = elements.authEmail.value.trim();
     const password = elements.authPassword.value;
-    
-    elements.authSubmitBtn.setAttribute('disabled', 'true');
-    elements.authSubmitBtn.textContent = isSigningUp ? 'signing up...' : 'logging in...';
+
+    // The button stays exactly as it is (no greying out, no "signing
+    // up..."), whatever the answer: a wrong password or an email that's
+    // taken just brings up the warning. A second tap while one is still
+    // being checked waits for that one.
+    if (authBusy) return;
+    authBusy = true;
 
     if (isSigningUp) {
       // Supabase Sign Up
-      const { data, error } = await supabaseClient.auth.signUp({ email, password });
+      let error = null;
+      try { ({ error } = await supabaseClient.auth.signUp({ email, password })); } catch (err) { error = err; }
       
       if (error) {
-        showAuthError(error.message);
+        showAuthError(error.message || "something went wrong, try again");
       } else {
         showAuthSuccess('account created! check your email to confirm it, or try logging in.');
       }
     } else {
       // Supabase Log In
-      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      let error = null;
+      try { ({ error } = await supabaseClient.auth.signInWithPassword({ email, password })); } catch (err) { error = err; }
       
       if (error) {
-        showAuthError(error.message);
+        showAuthError(error.message || "something went wrong, try again");
       } else {
         if (document.activeElement && typeof document.activeElement.blur === 'function') {
           document.activeElement.blur();
@@ -6132,8 +6140,7 @@ function initAuth() {
       }
     }
 
-    elements.authSubmitBtn.removeAttribute('disabled');
-    elements.authSubmitBtn.textContent = isSigningUp ? 'sign up' : 'log in';
+    authBusy = false;
   });
 
   // Handle "forgot password?" click
@@ -6141,18 +6148,23 @@ function initAuth() {
     elements.btnForgotPassword.addEventListener('click', async () => {
       // (No clearing first: see the form's submit.)
 
+      // No highlight or dimming on the link itself: it lets go of focus
+      // (iPhone kept it looking pressed), and isn't disabled while the
+      // email goes out — a second tap meanwhile just waits for that one.
+      elements.btnForgotPassword.blur();
       const email = elements.authEmail.value.trim();
       if (!email) {
         showAuthError('enter your email address first');
         return;
       }
-
-      elements.btnForgotPassword.setAttribute('disabled', 'true');
-      const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
-      elements.btnForgotPassword.removeAttribute('disabled');
+      if (forgotBusy) return;
+      forgotBusy = true;
+      let error = null;
+      try { ({ error } = await supabaseClient.auth.resetPasswordForEmail(email)); } catch (err) { error = err; }
+      forgotBusy = false;
 
       if (error) {
-        showAuthError(error.message);
+        showAuthError(error.message || "something went wrong, try again");
       } else {
         showAuthSuccess('check your email for a password reset link');
       }
@@ -6314,6 +6326,12 @@ function setAuthAlert(el, text, { instant = false } = {}) {
     ['position', 'top', 'left', 'width', 'margin', 'zIndex'].forEach(k => { el.style[k] = ''; });
   };
   const canMove = !instant && card && form && card.getClientRects().length && typeof card.animate === 'function';
+  if (instant) {
+    // At once (switching tabs): any banner motion still playing stops
+    // where it should end, so it can't carry on under the tab slide.
+    if (card) card.getAnimations().filter(an => an._alertResize).forEach(an => an.cancel());
+    if (form) [...form.children].forEach(n => stopRowMotion(n));
+  }
   if (show && shown) {
     // Already there: it stays put. Only a different message changes its
     // text (and if that takes another line, what's under it and the card

@@ -4087,7 +4087,9 @@ body:not(.auth-logged-out) #theme-toggle {
 }
 
 /* Warnings and Alerts */
-.auth-warning, .auth-error, .auth-success {
+/* (The log-in window's error and success banners move like username
+   boxes instead: setAuthAlert in script.js.) */
+.auth-warning {
   animation: alert-fade-in 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
@@ -4153,13 +4155,12 @@ body:not(.auth-logged-out) #theme-toggle {
   text-transform: lowercase;
 }
 
-.auth-forgot-link:hover {
-  color: var(--text-main);
-}
-
-.auth-forgot-link:disabled {
-  opacity: 0.6;
-  cursor: default;
+/* Darker on hover with a mouse only: on a phone a tap left it stuck
+   looking highlighted. */
+@media (hover: hover) and (pointer: fine) {
+  .auth-forgot-link:hover {
+    color: var(--text-main);
+  }
 }
 
 .auth-status-text {
