@@ -6489,3 +6489,23 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
     height: calc(100vh - max(136px, calc(92px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px))) - var(--mobile-nav-h)) !important;
   }
 }
+
+/* A tap anywhere on a username box is a tap on its profile link (laid over
+   the whole box): on iPhone a link opens the Instagram app straight away,
+   where a tap on the box's empty space used to go through instagram:// —
+   Safari asked to open another app, and then the website opened too. The
+   row's buttons (and the gaps between them) sit above it. */
+.user-row {
+  position: relative;
+}
+.user-row .user-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.user-row .user-meta,
+.user-row .user-avatar-link {
+  position: relative;
+  z-index: 2;
+}

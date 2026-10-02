@@ -2145,7 +2145,9 @@
         if (pendRow.classList.contains('username-exit')) { e.preventDefault(); return; }
         e.stopPropagation();
         const firstBtn = pendRow.querySelector('.action-star');
-        if (!link && firstBtn && e.clientX >= firstBtn.getBoundingClientRect().left) return;
+        // A miss in the buttons' area does nothing (the profile link laid
+        // over the box doesn't open from there either).
+        if (firstBtn && e.clientX >= firstBtn.getBoundingClientRect().left) { e.preventDefault(); return; }
         const user = (readExtraLists(state.selectedAccountUsername).pending || []).find(u => u.username === pendRow.dataset.username);
         if (!user) return;
         if (!link) openInstagramProfile(user.originalUsername || user.username, safeProfileUrl(user));

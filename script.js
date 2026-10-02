@@ -4602,6 +4602,7 @@ function updateInstructionsStepUI() {
     const onButton = e.target.closest('.action-star, .action-delete, .action-dismiss');
     const starBtn = userRow.querySelector('.action-star');
     if (!onButton && starBtn && e.clientX >= starBtn.getBoundingClientRect().left) {
+      e.preventDefault(); // the profile link laid over the box doesn't open from there either
       return;
     }
 
