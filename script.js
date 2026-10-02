@@ -11,7 +11,8 @@
 // came up in the device's own theme.
 const memoryStore = new Map();
 const THEME_DEVICE_KEY = 'ig_theme';
-const isSessionKey = (key) => /^sb-/.test(key) || key.indexOf('supabase') !== -1 || key === THEME_DEVICE_KEY;
+const THEME_AT_DEVICE_KEY = 'ig_theme_at'; // when it was picked (the newer pick wins, see applyCloudPrefs)
+const isSessionKey = (key) => /^sb-/.test(key) || key.indexOf('supabase') !== -1 || key === THEME_DEVICE_KEY || key === THEME_AT_DEVICE_KEY;
 // What an older version saved on this device: read in (so anything not yet
 // in the cloud still gets there on login), then deleted from the device
 // once the cloud has it (dropDeviceCopy, after the first good upload).
@@ -25,6 +26,8 @@ const oldDeviceKeys = [];
     oldDeviceKeys.forEach(key => memoryStore.set(key, localStorage.getItem(key)));
     const theme = localStorage.getItem(THEME_DEVICE_KEY);
     if (theme === 'dark' || theme === 'light') memoryStore.set('theme', theme);
+    const themeAt = localStorage.getItem(THEME_AT_DEVICE_KEY);
+    if (themeAt) memoryStore.set('theme_at', themeAt);
   } catch (e) { /* no storage: nothing to read */ }
 })();
 function dropDeviceCopy() {
@@ -36,10 +39,12 @@ function storageGet(key) {
 function storageSet(key, value) {
   memoryStore.set(key, String(value));
   if (key === 'theme') { try { localStorage.setItem(THEME_DEVICE_KEY, String(value)); } catch (e) {} }
+  if (key === 'theme_at') { try { localStorage.setItem(THEME_AT_DEVICE_KEY, String(value)); } catch (e) {} }
 }
 function storageRemove(key) {
   memoryStore.delete(key);
   if (key === 'theme') { try { localStorage.removeItem(THEME_DEVICE_KEY); } catch (e) {} }
+  if (key === 'theme_at') { try { localStorage.removeItem(THEME_AT_DEVICE_KEY); } catch (e) {} }
 }
 function storageKeys() {
   return [...memoryStore.keys()];
@@ -207,10 +212,28 @@ const appGridLandingHome = elements.appGrid ? elements.appGrid.parentElement : n
 // Theme Management (Light/Dark)
 // -------------------------------------------------------------
 // Settings kept in the cloud with the rest (see pushToCloud).
-const CLOUD_PREFS = ['theme', 'list3_sort', 'list3_view', 'stats_sub', 'results_sub', 'mobile_list'];
+const CLOUD_PREFS = ['theme', 'theme_at', 'list3_sort', 'list3_view', 'stats_sub', 'results_sub', 'mobile_list'];
 function applyCloudPrefs(prefs) {
-  CLOUD_PREFS.forEach(k => { if (typeof prefs[k] === 'string') storageSet(k, prefs[k]); });
-  if (typeof prefs.theme === 'string' && (prefs.theme === 'dark' || prefs.theme === 'light')) setTheme(prefs.theme);
+  // The light/dark choice: whichever was picked last wins — this device's
+  // or the cloud's. The cloud's copy can be behind (a reload right after
+  // switching, before the change had been uploaded), and applying it
+  // anyway flipped the page back to the old theme on every reload.
+  const cloudTheme = prefs.theme === 'dark' || prefs.theme === 'light' ? prefs.theme : null;
+  const cloudAt = Number(prefs.theme_at) || 0;
+  const localTheme = storageGet('theme');
+  const localAt = Number(storageGet('theme_at')) || 0;
+  const takeCloudTheme = cloudTheme && (!localTheme || cloudAt > localAt);
+  CLOUD_PREFS.forEach(k => {
+    if (k === 'theme' || k === 'theme_at') return;
+    if (typeof prefs[k] === 'string') storageSet(k, prefs[k]);
+  });
+  if (takeCloudTheme) {
+    storageSet('theme', cloudTheme);
+    if (cloudAt) storageSet('theme_at', String(cloudAt));
+    setTheme(cloudTheme);
+  } else if (localTheme && (localTheme !== cloudTheme || localAt !== cloudAt)) {
+    setTimeout(() => pushToCloud(), 0); // the cloud catches up with this device's newer pick
+  }
   if (window.igFeatures && typeof prefs.list3_view === 'string' && typeof window.igFeatures.showView === 'function') {
     try { window.igFeatures.showView(prefs.list3_view); } catch (e) {}
   }
@@ -237,6 +260,7 @@ function initTheme() {
     const currentTheme = elements.html.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     storageSet('theme', newTheme);
+    storageSet('theme_at', String(Date.now()));
     pushToCloud(); // the setting lives in the cloud
     setTheme(newTheme);
   };
