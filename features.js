@@ -279,7 +279,7 @@
     saveCurrentAccountData();
     calculateUnfollowers({ animate: true });
   }
-  [['following', 'clear-following', 'list 1'], ['followers', 'clear-followers', 'list 2']].forEach(([kind, id, label]) => {
+  [['following', 'clear-following', 'list 2'], ['followers', 'clear-followers', 'list 1']].forEach(([kind, id, label]) => {
     const btn = document.getElementById(id);
     if (!btn) return;
     btn.addEventListener('click', () => {
@@ -2384,9 +2384,10 @@
     return true;
   }
 
+  // Lists 3, 2 and 1 (numbered as on their cards), the submenus, then the rest.
   const EXPORT_LISTS = [
-    ['list3', "list 3 · don't follow you back"], ['unfollowed', 'unfollowed'], ['starred', 'starred'],
-    ['following', 'list 1 · following'], ['followers', 'list 2 · followers'], ['mutuals', 'mutuals'], ['fans', 'fans'],
+    ['list3', "list 3 · don't follow you back"], ['following', 'list 2 · following'], ['followers', 'list 1 · followers'],
+    ['unfollowed', 'unfollowed'], ['starred', 'starred'], ['mutuals', 'mutuals'], ['fans', 'fans'],
     ['pending', 'pending requests'], ['closeFriends', 'close friends'], ['blocked', 'blocked'], ['restricted', 'restricted']
   ];
   function listFor(kind) {
