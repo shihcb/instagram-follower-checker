@@ -5827,33 +5827,39 @@ select,
   cursor: default;
 }
 #btn-instructions-next {
-  width: 36px;
+  width: 36px; /* "close": its measured width, set by updateInstructionsStepUI */
   position: relative;
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
-#btn-instructions-next.is-close {
-  width: auto;
-  padding: 0 18px !important;
-}
+/* The arrow and "close" both sit centered in the button the whole time
+   (nothing in it reflows), and cross over as it widens: the arrow eases
+   out to the left as the word eases in from the right, with the width. */
 #btn-instructions-next .btn-next-icon,
 #btn-instructions-next .btn-next-text-span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
   display: inline-flex;
   align-items: center;
+  white-space: nowrap;
   transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity, transform;
+}
+#btn-instructions-next .btn-next-icon {
+  transform: translate(-50%, -50%);
 }
 #btn-instructions-next .btn-next-text-span {
-  position: absolute;
   opacity: 0;
-  transform: translateX(10px);
+  transform: translate(calc(-50% + 18px), -50%) scale(0.85);
 }
+/* The arrow shrinks as it goes, so the two never sit on top of each other. */
 #btn-instructions-next.is-close .btn-next-icon {
-  position: absolute;
   opacity: 0;
-  transform: translateX(-10px);
+  transform: translate(calc(-50% - 18px), -50%) scale(0.5);
 }
 #btn-instructions-next.is-close .btn-next-text-span {
-  position: static;
   opacity: 1;
-  transform: none;
+  transform: translate(-50%, -50%) scale(1);
 }
 
 /* Pop-up cards are solid: their usual tint laid over the page color. They

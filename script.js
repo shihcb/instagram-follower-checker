@@ -4518,14 +4518,24 @@ function updateInstructionsStepUI() {
     const btn = elements.btnInstructionsNext;
     const toClose = currentInstructionStep === 5;
     btn.setAttribute('aria-label', toClose ? 'close' : 'next step');
-    if (btn.classList.contains('is-close') !== toClose) {
-      const from = btn.getBoundingClientRect().width;
+    if (btn.classList.contains('is-close') !== toClose || (toClose && !btn.style.width)) {
       btn.classList.toggle('is-close', toClose);
-      btn.style.width = '';
-      const to = btn.getBoundingClientRect().width;
-      if (!instructionsInstant && typeof btn.animate === 'function' && from && Math.abs(from - to) > 0.5) {
-        btn.animate([{ width: `${from}px` }, { width: `${to}px` }], TAB_MOTION.slide);
-      }
+      // Its width slides (CSS, the list 3 slide) to an exact size — the
+      // word plus 18px each side — instead of jumping to "auto"; a tap
+      // mid-slide carries on from where it is.
+      const setWidth = (tries = 0) => {
+        const text = btn.querySelector('.btn-next-text-span');
+        const w = toClose ? (text ? text.scrollWidth : 0) : 0;
+        if (toClose && !w) { // not laid out yet (the window still opening)
+          if (tries < 20) requestAnimationFrame(() => setWidth(tries + 1));
+          return;
+        }
+        const instant = instructionsInstant;
+        if (instant) btn.style.setProperty('transition', 'none', 'important');
+        btn.style.width = toClose ? `${Math.ceil(w) + 36}px` : '';
+        if (instant) { void btn.offsetWidth; btn.style.removeProperty('transition'); }
+      };
+      setWidth();
     }
   }
 }
