@@ -5455,11 +5455,15 @@ body.select-active #card-followers {
   font-weight: 600;
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .export-option.on {
   border-color: #10b981;
   background: rgba(16, 185, 129, 0.08);
+}
+/* The other side (stats image vs lists) while one is picked: greyed out. */
+.export-option.muted {
+  opacity: 0.4;
 }
 .export-check {
   display: inline-flex;

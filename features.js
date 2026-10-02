@@ -2386,7 +2386,7 @@
 
   // Lists 3, 2 and 1 (numbered as on their cards), the submenus, then the rest.
   const EXPORT_LISTS = [
-    ['list3', "list 3 · don't follow you back"], ['following', 'list 2 · following'], ['followers', 'list 1 · followers'],
+    ['list3', 'list 3 · unfollowers'], ['following', 'list 2 · following'], ['followers', 'list 1 · followers'],
     ['unfollowed', 'unfollowed'], ['starred', 'starred'], ['mutuals', 'mutuals'], ['fans', 'fans'],
     ['pending', 'pending requests'], ['closeFriends', 'close friends'], ['blocked', 'blocked'], ['restricted', 'restricted']
   ];
@@ -2463,8 +2463,19 @@
           closeExport();
           return;
         }
+        // The stats image or lists, not both: picking one side greys out
+        // the other (and a tap on a greyed one switches to it).
         const opt = e.target.closest('.export-option');
-        if (opt) { opt.classList.toggle('on'); updateExportButton(); }
+        if (opt) {
+          const on = opt.classList.toggle('on');
+          if (on) {
+            const others = opt.classList.contains('export-image')
+              ? exportOverlay.querySelectorAll('.export-option.on[data-kind]')
+              : exportOverlay.querySelectorAll('.export-image.on');
+            others.forEach(o => o.classList.remove('on'));
+          }
+          updateExportButton();
+        }
       });
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !exportOverlay.classList.contains('hidden')) closeExport(); });
     }
@@ -2580,7 +2591,9 @@
     const image = exportOverlay.querySelector('.export-image').classList.contains('on');
     const go = exportOverlay.querySelector('[data-exp="go"]');
     go.disabled = lists === 0 && !image;
-    go.textContent = lists > 1 ? `export ${lists} lists${image ? ' + image' : ''}` : 'export';
+    go.textContent = lists > 1 ? `export ${lists} lists` : 'export';
+    exportOverlay.querySelectorAll('.export-option[data-kind]').forEach(o => o.classList.toggle('muted', image));
+    exportOverlay.querySelector('.export-image').classList.toggle('muted', lists > 0);
   }
   function closeExport() {
     exportOverlay.classList.remove('show');
