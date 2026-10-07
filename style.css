@@ -4863,6 +4863,7 @@ button:focus-visible,
 
 /* List 3 toolbar: sort, select, today's unfollows, re-import reminder */
 .list-toolbar {
+  position: relative; /* the leaving reminder is pinned inside it */
   display: flex;
   align-items: center;
   gap: 6px;

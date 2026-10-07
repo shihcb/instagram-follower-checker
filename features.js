@@ -755,14 +755,62 @@
     const due = importedAt && Date.now() - importedAt > 7 * DAY && accKey() !== DEMO_ID;
     setPill(toolbar.querySelector('[data-act="reminder"]'), !!due, due ? `imported ${plural(Math.floor((Date.now() - importedAt) / DAY), 'day')} ago · import again` : '');
   }
-  // Shows/hides a pill with the chips' fade (in) / a quick fade (out).
+  // The reminder banner comes and goes like a list 3 username box (list 3's
+  // row engine, the list 3 slide): it slides down out of its own top edge
+  // while everything under it moves down to make room, and leaves the same
+  // way backwards — up into its top edge while the rest moves up into its
+  // space. The card eases to its new height alongside.
   function setPill(el, show, text) {
+    const leaving = !!el._pillLeaving;
+    const shown = !el.classList.contains('pill-hidden') && !leaving;
+    const restore = () => {
+      el._pillLeaving = false;
+      stopRowMotion(el);
+      ['position', 'top', 'left', 'width', 'margin', 'zIndex'].forEach(k => { el.style[k] = ''; });
+    };
     if (show && el.textContent !== text) el.textContent = text;
-    const shown = !el.classList.contains('pill-hidden');
     if (show === shown) return;
-    el.classList.toggle('pill-hidden', !show);
-    // Comes in like the pop-ups do.
-    if (show && typeof el.animate === 'function') el.animate(MODAL_IN, { duration: 450, easing: MODAL_EASE });
+    const card = document.getElementById('card-unfollowers');
+    const canMove = toolbar.getClientRects().length && card && typeof card.animate === 'function';
+    if (!canMove) {
+      if (leaving) restore();
+      el.classList.toggle('pill-hidden', !show);
+      return;
+    }
+    // What's under it, and where it all is now (layout positions: anything
+    // already moving keeps moving, and this change is added on top).
+    const below = [];
+    for (let n = toolbar.nextElementSibling; n; n = n.nextElementSibling) if (n.getClientRects().length) below.push(n);
+    const topsBefore = below.map(n => n.offsetTop);
+    const heightBefore = card.offsetHeight; // mid-resize if one is playing
+    card.getAnimations().filter(an => an._pillResize).forEach(an => an.cancel());
+    if (show) {
+      if (leaving) restore(); // on its way out: it comes back in
+      el.classList.remove('pill-hidden');
+    } else {
+      // Out of the flow, pinned where it is, while it slides away.
+      const top = el.offsetTop, left = el.offsetLeft, width = el.offsetWidth;
+      el._pillLeaving = true;
+      Object.assign(el.style, { position: 'absolute', top: `${top}px`, left: `${left}px`, width: `${width}px`, margin: '0', zIndex: '1' });
+    }
+    const heightAfter = card.offsetHeight;
+    // One row pitch: how far everything under it moves.
+    const pitch = below.length ? Math.abs(below[0].offsetTop - topsBefore[0]) : el.offsetHeight;
+    below.forEach((n, i) => addRowShift(n, topsBefore[i] - n.offsetTop, ROW_MOTION_MS));
+    if (show) slideRowIn(el, pitch || el.offsetHeight, ROW_MOTION_MS);
+    else {
+      slideRowOut(el, pitch || el.offsetHeight, ROW_MOTION_MS, () => {
+        if (!el._pillLeaving) return; // shown again meanwhile
+        restore();
+        el.classList.add('pill-hidden');
+      });
+    }
+    if (Math.abs(heightAfter - heightBefore) > 0.5) {
+      const an = card.animate([{ height: `${heightBefore}px`, overflow: 'hidden' }, { height: `${heightAfter}px`, overflow: 'hidden' }],
+        { duration: ROW_MOTION_MS, easing: EASE });
+      an._pillResize = true;
+    }
+    stepRowMotion();
   }
 
   // ---------- select several rows ----------
