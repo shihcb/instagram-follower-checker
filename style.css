@@ -4940,6 +4940,9 @@ button:focus-visible,
   display: none;
 }
 .toolbar-reminder {
+  /* Spans the content box, like the import files bar above it. */
+  flex: 1 1 100%;
+  justify-content: center;
   border-color: #f59e0b;
   color: #d97706;
   background: rgba(245, 158, 11, 0.08);
