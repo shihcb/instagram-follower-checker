@@ -5593,11 +5593,22 @@ function cancelAppExit(headerDelay = 0) {
 
 // Physically relocate the live app grid so it isn't trapped inside
 // #landing-page-container (which is display:none once logged in).
-function relocateAppGridForAuthState(isLoggedIn) {
+// switchPage (optional) flips the page between logged in and out.
+function relocateAppGridForAuthState(isLoggedIn, switchPage) {
   const appGrid = document.querySelector('.app-grid');
   const appContainer = document.querySelector('.app-container');
   const landingHome = document.getElementById('app-grid-landing-home');
-  if (!appGrid) return;
+  if (!appGrid) { if (switchPage) switchPage(); return; }
+
+  // Hiding the page it's on and moving it reset the scroll of everything in
+  // it: list 3's view bar opened on a saved tab far to the right (stats)
+  // came back scrolled to the start, the tab out of sight. Note each scroll
+  // before the page switches, and put it back after the move.
+  const scrolled = [...appGrid.querySelectorAll('*')]
+    .filter(el => el.scrollLeft || el.scrollTop)
+    .map(el => [el, el.scrollLeft, el.scrollTop]);
+  const restoreScroll = () => scrolled.forEach(([el, left, top]) => { el.scrollLeft = left; el.scrollTop = top; });
+  if (switchPage) switchPage();
 
   if (isLoggedIn) {
     if (appContainer && appGrid.parentElement !== appContainer) {
@@ -5608,6 +5619,7 @@ function relocateAppGridForAuthState(isLoggedIn) {
       landingHome.appendChild(appGrid);
     }
   }
+  restoreScroll();
   fitGuestPreviewGrid();
 }
 
@@ -5799,10 +5811,11 @@ function initAuth() {
             }
             // 2. Once it's gone, switch to the app and bring it in.
             setTimeout(() => {
-              document.documentElement.classList.add('is-logged-in');
-              document.body.classList.remove('auth-logged-out');
-              document.body.classList.remove('login-leaving');
-              relocateAppGridForAuthState(true);
+              relocateAppGridForAuthState(true, () => {
+                document.documentElement.classList.add('is-logged-in');
+                document.body.classList.remove('auth-logged-out');
+                document.body.classList.remove('login-leaving');
+              });
               if (elements.authDropdown) {
                 elements.authDropdown.classList.remove('show');
               }
@@ -5813,9 +5826,10 @@ function initAuth() {
               playAppEntrance();
             }, 450);
           } else {
-            document.documentElement.classList.add('is-logged-in');
-            document.body.classList.remove('auth-logged-out');
-            relocateAppGridForAuthState(true);
+            relocateAppGridForAuthState(true, () => {
+              document.documentElement.classList.add('is-logged-in');
+              document.body.classList.remove('auth-logged-out');
+            });
             if (elements.authDropdown) {
               elements.authDropdown.classList.remove('show');
             }
@@ -5844,9 +5858,10 @@ function initAuth() {
         userRequestedLogout = false;
         currentUser = null;
         cloudReady = false;
-        document.documentElement.classList.remove('is-logged-in');
-        document.body.classList.add('auth-logged-out');
-        relocateAppGridForAuthState(false);
+        relocateAppGridForAuthState(false, () => {
+          document.documentElement.classList.remove('is-logged-in');
+          document.body.classList.add('auth-logged-out');
+        });
         elements.authDropdown.classList.add('show');
         elements.userBadge.classList.add('hidden');
 
