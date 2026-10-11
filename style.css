@@ -79,7 +79,7 @@ html, body {
   /* One roundness for the whole app: the unfollowed / starred buttons'. */
   --radius: 12px;
   --logo-color: #000000;
-  --bg-color: #ffffff;
+  --bg-color: #f4f5f3;
   --bg-gradient: none;
   --card-bg: rgba(255, 255, 255, 0.8);
   --card-border: rgba(9, 9, 11, 0.08);
@@ -117,7 +117,7 @@ html, body {
   --grad-2: #a1a1aa; /* Light gray */
   --grad-3: #3f3f46; /* Medium gray */
   --logo-color: #ffffff;
-  --bg-color: #09090b;
+  --bg-color: #111513;
   --bg-gradient: none;
   --card-bg: rgba(24, 24, 27, 0.65);
   --card-border: rgba(255, 255, 255, 0.08);

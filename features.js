@@ -2563,8 +2563,8 @@
     const W = 1080, H = 1350, P = 72;
     const dark = document.documentElement.getAttribute('data-theme') === 'dark';
     const C = dark
-      ? { bg: '#09090b', text: '#fafafa', muted: '#a1a1aa' }
-      : { bg: '#ffffff', text: '#09090b', muted: '#71717a' };
+      ? { bg: '#111513', text: '#fafafa', muted: '#a1a1aa' }
+      : { bg: '#f4f5f3', text: '#09090b', muted: '#71717a' };
     const body = getComputedStyle(document.body).fontFamily || 'sans-serif';
     const display = `'Outfit', ${body}`;
     try { if (document.fonts) await Promise.all([document.fonts.load(`800 80px 'Outfit'`), document.fonts.load(`500 30px ${body}`)]); } catch (e) {}
