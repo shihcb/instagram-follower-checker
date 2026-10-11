@@ -69,41 +69,47 @@ html, body {
   --list-item-motion-duration: 0.45s;
   --list-item-motion-easing: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Grayscale Theme Gradient Colors */
-  --grad-1: #000000;
-  --grad-2: #3f3f46;
-  --grad-3: #71717a;
+  /* Palette — the same color codes as the financial dashboard
+     (shihcb/financial-dashboard, public/index.html). Everything below
+     and the rest of the stylesheet draws from these. */
+  --bg: #f4f5f3; --panel: #ffffff; --fg: #1b1f1d; --muted: #66706b; --line: #e1e5e2; --soft: #eef1ef;
+  --accent: #23634a; --ok: #1f7a4f; --ok-bg: #e6f3ec; --warn: #9a6100; --warn-bg: #fbf1de; --bad: #b3261e; --bad-bg: #fbe9e7;
+  --plat: #5b6670; --gold: #a37514; --grid: #e7eae8;
+  --s1: #23634a; --s2: #3d7fc4; --s3: #c17d1d; --s4: #8a5bb5; --s5: #c4495a; --s6: #2a9c9c; --s7: #6f7d2c; --s8: #8c6a4f; --s9: #5a6b8c;
+
+  --grad-1: var(--fg);
+  --grad-2: var(--plat);
+  --grad-3: var(--muted);
   --grad-instagram: linear-gradient(135deg, var(--grad-1), var(--grad-2), var(--grad-3));
 
-  /* Light Theme variables (Fallback / Active under light mode) */
   /* One roundness for the whole app: the unfollowed / starred buttons'. */
   --radius: 12px;
-  --logo-color: #000000;
-  --bg-color: #f4f5f3;
+  --logo-color: var(--fg);
+  --bg-color: var(--bg);
   --bg-gradient: none;
-  --card-bg: rgba(255, 255, 255, 0.8);
-  --card-border: rgba(9, 9, 11, 0.08);
+  --card-bg: var(--panel);
+  --card-border: var(--line);
   --card-shadow: 0 10px 30px -10px rgba(9, 9, 11, 0.05), 
                  0 1px 3px rgba(9, 9, 11, 0.02);
   --highlight-border: rgba(0, 0, 0, 0.18);
   --highlight-shadow: rgba(0, 0, 0, 0.03);
-  --text-main: #09090b;
-  --text-muted: #71717a;
-  --text-inverse: #ffffff;
-  --input-bg: #ffffff;
-  --input-border: rgba(9, 9, 11, 0.12);
-  --btn-primary-bg: #000000;
-  --btn-primary-text: #ffffff;
-  --btn-secondary-bg: #f3f4f6;
-  --btn-secondary-hover: #e5e7eb;
-  --btn-secondary-border: #d1d5db;
+  --text-main: var(--fg);
+  --text-muted: var(--muted);
+  --text-inverse: var(--bg);
+  --input-bg: var(--panel);
+  --input-border: var(--line);
+  --btn-primary-bg: var(--accent);
+  --btn-primary-text: var(--bg);
+  --btn-secondary-bg: var(--soft);
+  --btn-secondary-hover: var(--line);
+  --btn-secondary-border: var(--line);
   
   --glow-opacity: 0;
   --glass-blur: 16px;
   
-  --success-color: #10b981;
-  --error-color: #0f172a;
-  --warning-color: #f59e0b;
+  --success-color: var(--ok);
+  --error-color: var(--fg);
+  --warning-color: var(--warn);
 
   --scrollbar-thumb: rgba(9, 9, 11, 0.15);
   --scrollbar-track: rgba(9, 9, 11, 0.03);
@@ -112,31 +118,17 @@ html, body {
 }
 
 [data-theme="dark"] {
-  /* Dark Theme variables */
-  --grad-1: #ffffff;
-  --grad-2: #a1a1aa; /* Light gray */
-  --grad-3: #3f3f46; /* Medium gray */
-  --logo-color: #ffffff;
-  --bg-color: #111513;
-  --bg-gradient: none;
-  --card-bg: rgba(24, 24, 27, 0.65);
-  --card-border: rgba(255, 255, 255, 0.08);
+  /* Dark palette (the financial dashboard's dark mode) */
+  --bg: #111513; --panel: #181d1b; --fg: #e8ece9; --muted: #9aa49f; --line: #29302d; --soft: #1f2522;
+  --accent: #6cc39b; --ok: #7ccfa5; --ok-bg: #1b2e24; --warn: #e8b55c; --warn-bg: #2f2716; --bad: #f29a90; --bad-bg: #351c1a;
+  --plat: #aab4bd; --gold: #e0b252; --grid: #222926;
+  --s1: #6cc39b; --s2: #7fb0eb; --s3: #e3ac4d; --s4: #b994e0; --s5: #ec8494; --s6: #5fcaca; --s7: #b4c463; --s8: #c9a283; --s9: #9fb0d1;
+
+  --grad-3: var(--line);
   --card-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 
                  inset 0 1px 0 rgba(255, 255, 255, 0.05);
   --highlight-border: rgba(255, 255, 255, 0.15);
   --highlight-shadow: rgba(0, 0, 0, 0.5);
-  --text-main: #f4f4f5;
-  --text-muted: #a1a1aa;
-  --text-inverse: #09090b;
-  --input-bg: rgba(9, 9, 11, 0.8);
-  --input-border: rgba(255, 255, 255, 0.08);
-  --btn-primary-bg: #ffffff;
-  --btn-primary-text: #000000;
-  --btn-secondary-bg: #18181b;
-  --btn-secondary-hover: #27272a;
-  --btn-secondary-border: #3f3f46;
-  --error-color: #f8fafc;
-
   --glow-opacity: 0.18;
   
   --scrollbar-thumb: rgba(255, 255, 255, 0.1);
@@ -441,14 +433,14 @@ button:disabled *,
 }
 
 .btn-secondary {
-  background-color: #ffffff !important;
+  background-color: var(--panel) !important;
   color: var(--text-main);
   border: 1px solid var(--btn-secondary-border);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background-color: #ffffff !important;
+  background-color: var(--panel) !important;
   border-color: var(--text-main);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
@@ -555,9 +547,9 @@ button:disabled *,
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
-  background: #000000 !important;
-  color: #ffffff !important;
-  border: 1px solid #000000 !important;
+  background: var(--fg) !important;
+  color: var(--bg) !important;
+  border: 1px solid var(--fg) !important;
 }
 
 /* Dark theme overrides for list badges & card numbers */
@@ -565,14 +557,14 @@ button:disabled *,
 [data-theme="dark"] .count-badge,
 [data-theme="dark"] .result-badge,
 [data-theme="dark"] #unfollowers-count {
-  background: #ffffff !important;
-  color: #000000 !important;
-  border-color: #ffffff !important;
+  background: var(--fg) !important;
+  color: var(--bg) !important;
+  border-color: var(--fg) !important;
 }
 
 .card-num.bg-gradient {
   background: var(--grad-instagram);
-  color: #fff;
+  color: var(--bg);
   border: none;
 }
 
@@ -623,14 +615,14 @@ button:disabled *,
 }
 
 .import-account-warning svg {
-  color: #f59e0b;
+  color: var(--warn);
   flex-shrink: 0;
 }
 
 [data-theme="dark"] .import-account-warning {
-  background-color: rgba(245, 158, 11, 0.12);
-  border-color: rgba(245, 158, 11, 0.25);
-  color: #ffffff !important;
+  background-color: color-mix(in srgb, var(--warn) 12%, transparent);
+  border-color: color-mix(in srgb, var(--warn) 25%, transparent);
+  color: var(--fg) !important;
 }
 
 .import-account-warning.hidden-warning {
@@ -854,16 +846,16 @@ button:disabled *,
   height: 14px !important;
   min-width: 14px !important;
   min-height: 14px !important;
-  color: #000000 !important;
-  stroke: #000000 !important;
+  color: var(--fg) !important;
+  stroke: var(--fg) !important;
   position: relative;
   top: 1px;
   transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 [data-theme="dark"] .preview-toggle .chevron-icon {
-  color: #000000 !important;
-  stroke: #000000 !important;
+  color: var(--fg) !important;
+  stroke: var(--fg) !important;
 }
 
 .preview-toggle.active .chevron-icon {
@@ -1078,9 +1070,9 @@ button:disabled *,
 
 #reset-unfollowed-btn,
 [data-theme="dark"] #reset-unfollowed-btn {
-  background-color: rgba(239, 68, 68, 0.12) !important;
-  color: #ef4444 !important;
-  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  background-color: color-mix(in srgb, var(--bad) 12%, transparent) !important;
+  color: var(--bad) !important;
+  border: 1px solid color-mix(in srgb, var(--bad) 30%, transparent) !important;
   font-weight: 600 !important;
   border-radius: 12px !important;
   transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -1088,23 +1080,23 @@ button:disabled *,
 
 #reset-unfollowed-btn svg,
 [data-theme="dark"] #reset-unfollowed-btn svg {
-  color: #ef4444 !important;
-  stroke: #ef4444 !important;
+  color: var(--bad) !important;
+  stroke: var(--bad) !important;
   transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 #reset-unfollowed-btn:hover,
 [data-theme="dark"] #reset-unfollowed-btn:hover {
-  background-color: #ef4444 !important;
-  color: #ffffff !important;
-  border-color: #ef4444 !important;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35) !important;
+  background-color: var(--bad) !important;
+  color: var(--bg) !important;
+  border-color: var(--bad) !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--bad) 35%, transparent) !important;
 }
 
 #reset-unfollowed-btn:hover svg,
 [data-theme="dark"] #reset-unfollowed-btn:hover svg {
-  color: #ffffff !important;
-  stroke: #ffffff !important;
+  color: var(--bg) !important;
+  stroke: var(--bg) !important;
 }
 
 #list-unfollowed,
@@ -1121,7 +1113,7 @@ button:disabled *,
 }
 
 [data-theme="dark"] .dropdown-menu {
-  background-color: rgba(24, 24, 27, 0.95) !important;
+  background-color: color-mix(in srgb, var(--panel) 95%, transparent) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -1153,8 +1145,8 @@ button:disabled *,
   display: inline-block !important;
   height: 6px !important;
   border-radius: 50% !important;
-  background-color: #10b981 !important;
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.5) !important;
+  background-color: var(--ok) !important;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--ok) 50%, transparent) !important;
   vertical-align: middle !important;
   flex-shrink: 0 !important;
   /* Always in the label; .on (list not empty) grows it in with a small
@@ -1473,31 +1465,31 @@ body.hide-shortcuts #keyboard-hints {
 
 /* Dark mode overrides for keyboard hints and dropdown opener buttons */
 [data-theme="dark"] .keyboard-hints {
-  background-color: #000000 !important;
+  background-color: var(--bg) !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 [data-theme="dark"] .keyboard-hints kbd {
-  background-color: #18181b !important;
+  background-color: var(--panel) !important;
   border-color: rgba(255, 255, 255, 0.15) !important;
-  color: #f4f4f5 !important;
+  color: var(--fg) !important;
 }
 
 [data-theme="dark"] .btn-secondary {
-  background-color: #18181b !important;
-  color: #f4f4f5 !important;
+  background-color: var(--panel) !important;
+  color: var(--fg) !important;
   border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
 [data-theme="dark"] .btn-secondary:hover:not(:disabled) {
-  background-color: #27272a !important;
+  background-color: var(--soft) !important;
 }
 
 [data-theme="dark"] .preview-toggle {
   background-color: rgba(255, 255, 255, 0.07) !important;
   background: rgba(255, 255, 255, 0.07) !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  color: #f4f4f5 !important;
+  color: var(--fg) !important;
   font-family: var(--font-sans) !important;
   font-size: 0.8rem !important;
   font-weight: 600 !important;
@@ -1513,12 +1505,12 @@ body.hide-shortcuts #keyboard-hints {
   background-color: rgba(255, 255, 255, 0.07) !important;
   background: rgba(255, 255, 255, 0.07) !important;
   border-color: rgba(255, 255, 255, 0.12) !important;
-  color: #f4f4f5 !important;
+  color: var(--fg) !important;
 }
 
 /* Open (its menu showing): just a white outline, no brighter fill. */
 [data-theme="dark"] .preview-toggle.active {
-  border-color: #ffffff !important;
+  border-color: var(--fg) !important;
   background-color: rgba(255, 255, 255, 0.07) !important;
   background: rgba(255, 255, 255, 0.07) !important;
 }
@@ -1587,53 +1579,53 @@ body.hide-shortcuts #keyboard-hints {
 .action-star,
 .star-unfollowed-btn,
 .unstar-btn {
-  color: #f59e0b !important;
+  color: var(--gold) !important;
 }
 .action-star svg,
 .star-unfollowed-btn svg,
 .unstar-btn svg {
-  color: #f59e0b !important;
-  stroke: #f59e0b !important;
+  color: var(--gold) !important;
+  stroke: var(--gold) !important;
   fill: none !important;
 }
 [data-theme="dark"] .action-star svg,
 [data-theme="dark"] .star-unfollowed-btn svg,
 [data-theme="dark"] .unstar-btn svg {
-  color: #fbbf24 !important;
-  stroke: #fbbf24 !important;
+  color: var(--gold) !important;
+  stroke: var(--gold) !important;
   fill: none !important;
 }
 
 /* Only filled in for starred items (items in starred list, or starred action items) */
 .action-star.starred svg,
 .unstar-btn svg {
-  fill: #f59e0b !important;
+  fill: var(--gold) !important;
 }
 [data-theme="dark"] .action-star.starred svg,
 [data-theme="dark"] .unstar-btn svg {
-  fill: #fbbf24 !important;
+  fill: var(--gold) !important;
 }
 
 .unfollow-starred-btn,
 .action-delete,
 .remove-unfollowed-btn,
 .action-dismiss {
-  color: #ef4444 !important;
+  color: var(--bad) !important;
 }
 .unfollow-starred-btn svg,
 .action-delete svg,
 .remove-unfollowed-btn svg,
 .action-dismiss svg {
-  color: #ef4444 !important;
-  stroke: #ef4444 !important;
+  color: var(--bad) !important;
+  stroke: var(--bad) !important;
 }
 
 .action-arrow {
-  color: #10b981 !important;
+  color: var(--ok) !important;
 }
 .action-arrow svg {
-  color: #10b981 !important;
-  stroke: #10b981 !important;
+  color: var(--ok) !important;
+  stroke: var(--ok) !important;
 }
 
 /* Mac/Desktop Hover States (Starts neutral, colors change only when hovered over) */
@@ -1653,14 +1645,14 @@ body.hide-shortcuts #keyboard-hints {
   [data-theme="dark"] .action-star svg,
   [data-theme="dark"] .star-unfollowed-btn svg,
   [data-theme="dark"] .unstar-btn svg {
-    color: #ffffff !important;
-    stroke: #ffffff !important;
+    color: var(--fg) !important;
+    stroke: var(--fg) !important;
   }
   .action-star.starred svg {
     fill: var(--text-main) !important;
   }
   [data-theme="dark"] .action-star.starred svg {
-    fill: #ffffff !important;
+    fill: var(--fg) !important;
   }
 
   .unfollow-starred-btn,
@@ -1680,8 +1672,8 @@ body.hide-shortcuts #keyboard-hints {
   [data-theme="dark"] .action-delete svg,
   [data-theme="dark"] .remove-unfollowed-btn svg,
   [data-theme="dark"] .action-dismiss svg {
-    color: #ffffff !important;
-    stroke: #ffffff !important;
+    color: var(--fg) !important;
+    stroke: var(--fg) !important;
   }
 
   .action-arrow {
@@ -1692,47 +1684,47 @@ body.hide-shortcuts #keyboard-hints {
     stroke: var(--text-main) !important;
   }
   [data-theme="dark"] .action-arrow svg {
-    color: #ffffff !important;
-    stroke: #ffffff !important;
+    color: var(--fg) !important;
+    stroke: var(--fg) !important;
   }
 
   /* Hover color triggers */
   .action-star:hover,
   .star-unfollowed-btn:hover,
   .unstar-btn:hover {
-    color: #f59e0b !important;
+    color: var(--warn) !important;
     transform: scale(1.15) !important;
   }
   .action-star:hover svg,
   .star-unfollowed-btn:hover svg,
   .unstar-btn:hover svg {
-    color: #f59e0b !important;
-    stroke: #f59e0b !important;
-    fill: #f59e0b !important;
+    color: var(--warn) !important;
+    stroke: var(--warn) !important;
+    fill: var(--warn) !important;
   }
 
   .unfollow-starred-btn:hover,
   .action-delete:hover,
   .remove-unfollowed-btn:hover,
   .action-dismiss:hover {
-    color: #ef4444 !important;
+    color: var(--bad) !important;
     transform: scale(1.15) !important;
   }
   .unfollow-starred-btn:hover svg,
   .action-delete:hover svg,
   .remove-unfollowed-btn:hover svg,
   .action-dismiss:hover svg {
-    color: #ef4444 !important;
-    stroke: #ef4444 !important;
+    color: var(--bad) !important;
+    stroke: var(--bad) !important;
   }
 
   .action-arrow:hover {
-    color: #10b981 !important;
+    color: var(--ok) !important;
     transform: scale(1.15) !important;
   }
   .action-arrow:hover svg {
-    color: #10b981 !important;
-    stroke: #10b981 !important;
+    color: var(--ok) !important;
+    stroke: var(--ok) !important;
   }
 }
 
@@ -1851,15 +1843,15 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 .account-chip.active {
-  background: rgba(16, 185, 129, 0.12) !important;
-  border-color: #10b981 !important;
-  color: #10b981 !important;
-  box-shadow: 0 3px 12px -2px rgba(16, 185, 129, 0.25), 0 1px 4px -1px rgba(16, 185, 129, 0.15) !important;
+  background: color-mix(in srgb, var(--ok) 12%, transparent) !important;
+  border-color: var(--ok) !important;
+  color: var(--ok) !important;
+  box-shadow: 0 3px 12px -2px color-mix(in srgb, var(--ok) 25%, transparent), 0 1px 4px -1px color-mix(in srgb, var(--ok) 15%, transparent) !important;
   transition: background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .account-chip.active:hover {
-  border-color: #10b981 !important;
+  border-color: var(--ok) !important;
 }
 
 [data-theme="dark"] .account-chip {
@@ -1867,15 +1859,15 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 [data-theme="dark"] .account-chip.active {
-  background: rgba(16, 185, 129, 0.18) !important;
-  border-color: #34d399 !important;
-  color: #34d399 !important;
-  box-shadow: 0 3px 14px -2px rgba(52, 211, 153, 0.3), 0 1px 5px -1px rgba(52, 211, 153, 0.2) !important;
+  background: color-mix(in srgb, var(--ok) 18%, transparent) !important;
+  border-color: var(--ok) !important;
+  color: var(--ok) !important;
+  box-shadow: 0 3px 14px -2px color-mix(in srgb, var(--ok) 30%, transparent), 0 1px 5px -1px color-mix(in srgb, var(--ok) 20%, transparent) !important;
   transition: background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 [data-theme="dark"] .account-chip.active:hover {
-  border-color: #34d399 !important;
+  border-color: var(--ok) !important;
 }
 
 .account-chip,
@@ -2123,7 +2115,7 @@ body.hide-shortcuts #keyboard-hints {
 
 @media (hover: hover) {
   .modal-close-btn:hover {
-    color: #ef4444 !important;
+    color: var(--bad) !important;
     background: transparent !important;
     background-color: transparent !important;
   }
@@ -2420,14 +2412,14 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 .export-option-row.active {
-  background-color: rgba(16, 185, 129, 0.12) !important;
+  background-color: color-mix(in srgb, var(--ok) 12%, transparent) !important;
   color: var(--text-main) !important;
   font-weight: 600;
 }
 
 [data-theme="dark"] .export-option-row.active {
-  background-color: rgba(52, 211, 153, 0.18) !important;
-  color: #ffffff !important;
+  background-color: color-mix(in srgb, var(--ok) 18%, transparent) !important;
+  color: var(--fg) !important;
 }
 
 .export-option-left {
@@ -2460,12 +2452,12 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 .option-sub.highlight {
-  color: #059669;
+  color: var(--ok);
   font-weight: 700;
 }
 
 [data-theme="dark"] .option-sub.highlight {
-  color: #34d399;
+  color: var(--ok);
 }
 
 .export-settings-pills {
@@ -2488,11 +2480,11 @@ body.hide-shortcuts #keyboard-hints {
 
 .export-pill strong {
   font-weight: 700;
-  color: #10b981;
+  color: var(--ok);
 }
 
 [data-theme="dark"] .export-pill strong {
-  color: #34d399;
+  color: var(--ok);
 }
 
 .instructions-step-list {
@@ -2665,7 +2657,7 @@ html.hide-shortcuts .account-chip-badge {
 }
 
 [data-theme="dark"] .modal-close-btn {
-  color: #ffffff !important;
+  color: var(--fg) !important;
 }
 
 .account-modal-input-group {
@@ -2723,10 +2715,10 @@ html.hide-shortcuts .account-chip-badge {
 [data-theme="dark"] #btn-confirm-ok,
 [data-theme="dark"] #btn-modal-delete,
 [data-theme="dark"] .btn-danger-soft {
-  background-color: rgba(239, 68, 68, 0.12) !important;
-  background: rgba(239, 68, 68, 0.12) !important;
-  color: #ef4444 !important;
-  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  background-color: color-mix(in srgb, var(--bad) 12%, transparent) !important;
+  background: color-mix(in srgb, var(--bad) 12%, transparent) !important;
+  color: var(--bad) !important;
+  border: 1px solid color-mix(in srgb, var(--bad) 30%, transparent) !important;
   font-weight: 600 !important;
   border-radius: 12px !important;
   transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -2738,11 +2730,11 @@ html.hide-shortcuts .account-chip-badge {
 [data-theme="dark"] #btn-confirm-ok:hover,
 [data-theme="dark"] #btn-modal-delete:hover,
 [data-theme="dark"] .btn-danger-soft:hover:not(:disabled) {
-  background-color: #ef4444 !important;
-  background: #ef4444 !important;
-  color: #ffffff !important;
-  border-color: #ef4444 !important;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35) !important;
+  background-color: var(--bad) !important;
+  background: var(--bad) !important;
+  color: var(--bg) !important;
+  border-color: var(--bad) !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--bad) 35%, transparent) !important;
 }
 
 .btn-danger-soft:disabled,
@@ -2925,8 +2917,8 @@ html.hide-shortcuts .account-chip-badge {
 
 [data-theme="dark"] .user-row.selected {
   background-color: transparent !important;
-  border-color: #ffffff !important;
-  box-shadow: 0 0 0 1px #ffffff !important;
+  border-color: var(--fg) !important;
+  box-shadow: 0 0 0 1px var(--fg) !important;
 }
 
 .user-info {
@@ -3108,23 +3100,23 @@ html.hide-shortcuts .account-chip-badge {
 }
 
 .action-star svg {
-  stroke: #f59e0b !important;
+  stroke: var(--gold) !important;
   fill: none !important;
 }
 
 [data-theme="dark"] .action-star svg {
-  stroke: #fbbf24 !important;
+  stroke: var(--gold) !important;
   fill: none !important;
 }
 
 .unstar-btn svg {
-  fill: #f59e0b !important;
-  stroke: #f59e0b !important;
+  fill: var(--gold) !important;
+  stroke: var(--gold) !important;
 }
 
 [data-theme="dark"] .unstar-btn svg {
-  fill: #fbbf24 !important;
-  stroke: #fbbf24 !important;
+  fill: var(--gold) !important;
+  stroke: var(--gold) !important;
 }
 
 /* -------------------------------------------------------------
@@ -3304,8 +3296,8 @@ body.is-capacitor.auth-logged-out #theme-toggle {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background-color: #22c55e;
-  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.3);
+  background-color: var(--ok);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--ok) 30%, transparent);
   border: none !important;
   display: flex;
   align-items: center;
@@ -3316,7 +3308,7 @@ body.is-capacitor.auth-logged-out #theme-toggle {
 .user-badge svg {
   width: 9px;
   height: 9px;
-  stroke: #ffffff !important;
+  stroke: var(--bg) !important;
   stroke-width: 3.5 !important;
 }
 
@@ -3556,14 +3548,14 @@ body.auth-logged-out #auth-form-view {
   align-items: center;
   justify-content: space-between;
   padding: 16px 32px;
-  background: rgba(9, 9, 11, 0.75);
+  background: color-mix(in srgb, var(--bg) 75%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--card-border);
 }
 
 [data-theme="light"] .landing-header {
-  background: rgba(250, 250, 250, 0.85);
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
 }
 
 .landing-brand {
@@ -4130,8 +4122,8 @@ body:not(.auth-logged-out) #theme-toggle {
 .auth-success {
   padding: 10px 12px;
   border-radius: 8px;
-  background-color: rgba(16, 185, 129, 0.06);
-  border: 1px solid rgba(16, 185, 129, 0.12);
+  background-color: color-mix(in srgb, var(--ok) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ok) 12%, transparent);
   color: var(--success-color);
   font-size: 0.75rem;
   text-transform: lowercase;
@@ -4203,11 +4195,11 @@ body:not(.auth-logged-out) #theme-toggle {
 }
 
 .auth-tab.active {
-  color: #000000;
+  color: var(--fg);
 }
 
 [data-theme="dark"] .auth-tab.active {
-  color: #ffffff;
+  color: var(--fg);
 }
 
 /* The white (dark: zinc) pill behind the active tab is one element that
@@ -4233,7 +4225,7 @@ body:not(.auth-logged-out) #theme-toggle {
   left: 3px;
   width: calc((100% - 10px) / 2);
   border-radius: 7px;
-  background-color: #ffffff;
+  background-color: var(--panel);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08),
               0 1px 2px rgba(0, 0, 0, 0.04);
   transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1); /* the tab switchers' timing */
@@ -4245,7 +4237,7 @@ body:not(.auth-logged-out) #theme-toggle {
 }
 
 [data-theme="dark"] .auth-tab-indicator {
-  background-color: #27272a;
+  background-color: var(--line);
 }
 
 /* Forms */
@@ -4325,9 +4317,9 @@ body:not(.auth-logged-out) #theme-toggle {
 }
 
 .love-card {
-  background: rgba(255, 255, 255, 0.85);
+  background: color-mix(in srgb, var(--panel) 85%, transparent);
   border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 25px 50px -12px rgba(239, 68, 68, 0.25), 0 0 40px rgba(239, 68, 68, 0.1);
+  box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--bad) 25%, transparent), 0 0 40px color-mix(in srgb, var(--bad) 10%, transparent);
   border-radius: 24px;
   padding: 40px;
   text-align: center;
@@ -4347,9 +4339,9 @@ body:not(.auth-logged-out) #theme-toggle {
 }
 
 [data-theme="dark"] .love-card {
-  background: rgba(24, 24, 27, 0.85);
+  background: color-mix(in srgb, var(--panel) 85%, transparent);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 25px 50px -12px rgba(239, 68, 68, 0.4), 0 0 45px rgba(239, 68, 68, 0.15);
+  box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--bad) 40%, transparent), 0 0 45px color-mix(in srgb, var(--bad) 15%, transparent);
 }
 
 .love-overlay.show .love-card {
@@ -4358,8 +4350,8 @@ body:not(.auth-logged-out) #theme-toggle {
 }
 
 .love-heart-main {
-  color: #ef4444;
-  filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.6));
+  color: var(--bad);
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--bad) 60%, transparent));
   animation: love-heart-beat 1.2s infinite alternate cubic-bezier(0.215, 0.61, 0.355, 1);
 }
 
@@ -4367,15 +4359,15 @@ body:not(.auth-logged-out) #theme-toggle {
   font-family: var(--font-display);
   font-size: 1.8rem;
   font-weight: 800;
-  color: #ef4444;
-  text-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+  color: var(--bad);
+  text-shadow: 0 0 15px color-mix(in srgb, var(--bad) 20%, transparent);
   letter-spacing: -0.03em;
   margin: 0;
   animation: love-text-glow 1.5s infinite alternate;
 }
 
 [data-theme="light"] .love-text {
-  color: #dc2626;
+  color: var(--bad);
 }
 
 .love-close-btn {
@@ -4429,14 +4421,14 @@ body:not(.auth-logged-out) #theme-toggle {
   }
   100% {
     opacity: 1;
-    text-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+    text-shadow: 0 0 20px color-mix(in srgb, var(--bad) 40%, transparent);
   }
 }
 
 /* Floating tiny background hearts */
 .love-heart-float {
   position: absolute;
-  color: rgba(239, 68, 68, 0.25);
+  color: color-mix(in srgb, var(--bad) 25%, transparent);
   pointer-events: none;
   animation: love-heart-float-up 4s linear infinite;
 }
@@ -4497,7 +4489,7 @@ body:not(.auth-logged-out) #theme-toggle {
 }
 
 [data-theme="dark"] .switch input:not(:checked) + .slider {
-  background-color: #000000;
+  background-color: var(--bg);
   border-color: rgba(255, 255, 255, 0.15);
 }
 
@@ -4631,15 +4623,15 @@ textarea {
 }
 
 .reset-reminder-box.overdue {
-  border-color: rgba(239, 68, 68, 0.35);
+  border-color: color-mix(in srgb, var(--bad) 35%, transparent);
 }
 
 .reset-reminder-box.overdue .storage-value {
-  color: #ef4444;
+  color: var(--bad);
 }
 
 .reset-reminder-box.overdue .storage-progress-fill {
-  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  background: linear-gradient(90deg, var(--warn), var(--bad));
 }
 
 /* Overlay simple slow fade out & blur exit */
@@ -4823,11 +4815,11 @@ body.auth-logged-out #auth-form-view.smooth-exit {
 
 /* History dropdown clear close button matches list dismiss close button color */
 .remove-unfollowed-btn {
-  color: #1a1a1a !important;
+  color: var(--fg) !important;
 }
 
 [data-theme="dark"] .remove-unfollowed-btn {
-  color: #ffffff !important;
+  color: var(--fg) !important;
 }
 
 .card-body > .search-box {
@@ -4933,9 +4925,9 @@ button:focus-visible,
   cursor: not-allowed;
 }
 .toolbar-pill.on {
-  border-color: #10b981;
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.1);
+  border-color: var(--ok);
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 10%, transparent);
 }
 .toolbar-pill.pill-hidden {
   display: none;
@@ -4944,9 +4936,9 @@ button:focus-visible,
   /* Spans the content box, like the import files bar above it. */
   flex: 1 1 100%;
   justify-content: center;
-  border-color: #f59e0b;
-  color: #d97706;
-  background: rgba(245, 158, 11, 0.08);
+  border-color: var(--warn);
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
 }
 
 #list-unfollowers .user-row {
@@ -4973,9 +4965,9 @@ button:focus-visible,
 }
 #list-unfollowers .user-row.multi-selected,
 .results-extra .user-row.multi-selected {
-  border-color: #10b981 !important;
-  background: rgba(16, 185, 129, 0.08) !important;
-  box-shadow: 0 0 0 1px #10b981 inset;
+  border-color: var(--ok) !important;
+  background: color-mix(in srgb, var(--ok) 8%, transparent) !important;
+  box-shadow: 0 0 0 1px var(--ok) inset;
 }
 /* Bulk bar: the instructions tab switcher's bar and tabs; the count sits
    on the white highlight, star amber, unfollow red. */
@@ -5071,10 +5063,10 @@ body.select-active #card-followers {
   cursor: not-allowed;
 }
 .row-select-bar button[data-bulk="star"] {
-  color: #d97706;
+  color: var(--warn);
 }
 .row-select-bar button[data-bulk="unfollow"] {
-  color: #ef4444;
+  color: var(--bad);
 }
 @media (hover: hover) {
   .row-select-bar button:not(:disabled):hover {
@@ -5121,8 +5113,8 @@ body.select-active #card-followers {
   transform: translate(-50%, 0) scale(1);
 }
 .feature-toast.warn {
-  background: #d97706;
-  color: #ffffff;
+  background: var(--warn);
+  color: var(--bg);
 }
 .feature-toast-btn {
   flex-shrink: 0;
@@ -5130,8 +5122,8 @@ body.select-active #card-followers {
   padding: 0 12px;
   border-radius: 9px;
   border: none;
-  background: #10b981;
-  color: #ffffff;
+  background: var(--ok);
+  color: var(--bg);
   font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
@@ -5323,8 +5315,8 @@ body.select-active #card-followers {
 .trend-bar {
   flex: 1 1 0;
   border-radius: 7px 7px 3px 3px;
-  background: color-mix(in srgb, var(--bar, #2f9e7e) 26%, transparent);
-  border: 1px solid color-mix(in srgb, var(--bar, #2f9e7e) 70%, transparent);
+  background: color-mix(in srgb, var(--bar, var(--accent)) 26%, transparent);
+  border: 1px solid color-mix(in srgb, var(--bar, var(--accent)) 70%, transparent);
   border-bottom: none;
   box-sizing: border-box;
   transform-origin: bottom;
@@ -5412,14 +5404,14 @@ body.select-active #card-followers {
 /* Blue, the usual undo color (green means "on" elsewhere in the app). */
 #btn-undo.undo-btn.ready {
   opacity: 1;
-  border-color: #3b82f6 !important;
-  color: #2563eb !important;
-  background: rgba(59, 130, 246, 0.08) !important;
+  border-color: var(--s2) !important;
+  color: var(--s2) !important;
+  background: color-mix(in srgb, var(--s2) 8%, transparent) !important;
 }
 [data-theme="dark"] #btn-undo.undo-btn.ready {
-  border-color: #60a5fa !important;
-  color: #60a5fa !important;
-  background: rgba(96, 165, 250, 0.1) !important;
+  border-color: var(--s2) !important;
+  color: var(--s2) !important;
+  background: color-mix(in srgb, var(--s2) 10%, transparent) !important;
 }
 
 /* Lists 1 & 2: search box + export button in one row */
@@ -5462,8 +5454,8 @@ body.select-active #card-followers {
   transition: border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .export-option.on {
-  border-color: #10b981;
-  background: rgba(16, 185, 129, 0.08);
+  border-color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 8%, transparent);
 }
 /* The other side (stats image vs lists) while one is picked: greyed out. */
 .export-option.muted {
@@ -5482,9 +5474,9 @@ body.select-active #card-followers {
   transition: background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .export-option.on .export-check {
-  background: #10b981;
-  border-color: #10b981;
-  color: #ffffff;
+  background: var(--ok);
+  border-color: var(--ok);
+  color: var(--bg);
 }
 .export-option:active .export-check {
   transform: scale(0.88);
@@ -6349,14 +6341,14 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
    filled red, and its row's text turns red, until that list is reset. */
 .btn-danger-soft.reset-due,
 [data-theme="dark"] .btn-danger-soft.reset-due {
-  background: #ef4444 !important;
-  background-color: #ef4444 !important;
-  color: #ffffff !important;
-  border-color: #ef4444 !important;
+  background: var(--bad) !important;
+  background-color: var(--bad) !important;
+  color: var(--bg) !important;
+  border-color: var(--bad) !important;
 }
 .setting-item-row.reset-due .setting-label,
 .setting-item-row.reset-due .setting-desc {
-  color: #ef4444;
+  color: var(--bad);
 }
 
 .saved-imports-help {
