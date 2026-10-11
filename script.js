@@ -287,7 +287,7 @@ function setTheme(theme) {
     themeColorMeta.id = 'theme-color-meta';
     document.head.appendChild(themeColorMeta);
   }
-  themeColorMeta.setAttribute('content', theme === 'dark' ? '#111513' : '#f4f5f3');
+  themeColorMeta.setAttribute('content', theme === 'dark' ? '#09090b' : '#fafafa');
 }
 
 // Custom Site Pop-up Confirm & Alert Modal Helpers

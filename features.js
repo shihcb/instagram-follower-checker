@@ -1377,10 +1377,8 @@
   const userRowsHtml = (users, empty, action, flagOf) => boxRowsHtml(users, empty, flagOf, false);
   // Stats: six boxes, each with its own color, and a bar per box in the
   // graph below in the same color. No data yet: a greyed-out example graph.
-  // The financial dashboard's series colors (style.css palette), so they
-  // follow the theme; a box and its bar share one.
-  const STAT_VARS = ['--s2', '--s1', '--s4', '--s5', '--bad', '--s3'];
-  const STAT_COLORS = STAT_VARS.map(v => `var(${v})`);
+  // A calm, professional palette; a box and its bar share one.
+  const STAT_COLORS = ['#4f7fe8', '#2f9e7e', '#7b6ee6', '#d6588f', '#e0604f', '#dd9a2b'];
   let poppedStat = -1; // the box tapped: its bar stays popped out
   const MOCK_HEIGHTS = [60, 85, 70, 40, 55, 30];
   const chartHtml = (heights, mock) => `<div class="trend-chart${mock ? ' trend-mock' : ''}"${mock ? ' aria-hidden="true"' : ''}>${heights.map((h, i) =>
@@ -2564,9 +2562,9 @@
   async function statsImage() {
     const W = 1080, H = 1350, P = 72;
     const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-    const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-    const C = { bg: css('--bg'), text: css('--fg'), muted: css('--muted') };
-    const statHex = STAT_VARS.map(css);
+    const C = dark
+      ? { bg: '#09090b', text: '#fafafa', muted: '#a1a1aa' }
+      : { bg: '#ffffff', text: '#09090b', muted: '#71717a' };
     const body = getComputedStyle(document.body).fontFamily || 'sans-serif';
     const display = `'Outfit', ${body}`;
     try { if (document.fonts) await Promise.all([document.fonts.load(`800 80px 'Outfit'`), document.fonts.load(`500 30px ${body}`)]); } catch (e) {}
@@ -2599,10 +2597,10 @@
     values.forEach((v, i) => {
       const x = P + (i % 3) * (bw + gap), y = top + Math.floor(i / 3) * (bh + gap);
       roundRect(ctx, x, y, bw, bh, 26);
-      ctx.fillStyle = hexA(statHex[i], dark ? 0.12 : 0.07);
+      ctx.fillStyle = hexA(STAT_COLORS[i], dark ? 0.12 : 0.07);
       ctx.fill();
       ctx.lineWidth = 3;
-      ctx.strokeStyle = hexA(statHex[i], 0.7);
+      ctx.strokeStyle = hexA(STAT_COLORS[i], 0.7);
       ctx.stroke();
       ctx.fillStyle = C.text;
       ctx.font = `800 64px ${display}`;
@@ -2619,7 +2617,7 @@
       const bhh = Math.max(10, gh * h / 100), x = P + i * (barW + barGap), y = gBottom - bhh;
       const r = Math.min(18, bhh, barW / 2);
       roundRect(ctx, x, y, barW, bhh, [r, r, 0, 0]);
-      ctx.fillStyle = hexA(statHex[i], 0.26);
+      ctx.fillStyle = hexA(STAT_COLORS[i], 0.26);
       ctx.fill();
       // Outlined like the app's bars: the top and sides, open at the bottom.
       ctx.beginPath();
@@ -2628,7 +2626,7 @@
       ctx.lineTo(x + barW - r, y); ctx.quadraticCurveTo(x + barW, y, x + barW, y + r);
       ctx.lineTo(x + barW, gBottom);
       ctx.lineWidth = 3;
-      ctx.strokeStyle = hexA(statHex[i], 0.7);
+      ctx.strokeStyle = hexA(STAT_COLORS[i], 0.7);
       ctx.stroke();
     });
 
