@@ -286,7 +286,7 @@
       const ta = kind === 'following' ? elements.inputFollowing : elements.inputFollowers;
       if (!ta || ta.value.trim() === '') return;
       const entry = { snap: { acc: accKey(), cleared: kind, list: state[kind].slice(), text: ta.value }, message: `${label} cleared` };
-      // After the text has faded out (smoothClearTextarea, 280ms).
+      // After the text has faded out (smoothClearTextarea, ROW_MOTION_MS).
       setTimeout(() => {
         undoStack.push(entry);
         if (undoStack.length > 50) undoStack.shift();
@@ -298,7 +298,7 @@
           refreshUndo();
           afterSubmenusClose(() => restore(entry.snap));
         });
-      }, 320);
+      }, ROW_MOTION_MS + 40);
     }, true);
   });
 
@@ -868,11 +868,21 @@
     selectBar.style.top = `${(top + bottom) / 2}px`;
   }
   window.addEventListener('resize', () => { if (selectMode) placeSelectBar(); });
+  // Escape cancels select, like the bar's cancel (unless a pop-up is open,
+  // which Escape closes instead).
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !selectMode) return;
+    if (document.querySelector('.modal-overlay:not(.hidden)')) return;
+    setSelectMode(false);
+  });
   // List 3 re-renders (a search, a row leaving, switching accounts) rebuilt
   // the rows without their selected outline, and the count kept usernames
   // that were no longer there.
   function keepSelection() {
     if (!selectMode || selectOnPending()) return;
+    // Nothing left to select (the account was deselected, the last row
+    // left): select ends, instead of its bar staying up over an empty list.
+    if (!state.unfollowers.length) { setSelectMode(false); return; }
     const here = new Set(state.unfollowers.map(u => u.username));
     [...selected].forEach(n => { if (!here.has(n)) selected.delete(n); });
     elements.listUnfollowers.classList.add('select-mode');
@@ -947,7 +957,7 @@
   // ---------- list 3 views: a tab switcher above list 3's box ----------
   // Same bar and sliding highlight as the instructions window. Switching
   // only swaps what's inside list 3's box: the old view slides out, the new
-  // one slides in, in the direction of the tab — together 550ms on the
+  // one slides in, in the direction of the tab — together 450ms on the
   // highlight's easing, so the content lands as the highlight does.
   const VIEWS = [
     ['results', 'results'], ['changes', 'changes'], ['mutuals', 'mutuals'], ['fans', 'fans'],
@@ -1325,7 +1335,7 @@
             <div class="user-details"><a href="${href}" target="_blank" rel="noopener" class="user-link">@${esc(name)}</a>${note ? `<span class="user-fullname">${esc(note)}</span>` : ''}</div>
           </div>
           <div class="user-meta"><div class="user-row-actions">
-            ${dismiss === 'pending' ? `<button class="action-star" aria-label="star this account" title="move to the starred list">${STAR_ICON}</button><button class="action-delete" aria-label="mark as unfollowed" title="move to the unfollowed list">${TRASH_ICON}</button>` : ''}
+            ${dismiss === 'pending' ? `<button class="action-star" aria-label="star this account" title="move to the starred list">${STAR_ICON}</button><button class="action-delete" aria-label="unfollow this account" title="move to the unfollowed list">${TRASH_ICON}</button>` : ''}
             <a href="${href}" target="_blank" rel="noopener" class="action-arrow" aria-label="visit instagram profile" title="visit instagram profile">${ARROW_ICON}</a>
             ${dismiss ? `<button class="action-dismiss" aria-label="remove from this list" title="remove from this list">${X_ICON}</button>` : ''}
           </div></div>
@@ -1391,7 +1401,7 @@
   // their stat boxes' colors. Before a second import: a greyed-out example,
   // like the overview's graph.
   const MOCK_TIMELINE = [[40, 52], [46, 55], [44, 61], [52, 64], [55, 72], [58, 77]]; // [following, followers]
-  const shortDate = (t) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const shortDate = (t) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).toLowerCase();
   // Each date keeps its time, so a change can roll it to the new one.
   const dateSpans = (times) => times.map(t => `<span data-t="${Math.round(t)}">${shortDate(t)}</span>`).join('');
   function timelineHtml(key) {
@@ -2589,7 +2599,7 @@
     ctx.fillText('my instagram stats', P, P + 60);
     ctx.fillStyle = C.muted;
     ctx.font = `500 30px ${body}`;
-    ctx.fillText(new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }), P, P + 112);
+    ctx.fillText(new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }).toLowerCase(), P, P + 112);
 
     // The six boxes, three to a row.
     const gap = 20, top = P + 170, bw = (W - P * 2 - gap * 2) / 3, bh = 190;

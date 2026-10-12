@@ -84,7 +84,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=423">
+  <link rel="stylesheet" href="style.css?v=424">
   <!-- Supabase Client Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -607,6 +607,9 @@
       <div class="account-modal-input-group" style="margin-bottom: 20px;">
         <p id="confirm-modal-msg" style="font-size: 0.9rem; line-height: 1.5; color: var(--text-main); margin: 0;"></p>
       </div>
+      <div class="account-modal-input-group hidden" id="confirm-modal-field">
+        <input type="text" id="confirm-modal-input" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" aria-label="instagram username" />
+      </div>
       <div class="account-modal-actions" id="confirm-modal-actions">
         <button id="btn-confirm-cancel" class="btn btn-secondary">cancel</button>
         <button id="btn-confirm-ok" class="btn btn-primary">confirm</button>
@@ -732,7 +735,7 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="script.js?v=411"></script>
-  <script src="features.js?v=151"></script>
+  <script src="script.js?v=412"></script>
+  <script src="features.js?v=152"></script>
 </body>
 </html>

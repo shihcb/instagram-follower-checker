@@ -291,7 +291,8 @@ function setTheme(theme) {
 }
 
 // Custom Site Pop-up Confirm & Alert Modal Helpers
-// Popups fade out over 600ms and only then get .hidden (and any reset).
+// Popups fade out over 450ms (the list 3 slide) and only get .hidden (and
+// any reset) once that's surely done, at 600ms.
 // Reopening one inside that window used to let the old close's timer fire
 // afterwards and hide the freshly opened popup (and, for the account
 // modal, forget which account was being edited). Opening now cancels any
@@ -319,12 +320,9 @@ function cancelOverlayHide(overlay) {
 // end, so pop-ups often just appeared.
 // Every tab switcher in the app (list 3's views, the changes tabs, the
 // instructions steps, log in / sign up) moves its content the same way: a
-// sideways slide on the instructions window's opening timing (600ms, fast
-// then settling) with a soft fade on its own gentler timing.
-// The instructions window's own timing: what leaves goes like the window
-// closing (450ms, an even ease), what arrives comes like it opening
-// (600ms, fast then settling gently). Slide and fade share each timing so
-// they move as one.
+// sideways slide on the list 3 slide's timing (450ms, the instructions
+// window's open/close), with a soft fade on the same timing so they move
+// as one.
 // A page slide: both pages stay (nearly) solid and move edge to edge on an
 // even ease, so the slide itself is what you see. (Fading them out
 // and in, on a fast-start curve, read as the new page snapping in.) Only a
@@ -368,7 +366,10 @@ function showModalOverlay(overlay) {
   }));
 }
 
-function showSiteConfirm(title, message, confirmText = 'confirm', cancelText = 'cancel') {
+// With `field` ({ value, placeholder }), the pop-up also has a text box,
+// and resolves to what's typed in it (null when cancelled) — the app's own
+// version of the browser's prompt().
+function showSiteConfirm(title, message, confirmText = 'confirm', cancelText = 'cancel', field = null) {
   return new Promise((resolve) => {
     const overlay = document.getElementById('confirm-modal-overlay');
     const titleEl = document.getElementById('confirm-modal-title');
@@ -378,13 +379,21 @@ function showSiteConfirm(title, message, confirmText = 'confirm', cancelText = '
     const closeBtn = document.getElementById('btn-confirm-close');
 
     if (!overlay || !titleEl || !msgEl || !okBtn) {
-      resolve(window.confirm(message));
+      resolve(field ? window.prompt(message, field.value || '') : window.confirm(message));
       return;
+    }
+    const inputGroup = document.getElementById('confirm-modal-field');
+    const input = document.getElementById('confirm-modal-input');
+    if (inputGroup && input) {
+      inputGroup.classList.toggle('hidden', !field);
+      input.value = field ? field.value || '' : '';
+      input.placeholder = field ? field.placeholder || '' : '';
     }
 
     titleEl.textContent = title.toLowerCase();
     msgEl.textContent = message.toLowerCase();
     okBtn.textContent = confirmText.toLowerCase();
+    okBtn.classList.toggle('confirm-neutral', !/^(reset|delete|remove|clear)/i.test(confirmText));
 
     if (cancelText) {
       cancelBtn.style.display = 'inline-flex';
@@ -395,8 +404,25 @@ function showSiteConfirm(title, message, confirmText = 'confirm', cancelText = '
 
     overlay.classList.remove('fade-out-bounce');
     showModalOverlay(overlay);
+    if (field && input) setTimeout(() => { input.focus(); input.select(); }, 50);
+
+    // Escape cancels and Enter confirms, like the app's other pop-ups.
+    function onKey(e) {
+      if (e.key === 'Escape' || e.key === 'Esc') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        onCancel();
+      } else if (e.key === 'Enter' && (field ? e.target === input : !(e.target.closest && e.target.closest('button, a, input, textarea')))) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        onOk();
+      }
+    }
+    document.addEventListener('keydown', onKey, true);
 
     function cleanup() {
+      document.removeEventListener('keydown', onKey, true);
+      if (field && input) input.blur();
       overlay.classList.add('fade-out-bounce');
       overlay.classList.remove('show');
       scheduleOverlayHide(overlay, () => {
@@ -411,12 +437,12 @@ function showSiteConfirm(title, message, confirmText = 'confirm', cancelText = '
 
     function onOk() {
       cleanup();
-      resolve(true);
+      resolve(field ? (input ? input.value : '') : true);
     }
 
     function onCancel() {
       cleanup();
-      resolve(false);
+      resolve(field ? null : false);
     }
 
     function onOverlayClick(e) {
@@ -1200,7 +1226,7 @@ function deduplicateEntries(entries) {
 
 // The lists' count badges ("N loaded" / "N found"): the number counts from
 // the old to the new exactly like the timeline legend and the stat boxes
-// (650ms, easing out, every number in between shows), and the pill eases
+// (the list 3 slide, every number in between shows), and the pill eases
 // to its new width on the same curve instead of snapping.
 const COUNT_MS = 450;
 function setCountBadge(el, n, word) {
@@ -2008,7 +2034,7 @@ function smoothClearTextarea(textareaEl, callback) {
       textareaEl.value = '';
       textareaEl.classList.remove('textarea-fade-out');
       if (callback) callback();
-    }, 280);
+    }, ROW_MOTION_MS); // the text's fade (style.css, .textarea-fade-out)
   } else {
     textareaEl.value = '';
     if (callback) callback();
@@ -2335,9 +2361,10 @@ async function processImportFiles(files, isFolderUpload = false) {
       if (extractedUsername) break;
     }
     if (!extractedUsername) {
-      const fallback = prompt("we couldn't find your username in the file. please enter your instagram username:");
-      if (fallback && fallback.trim() !== '') {
-        extractedUsername = fallback.trim();
+      const fallback = await showSiteConfirm("which account is this?", "the files don't say which instagram account they're from. enter its username.", 'import', 'cancel',
+        { value: state.selectedAccountUsername || '', placeholder: '@username' });
+      if (fallback && fallback.trim().replace(/^@+/, '') !== '') {
+        extractedUsername = fallback.trim().replace(/^@+/, '');
       }
     }
     if (extractedUsername && isNewAccountOverLimit(extractedUsername)) {
@@ -2400,7 +2427,7 @@ async function processImportFiles(files, isFolderUpload = false) {
 
   // Also when a whole folder had nothing usable (that used to fail silently).
   if (validFilesToProcess.length === 0 && (invalidFiles.length > 0 || isFolderUpload)) {
-    await showSiteAlert('no valid files found', 'no followers or following files (html, json, or txt) were found in what you uploaded.');
+    await showSiteAlert('no lists found', 'no followers or following files (html, json or txt) were found in what you uploaded.');
   }
 
   return importedFollowing || importedFollowers || validFilesToProcess.some(item => item.type === 'extra');
@@ -2823,8 +2850,8 @@ function closeAccountModal() {
   if (!elements.accountModalOverlay) return;
 
   elements.accountModalOverlay.classList.remove('show');
-  // 600ms, matching .modal-overlay/.account-modal-card's own CSS transition
-  // duration (style.css) — this used to fire at 350ms, cutting .hidden's
+  // 600ms: after .modal-overlay/.account-modal-card's own 0.45s CSS
+  // transition (style.css) has finished — this used to fire at 350ms, cutting .hidden's
   // display:none in partway through the fade/scale-out and snapping the
   // rest of it away instead of letting it finish closing smoothly.
   scheduleOverlayHide(elements.accountModalOverlay, () => {
@@ -4313,8 +4340,8 @@ function closeInstructionsModal() {
   if (!elements.instructionsModalOverlay) return;
   elements.instructionsModalOverlay.classList.remove('show');
   unlockPageScroll();
-  // 600ms, matching .modal-overlay/.account-modal-card's own CSS transition
-  // duration (style.css) — see closeAccountModal for why this can't be 350.
+  // 600ms: after .modal-overlay/.account-modal-card's own 0.45s CSS
+  // transition (style.css) — see closeAccountModal for why this can't be 350.
   scheduleOverlayHide(elements.instructionsModalOverlay, () => {
     elements.instructionsModalOverlay.classList.add('hidden');
   });
@@ -5017,7 +5044,7 @@ function updateInstructionsStepUI() {
   // Sync Folder Feature using File System Access API
   async function scanLocalDirectory() {
     if (typeof window.showDirectoryPicker !== 'function') {
-      await showSiteAlert("warning", "your browser does not support folder selection. please use a modern desktop browser like chrome, edge, or opera.");
+      await showSiteAlert("couldn't open the folder", "this browser can't pick folders. use chrome, edge or opera on a computer, or upload the zip or its files instead.");
       return;
     }
 
@@ -5033,11 +5060,11 @@ function updateInstructionsStepUI() {
         if (entry.kind === 'file') files.push(await entry.getFile());
       }
       const importedAny = await processImportFiles(files, true);
-      if (importedAny) await showSiteAlert("synced", "successfully synced files from your local folder!");
+      if (importedAny) await showSiteAlert("folder imported", "the files in your folder were imported.");
     } catch (err) {
       if (err.name !== 'AbortError') {
         console.error(err);
-        await showSiteAlert("error", "couldn't read the folder: " + err.message);
+        await showSiteAlert("couldn't read the folder", err.message);
       }
     }
   }
@@ -5112,7 +5139,7 @@ function updateInstructionsStepUI() {
       if (settingsResetUnfollowedBtn.disabled || state.unfollowed.length === 0) return;
       const currentAcc = state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '';
       const listName = currentAcc ? `@${currentAcc}'s unfollowed list` : 'your global unfollowed list';
-      const confirmed = await showSiteConfirm('reset list', `are you sure you want to reset ${listName}?`, 'reset', 'cancel');
+      const confirmed = await showSiteConfirm('reset unfollowed list', `are you sure you want to reset ${listName}?`, 'reset', 'cancel');
       if (confirmed) {
         state.unfollowed = [];
         storageSet(listResetKey('unfollowed'), String(Date.now()));
@@ -5143,7 +5170,7 @@ function updateInstructionsStepUI() {
       if (settingsResetStarredBtn.disabled || state.starred.length === 0) return;
       const currentAcc = state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '';
       const listName = currentAcc ? `@${currentAcc}'s starred list` : 'your global starred list';
-      const confirmed = await showSiteConfirm('reset list', `are you sure you want to reset ${listName}?`, 'reset', 'cancel');
+      const confirmed = await showSiteConfirm('reset starred list', `are you sure you want to reset ${listName}?`, 'reset', 'cancel');
       if (confirmed) {
         state.starred = [];
         storageSet(listResetKey('starred'), String(Date.now()));
@@ -5357,7 +5384,7 @@ function updateInstructionsStepUI() {
 
       // Check if we've already automatically opened 5 profiles
       if (state.autoOpenCount >= 5) {
-        const proceed = await showSiteConfirm('auto open', '5 profiles have been opened automatically. do you want to open the next 5?', 'continue', 'stop');
+        const proceed = await showSiteConfirm('auto-open', '5 profiles have been opened automatically. do you want to open the next 5?', 'continue', 'stop');
         if (!proceed) {
           autoOpenToggle.checked = false;
           state.pendingAutoOpen = false;
@@ -5536,7 +5563,7 @@ function playAppEntrance() {
   setTimeout(() => document.body.classList.remove('login-entering'), 700);
   if (grid && typeof grid.animate === 'function') {
     grid.animate([
-      { opacity: 0, transform: 'translateY(16px) scale(0.97)' },
+      { opacity: 0, transform: 'translateY(14px) scale(0.95)' },
       { opacity: 1, transform: 'none' }
     ], { duration: 450, easing: ease });
   }
@@ -5563,7 +5590,7 @@ function playAppExit() {
   if (grid && typeof grid.animate === 'function') {
     appExitAnimations.push(grid.animate([
       { opacity: 1, transform: 'none' },
-      { opacity: 0, transform: 'translateY(16px) scale(0.97)' }
+      { opacity: 0, transform: 'translateY(14px) scale(0.95)' }
     ], { duration: APP_EXIT_MS, easing, fill: 'forwards' }));
   }
   // The profile menu (where "log out" was tapped) fades out quickly ahead
@@ -6936,7 +6963,7 @@ function updateResetReminderUI() {
   const importedAt = parseInt(importedAtRaw, 10);
   const now = Date.now();
   const remainingMs = (importedAt + RESET_REMINDER_MS) - now;
-  const importedDateText = new Date(importedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const importedDateText = new Date(importedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).toLowerCase();
   const dayMs = 24 * 60 * 60 * 1000;
 
   if (remainingMs <= 0 && !resetStillDue(importedAt + RESET_REMINDER_MS)) {
