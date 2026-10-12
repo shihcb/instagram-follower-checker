@@ -3234,15 +3234,15 @@ html.hide-shortcuts .account-chip-badge {
 
 /* Native Capacitor / Standalone iOS App safe area overrides */
 body.is-capacitor .app-container {
-  padding-top: max(64px, calc(20px + env(safe-area-inset-top, 0px))) !important;
+  padding-top: max(16px, calc(4px + env(safe-area-inset-top, 0px))) !important;
   padding-left: max(16px, calc(12px + env(safe-area-inset-left, 0px))) !important;
   padding-right: max(16px, calc(12px + env(safe-area-inset-right, 0px))) !important;
   padding-bottom: max(24px, calc(16px + env(safe-area-inset-bottom, 0px))) !important;
 }
 
 body.is-capacitor #card-unfollowers {
-  height: calc(100dvh - max(136px, calc(92px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)))) !important;
-  height: calc(100vh - max(136px, calc(92px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)))) !important;
+  height: calc(100dvh - max(88px, calc(76px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)))) !important;
+  height: calc(100vh - max(88px, calc(76px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)))) !important;
 }
 
 body.is-capacitor.auth-logged-out #theme-toggle {
@@ -6490,7 +6490,7 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
     min-height: 452px !important;
   }
   body.is-capacitor .app-grid > .card {
-    height: calc(100vh - max(136px, calc(92px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px))) - var(--mobile-nav-h)) !important;
+    height: calc(100vh - max(88px, calc(76px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px))) - var(--mobile-nav-h)) !important;
   }
 }
 
