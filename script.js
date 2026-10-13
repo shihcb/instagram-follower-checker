@@ -542,6 +542,12 @@ function safeProfileUrl(user) {
   return `https://www.instagram.com/${encodeURIComponent(name)}/`;
 }
 
+// What's typed in a search box: lowercase, without the "@" the usernames
+// are shown with (searching "@name" found nothing).
+function searchQuery(input) {
+  return input ? input.value.trim().toLowerCase().replace(/^@+/, '') : '';
+}
+
 function normalizeUsername(username) {
   if (!username) return '';
   return username.replace(/^@/, '').trim().toLowerCase();
@@ -559,6 +565,28 @@ function isValidUsername(str) {
  * Attempts to parse text content as JSON and extract user entries recursively.
  */
 // "https://www.instagram.com/_u/name/" or "/name" -> "name" (null if none).
+// A username as given in a file ("@name" or "name"), or null when it isn't
+// one (a JSON file could hold anything there).
+function cleanUsername(value) {
+  const name = typeof value === 'string' ? value.trim().replace(/^@+/, '') : '';
+  return isValidUsername(name) ? name : null;
+}
+
+// Instagram pages that aren't profiles (instagram.com/explore, …).
+const NON_PROFILE_PATHS = new Set(['accounts', 'explore', 'p', 'reel', 'reels', 'stories', 'direct', 'about', 'legal', 'developer', 'tv', 'web', 'privacy', 'help', 'session', 'challenge', 'emails', 'oauth', 'terms', 'directory', 'download']);
+// Whether a link in an HTML export is a profile: instagram.com (not
+// help.instagram.com and the like) with just the username (or _u/name).
+// Footer links ("help", "privacy") were read as followed accounts.
+function isProfileHref(href) {
+  if (/^\/[A-Za-z0-9._]+\/?$/.test(href)) return true;
+  let url;
+  try { url = new URL(href); } catch (e) { return false; }
+  if (!/^(www\.)?instagram\.com$/i.test(url.hostname)) return false;
+  const parts = url.pathname.split('/').filter(Boolean);
+  if (parts[0] === '_u') parts.shift();
+  return parts.length === 1 && isValidUsername(parts[0]) && !NON_PROFILE_PATHS.has(parts[0].toLowerCase());
+}
+
 function usernameFromProfileHref(href) {
   if (typeof href !== 'string' || !href) return null;
   let path = href;
@@ -579,7 +607,8 @@ function parseJSON(text) {
       
       // Look for entries containing values like href and value
       if (obj.value && obj.href && (obj.href.includes('instagram.com') || obj.href.startsWith('/'))) {
-        const username = obj.value;
+        const username = cleanUsername(obj.value);
+        if (!username) return;
         const timestamp = obj.timestamp ? new Date(obj.timestamp * 1000) : null;
         results.push({
           username: normalizeUsername(username),
@@ -597,7 +626,7 @@ function parseJSON(text) {
       // or only in the profile link.
       if (Array.isArray(obj.string_list_data)) {
         obj.string_list_data.forEach(item => {
-          const username = (item && item.value) || (typeof obj.title === 'string' && obj.title.trim()) || usernameFromProfileHref(item && item.href);
+          const username = cleanUsername(item && item.value) || cleanUsername(obj.title) || usernameFromProfileHref(item && item.href);
           if (username) {
             const timestamp = item.timestamp ? new Date(item.timestamp * 1000) : null;
             results.push({
@@ -697,7 +726,10 @@ function parseHTML(text) {
     // 2. Try anchor-based HTML format (traditional Instagram HTML exports)
     const anchors = doc.querySelectorAll('a');
     anchors.forEach(a => {
-      const href = a.getAttribute('href') || '';
+      const href = (a.getAttribute('href') || '').trim();
+      // A link somewhere else (help pages, privacy, other sites) isn't a
+      // username, whatever its text.
+      if (href && href !== '#' && !isProfileHref(href)) return;
       if (href.includes('instagram.com/') || href.match(/^\/[a-zA-Z0-9._]+$/) || a.textContent.trim().match(/^[a-zA-Z0-9._]{1,30}$/)) {
         let username = a.textContent.trim();
         
@@ -719,7 +751,9 @@ function parseHTML(text) {
         let timestamp = null;
         let parent = a.parentElement;
         let searchCount = 0;
-        while (parent && searchCount < 3) {
+        // Only this username's own block: one holding other links has their
+        // dates too (a username without one took its neighbour's).
+        while (parent && searchCount < 3 && parent.querySelectorAll('a').length <= 1) {
           const siblingText = parent.textContent || '';
           const dateMatch = siblingText.match(/(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+\d{4}/i) || 
                             siblingText.match(/\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}/i);
@@ -1528,7 +1562,7 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
   const count = state.unfollowers.length;
   setCountBadge(elements.unfollowersCount, count, 'found');
 
-  const query = elements.searchUnfollowers.value.toLowerCase().trim();
+  const query = searchQuery(elements.searchUnfollowers);
   const filtered = state.unfollowers.filter(user => 
     !pendingRemoval.has(user.username) && (
     user.originalUsername.toLowerCase().includes(query) || 
@@ -1586,7 +1620,7 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
         listEl.querySelectorAll('.user-row.username-exit[data-render-exit]').forEach(row => { stopRowMotion(row); row.remove(); });
         listEl.scrollTop = 0;
         setCountBadge(elements.unfollowersCount, state.unfollowers.length, 'found');
-        const q = elements.searchUnfollowers.value.toLowerCase().trim();
+        const q = searchQuery(elements.searchUnfollowers);
         const now = state.unfollowers.filter(user => user.originalUsername.toLowerCase().includes(q) || (user.fullName && user.fullName.toLowerCase().includes(q)));
         if (!now.length) {
           listEl.innerHTML = '';
@@ -5224,7 +5258,7 @@ function updateInstructionsStepUI() {
   const searchFollowingInput = document.getElementById('search-following');
   if (searchFollowingInput) {
     searchFollowingInput.addEventListener('input', () => {
-      const searchTerm = searchFollowingInput.value.trim().toLowerCase();
+      const searchTerm = searchQuery(searchFollowingInput);
       if (!searchTerm) {
         elements.inputFollowing.placeholder = 'enter usernames';
         elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
@@ -5248,7 +5282,7 @@ function updateInstructionsStepUI() {
   const searchFollowersInput = document.getElementById('search-followers');
   if (searchFollowersInput) {
     searchFollowersInput.addEventListener('input', () => {
-      const searchTerm = searchFollowersInput.value.trim().toLowerCase();
+      const searchTerm = searchQuery(searchFollowersInput);
       if (!searchTerm) {
         elements.inputFollowers.placeholder = 'enter usernames';
         elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername}`).join('\n');
