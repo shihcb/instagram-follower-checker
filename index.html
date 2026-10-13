@@ -42,6 +42,9 @@
   <script>
     (function() {
       document.documentElement.classList.add('preload');
+      // The opening spinner (financial-dashboard's): the app stays hidden
+      // under it until it has drawn, then fades in as the spinner fades out.
+      document.documentElement.classList.add('booting');
       // The light/dark choice (script.js keeps a copy on the device so it's
       // there before the first paint); none chosen: the device's own.
       var chosen = null;
@@ -84,7 +87,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=424">
+  <link rel="stylesheet" href="style.css?v=425">
   <!-- Supabase Client Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -94,6 +97,7 @@
       document.body.classList.remove('auth-logged-out');
     }
   </script>
+  <div class="boot" id="boot" role="progressbar" aria-label="loading"><span class="boot-spinner"></span></div>
   <!-- Decorative background elements -->
   <div class="bg-glow bg-glow-1"></div>
   <div class="bg-glow bg-glow-2"></div>
@@ -737,5 +741,36 @@
   <!-- Main JavaScript File -->
   <script src="script.js?v=418"></script>
   <script src="features.js?v=152"></script>
+  <script>
+    // The opening spinner goes once the app has drawn (script.js's first
+    // render, the fonts in): it fades out as the app fades in, 450ms on the
+    // shared curve — the dashboard's bootDone. Never longer than 3s.
+    (function() {
+      var done = false;
+      function bootDone() {
+        if (done) return;
+        done = true;
+        var root = document.documentElement;
+        var boot = document.getElementById('boot');
+        var motion = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        root.classList.remove('booting');
+        if (motion && boot && boot.animate) {
+          var o = { duration: 450, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' };
+          boot.animate([{ opacity: 1 }, { opacity: 0 }], Object.assign({ fill: 'forwards' }, o));
+          document.querySelectorAll('.app-container').forEach(function(n) {
+            n.animate([{ opacity: 0 }, { opacity: 1 }], Object.assign({ fill: 'backwards' }, o));
+          });
+        }
+        setTimeout(function() { if (boot) boot.remove(); }, motion ? 500 : 0);
+      }
+      function ready() {
+        var fonts = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+        fonts.then(function() { requestAnimationFrame(bootDone); }, bootDone);
+        setTimeout(bootDone, 3000);
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ready);
+      else ready();
+    })();
+  </script>
 </body>
 </html>
