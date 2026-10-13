@@ -353,6 +353,28 @@ function plural(n, word) {
   return `${n} ${word}${n === 1 ? '' : 's'}`;
 }
 
+// iPhone Safari colors the strip at the top of the screen (behind the
+// clock) from the fixed element at the page's top edge, but only looks
+// again when a fixed element is added or removed — not when one fades in.
+// A pop-up's backdrop is added while still invisible, so Safari skipped it
+// and kept the home page's blur up there until something else made it
+// look (about a second later). Adding and removing an empty fixed box makes
+// it look again: once the backdrop is visible enough to count, and when
+// each fade ends.
+function resampleTopEdge() {
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;pointer-events:none';
+  document.body.appendChild(probe);
+  requestAnimationFrame(() => requestAnimationFrame(() => probe.remove()));
+}
+document.addEventListener('transitionrun', (e) => {
+  if (e.propertyName !== 'opacity' || !e.target.matches('.modal-overlay, .love-overlay')) return;
+  [100, 200].forEach(ms => setTimeout(resampleTopEdge, ms));
+});
+document.addEventListener('transitionend', (e) => {
+  if (e.propertyName === 'opacity' && e.target.matches('.modal-overlay, .love-overlay')) resampleTopEdge();
+});
+
 function showModalOverlay(overlay) {
   cancelOverlayHide(overlay);
   overlay.classList.remove('hidden');
