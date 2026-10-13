@@ -2006,6 +2006,18 @@ function listStorageKey(type) {
   return `${type}_users_${acc}`;
 }
 
+// The box shows only "@name"s, so reading it back after an edit lost every
+// account's follow date and profile link (sorting by date and the export's
+// dates then had nothing). Names already in the list keep what was saved;
+// pasted export text that has its own details keeps those.
+function keepSavedDetails(parsed, previous) {
+  const saved = new Map(previous.map(user => [user.username, user]));
+  return parsed.map(user => {
+    const before = saved.get(user.username);
+    return before && !user.timestamp ? before : user;
+  });
+}
+
 const handleFollowingInput = debounce(function() {
   const searchFollowingInput = document.getElementById('search-following');
   if (searchFollowingInput && searchFollowingInput.value.trim() !== '') {
@@ -2016,7 +2028,7 @@ const handleFollowingInput = debounce(function() {
   state.following.forEach(user => {
     if (user.isPendingRequest) existingPendingMap.set(user.username, true);
   });
-  const parsed = parseInput(rawText).map(user => {
+  const parsed = keepSavedDetails(parseInput(rawText), state.following).map(user => {
     if (existingPendingMap.has(user.username)) {
       return { ...user, isPendingRequest: true };
     }
@@ -2034,7 +2046,7 @@ const handleFollowersInput = debounce(function() {
     return;
   }
   const rawText = elements.inputFollowers.value;
-  const parsed = parseInput(rawText);
+  const parsed = keepSavedDetails(parseInput(rawText), state.followers);
   state.followers = deduplicateEntries(parsed);
   storageSet(listStorageKey('followers'), JSON.stringify(state.followers));
   updateListUI('followers');
