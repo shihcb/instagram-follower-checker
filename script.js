@@ -426,6 +426,11 @@ function showSiteConfirm(title, message, confirmText = 'confirm', cancelText = '
 
     overlay.classList.remove('fade-out-bounce');
     showModalOverlay(overlay);
+    // The button that opened it kept the focus behind it, so Enter (or
+    // space) clicked that button again and stacked a second pop-up.
+    if (document.activeElement && !overlay.contains(document.activeElement) && typeof document.activeElement.blur === 'function') {
+      document.activeElement.blur();
+    }
     if (field && input) setTimeout(() => { input.focus(); input.select(); }, 50);
 
     // Escape cancels and Enter confirms, like the app's other pop-ups.
@@ -434,7 +439,7 @@ function showSiteConfirm(title, message, confirmText = 'confirm', cancelText = '
         e.preventDefault();
         e.stopImmediatePropagation();
         onCancel();
-      } else if (e.key === 'Enter' && (field ? e.target === input : !(e.target.closest && e.target.closest('button, a, input, textarea')))) {
+      } else if (e.key === 'Enter' && (field ? e.target === input : !overlay.contains(e.target) || !(e.target.closest && e.target.closest('button, a, input, textarea')))) {
         e.preventDefault();
         e.stopImmediatePropagation();
         onOk();
@@ -2386,7 +2391,7 @@ async function processImportFiles(files, isFolderUpload = false) {
       const fallback = await showSiteConfirm("which account is this?", "the files don't say which instagram account they're from. enter its username.", 'import', 'cancel',
         { value: state.selectedAccountUsername || '', placeholder: '@username' });
       if (fallback && fallback.trim().replace(/^@+/, '') !== '') {
-        extractedUsername = fallback.trim().replace(/^@+/, '');
+        extractedUsername = fallback.trim().replace(/^@+/, '').toLowerCase(); // instagram usernames are lowercase
       }
     }
     if (extractedUsername && isNewAccountOverLimit(extractedUsername)) {
