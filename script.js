@@ -4768,7 +4768,7 @@ function updateInstructionsStepUI() {
     // Open Instagram link in new tab if the user clicked the row background or action arrow (not a direct link anchor or trash/delete button)
     const clickedLink = e.target.closest('a');
     const clickedDelete = e.target.closest('.action-delete');
-    unfollowAndExitRow(userRow, { openProfile: !clickedLink && !clickedDelete });
+    unfollowAndExitRow(userRow, { openProfile: !clickedLink && !clickedDelete, profileOpened: !clickedDelete });
   });
 
   // Toggle preview unfollowed list dropdown
@@ -5380,14 +5380,17 @@ function updateInstructionsStepUI() {
   // unfollowed list, sliding its row out — shared by clicking a row and by
   // the keyboard shortcuts (1-9/0, Enter/o), which used to drop the row
   // instantly with no animation.
-  function unfollowAndExitRow(userRow, { openProfile = true, keepSelection = false, fromAutoOpen = false } = {}) {
+  // profileOpened: the profile opens (here or through the tapped link) —
+  // only then does coming back open the next one (the trash button armed it
+  // too, so a later tab switch opened a profile out of nowhere).
+  function unfollowAndExitRow(userRow, { openProfile = true, profileOpened = openProfile, keepSelection = false, fromAutoOpen = false } = {}) {
     if (!userRow || userRow.classList.contains('username-exit')) return;
     const username = userRow.getAttribute('data-username');
     const userObj = state.unfollowers.find(u => u.username === username);
     if (!userObj) return;
 
     const autoOpenToggle = document.getElementById('auto-open-toggle');
-    if (!fromAutoOpen && autoOpenToggle && autoOpenToggle.checked) {
+    if (!fromAutoOpen && profileOpened && autoOpenToggle && autoOpenToggle.checked) {
       state.pendingAutoOpen = true;
       state.autoOpenCount = 1;
     }
@@ -5454,10 +5457,17 @@ function updateInstructionsStepUI() {
     }
   }
 
-  // Handle tab focus for auto-opening the next user
-  window.addEventListener('focus', async () => {
+  // Coming back to the page opens the next username. iPhone Safari often
+  // doesn't send 'focus' when you come back from the Instagram app (where
+  // profiles open), only 'visibilitychange', so both count — once per
+  // return (desktop browsers send both).
+  let lastAutoOpenReturn = 0;
+  const onReturnToPage = async () => {
+    if (document.hidden) return;
     const autoOpenToggle = document.getElementById('auto-open-toggle');
     if (autoOpenToggle && autoOpenToggle.checked && state.pendingAutoOpen) {
+      if (Date.now() - lastAutoOpenReturn < 1500) return;
+      lastAutoOpenReturn = Date.now();
       state.pendingAutoOpen = false; // Reset to avoid double execution
 
       // Check if we've already automatically opened 5 profiles
@@ -5488,7 +5498,9 @@ function updateInstructionsStepUI() {
         pushToCloud();
       }, 100);
     }
-  });
+  };
+  window.addEventListener('focus', onReturnToPage);
+  document.addEventListener('visibilitychange', onReturnToPage);
 
   // Enable toggling the switch via its text label click
   const autoOpenLabel = document.getElementById('auto-open-label');
