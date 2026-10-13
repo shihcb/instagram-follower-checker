@@ -607,7 +607,8 @@ function parseJSON(text) {
       
       // Look for entries containing values like href and value
       if (obj.value && obj.href && (obj.href.includes('instagram.com') || obj.href.startsWith('/'))) {
-        const username = cleanUsername(obj.value);
+        // Not a profile (a hashtag's page, say): not an account.
+        const username = isProfileHref(obj.href) ? cleanUsername(obj.value) : null;
         if (!username) return;
         const timestamp = obj.timestamp ? new Date(obj.timestamp * 1000) : null;
         results.push({
@@ -626,6 +627,7 @@ function parseJSON(text) {
       // or only in the profile link.
       if (Array.isArray(obj.string_list_data)) {
         obj.string_list_data.forEach(item => {
+          if (item && typeof item.href === 'string' && item.href && !isProfileHref(item.href)) return; // a hashtag's page, say
           const username = cleanUsername(item && item.value) || cleanUsername(obj.title) || usernameFromProfileHref(item && item.href);
           if (username) {
             const timestamp = item.timestamp ? new Date(item.timestamp * 1000) : null;
@@ -2412,7 +2414,10 @@ async function processImportFiles(files, isFolderUpload = false) {
     } else {
       // Individual upload (following.json used to be rejected, so a JSON
       // export only ever loaded its followers).
-      if (/^following\.(html|txt|json)$/.test(nameLower) || nameLower.startsWith('following_')) {
+      // following.json, following_2.json, "following (1).json" — not
+      // following_hashtags.json, which sits next to it in the export (its
+      // hashtags were listed as accounts that don't follow back).
+      if (/^following(_\d+)?( ?\(\d+\))?\.(html|txt|json)$/.test(nameLower)) {
         validFilesToProcess.push({ file, type: 'following', isPending: false });
       } else if (nameLower === 'followers_1.html' || nameLower === 'followers.html' || nameLower === 'followers_1.txt' || nameLower === 'followers.txt' || nameLower.startsWith('followers_') || nameLower.startsWith('followers')) {
         validFilesToProcess.push({ file, type: 'followers', isPending: false });
