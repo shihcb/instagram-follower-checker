@@ -88,8 +88,6 @@
   
   <!-- Main Stylesheet -->
   <link rel="stylesheet" href="style.css?v=425">
-  <!-- Supabase Client Library -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="auth-logged-out">
   <script>
@@ -98,6 +96,8 @@
     }
   </script>
   <div class="boot" id="boot" role="progressbar" aria-label="loading"><span class="boot-spinner"></span></div>
+  <!-- Supabase Client Library (after the spinner, so it turns while this loads) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Decorative background elements -->
   <div class="bg-glow bg-glow-1"></div>
   <div class="bg-glow bg-glow-2"></div>
@@ -739,15 +739,17 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="script.js?v=418"></script>
+  <script src="script.js?v=419"></script>
   <script src="features.js?v=152"></script>
   <script>
-    // The opening spinner goes once the app has drawn (script.js's first
-    // render, the fonts in): it fades out as the app fades in, 450ms on the
-    // shared curve — the dashboard's bootDone. Never longer than 3s.
+    // The opening spinner stays until the app is ready, like the dashboard's
+    // boot waiting for its cards: the first sign-in check done (signed in,
+    // the cloud data loaded — script.js calls window.bootDone()) and the
+    // fonts in. Then it fades out as the app fades in, 450ms on the shared
+    // curve. Never kept past 10s.
     (function() {
-      var done = false;
-      function bootDone() {
+      var done = false, ready = false;
+      function finish() {
         if (done) return;
         done = true;
         var root = document.documentElement;
@@ -763,13 +765,13 @@
         }
         setTimeout(function() { if (boot) boot.remove(); }, motion ? 500 : 0);
       }
-      function ready() {
+      window.bootDone = function() {
+        if (ready) return;
+        ready = true;
         var fonts = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
-        fonts.then(function() { requestAnimationFrame(bootDone); }, bootDone);
-        setTimeout(bootDone, 3000);
-      }
-      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ready);
-      else ready();
+        fonts.then(function() { requestAnimationFrame(finish); }, finish);
+      };
+      setTimeout(finish, 10000);
     })();
   </script>
 </body>

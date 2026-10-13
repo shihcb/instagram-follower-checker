@@ -5814,6 +5814,7 @@ function initAuth() {
   applyGuestPreviewLock(false);
 
   if (!supabaseClient) {
+    if (window.bootDone) window.bootDone();
     // Show configuration warning if URL/Anon key are empty
     if (elements.authConfigWarning) elements.authConfigWarning.classList.remove('hidden');
     document.body.classList.add('auth-logged-out');
@@ -5835,6 +5836,7 @@ function initAuth() {
   });
 
   async function handleAuthChange(event, session) {
+    const firstCheck = isInitialAuthCheck;
     try {
       if (document.activeElement && typeof document.activeElement.blur === 'function') {
         document.activeElement.blur();
@@ -6045,6 +6047,9 @@ function initAuth() {
       console.error('Error in onAuthStateChange handler:', err);
     } finally {
       isInitialAuthCheck = false;
+      // The page has its first look (signed in: the cloud data loaded):
+      // the opening spinner can go (index.html).
+      if (firstCheck && window.bootDone) window.bootDone();
     }
   }
 
