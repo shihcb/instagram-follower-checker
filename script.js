@@ -4594,7 +4594,7 @@ function updateInstructionsStepUI() {
     const dir = currentInstructionStep > oldStep ? 1 : -1;
     const w = newPane.parentElement.clientWidth;
     const D = TAB_MOTION.in.duration;
-    const timing = (dist) => ({ duration: Math.round(D * Math.min(1, Math.max(0.35, Math.abs(dist) / w))), easing: TAB_MOTION.in.easing });
+    const timing = () => ({ duration: D, easing: TAB_MOTION.in.easing }); // every trip, an interrupted one too, takes the full 450ms (the dashboard's push)
     let longest = 0;
     const from = at.get(newPane) || { x: dir * w, o: 0.35 };
     const tIn = timing(from.x); longest = tIn.duration;
@@ -4603,10 +4603,6 @@ function updateInstructionsStepUI() {
     shown.filter(p => p !== newPane).forEach(p => {
       const f = at.get(p) || { x: 0, o: 1 };
       const to = stepOf(p) < currentInstructionStep ? -w : w; // carousel order
-      if (Math.sign(f.x) === -Math.sign(to) && Math.abs(f.x) > 0.4 * w) {
-        p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${f.x}px)`, opacity: 0 }], { duration: 90, fill: 'forwards' });
-        return;
-      }
       const t = timing(to - f.x); longest = Math.max(longest, t.duration);
       p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
     });

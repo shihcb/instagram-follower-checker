@@ -1098,7 +1098,7 @@
   // curve), then goes (only the latest such tap) and carries on smoothly
   // from there. Waiting for the very end felt laggy; not waiting at all cut
   // slides short and looked broken.
-  const SLIDE_WAIT = 0.55;
+  const SLIDE_WAIT = 0.7; // the dashboard's: a tap waits until a switch is about 70% done
   function queueSwitch(gate, run) {
     const left = (gate.until || 0) - performance.now();
     if (left <= 0 && !gate.next) { run(); return; }
@@ -1223,7 +1223,7 @@
     centerSoon();
     if (typeof altView.animate !== 'function') { finishSwitch(); return; }
     const D = TAB_MOTION.in.duration;
-    const timing = (dist) => ({ duration: Math.round(D * Math.min(1, Math.max(0.35, Math.abs(dist) / w))), easing: TAB_MOTION.in.easing });
+    const timing = () => ({ duration: D, easing: TAB_MOTION.in.easing }); // every trip, an interrupted one too, takes the full 450ms (the dashboard's push)
     let longest = 0;
     incoming.forEach(el => {
       const from = at.has(el) ? at.get(el) : { x: dir * w, o: 0.35 };
@@ -1243,12 +1243,6 @@
       const from = at.has(el) ? at.get(el) : { x: 0, o: 1 };
       const o = order(viewOf(el));
       const to = (o >= 0 ? o < targetOrder : dir > 0) ? -w : w;
-      // Already mostly off the other side: it just fades where it is,
-      // rather than travelling back across the box.
-      if (Math.sign(from.x) === -Math.sign(to) && Math.abs(from.x) > 0.4 * w) {
-        el.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: `translateX(${from.x}px)`, opacity: 0 }], { duration: 90, fill: 'forwards' });
-        return;
-      }
       const t = timing(to - from.x);
       longest = Math.max(longest, t.duration);
       el.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
@@ -2053,7 +2047,7 @@
     targets.forEach(t => { t.classList.remove('pane-out'); clearPin(t); t.classList.add(on); });
     const w = host.clientWidth || 320;
     const D = TAB_MOTION.in.duration;
-    const timing = (dist) => ({ duration: Math.round(D * Math.min(1, Math.max(0.35, Math.abs(dist) / w))), easing: TAB_MOTION.in.easing });
+    const timing = () => ({ duration: D, easing: TAB_MOTION.in.easing }); // every trip, an interrupted one too, takes the full 450ms (the dashboard's push)
     let longest = 0;
     targets.filter(t => t.getClientRects().length).forEach(t => {
       const from = at.get(t) || { x: dir * w, o: 0.35 };
@@ -2065,11 +2059,6 @@
     shown.filter(p => !targets.includes(p)).forEach(p => {
       const f = at.get(p) || { x: 0, o: 1 };
       const to = orderOf(p) < targetOrder ? -w : w; // carousel order
-      // Already mostly off the other side: it just fades where it is.
-      if (Math.sign(f.x) === -Math.sign(to) && Math.abs(f.x) > 0.4 * w) {
-        p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${f.x}px)`, opacity: 0 }], { duration: 90, fill: 'forwards' });
-        return;
-      }
       const t = timing(to - f.x);
       longest = Math.max(longest, t.duration);
       p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
