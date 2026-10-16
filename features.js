@@ -1725,7 +1725,7 @@
       Object.assign(r.style, { position: 'absolute', top: `${(rect.top - hr.top) / k - host.clientTop}px`, left: `${(rect.left - hr.left) / k - host.clientLeft}px`, width: `${rect.width / k}px`, margin: '0', zIndex: '1' });
       r.classList.add('username-exit');
       host.appendChild(r);
-      slideRowOut(r, rect.pitch, ROW_MOTION_MS, () => r.remove());
+      slideRowOut(r, r.offsetHeight, ROW_MOTION_MS, () => r.remove()); // its own height (the dashboard's row slide)
     };
     let left = 0;
     const used = new Set();
@@ -2366,7 +2366,7 @@
       Object.assign(r.style, { position: 'absolute', top: `${(rect.top - hr.top) / k - host.clientTop + host.scrollTop}px`, left: `${(rect.left - hr.left) / k - host.clientLeft}px`, width: `${rect.width / k}px`, margin: '0', zIndex: '1' });
       r.classList.add('username-exit');
       host.appendChild(r);
-      slideRowOut(r, rect.pitch, ROW_MOTION_MS, () => r.remove());
+      slideRowOut(r, r.offsetHeight, ROW_MOTION_MS, () => r.remove()); // its own height (the dashboard's row slide)
       n++;
     });
     return n;

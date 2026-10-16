@@ -972,7 +972,7 @@ function slidePanelRowsOut(container, before, stillThere) {
       left: `${(rect.left - cr.left) / k - container.clientLeft}px`, width: `${rect.width / k}px`, margin: '0', zIndex: '1'
     });
     container.appendChild(row);
-    slideRowOut(row, pitch, ROW_MOTION_MS, () => row.remove());
+    slideRowOut(row, row.offsetHeight, ROW_MOTION_MS, () => row.remove()); // its own height (the dashboard's row slide)
     any = true;
   });
   if (any) stepRowMotion();
@@ -1893,10 +1893,10 @@ function reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, rename
       return;
     }
     if (!animate || offScreen(top, height)) return;
-    slideRowIn(row, height + rowGap, DURATION);
+    slideRowIn(row, height, DURATION); // its own height (the dashboard's row slide)
   });
   leaving.forEach(row => {
-    slideRowOut(row, before.get(row).height + rowGap, DURATION, () => row.remove());
+    slideRowOut(row, before.get(row).height, DURATION, () => row.remove());
   });
   stepRowMotion();
   return cut; // where the rest of the rows start (appendRowTail)
@@ -1932,7 +1932,7 @@ function animateResultsExits(listEl, previousRows) {
     row.style.margin = '0';
     row.style.zIndex = '1';
     listEl.appendChild(row);
-    slideRowOut(row, rect.pitch, DURATION, () => row.remove());
+    slideRowOut(row, row.offsetHeight, DURATION, () => row.remove());
   });
   stepRowMotion();
 }
@@ -1970,10 +1970,10 @@ function animateResultsReentry(listEl, previousTops, resumeTops = new Map(), { e
       // Only rows actually on screen — pasting a whole list can add hundreds.
       const rect = row.getBoundingClientRect();
       if (offScreen(rect.top, rect.height)) return;
-      // New to the list: slide down into place from one row pitch above,
-      // emerging from its own slot's top edge (see slideRowIn).
-      const marginBottom = parseFloat(getComputedStyle(row).marginBottom) || 0;
-      slideRowIn(row, row.offsetHeight + marginBottom, DURATION);
+      // New to the list: slide down into place from its own height above,
+      // emerging from its own slot's top edge from the first frame (the
+      // dashboard's row slide; see slideRowIn).
+      slideRowIn(row, row.offsetHeight, DURATION);
       return;
     }
     // Already here: FLIP from where it was to where it is now (skipping
@@ -3775,10 +3775,14 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
     if (left > 0.5) motion.shifts.push({ offset: -left, start: null, duration: ROW_MOTION_MS });
   }
 
-  // Slide distance: one full row pitch (its height plus the gap below it),
+  // Exit distance: one full row pitch (its height plus the gap below it),
   // exactly how far the rows below it move up to close the gap. Works for
   // both list 3 rows (which vary in height) and the submenus' fixed rows.
   const exitDistance = rowEl.offsetHeight + (parseFloat(getComputedStyle(rowEl).marginBottom) || 0);
+  // The row itself slides up by its own height (the dashboard's row slide):
+  // it starts going from the first frame instead of sitting still for the
+  // gap's few px; the pitch above is still the space the list closes.
+  const slideDistance = rowEl.offsetHeight;
   const exitDone = markRowExit(ROW_MOTION_MS * 2 + 300); // its slide, then any space closing after it
 
   // The button tapped to remove it lets go of focus first: iPhone Safari
@@ -3792,7 +3796,7 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
 
   if (!container) {
     rowEl.classList.add('username-exit');
-    slideRowOut(rowEl, exitDistance, DURATION, () => {
+    slideRowOut(rowEl, slideDistance, DURATION, () => {
       rowEl.remove();
       onComplete();
     });
@@ -3824,7 +3828,7 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
     // rows above slide down into it (closeExitSpace) — the list's length
     // never changes.
     rowEl.classList.add('username-exit');
-    slideRowOut(rowEl, exitDistance, DURATION, () => {
+    slideRowOut(rowEl, slideDistance, DURATION, () => {
       const spacer = document.createElement('div');
       spacer.className = 'row-exit-spacer';
       spacer.setAttribute('aria-hidden', 'true');
@@ -3944,7 +3948,7 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
   }
 
   rowEl.classList.add('username-exit');
-  slideRowOut(rowEl, exitDistance, DURATION, () => {
+  slideRowOut(rowEl, slideDistance, DURATION, () => {
     rowEl.remove();
     // Only the last overlapping removal to finish hands the list its
     // natural height back — by then every layered shrink has played out.
