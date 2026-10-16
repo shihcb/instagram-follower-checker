@@ -494,7 +494,7 @@
     if (!box) return;
     const key = accKey();
     const log = key === DEMO_ID ? [] : readJSON(logKey(key), []);
-    const set = (id, text) => { const el = document.getElementById(id); if (el && el.textContent !== text) el.textContent = text; };
+    const set = (id, text) => swapText(document.getElementById(id), text);
     const fill = document.getElementById('saved-imports-fill');
     if (!log.length) {
       set('saved-imports-value', 'not started');
@@ -809,7 +809,7 @@
       stopRowMotion(el);
       ['position', 'top', 'left', 'width', 'margin', 'zIndex'].forEach(k => { el.style[k] = ''; });
     };
-    if (show && el.textContent !== text) el.textContent = text;
+    if (show) swapText(el, text);
     if (show === shown) return;
     const card = document.getElementById('card-unfollowers');
     const canMove = toolbar.getClientRects().length && card && typeof card.animate === 'function';
@@ -2025,6 +2025,7 @@
     });
   }
   function slideSub(host, all, targets, on, orderOf, dir) {
+    const startH = host.getBoundingClientRect().height; // drawn now, mid-ease too
     const shown = all.filter(p => (p.classList.contains(on) || p.classList.contains('pane-out')) && p.getClientRects().length);
     const at = new Map(shown.map(p => { const cs = getComputedStyle(p); return [p, { x: new DOMMatrixReadOnly(cs.transform).m41 || 0, o: +cs.opacity }]; }));
     shown.forEach(p => p.getAnimations().forEach(an => an.cancel()));
@@ -2045,6 +2046,9 @@
     pinAll(host, shown.filter(p => !targets.includes(p) && !p.classList.contains('pane-out')));
     shown.filter(p => !targets.includes(p)).forEach(p => p.classList.add('pane-out'));
     targets.forEach(t => { t.classList.remove('pane-out'); clearPin(t); t.classList.add(on); });
+    // The area eases from the height it's drawn at to the new pane's (the
+    // dashboard's tab push); a box that keeps one size doesn't move.
+    easeBoxHeight(host, startH);
     const w = host.clientWidth || 320;
     const D = TAB_MOTION.in.duration;
     const timing = () => ({ duration: D, easing: TAB_MOTION.in.easing }); // every trip, an interrupted one too, takes the full 450ms (the dashboard's push)
@@ -2681,7 +2685,7 @@
     const image = exportOverlay.querySelector('.export-image').classList.contains('on');
     const go = exportOverlay.querySelector('[data-exp="go"]');
     go.disabled = lists === 0 && !image;
-    go.textContent = lists > 1 ? `export ${lists} lists` : 'export';
+    swapText(go, lists > 1 ? `export ${lists} lists` : 'export', { resize: true });
     exportOverlay.querySelectorAll('.export-option[data-kind]').forEach(o => o.classList.toggle('muted', image));
     exportOverlay.querySelector('.export-image').classList.toggle('muted', lists > 0);
   }

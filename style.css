@@ -6561,3 +6561,20 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 html.booting .app-container {
   opacity: 0 !important;
 }
+
+/* Reduce Motion (the phone's setting), like the financial dashboard:
+   everything goes straight to where it's headed. Only the loading spinners
+   keep turning. (0.01ms, not 0: a transition that never runs never ends,
+   and code waiting for its end would wait for ever.) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+  .rows-more-spinner { animation-duration: 0.7s !important; animation-iteration-count: infinite !important; }
+  .boot-spinner { animation-duration: 0.8s !important; animation-iteration-count: infinite !important; }
+}

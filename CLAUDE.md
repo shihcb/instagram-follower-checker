@@ -36,7 +36,13 @@ loading spinners and looping decorations are exempt. Shapes are shared
 too: pop-ups (and the log-in card) come in from 14px down at 95% scale and
 leave the same way back; usernames and banners use list 3's row engine
 (slideRowIn/slideRowOut, rows around them shifting); tab switches are the
-sideways push (slideSub / TAB_MOTION); texts just fade (fadeEmptyIn).
+sideways push (slideSub / TAB_MOTION), the area easing to the new pane's
+height (easeBoxHeight); texts just fade (fadeEmptyIn), and text that changes
+fades across — the old words out where they were, the new in (swapText;
+`{ resize: true }` for buttons and pills, so their width eases too). When the
+page gets shorter it glides up on the curve (setupPageGlide). With the
+phone's Reduce Motion on, everything goes straight to where it's headed
+(spinners keep turning). These come from the financial dashboard.
 
 ## Saved import files live in Supabase Storage
 

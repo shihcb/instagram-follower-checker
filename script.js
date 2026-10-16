@@ -1297,7 +1297,8 @@ function setCountBadge(el, n, word) {
   const text = `${n} ${word}`;
   if (el._countRaf) { cancelAnimationFrame(el._countRaf); el._countRaf = null; }
   const shown = parseInt(el.textContent, 10);
-  const from = Number.isFinite(el._countNow) ? el._countNow : shown;
+  // (one appearing counts up from 0, like the dashboard's counts)
+  const from = Number.isFinite(el._countNow) ? el._countNow : (Number.isFinite(shown) ? shown : 0);
   const startWidth = el.getBoundingClientRect().width;
   el.style.transition = 'none';
   el.style.width = '';
@@ -1450,7 +1451,7 @@ function showAppVersion() {
     const v = tag && /[?&]v=(\d+)/.exec(tag.getAttribute('href') || tag.getAttribute('src'));
     return sum + (v ? +v[1] : 0);
   }, 0);
-  if (total) el.textContent = `version ${total}`;
+  if (total) swapText(el, `version ${total}`);
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', showAppVersion);
 else showAppVersion();
@@ -3359,6 +3360,152 @@ const rowEase = cubicBezierEasing(0.4, 0, 0.2, 1);
 // and the shifts around them. (Was 800ms; shorter feels snappier.)
 const ROW_MOTION_MS = 450;
 
+// ---- The financial dashboard's motions (its public/index.html), on the
+// list 3 slide: the text swap, the word slide, the box ease, the glide to
+// top, and Reduce Motion.
+const MOTION = { duration: ROW_MOTION_MS, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' };
+const reduceMotionQuery = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+const reducedMotion = () => !!(reduceMotionQuery && reduceMotionQuery.matches);
+const canAnimate = (node) => !!node && typeof node.animate === 'function' && !reducedMotion();
+// Reduce Motion: every animation the app starts in script goes straight to
+// its end (a looping one, a spinner, keeps going), and the row engine's
+// slides and shifts land at once (motionProgress).
+if (typeof Element !== 'undefined' && Element.prototype.animate) {
+  const nativeAnimate = Element.prototype.animate;
+  Element.prototype.animate = function (keyframes, options) {
+    if (reducedMotion()) {
+      if (typeof options === 'number') options = 0;
+      else if (options && options.iterations !== Infinity) options = { ...options, duration: 0, delay: 0, endDelay: 0 };
+    }
+    return nativeAnimate.call(this, keyframes, options);
+  };
+}
+// Texts just fade.
+function fadeIn(node) {
+  if (canAnimate(node)) node.animate([{ opacity: 0 }, { opacity: 1 }], { ...MOTION, fill: 'backwards' });
+}
+// The text swap: text that changes fades out exactly where it was (a copy
+// pinned there) while the new text fades in. `resize` (buttons, pills —
+// anything as wide as its words): the word slide too — its width eases from
+// the old words' to the new ones', so what's beside it slides over.
+function swapText(el, text, { resize = false } = {}) {
+  if (!el || el.textContent === text) return;
+  const shown = el.isConnected && el.getClientRects().length && el.textContent.trim() && canAnimate(el) ? +getComputedStyle(el).opacity : 0;
+  // (only for something as wide as its words: a button stretched across a
+  // row keeps its width)
+  const contentWide = () => { const w = el.style.width; el.style.width = 'max-content'; const v = el.getBoundingClientRect().width; el.style.width = w; return v; };
+  const fromW = resize && shown > 0.05 && Math.abs(contentWide() - el.getBoundingClientRect().width) < 1 ? el.getBoundingClientRect().width : 0;
+  if (shown > 0.05) {
+    const host = el.offsetParent || document.body;
+    const hr = host.getBoundingClientRect(), r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+    // Screen size to layout size (the guest preview draws the app scaled).
+    const k = host.offsetWidth ? hr.width / host.offsetWidth : 1;
+    const ghost = el.cloneNode(true);
+    ghost.removeAttribute('id');
+    ghost.setAttribute('aria-hidden', 'true');
+    ghost.inert = true;
+    Object.assign(ghost.style, {
+      position: 'absolute', margin: '0', transform: 'none', transition: 'none', animation: 'none',
+      top: `${(r.top - hr.top) / k - host.clientTop + host.scrollTop}px`, left: `${(r.left - hr.left) / k - host.clientLeft + host.scrollLeft}px`,
+      width: `${Math.ceil(r.width / k) + 1}px`, height: `${r.height / k}px`, boxSizing: 'border-box',
+      display: cs.display === 'inline' ? 'inline-block' : cs.display,
+      whiteSpace: cs.display === 'inline' || r.height / k < parseFloat(cs.lineHeight || '0') * 1.5 ? 'nowrap' : cs.whiteSpace,
+      pointerEvents: 'none', zIndex: '3',
+      // (the copy sits outside where the text was: it keeps the text's own look)
+      font: cs.font, letterSpacing: cs.letterSpacing, lineHeight: cs.lineHeight, color: cs.color, textTransform: cs.textTransform, textAlign: cs.textAlign
+    });
+    host.appendChild(ghost);
+    const drop = () => ghost.remove();
+    ghost.animate([{ opacity: shown }, { opacity: 0 }], { ...MOTION, fill: 'forwards' }).finished.then(drop, drop);
+    setTimeout(drop, ROW_MOTION_MS + 350);
+  }
+  if (el._swapWidth) { el._swapWidth.cancel(); el._swapWidth = null; }
+  el.textContent = text;
+  if (!(shown > 0.05) || !text.trim()) return;
+  fadeIn(el);
+  if (!fromW) return;
+  const toW = el.getBoundingClientRect().width;
+  if (Math.abs(toW - fromW) < 0.5) return;
+  const k = el.offsetWidth ? toW / el.offsetWidth : 1;
+  el._swapWidth = el.animate([{ width: `${fromW / k}px`, boxSizing: 'border-box', overflow: 'hidden', whiteSpace: 'nowrap' },
+    { width: `${toW / k}px`, boxSizing: 'border-box', overflow: 'hidden', whiteSpace: 'nowrap' }], MOTION);
+  el._swapWidth.finished.then(() => { el._swapWidth = null; }, () => {});
+}
+// The glide to top: when the page gets shorter, it keeps the room it needs
+// to stay put (a floor under the page, never shorter than the bottom of
+// what you're looking at, so nothing jumps), then glides up on the curve
+// until the content's bottom meets the view's bottom; your own scroll or
+// touch takes over at once. While a text box has focus the page keeps its
+// length (the keyboard coming and going isn't the page getting shorter).
+function setupPageGlide() {
+  const app = document.querySelector('.app-container');
+  if (!app || !window.ResizeObserver) return;
+  const body = document.body;
+  let natural = 0, floor = 0, glide = null, ownScroll = 0;
+  const locked = () => body.style.position === 'fixed'; // a window is open (lockPageScroll)
+  const measure = () => app.offsetTop + app.offsetHeight + (parseFloat(getComputedStyle(app).marginBottom) || 0) + (parseFloat(getComputedStyle(body).paddingBottom) || 0);
+  // (!important: the phone layout's own `min-height: 100% !important` would win)
+  const applyFloor = () => {
+    const h = floor ? `${Math.floor(floor)}px` : '';
+    if (body.style.minHeight === h) return;
+    if (h) body.style.setProperty('min-height', h, 'important'); else body.style.removeProperty('min-height');
+  };
+  const target = () => Math.max(0, natural - window.innerHeight);
+  const typing = () => { const a = document.activeElement; return !!a && (a.tagName === 'TEXTAREA' || (a.tagName === 'INPUT' && /^(search|text|email|password|url)$/.test(a.type))); };
+  function onScroll() {
+    if (locked()) return;
+    floor = Math.min(window.scrollY + window.innerHeight, Math.max(natural, floor));
+    applyFloor();
+  }
+  function stopGlide() { ownScroll = performance.now(); if (glide) { cancelAnimationFrame(glide); glide = null; } }
+  function glideUp() {
+    if (glide || locked() || window.scrollY <= target() + 1) return;
+    if (reducedMotion()) { window.scrollTo(0, target()); onScroll(); return; }
+    const extra = window.scrollY - target();
+    const t0 = performance.now();
+    const step = (now) => {
+      if (locked()) { glide = null; return; }
+      const t = Math.min(1, (now - t0) / ROW_MOTION_MS);
+      const to = target();
+      window.scrollTo(0, Math.min(window.scrollY, to + extra * (1 - rowEase(t))));
+      if (t < 1 && window.scrollY > to + 0.5) glide = requestAnimationFrame(step);
+      else { glide = null; onScroll(); }
+    };
+    glide = requestAnimationFrame(step);
+  }
+  function onResize() {
+    if (locked()) return;
+    natural = measure();
+    if (typing()) { floor = Math.max(floor, window.scrollY + window.innerHeight); applyFloor(); return; }
+    if (floor > natural) floor = Math.min(floor, window.scrollY + window.innerHeight); // hold what's in view, no more
+    applyFloor();
+    if (window.scrollY > target() + 1 && performance.now() - ownScroll > 500) glideUp();
+  }
+  natural = measure();
+  onScroll();
+  new ResizeObserver(onResize).observe(app);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onResize);
+  window.addEventListener('wheel', stopGlide, { passive: true });
+  window.addEventListener('touchstart', stopGlide, { passive: true });
+  document.addEventListener('focusout', () => setTimeout(onResize, 0));
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setupPageGlide);
+else setupPageGlide();
+// The box ease: a box whose content changed size eases from the height it
+// was drawn at (`from`, read before the change) to its new one — one ease
+// from where it's drawn, so taps in quick succession never overshoot.
+function easeBoxHeight(box, from) {
+  if (!box || !Number.isFinite(from)) return;
+  if (box._boxEase) { box._boxEase.cancel(); box._boxEase = null; }
+  const to = box.getBoundingClientRect().height;
+  if (!canAnimate(box) || Math.abs(to - from) < 0.5 || rowMotion.has(box)) return;
+  const k = box.offsetHeight ? to / box.offsetHeight : 1;
+  const an = box.animate([{ height: `${from / k}px`, overflow: 'hidden' }, { height: `${to / k}px`, overflow: 'hidden' }], MOTION);
+  box._boxEase = an;
+  an.finished.then(() => { if (box._boxEase === an) box._boxEase = null; }, () => {});
+}
+
 const rowMotion = new Map(); // element -> its active motion pieces
 let rowMotionFrame = null;
 let rowMotionFlushQueued = false;
@@ -3404,6 +3551,7 @@ function motionOf(el, kind = 'transform') {
 // painted, and counting that time skipped the start of every slide — the
 // motion looked faster and jumpier than the same slide elsewhere.
 function motionProgress(piece, now) {
+  if (reducedMotion()) return 1; // Reduce Motion: it's just there
   if (piece.start === null) return 0;
   return Math.min(1, Math.max(0, (now - piece.start) / piece.duration));
 }
@@ -4861,7 +5009,7 @@ function updateInstructionsStepUI() {
           updateStarredUI();
         } else {
           if (headerBar) {
-            headerBar.textContent = `${state.starred.length} ${state.starred.length === 1 ? 'starred account' : 'starred accounts'}`;
+            swapText(headerBar, `${state.starred.length} ${state.starred.length === 1 ? 'starred account' : 'starred accounts'}`);
           }
           if (resetStarredBtn) resetStarredBtn.removeAttribute('disabled');
         }
@@ -4910,7 +5058,7 @@ function updateInstructionsStepUI() {
           updateStarredUI();
         } else {
           if (headerBar) {
-            headerBar.textContent = `${state.starred.length} ${state.starred.length === 1 ? 'starred account' : 'starred accounts'}`;
+            swapText(headerBar, `${state.starred.length} ${state.starred.length === 1 ? 'starred account' : 'starred accounts'}`);
           }
           if (resetStarredBtn) {
             resetStarredBtn.removeAttribute('disabled');
@@ -4964,7 +5112,7 @@ function updateInstructionsStepUI() {
             updateUnfollowedUI();
           } else {
             if (headerBar) {
-              headerBar.textContent = `${state.unfollowed.length} ${state.unfollowed.length === 1 ? 'unfollowed account' : 'unfollowed accounts'}`;
+              swapText(headerBar, `${state.unfollowed.length} ${state.unfollowed.length === 1 ? 'unfollowed account' : 'unfollowed accounts'}`);
             }
             if (resetUnfollowedBtn) {
               resetUnfollowedBtn.removeAttribute('disabled');
@@ -5016,7 +5164,7 @@ function updateInstructionsStepUI() {
           updateUnfollowedUI();
         } else {
           if (headerBar) {
-            headerBar.textContent = `${state.unfollowed.length} ${state.unfollowed.length === 1 ? 'unfollowed account' : 'unfollowed accounts'}`;
+            swapText(headerBar, `${state.unfollowed.length} ${state.unfollowed.length === 1 ? 'unfollowed account' : 'unfollowed accounts'}`);
           }
           if (resetUnfollowedBtn) {
             resetUnfollowedBtn.removeAttribute('disabled');
@@ -6514,7 +6662,7 @@ function setAuthAlert(el, text, { instant = false } = {}) {
     const topsBefore = below.map(n => n.offsetTop);
     const heightBefore = card ? card.offsetHeight : 0;
     if (card) card.getAnimations().filter(an => an._alertResize).forEach(an => an.cancel());
-    el.textContent = text;
+    swapText(el, text); // the old message fades out where it was, the new one in
     if (!canMove) return;
     below.forEach((n, i) => addRowShift(n, topsBefore[i] - n.offsetTop, ROW_MOTION_MS));
     const heightAfter = card.offsetHeight;
@@ -6969,9 +7117,9 @@ function updateStorageProgressBar() {
   const fillEl = document.getElementById('storage-progress-fill');
   const usedEl = document.getElementById('storage-used-bytes');
 
-  if (percentageEl) percentageEl.textContent = percentageText;
+  if (percentageEl) swapText(percentageEl, percentageText);
   if (fillEl) fillEl.style.width = `${Math.min(percentage, 100)}%`;
-  if (usedEl) usedEl.textContent = `${usedText} used`;
+  if (usedEl) swapText(usedEl, `${usedText} used`);
 }
 
 // -------------------------------------------------------------
@@ -7030,7 +7178,7 @@ function applyResetDue(dueAt) {
     const due = listNeedsReset(type, dueAt);
     btn.classList.toggle('reset-due', due);
     const text = due ? 'reset due' : 'reset';
-    if (btn.textContent !== text) btn.textContent = text;
+    swapText(btn, text, { resize: true });
     const row = btn.closest('.setting-item-row');
     if (row) row.classList.toggle('reset-due', due);
   });
@@ -7049,8 +7197,8 @@ function updateResetReminderUI() {
 
   if (!importedAtRaw) {
     box.classList.remove('overdue');
-    valueEl.textContent = 'not started';
-    detailEl.textContent = 'import your files to start the weekly reminder';
+    swapText(valueEl, 'not started');
+    swapText(detailEl, 'import your files to start the weekly reminder');
     fillEl.style.width = '0%';
     return;
   }
@@ -7064,22 +7212,22 @@ function updateResetReminderUI() {
   if (remainingMs <= 0 && !resetStillDue(importedAt + RESET_REMINDER_MS)) {
     // Both lists have been reset since it came due: done until the next import.
     box.classList.remove('overdue');
-    valueEl.textContent = 'lists reset';
-    detailEl.textContent = `imported ${importedDateText}`;
+    swapText(valueEl, 'lists reset');
+    swapText(detailEl, `imported ${importedDateText}`);
     fillEl.style.width = '100%';
   } else if (remainingMs <= 0) {
     const overdueDays = Math.floor(-remainingMs / dayMs);
     box.classList.add('overdue');
-    valueEl.textContent = overdueDays > 0 ? `overdue by ${plural(overdueDays, 'day')}` : 'overdue';
-    detailEl.textContent = `imported ${importedDateText}`;
+    swapText(valueEl, overdueDays > 0 ? `overdue by ${plural(overdueDays, 'day')}` : 'overdue');
+    swapText(detailEl, `imported ${importedDateText}`);
     fillEl.style.width = '100%';
   } else {
     box.classList.remove('overdue');
     const remainingDays = Math.floor(remainingMs / dayMs);
     const remainingHours = Math.floor((remainingMs % dayMs) / (60 * 60 * 1000));
     const remainingText = remainingDays > 0 ? plural(remainingDays, 'day') : plural(remainingHours, 'hour');
-    valueEl.textContent = `${remainingText} left`;
-    detailEl.textContent = `imported ${importedDateText}`;
+    swapText(valueEl, `${remainingText} left`);
+    swapText(detailEl, `imported ${importedDateText}`);
     fillEl.style.width = `${Math.min(100, Math.max(0, ((now - importedAt) / RESET_REMINDER_MS) * 100))}%`;
   }
 }
