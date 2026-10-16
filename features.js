@@ -389,15 +389,31 @@
     pushToCloud();
     const files = (typeof lastImportFiles !== 'undefined' ? lastImportFiles : []) || [];
     if (!files.length) return;
-    if (!canCloud()) { showToast("log in to save this import's files to the cloud"); return; }
     const stored = await Promise.all(files.map(async file => ({ name: file.webkitRelativePath || file.name, data: await file.arrayBuffer() })));
-    try {
-      await cloudPut(key, n, makeZip(stored, entry.date));
-    } catch (err) {
-      console.error('[features] saving the import files to the cloud failed:', err);
-      showToast("couldn't save this import's files to the cloud");
+    if (!canCloud()) {
+      // Kept here until you log in (moveLocalFilesToCloud uploads them then).
+      await keepOnDevice(key, n, stored).catch(err => console.error('[features] keeping the import files failed:', err));
+      showToast("log in to save this import's files to the cloud");
       return;
     }
+    await uploadImport(key, n, stored, entry.date);
+  }
+  // Uploads an import's zip. If it fails, the files are kept on this device
+  // (the same IndexedDB store older versions used) until they're up: "retry"
+  // tries again now, and the next time the app opens they go up on their own
+  // (moveLocalFilesToCloud) — the latest import's files are never lost.
+  async function uploadImport(key, n, stored, date) {
+    try {
+      await cloudPut(key, n, makeZip(stored, date));
+    } catch (err) {
+      console.error('[features] saving the import files to the cloud failed:', err);
+      await keepOnDevice(key, n, stored).catch(e => console.error('[features] keeping the import files failed:', e));
+      const why = cloudReason(err);
+      showToast(`couldn't save this import's files to the cloud${why ? ` (${why})` : ''}`, 'retry',
+        () => { if (canCloud()) uploadImport(key, n, stored, date); }, { duration: 10000 });
+      return false;
+    }
+    await dropFromDevice(key, n).catch(() => {});
     const fresh = readJSON(logKey(key), []);
     const mine = fresh.find(x => x.n === n);
     if (mine) mine.files = true;
@@ -411,17 +427,42 @@
     writeJSON(logKey(key), fresh);
     refreshSavedImports();
     pushToCloud();
+    return true;
   }
-  // Files an earlier version kept on this device (IndexedDB) move up to the
-  // cloud once, and the local copy is deleted.
+  // What went wrong, in a few words (Supabase's own message otherwise).
+  function cloudReason(err) {
+    const msg = String((err && (err.message || err.error)) || '');
+    if (/bucket not found/i.test(msg)) return "the cloud's imports folder isn't set up";
+    if (/row-level security|unauthorized|403/i.test(msg)) return "the cloud didn't allow it";
+    if (/payload too large|exceeded the maximum|413/i.test(msg)) return 'the files are too big';
+    if (/failed to fetch|network|load failed/i.test(msg)) return 'no connection';
+    return msg.toLowerCase().slice(0, 80);
+  }
+  const openFilesDb = () => new Promise(resolve => {
+    if (!window.indexedDB) { resolve(null); return; }
+    const req = indexedDB.open('ig-checker-files', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('imports');
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(null);
+  });
+  async function filesDbWrite(run) {
+    const db = await openFilesDb();
+    if (!db) return;
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('imports', 'readwrite');
+      run(tx.objectStore('imports'));
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  }
+  const keepOnDevice = (key, n, files) => filesDbWrite(store => store.put({ files }, `${key}|${n}`));
+  const dropFromDevice = (key, n) => filesDbWrite(store => store.delete(`${key}|${n}`));
+  // Files kept on this device (an upload that failed, or an earlier version
+  // that saved them here) move up to the cloud, and the local copy is deleted.
   async function moveLocalFilesToCloud() {
     if (!window.indexedDB || !canCloud()) return false;
-    const db = await new Promise(resolve => {
-      const req = indexedDB.open('ig-checker-files', 1);
-      req.onupgradeneeded = () => req.result.createObjectStore('imports');
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => resolve(null);
-    });
+    const db = await openFilesDb();
     if (!db) return true;
     const all = await new Promise(resolve => {
       const out = [];
