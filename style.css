@@ -578,11 +578,20 @@ button:disabled *,
 
 /* A count pill's number and word are pinned to its right edge
    (setCountBadge): only the number changes, the pill growing to its left,
-   the word never moving */
+   the word never moving. Laid out from the right (row-reverse, the word
+   first) rather than pushed there with flex-end: mid-count the digits run
+   a little ahead of the width, and Safari spills a too-wide number out of
+   a clipped flex-end box on the right, shoving "found" along; from the
+   right, the spare digits can only spill left. */
 .badge.count-badge,
 .badge.result-badge {
-  justify-content: flex-end;
+  flex-direction: row-reverse;
+  justify-content: flex-start;
   box-sizing: border-box;
+}
+
+.badge .count-word {
+  order: -1;
 }
 
 /* Dark theme overrides for list badges & card numbers */
