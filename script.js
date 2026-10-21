@@ -1353,26 +1353,27 @@ function setCountBadge(el, n, word) {
     el._countWidth = w;
     el.style.clipPath = el.style.webkitClipPath = `inset(0 0 0 ${box - w / k}px round 99px)`;
   };
-  // Counting up, the digits run ahead of the width (250 is already three
-  // digits a third of the way across): a number the pill hasn't room for
-  // yet waits at 9, 99, 999… so its first digit isn't cut off at the edge.
-  const cs = getComputedStyle(el);
-  const inset = ((parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.borderLeftWidth) || 0)) * k;
+  // The width follows the number, not the clock: the digits come early
+  // (0 to 108 is three digits a third of the way across), so the pill is
+  // as wide as the number on show needs, its digit count taken smoothly
+  // (log10) so it glides — and never waits a frame behind, the number up
+  // against its edge, nor holds the number back.
+  const numEnd = num.getBoundingClientRect().width;
+  const digitW = numEnd / String(n).length; // same-width digits (tabular-nums)
+  const base = endWidth - numEnd;
+  const lo = Math.min(startWidth, endWidth), hi = Math.max(startWidth, endWidth);
+  const digits = (x) => (x < 1 ? 1 : Math.log10(x) + 1);
+  // (pinned to the real widths at both ends: 250 is 3.4 digits smoothly, 3 drawn)
+  const offFrom = digits(from) - String(from).length, offTo = digits(n) - String(n).length;
+  const widthFor = (x, e) => Math.min(hi, Math.max(lo, base + digitW * (digits(x) - offFrom * (1 - e) - offTo * e)));
   const t0 = performance.now();
   const step = (now) => {
     const t = Math.min(1, (now - t0) / COUNT_MS);
     const e = rowEase(t); // the list 3 slide's curve
-    const w = startWidth + (endWidth - startWidth) * e;
-    let shown = Math.round(from + (n - from) * e);
-    num.textContent = String(shown);
-    if (n > from) {
-      const edge = el.getBoundingClientRect().right - w + inset * 0.4; // (it may take a little of the padding)
-      while (shown >= 10 && num.getBoundingClientRect().left < edge) {
-        shown = 10 ** (String(shown).length - 1) - 1;
-        num.textContent = String(shown);
-      }
-    }
-    el._countNow = shown;
+    const x = from + (n - from) * e;
+    el._countNow = Math.round(x);
+    num.textContent = String(el._countNow);
+    const w = t < 1 ? widthFor(x, e) : endWidth;
     clip(w);
     if (t < 1 && el.isConnected) el._countRaf = requestAnimationFrame(step);
     else settle();
