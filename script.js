@@ -2620,6 +2620,11 @@ async function processImportFiles(files, isFolderUpload = false, { username = nu
     if (wholeExport) EXTRA_LIST_KINDS.forEach(kind => { lists[kind] = []; });
     Object.keys(found).forEach(kind => { lists[kind] = deduplicateEntries([...(anyPartial ? lists[kind] || [] : []), ...found[kind]]).map(cleanExtraEntry); });
     const extrasChanged = extraFiles.length > 0 || wholeExport;
+    // Pending requests already starred or unfollowed stay out (they came back on every import)
+    if (lists.pending) {
+      const moved = new Set([...state.starred, ...state.unfollowed].map(u => u.username));
+      lists.pending = lists.pending.filter(u => !moved.has(u.username));
+    }
     if (extrasChanged) writeExtraLists(state.selectedAccountUsername, lists);
 
     if (listsChanged) {
@@ -7097,6 +7102,7 @@ async function pullFromCloud(uploadLocalFirst = false) {
             // that imported them.
             if (Array.isArray(itemData.imports)) storageSet(`import_log_${key}`, JSON.stringify(itemData.imports));
             if (itemData.extras) writeExtraLists(key, itemData.extras);
+            if (itemData.resets) Object.entries(itemData.resets).forEach(([type, at]) => { if (at) storageSet(`list_reset_${type}_${key}`, at); });
           });
         }
 
@@ -7296,7 +7302,10 @@ async function pushToCloudNow() {
       const extras = readExtraLists(key);
       const imports = JSON.parse(storageGet(`import_log_${key}`) || '[]').slice(-100);
 
-      accountDataMap[key] = { following, followers, unfollowed, starred, importDate, history, diff, extras, imports };
+      // When unfollowed / starred were last reset (it was lost on reload: "reset due" again)
+      const resets = { unfollowed: storageGet(`list_reset_unfollowed_${key}`), starred: storageGet(`list_reset_starred_${key}`) };
+
+      accountDataMap[key] = { following, followers, unfollowed, starred, importDate, history, diff, extras, imports, resets };
 
       unfollowed.forEach(u => {
         const itemAcc = u.account || key;

@@ -344,13 +344,17 @@
     if (prev && prev.followingList) {
       const pf = new Set(prev.followingList), pr = new Set(prev.followersList);
       const nf = new Set(following), nr = new Set(followers);
+      // A side is only compared when both imports had it (only following.json,
+      // then only followers.json: every follower was "new")
+      const hadF = prev.followingList.length > 0 && following.length > 0;
+      const hadR = (prev.followersList || []).length > 0 && followers.length > 0;
       diff = {
         date: now(),
         since: prev.date,
-        lostFollowers: prev.followersList.filter(n => !nr.has(n)),
-        newFollowers: followers.filter(n => !pr.has(n)),
-        stoppedFollowing: prev.followingList.filter(n => !nf.has(n)),
-        startedFollowing: following.filter(n => !pf.has(n))
+        lostFollowers: hadR ? prev.followersList.filter(n => !nr.has(n)) : [],
+        newFollowers: hadR ? followers.filter(n => !pr.has(n)) : [],
+        stoppedFollowing: hadF ? prev.followingList.filter(n => !nf.has(n)) : [],
+        startedFollowing: hadF ? following.filter(n => !pf.has(n)) : []
       };
       writeJSON(`import_diff_${key}`, diff);
       const total = diff.lostFollowers.length + diff.newFollowers.length + diff.stoppedFollowing.length + diff.startedFollowing.length;
@@ -613,7 +617,12 @@
     end.setUint32(12, size, true); end.setUint32(16, offset, true);
     return new Blob([...parts, ...central, end.buffer], { type: 'application/zip' });
   }
-  const fileDate = (t) => new Date(t).toISOString().slice(0, 10);
+  // The day where you are (toISOString's is UTC's: east of it, a day early)
+  // A CSV cell. One starting = + - @ is kept as text (a name is anyone's
+  // choice: "=HYPERLINK(…)" ran as a formula in a spreadsheet). The files
+  // start with a BOM, so Excel reads names in any script.
+  const csvCell = (v) => { let s = String(v ?? ''); if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`; return `"${s.replace(/"/g, '""')}"`; };
+  const fileDate = (t) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
   const longDate = (t) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }).toLowerCase();
   async function downloadSaved(key, entry) {
     const who = key === '_global_' ? 'lists' : key;
@@ -633,11 +642,11 @@
     }
     // Just the changes: one row per username, with what happened.
     const c = entry.changes || {};
-    const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const cell = csvCell;
     const rows = [['change', 'username']];
     [['lost', 'unfollowed you'], ['gained', 'new follower'], ['stopped', 'you stopped following'], ['started', 'you started following']]
       .forEach(([k, label]) => (c[k] || []).forEach(name => rows.push([label, name])));
-    saveFile(`ig-checker-${who}-import-${entry.n}-changes-${fileDate(entry.date)}.csv`, new Blob([rows.map(r => r.map(cell).join(',')).join('\n')], { type: 'text/csv' }));
+    saveFile(`ig-checker-${who}-import-${entry.n}-changes-${fileDate(entry.date)}.csv`, new Blob(['\ufeff' + rows.map(r => r.map(cell).join(',')).join('\n')], { type: 'text/csv' }));
   }
   let savedOverlay = null;
   let savedKey = null; // whose imports the window is showing (its tab)
@@ -2833,7 +2842,7 @@
   }
   // One list: its own file. Several: one file with a 'list' column.
   function exportCsv(kinds) {
-    const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const cell = csvCell;
     const multi = kinds.length > 1;
     const head = ['username', 'full name', 'followed', 'profile'];
     const rows = [multi ? ['list'].concat(head) : head];
@@ -2841,12 +2850,12 @@
       const name = (EXPORT_LISTS.find(x => x[0] === kind) || [kind, kind])[1];
       listFor(kind).forEach(u => {
         const t = timeOf(u);
-        const row = [u.originalUsername || u.username, u.fullName || '', t ? new Date(t).toISOString().slice(0, 10) : '', safeProfileUrl(u)];
+        const row = [u.originalUsername || u.username, u.fullName || '', t ? fileDate(t) : '', safeProfileUrl(u)];
         rows.push(multi ? [name].concat(row) : row);
       });
     });
     const file = multi ? 'ig-checker-lists.csv' : `ig-checker-${kinds[0]}.csv`;
-    saveFile(file, new Blob([rows.map(r => r.map(cell).join(',')).join('\n')], { type: 'text/csv' }));
+    saveFile(file, new Blob(['\ufeff' + rows.map(r => r.map(cell).join(',')).join('\n')], { type: 'text/csv' }));
   }
 
   let exportOverlay = null;
