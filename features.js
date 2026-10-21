@@ -309,15 +309,26 @@
   const baseRecordImportDate = recordImportDate;
   recordImportDate = function (accountUsername) {
     const result = baseRecordImportDate.call(this, accountUsername);
-    // An export from google drive is dated by when it landed there.
-    if (importAt) { storageSet(getImportDateKey(accountUsername), String(importAt)); updateResetReminderUI(); }
+    // How new the account's lists are: an export from google drive is as
+    // new as the day it was made (the reset reminder still counts from now).
+    storageSet(dataDateKey(accountUsername), String(now()));
     safe(() => recordChanges(accountUsername), 'import history');
     return result;
   };
+  // While a google drive sync runs, the reset reminder and its buttons stay
+  // as they are (they flickered as it went from import to import, and from
+  // account to account); they're brought up to date once, when it's done.
+  const baseUpdateResetReminderUI = updateResetReminderUI;
+  updateResetReminderUI = function () {
+    if (driveSync) return undefined;
+    return baseUpdateResetReminderUI.apply(this, arguments);
+  };
   // An import's date: now, or (google drive) the export's own.
   let importAt = null;
+  const dataDateKey = (accountUsername) => `import_at_${accountUsername ? accountUsername.toLowerCase() : '_global_'}`;
   const now = () => importAt || Date.now();
-  let driveSync = null; // a google drive sync running: { changes }
+  let driveSync = null; // a google drive sync running: { changes, unsaved, why }
+  const savesRunning = new Set(); // imports' files on their way to the cloud
   function recordChanges(accountUsername) {
     const key = accountUsername ? accountUsername.toLowerCase() : '_global_';
     if (key === DEMO_ID) return;
@@ -350,7 +361,11 @@
     history.forEach(h => { delete h.followingList; delete h.followersList; });
     history.push({ date: now(), following: following.length, followers: followers.length, unfollowers, followingList: following, followersList: followers });
     writeJSON(`import_history_${key}`, history.slice(-24));
-    safe(() => saveImport(key, diff).catch(err => console.error('[features] saved imports failed:', err)), 'saved imports');
+    safe(() => {
+      const saving = saveImport(key, diff).catch(err => console.error('[features] saved imports failed:', err))
+        .finally(() => savesRunning.delete(saving));
+      savesRunning.add(saving);
+    }, 'saved imports');
   }
 
   // ---------- saved imports ----------
@@ -369,9 +384,27 @@
   const BUCKET = 'imports';
   const canCloud = () => !!(supabaseClient && supabaseClient.storage && currentUser);
   const cloudPath = (key, n) => `${currentUser.id}/${key}/import-${n}.zip`;
-  async function cloudPut(key, n, blob) {
-    const { error } = await supabaseClient.storage.from(BUCKET).upload(cloudPath(key, n), blob, { upsert: true, contentType: 'application/zip' });
-    if (error) throw error;
+  // One upload at a time (a google drive sync imports several in a row,
+  // and they all went up at once), each tried again up to 3 times when the
+  // connection dropped or the log-in's pass ran out (it's renewed first).
+  let uploadChain = Promise.resolve();
+  function cloudPut(key, n, blob) {
+    const run = uploadChain.then(() => cloudPutNow(key, n, blob));
+    uploadChain = run.catch(() => {});
+    return run;
+  }
+  async function cloudPutNow(key, n, blob) {
+    for (let attempt = 1; ; attempt++) {
+      let error;
+      try { ({ error } = await supabaseClient.storage.from(BUCKET).upload(cloudPath(key, n), blob, { upsert: true, contentType: 'application/zip' })); } catch (err) { error = err; }
+      if (!error) return;
+      const msg = String(error.message || error.error || error);
+      const expired = /jwt|token|expired|exp claim/i.test(msg);
+      const dropped = /failed to fetch|network|load failed|timed? ?out/i.test(msg) || Number(error.status || error.statusCode) >= 500;
+      if (attempt >= 3 || !(expired || dropped)) throw error;
+      if (expired) { try { await supabaseClient.auth.refreshSession(); } catch (e) {} }
+      await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+    }
   }
   async function cloudGet(key, n) {
     const { data, error } = await supabaseClient.storage.from(BUCKET).download(cloudPath(key, n));
@@ -418,6 +451,8 @@
       console.error('[features] saving the import files to the cloud failed:', err);
       await keepOnDevice(key, n, stored).catch(e => console.error('[features] keeping the import files failed:', e));
       const why = cloudReason(err);
+      // A google drive sync says it once, at the end.
+      if (driveSync) { driveSync.unsaved++; driveSync.why = why; return false; }
       showToast(`couldn't save this import's files to the cloud${why ? ` (${why})` : ''}`, 'retry',
         () => { if (canCloud()) uploadImport(key, n, stored, date); }, { duration: 10000 });
       return false;
@@ -442,6 +477,7 @@
   function cloudReason(err) {
     const msg = String((err && (err.message || err.error)) || '');
     if (/bucket not found/i.test(msg)) return "the cloud's imports folder isn't set up";
+    if (/jwt|token|expired|exp claim/i.test(msg)) return 'your log-in ran out — log out and in again';
     if (/row-level security|unauthorized|403/i.test(msg)) return "the cloud didn't allow it";
     if (/payload too large|exceeded the maximum|413/i.test(msg)) return 'the files are too big';
     if (/failed to fetch|network|load failed/i.test(msg)) return 'no connection';
@@ -783,44 +819,50 @@
     driveGet('', { q: `${q} and trashed=false`, fields: `files(${fields})`, orderBy: 'createdTime desc', pageSize: '100' }).then(r => r.files || []);
   const driveFile = (id) => driveGet(`/${id}`, { alt: 'media' }, true);
 
-  // Instagram's exports in the drive: its zips, and unzipped ones (each
-  // folder holding a following file).
+  // Instagram's exports in the drive. It sends them unzipped, each in its
+  // own folder: instagram-<account>-<date>-<code> (inside a meta-<date>
+  // folder), the lists in connections/followers_and_following. Zips too
+  // (by their own name or their folder's), in case.
+  const EXPORT_FOLDER = /^instagram-([a-z0-9._]+)-\d{4}-\d{2}-\d{2}-[a-z0-9]+$/i;
+  const FOLDER = "mimeType='application/vnd.google-apps.folder'";
   async function findDriveExports() {
+    const found = [];
+    const names = new Set();
+    (await driveList(`${FOLDER} and name contains 'instagram'`)).forEach(f => {
+      const m = EXPORT_FOLDER.exec(f.name);
+      // The same export is sometimes there twice.
+      if (!m || names.has(f.name)) return;
+      names.add(f.name);
+      found.push({ id: f.id, name: f.name, who: m[1].toLowerCase(), at: Date.parse(f.createdTime), zip: false });
+    });
     const zips = await driveList("(mimeType='application/zip' or mimeType='application/x-zip-compressed')");
     const folders = new Map();
     for (const id of [...new Set(zips.flatMap(z => z.parents || []))].slice(0, 25)) {
       try { folders.set(id, (await driveGet(`/${id}`, { fields: 'name' })).name || ''); } catch (e) { folders.set(id, ''); }
     }
-    const found = zips
-      .filter(z => EXPORT_NAME.test(z.name) || (z.parents || []).some(p => EXPORT_NAME.test(folders.get(p) || '')))
-      .map(z => ({ id: z.id, name: z.name, at: Date.parse(z.createdTime), zip: true }));
-    (await driveList("(name='following.json' or name='following.html')")).forEach(f => {
-      if (f.parents && f.parents[0]) found.push({ id: f.parents[0], name: f.name, at: Date.parse(f.createdTime), zip: false });
-    });
+    zips.filter(z => EXPORT_NAME.test(z.name) || (z.parents || []).some(p => EXPORT_NAME.test(folders.get(p) || '')))
+      .forEach(z => { const m = /^instagram-([a-z0-9._]+)-\d{4}-/i.exec(z.name); found.push({ id: z.id, name: z.name, who: m ? m[1].toLowerCase() : null, at: Date.parse(z.createdTime), zip: true }); });
     return found;
   }
-  // An export as one zip: Instagram's own, or (unzipped) the folder's
-  // lists plus the profile file sent with them (for the username), zipped
-  // up here the way the saved imports are.
-  async function driveExportZip(exp) {
-    if (exp.zip) return new File([await driveFile(exp.id)], exp.name, { type: 'application/zip' });
-    const wanted = (await driveList(`'${exp.id}' in parents`)).filter(f => ZIP_WANTED(f.name.toLowerCase()));
-    const info = (await driveList("name='personal_information.json'"))
-      .map(f => [f, Math.abs(Date.parse(f.createdTime) - exp.at)])
-      .filter(([, gap]) => gap < 60 * 60 * 1000).sort((a, b) => a[1] - b[1])[0];
-    if (info) wanted.push(info[0]);
-    const files = await Promise.all(wanted.map(async f => ({ name: f.name, data: await (await driveFile(f.id)).arrayBuffer() })));
-    return new File([makeZip(files, exp.at)], `instagram-${fileDate(exp.at)}.zip`, { type: 'application/zip' });
+  const childNamed = async (parent, name) => (await driveList(`'${parent}' in parents and name='${name}'`))[0] || null;
+  // An export's files: a zip's own (opened like an uploaded one), or the
+  // lists in an export folder.
+  async function driveExportFiles(exp) {
+    if (exp.zip) return [new File([await driveFile(exp.id)], exp.name, { type: 'application/zip' })];
+    const connections = await childNamed(exp.id, 'connections');
+    const lists = connections && await childNamed(connections.id, 'followers_and_following');
+    if (!lists) return [];
+    const wanted = (await driveList(`'${lists.id}' in parents`)).filter(f => ZIP_WANTED(f.name.toLowerCase()));
+    return Promise.all(wanted.map(async f => new File([await driveFile(f.id)], f.name, { type: /\.html$/i.test(f.name) ? 'text/html' : 'application/json' })));
   }
-  // Whose export it is, and whether it has lists at all (any zip in a
-  // folder called "information" would otherwise end in "no lists found").
+
+  // Whose a zip is, from its profile file.
   async function peekExport(zip) {
     try {
-      const inner = await unzipImportFiles(zip);
-      const info = inner.find(f => f.name.toLowerCase() === 'personal_information.json');
-      return { lists: inner.some(f => /^follow(ing|ers)/i.test(f.name)), who: info ? await usernameFromPersonalInfo(info) : null };
+      const info = (await unzipImportFiles(zip)).find(f => f.name.toLowerCase() === 'personal_information.json');
+      return { who: info ? await usernameFromPersonalInfo(info) : null };
     } catch (e) {
-      return { lists: false, who: null };
+      return { who: null };
     }
   }
 
@@ -831,7 +873,7 @@
       return;
     }
     const signIn = driveSignIn(); // first, while it's still the tap
-    driveSync = { changes: 0 };
+    driveSync = { changes: 0, unsaved: 0, why: '' };
     refreshDrive();
     let imported = 0;
     try {
@@ -842,25 +884,38 @@
       let fresh = (await findDriveExports()).filter(e => !seen.has(e.id) && Number.isFinite(e.at)).sort((a, b) => b.at - a.at);
       if (firstSync) { fresh.slice(DRIVE_FIRST_MAX).forEach(e => markSeen(e.id)); fresh = fresh.slice(0, DRIVE_FIRST_MAX); }
       fresh.reverse(); // oldest first
+      const shown = state.selectedAccountUsername;
       for (let i = 0; i < fresh.length; i++) {
         const exp = fresh[i];
         driveStatus(`importing ${i + 1} of ${fresh.length}`);
-        const zip = await driveExportZip(exp);
-        const { lists, who } = await peekExport(zip);
-        const latest = who ? Number(storageGet(getImportDateKey(who))) || 0 : 0;
-        if (lists && latest < exp.at) {
+        const files = await driveExportFiles(exp);
+        let who = exp.who;
+        if (exp.zip && !who) who = (await peekExport(files[0])).who;
+        // Lists already newer than this export (an import since) stay.
+        const latest = who ? Number(storageGet(dataDateKey(who)) || storageGet(getImportDateKey(who))) || 0 : 0;
+        if (files.length && latest < exp.at) {
           importAt = exp.at;
-          try { if (await processImportFiles([zip])) imported++; } finally { importAt = null; }
+          try { if (await processImportFiles(files, true, { username: who })) imported++; } finally { importAt = null; }
           await new Promise(resolve => setTimeout(resolve, ROW_MOTION_MS));
         }
         markSeen(exp.id);
       }
+      // Back to the account you were on.
+      if (imported && shown && state.selectedAccountUsername !== shown) ensureAccountSelected(shown);
       storageSet('drive_checked', String(Date.now()));
       pushToCloud();
-      const { changes } = driveSync;
+      driveStatus('saving to the cloud');
+      await Promise.allSettled([...savesRunning]);
+      const { changes, unsaved, why } = driveSync;
       driveSync = null;
-      showToast(imported ? `${plural(imported, 'export')} from google drive · ${plural(changes, 'change')}` : 'no new exports in google drive',
-        imported && changes ? 'view' : null, () => { showView('changes'); viewNav && viewNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
+      if (unsaved) {
+        // Kept on this device; they go up the next time the app opens.
+        showToast(`${plural(imported, 'export')} from google drive · ${unsaved === 1 ? "one import's files" : `${unsaved} imports' files`} couldn't be saved to the cloud${why ? ` (${why})` : ''}`,
+          'retry', () => moveLocalFilesToCloud().then(ok => showToast(ok ? 'saved to the cloud' : "still couldn't save them")), { duration: 10000 });
+      } else {
+        showToast(imported ? `${plural(imported, 'export')} from google drive · ${plural(changes, 'change')}` : 'no new exports in google drive',
+          imported && changes ? 'view' : null, () => { showView('changes'); viewNav && viewNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
+      }
     } catch (err) {
       console.error('[features] google drive sync failed:', err);
       driveSync = null;
@@ -869,6 +924,7 @@
     } finally {
       driveSync = null;
       refreshDrive();
+      updateResetReminderUI();
     }
   }
   async function disconnectDrive() {
