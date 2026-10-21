@@ -1320,37 +1320,51 @@ function setCountBadge(el, n, word) {
   // (one appearing counts up from 0, like the dashboard's counts)
   const from = Number.isFinite(el._countNow) ? el._countNow : (parseInt(num.textContent, 10) || 0);
   // From the width it's drawn at (mid-ease too) to the one the new number needs
-  const startWidth = el.getBoundingClientRect().width;
+  const startWidth = Number.isFinite(el._countWidth) ? el._countWidth : el.getBoundingClientRect().width;
   el.style.transition = 'none';
   el.style.width = '';
+  el.style.clipPath = el.style.webkitClipPath = '';
   num.textContent = String(n);
   const endWidth = el.getBoundingClientRect().width;
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const settle = () => {
     el._countNow = undefined;
+    el._countWidth = undefined;
     el._countRaf = null;
     num.textContent = String(n);
     el.style.transition = '';
     el.style.width = '';
+    el.style.clipPath = el.style.webkitClipPath = '';
   };
   if (from === n || !startWidth || !endWidth || reduced || !el.isConnected) { settle(); return; }
   // Screen size to layout size (the guest preview draws the app a hair
   // smaller: set as measured, the pill snapped 0.7px narrower first)
   el.style.width = `${endWidth}px`;
   const k = el.getBoundingClientRect().width / endWidth || 1;
-  el.style.width = `${startWidth / k}px`;
-  void el.offsetWidth;
-  el.style.transition = `width ${ROW_MOTION_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`; // the list 3 slide
-  el.style.width = `${endWidth / k}px`;
+  // The pill's box doesn't change size while it counts: it's set at the
+  // wider of the two widths at once, and only a rounded clip eases from
+  // the old width to the new. (Resized every frame, the box's left edge
+  // landed on a different part of a pixel each time, and the iPhone drew
+  // the words inside it a shade to one side or the other — "found"
+  // shifted as list 3 counted down on a clear and back up on its undo.)
+  const box = Math.max(startWidth, endWidth) / k;
+  el.style.width = `${box}px`;
+  const clip = (w) => {
+    el._countWidth = w;
+    el.style.clipPath = el.style.webkitClipPath = `inset(0 0 0 ${box - w / k}px round 99px)`;
+  };
   const t0 = performance.now();
   const step = (now) => {
     const t = Math.min(1, (now - t0) / COUNT_MS);
-    el._countNow = Math.round(from + (n - from) * rowEase(t)); // the list 3 slide's curve
+    const e = rowEase(t); // the list 3 slide's curve
+    el._countNow = Math.round(from + (n - from) * e);
     num.textContent = String(el._countNow);
+    clip(startWidth + (endWidth - startWidth) * e);
     if (t < 1 && el.isConnected) el._countRaf = requestAnimationFrame(step);
     else settle();
   };
   num.textContent = String(from);
+  clip(startWidth);
   el._countRaf = requestAnimationFrame(step);
 }
 
