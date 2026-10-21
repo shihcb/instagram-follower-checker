@@ -3708,6 +3708,28 @@ body.auth-logged-out #auth-form-view {
   justify-content: center !important;
 }
 
+/* A 320px screen: the theme button is just its icon, so "log in / sign
+   up" fits beside the name (it was cut off at the right edge, the name
+   wrapping onto two lines) */
+@media (max-width: 360px) {
+  .landing-header-actions {
+    gap: 8px;
+  }
+  .landing-brand-name {
+    white-space: nowrap;
+  }
+  .landing-theme-btn {
+    padding: 0 9px !important;
+  }
+  .landing-theme-btn .theme-text-light,
+  .landing-theme-btn .theme-text-dark {
+    display: none !important;
+  }
+  .landing-cta-btn {
+    padding: 0 12px !important;
+  }
+}
+
 /* Landing Body */
 .landing-body {
   flex: 1;

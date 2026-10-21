@@ -7036,12 +7036,55 @@ function showAuthSuccess(msg) {
 // user's on the device: try again when the connection is back or the app
 // is reopened.
 let pendingCloudRetry = null;
+// Anything done while waiting (an import, a star) is kept and put back over
+// the downloaded data, then uploaded: the download used to replace it all.
+let offlineWork = false;
+const OFFLINE_WORK_KEY = /^(following_users_|followers_users_|unfollowed_users|starred_users|import_|extra_lists_|list_reset_|hidden_users_)/;
+const OFFLINE_CHOICE_KEYS = ['selected_instagram_account', 'last_active_instagram_account'];
+function captureOfflineWork() {
+  return [...memoryStore.entries()].filter(([key]) => key === 'instagram_accounts' || OFFLINE_CHOICE_KEYS.includes(key) || OFFLINE_WORK_KEY.test(key));
+}
+function mergeOfflineWork(entries) {
+  const parse = (v, fallback) => { try { const x = JSON.parse(v); return x == null ? fallback : x; } catch (e) { return fallback; } };
+  const byName = (list, keyOf) => { const seen = new Set(); return list.filter(item => { const k = keyOf(item); if (!k || seen.has(k)) return false; seen.add(k); return true; }); };
+  entries.forEach(([key, value]) => {
+    const cloud = storageGet(key);
+    if (key === 'instagram_accounts') {
+      // Both sets of chips: the cloud's, then any added here
+      const merged = byName([...parse(cloud, []), ...parse(value, [])], acc => String((acc && (acc.originalUsername || acc)) || '').toLowerCase());
+      storageSet(key, JSON.stringify(merged));
+    } else if (/^(unfollowed|starred)_users/.test(key) && cloud !== null) {
+      // Both: the ones from here first (they're the newest)
+      storageSet(key, JSON.stringify(byName([...parse(value, []), ...parse(cloud, [])], u => u && u.username)));
+    } else if (/^import_history_/.test(key) && cloud !== null) {
+      storageSet(key, JSON.stringify([...parse(cloud, []), ...parse(value, [])].sort((a, b) => (a.date || 0) - (b.date || 0))));
+    } else if (/^import_log_/.test(key) && cloud !== null) {
+      const have = parse(cloud, []);
+      const ns = new Set(have.map(x => x.n));
+      storageSet(key, JSON.stringify([...have, ...parse(value, []).filter(x => !ns.has(x.n))]));
+    } else {
+      storageSet(key, value); // the lists imported here, this device's choice of account: newer
+    }
+  });
+  state.instagramAccounts = parse(storageGet('instagram_accounts'), []);
+  normalizeInstagramAccounts();
+  const choice = storageGet('last_active_instagram_account') || storageGet('selected_instagram_account');
+  const acc = choice && state.instagramAccounts.find(a => a.originalUsername.toLowerCase() === choice.toLowerCase());
+  state.selectedAccountUsername = acc ? acc.originalUsername : state.selectedAccountUsername;
+  loadAccountData(state.selectedAccountUsername || null);
+}
 function retryCloudLoadWhenOnline() {
+  offlineWork = false;
   const retry = async () => {
     if (!currentUser || cloudReady) return cleanup();
     try {
+      const work = offlineWork ? captureOfflineWork() : null;
       await pullFromCloud(false);
+      if (work) mergeOfflineWork(work);
       cloudReady = true;
+      offlineWork = false;
+      try { renderAccountChips(false); } catch (chipErr) { console.error('Error rendering account chips:', chipErr); }
+      if (work) pushToCloud();
       cleanup();
     } catch (err) {
       console.error('Error loading cloud data:', err);
@@ -7234,6 +7277,9 @@ function clearLocalAccountData() {
 let cloudReady = false;
 
 function pushToCloud() {
+  // (logged in offline, the cloud data not loaded yet: what's done meanwhile
+  // is kept for when it is — see retryCloudLoadWhenOnline)
+  if (supabaseClient && currentUser && !cloudReady && pendingCloudRetry) offlineWork = true;
   if (!supabaseClient || !currentUser || !cloudReady) return Promise.resolve();
   storageSet(CLOUD_DIRTY_KEY, currentUser.id);
   cloudChangeGen++;
