@@ -3496,6 +3496,39 @@ function swapText(el, text, { resize = false } = {}) {
     { width: `${toW / k}px`, boxSizing: 'border-box', overflow: 'hidden', whiteSpace: 'nowrap' }], MOTION);
   el._swapWidth.finished.then(() => { el._swapWidth = null; }, () => {});
 }
+// The button at work (the dashboard's workButton): its words stay, dimmed a
+// little — never other words ("syncing") — and the button glides wider as a
+// spinner swoops in after them (from 20% size, blurred); done, the spinner
+// swoops away and the button glides back to its size. Set its words first
+// (swapText wipes the spinner), then this.
+const SPIN_ROOM = 18;
+const SPIN_SWOOP = [{ opacity: 0, transform: 'scale(0.2)', filter: 'blur(1.5px)' }, { opacity: 1, transform: 'scale(1)', filter: 'blur(0)' }];
+function workButton(btn, busy) {
+  if (!btn) return;
+  btn.classList.toggle('at-work', busy);
+  let sp = btn.querySelector(':scope > .work-spin');
+  if (busy) {
+    if (sp && !sp._leaving) return;
+    if (sp) sp.remove();
+    sp = document.createElement('span');
+    sp.className = 'work-spin';
+    sp.setAttribute('aria-hidden', 'true');
+    // (the swoop on its own wrapper: the spinner's turning is a transform too)
+    sp.innerHTML = '<span class="work-spin-swoop"><span class="work-spinner"></span></span>';
+    btn.append(sp);
+    if (!canAnimate(btn)) return;
+    sp.animate([{ width: '0px' }, { width: `${SPIN_ROOM}px` }], MOTION);
+    sp.firstChild.animate(SPIN_SWOOP, MOTION);
+    return;
+  }
+  if (!sp || sp._leaving) return;
+  sp._leaving = true;
+  if (!canAnimate(btn)) { sp.remove(); return; }
+  // (it goes a little quicker than it came, its room shutting just after)
+  sp.firstChild.animate([...SPIN_SWOOP].reverse(), { duration: ROW_MOTION_MS * 0.6, easing: 'cubic-bezier(0.5, 0, 0.9, 0.4)', fill: 'forwards' });
+  sp.animate([{ width: `${SPIN_ROOM}px` }, { width: '0px' }], { ...MOTION, delay: ROW_MOTION_MS * 0.35, fill: 'forwards' })
+    .finished.then(() => { if (sp._leaving) sp.remove(); }, () => {});
+}
 // The glide to top: when the page gets shorter, it keeps the room it needs
 // to stay put (a floor under the page, never shorter than the bottom of
 // what you're looking at, so nothing jumps), then glides up on the curve
@@ -6490,12 +6523,14 @@ function initAuth() {
     const email = elements.authEmail.value.trim();
     const password = elements.authPassword.value;
 
-    // The button stays exactly as it is (no greying out, no "signing
-    // up..."), whatever the answer: a wrong password or an email that's
-    // taken just brings up the warning. A second tap while one is still
-    // being checked waits for that one.
+    // The button keeps its words (no greying out, no "signing up..."): a
+    // spinner swoops in after them while it's checked (workButton), whatever
+    // the answer: a wrong password or an email that's taken just brings up
+    // the warning. A second tap while one is still being checked waits for
+    // that one.
     if (authBusy) return;
     authBusy = true;
+    workButton(elements.authSubmitBtn, true);
 
     if (isSigningUp) {
       // Supabase Sign Up
@@ -6526,6 +6561,7 @@ function initAuth() {
     }
 
     authBusy = false;
+    workButton(elements.authSubmitBtn, false);
   });
 
   // Handle "forgot password?" click

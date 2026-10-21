@@ -669,7 +669,11 @@
       const key = pane && pane.dataset.acc;
       if (!key) return;
       const entry = readJSON(logKey(key), []).find(x => String(x.n) === row.dataset.import);
-      if (entry) downloadSaved(key, entry).catch(err => { console.error('[features] download failed:', err); showSiteAlert("couldn't download", "that import's files aren't in the cloud yet."); });
+      if (!entry || row.classList.contains('at-work')) return;
+      // (its spinner after the words while the files come down)
+      workButton(row, true);
+      downloadSaved(key, entry).catch(err => { console.error('[features] download failed:', err); showSiteAlert("couldn't download", "that import's files aren't in the cloud yet."); })
+        .finally(() => workButton(row, false));
     });
     // Escape closes just this window (not the settings panel as well).
     document.addEventListener('keydown', (e) => {
@@ -945,7 +949,9 @@
     const btn = document.getElementById('drive-sync-btn');
     const off = document.getElementById('drive-disconnect-btn');
     const on = driveOn();
-    swapText(btn, driveSync ? 'syncing' : on ? 'sync' : 'connect', { resize: true });
+    // (at work: "sync" stays, a spinner after it — never "syncing")
+    swapText(btn, on || driveSync ? 'sync' : 'connect', { resize: true });
+    workButton(btn, !!driveSync);
     btn.disabled = !!driveSync;
     const showOff = on && !driveSync;
     if (showOff && off.hidden) { off.hidden = false; animateIn(off, 'scale(0.95)'); } else if (!showOff) off.hidden = true;

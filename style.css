@@ -6341,6 +6341,40 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
   to { transform: rotate(360deg); }
 }
 
+/* The button at work (workButton, the dashboard's): its words stay, dimmed a
+   little, and a spinner's room (18px, the row's own gap taken back) eases open
+   after them; the spinner sits at its right end. */
+.at-work { pointer-events: none; }
+.btn.at-work, .btn.at-work:disabled, .export-option.at-work { opacity: 0.8; cursor: default; }
+.work-spin {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 18px;
+  height: 1em;
+  margin-left: calc(-1 * var(--work-gap, 8px));
+  overflow: hidden;
+  vertical-align: middle;
+}
+.export-option .work-spin { --work-gap: 10px; }
+.work-spin-swoop {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+}
+.work-spinner {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-top-color: currentColor;
+  animation: rows-more-spin 0.7s linear infinite;
+}
+
 /* A stat box tapped (following / followers): its list gets a brief outline. */
 @keyframes card-flash {
   0%, 100% { box-shadow: var(--card-shadow), 0 0 0 0 transparent; }
@@ -6600,6 +6634,6 @@ html.booting .app-container {
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
   }
-  .rows-more-spinner { animation-duration: 0.7s !important; animation-iteration-count: infinite !important; }
+  .rows-more-spinner, .work-spinner { animation-duration: 0.7s !important; animation-iteration-count: infinite !important; }
   .boot-spinner { animation-duration: 0.8s !important; animation-iteration-count: infinite !important; }
 }
