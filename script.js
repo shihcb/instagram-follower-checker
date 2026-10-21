@@ -1301,18 +1301,27 @@ function setCountBadge(el, n, word) {
   const shown = parseInt(el.textContent, 10);
   // (one appearing counts up from 0, like the dashboard's counts)
   const from = Number.isFinite(el._countNow) ? el._countNow : (Number.isFinite(shown) ? shown : 0);
-  const startWidth = el.getBoundingClientRect().width;
+  const before = el.getBoundingClientRect();
+  const startWidth = before.width;
   el.style.transition = 'none';
   el.style.width = '';
   el.textContent = text;
-  const endWidth = el.getBoundingClientRect().width;
+  const after = el.getBoundingClientRect();
+  const endWidth = after.width;
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const reset = () => {
     el._countNow = undefined;
     el._countRaf = null;
-    ['transition', 'width', 'boxSizing'].forEach(p => { el.style[p] = ''; });
+    ['transition', 'width', 'boxSizing', 'justifyContent'].forEach(p => { el.style[p] = ''; });
   };
   if (!Number.isFinite(from) || from === n || !startWidth || !endWidth || reduced) { reset(); return; }
+  // The words hold still while the number counts: they're pinned to the
+  // badge's fixed edge (the right one, in a card's header — it grows to the
+  // left), so only the digits change. Centred, the whole "12 found" slid
+  // half a digit each time the number got longer or shorter, and again as
+  // the width eased under it.
+  const rightFixed = Math.abs(after.right - before.right) < Math.abs(after.left - before.left);
+  el.style.justifyContent = rightFixed ? 'flex-end' : 'flex-start';
   el.style.boxSizing = 'border-box';
   el.style.width = `${startWidth}px`;
   void el.offsetWidth;
