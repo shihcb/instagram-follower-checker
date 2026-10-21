@@ -717,7 +717,7 @@
   // pass lasts an hour and is kept only in memory: syncing asks for it
   // (a popup, so it needs a tap; no questions after the first time), and
   // the app offers that tap once a day when it opens.
-  const GOOGLE_CLIENT_ID = '';
+  const GOOGLE_CLIENT_ID = '964089641633-m61i0uhlttq70g7sa0u4d3c09v9i1o8b.apps.googleusercontent.com';
   const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
   const DRIVE_API = 'https://www.googleapis.com/drive/v3/files';
   const DRIVE_FIRST_MAX = 30; // the first sync goes back this many exports at most
