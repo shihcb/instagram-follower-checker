@@ -87,7 +87,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=426">
+  <link rel="stylesheet" href="style.css?v=427">
 </head>
 <body class="auth-logged-out">
   <script>
@@ -211,7 +211,18 @@
 
                 <!-- Settings Toggles -->
                 <div class="auth-settings-section" style="margin-bottom: 12px;">
-                  <div class="setting-item-row">
+                  <!-- Google Drive: instagram's scheduled exports come in from there (features.js) -->
+                  <div class="setting-item-row drive-row" id="drive-row">
+                    <div class="setting-label-group">
+                      <span class="setting-label">google drive</span>
+                      <span class="setting-desc" id="drive-desc">import instagram's daily exports from your drive</span>
+                    </div>
+                    <div class="drive-actions">
+                      <button type="button" class="btn btn-sm btn-danger-soft drive-btn" id="drive-disconnect-btn" hidden>disconnect</button>
+                      <button type="button" class="btn btn-sm btn-primary drive-btn" id="drive-sync-btn">connect</button>
+                    </div>
+                  </div>
+                  <div class="setting-item-row" style="margin-top: 8px;">
                     <div class="setting-label-group">
                       <span class="setting-label">auto-open next profile</span>
                       <span class="setting-desc">opens the next username in list 3 when you come back to this page</span>
@@ -739,8 +750,8 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="script.js?v=422"></script>
-  <script src="features.js?v=156"></script>
+  <script src="script.js?v=423"></script>
+  <script src="features.js?v=157"></script>
   <script>
     // The opening spinner stays until the app is ready, like the dashboard's
     // boot waiting for its cards: the first sign-in check done (signed in,

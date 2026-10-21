@@ -84,6 +84,7 @@
     }, 'sort');
     safe(refreshUndo, 'undo'); // the steps belong to the account on screen
     safe(refreshSavedImports, 'saved imports');
+    safe(refreshDrive, 'google drive');
     // The toolbar first: its reminder pill showing or hiding moves list 3's
     // box, and doing that after the rows were placed left one unanimated.
     safe(refreshToolbar, 'toolbar');
@@ -308,9 +309,15 @@
   const baseRecordImportDate = recordImportDate;
   recordImportDate = function (accountUsername) {
     const result = baseRecordImportDate.call(this, accountUsername);
+    // An export from google drive is dated by when it landed there.
+    if (importAt) { storageSet(getImportDateKey(accountUsername), String(importAt)); updateResetReminderUI(); }
     safe(() => recordChanges(accountUsername), 'import history');
     return result;
   };
+  // An import's date: now, or (google drive) the export's own.
+  let importAt = null;
+  const now = () => importAt || Date.now();
+  let driveSync = null; // a google drive sync running: { changes }
   function recordChanges(accountUsername) {
     const key = accountUsername ? accountUsername.toLowerCase() : '_global_';
     if (key === DEMO_ID) return;
@@ -324,7 +331,7 @@
       const pf = new Set(prev.followingList), pr = new Set(prev.followersList);
       const nf = new Set(following), nr = new Set(followers);
       diff = {
-        date: Date.now(),
+        date: now(),
         since: prev.date,
         lostFollowers: prev.followersList.filter(n => !nr.has(n)),
         newFollowers: followers.filter(n => !pr.has(n)),
@@ -333,13 +340,15 @@
       };
       writeJSON(`import_diff_${key}`, diff);
       const total = diff.lostFollowers.length + diff.newFollowers.length + diff.stoppedFollowing.length + diff.startedFollowing.length;
-      setTimeout(() => showToast(total ? `${total} change${total === 1 ? '' : 's'} since your last import` : 'no changes since your last import',
+      // A google drive sync adds them up for its own toast at the end.
+      if (driveSync) driveSync.changes += total;
+      else setTimeout(() => showToast(total ? `${total} change${total === 1 ? '' : 's'} since your last import` : 'no changes since your last import',
         total ? 'view' : null, () => { showView('changes'); viewNav && viewNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }), 900);
     }
     // Full lists only for the latest import (for the next comparison);
     // counts for the trend.
     history.forEach(h => { delete h.followingList; delete h.followersList; });
-    history.push({ date: Date.now(), following: following.length, followers: followers.length, unfollowers, followingList: following, followersList: followers });
+    history.push({ date: now(), following: following.length, followers: followers.length, unfollowers, followingList: following, followersList: followers });
     writeJSON(`import_history_${key}`, history.slice(-24));
     safe(() => saveImport(key, diff).catch(err => console.error('[features] saved imports failed:', err)), 'saved imports');
   }
@@ -379,7 +388,7 @@
     const prev = log[log.length - 1];
     const n = (prev ? prev.n : 0) + 1;
     const entry = {
-      n, date: Date.now(), full: isFullSave(n), files: false,
+      n, date: now(), full: isFullSave(n), files: false,
       following: state.following.length, followers: state.followers.length,
       changes: diff ? { lost: diff.lostFollowers, gained: diff.newFollowers, stopped: diff.stoppedFollowing, started: diff.startedFollowing } : null
     };
@@ -694,6 +703,220 @@
       if (!canCloud()) return;
       clearInterval(timer);
       moveLocalFilesToCloud().catch(err => console.error('[features] moving import files failed:', err));
+    }, 2000);
+  }
+
+  // ---------- google drive: instagram's daily exports ----------
+  // Instagram can send your information to Google Drive on a schedule
+  // (accounts center → your information and permissions → transfer a copy
+  // of your information → google drive, daily). Once Drive is connected
+  // here, every export in it that hasn't been imported yet goes through
+  // the same import as an uploaded zip, oldest first, each dated by when it
+  // landed in Drive — so the import history and changes read day by day.
+  // An export older than the account's latest import is skipped. Google's
+  // pass lasts an hour and is kept only in memory: syncing asks for it
+  // (a popup, so it needs a tap; no questions after the first time), and
+  // the app offers that tap once a day when it opens.
+  const GOOGLE_CLIENT_ID = '';
+  const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
+  const DRIVE_API = 'https://www.googleapis.com/drive/v3/files';
+  const DRIVE_FIRST_MAX = 30; // the first sync goes back this many exports at most
+  // Zips that are Instagram's: by their own name or their folder's.
+  const EXPORT_NAME = /instagram|meta|facebook|information|takeout/i;
+  let driveToken = null; // { value, until }
+  let tokenClient = null;
+  let tokenWaiters = [];
+  const isNative = () => !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+  const driveReady = () => !!GOOGLE_CLIENT_ID && !isNative();
+  const driveOn = () => storageGet('drive_on') === '1';
+  const driveSeen = () => readJSON('drive_seen', []);
+  const sameDay = (a, b) => new Date(a).toDateString() === new Date(b).toDateString();
+  const markSeen = (id) => { const seen = driveSeen(); if (!seen.includes(id)) writeJSON('drive_seen', [...seen, id].slice(-300)); };
+
+  // Google's sign-in script, loaded ahead: the popup has to open straight
+  // from the tap, with nothing to wait for first.
+  function loadGoogle() {
+    if (window.google && google.accounts && google.accounts.oauth2) return;
+    if (document.getElementById('google-gsi')) return;
+    const s = document.createElement('script');
+    s.id = 'google-gsi';
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.async = true;
+    s.onerror = () => s.remove(); // tried again next time settings refresh
+    document.head.appendChild(s);
+  }
+  function getTokenClient() {
+    if (tokenClient || !(window.google && google.accounts && google.accounts.oauth2)) return tokenClient;
+    const settle = (fn) => tokenWaiters.splice(0).forEach(fn);
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: DRIVE_SCOPE,
+      callback: (resp) => {
+        if (resp && resp.access_token) {
+          driveToken = { value: resp.access_token, until: Date.now() + ((Number(resp.expires_in) || 3600) - 60) * 1000 };
+          settle(w => w.resolve(driveToken.value));
+        } else {
+          settle(w => w.reject(new Error((resp && (resp.error_description || resp.error)) || 'google said no')));
+        }
+      },
+      error_callback: (err) => settle(w => w.reject(new Error(err && err.type === 'popup_closed' ? 'the google window was closed' : "google's window didn't open")))
+    });
+    return tokenClient;
+  }
+  // Runs straight from a tap.
+  function driveSignIn() {
+    if (driveToken && Date.now() < driveToken.until) return Promise.resolve(driveToken.value);
+    const client = getTokenClient();
+    if (!client) { loadGoogle(); return Promise.reject(new Error("google's sign-in is still loading, try again")); }
+    return new Promise((resolve, reject) => {
+      tokenWaiters.push({ resolve, reject });
+      client.requestAccessToken({ prompt: driveOn() ? '' : 'consent' });
+    });
+  }
+  async function driveGet(path, params, asBlob = false) {
+    const res = await fetch(`${DRIVE_API}${path}?${new URLSearchParams(params)}`, { headers: { Authorization: `Bearer ${driveToken.value}` } });
+    if (res.status === 401) { driveToken = null; throw new Error('the google sign-in ran out, sync again'); }
+    if (!res.ok) throw new Error(`google drive said ${res.status}`);
+    return asBlob ? res.blob() : res.json();
+  }
+  const driveList = (q, fields = 'id,name,createdTime,parents') =>
+    driveGet('', { q: `${q} and trashed=false`, fields: `files(${fields})`, orderBy: 'createdTime desc', pageSize: '100' }).then(r => r.files || []);
+  const driveFile = (id) => driveGet(`/${id}`, { alt: 'media' }, true);
+
+  // Instagram's exports in the drive: its zips, and unzipped ones (each
+  // folder holding a following file).
+  async function findDriveExports() {
+    const zips = await driveList("(mimeType='application/zip' or mimeType='application/x-zip-compressed')");
+    const folders = new Map();
+    for (const id of [...new Set(zips.flatMap(z => z.parents || []))].slice(0, 25)) {
+      try { folders.set(id, (await driveGet(`/${id}`, { fields: 'name' })).name || ''); } catch (e) { folders.set(id, ''); }
+    }
+    const found = zips
+      .filter(z => EXPORT_NAME.test(z.name) || (z.parents || []).some(p => EXPORT_NAME.test(folders.get(p) || '')))
+      .map(z => ({ id: z.id, name: z.name, at: Date.parse(z.createdTime), zip: true }));
+    (await driveList("(name='following.json' or name='following.html')")).forEach(f => {
+      if (f.parents && f.parents[0]) found.push({ id: f.parents[0], name: f.name, at: Date.parse(f.createdTime), zip: false });
+    });
+    return found;
+  }
+  // An export as one zip: Instagram's own, or (unzipped) the folder's
+  // lists plus the profile file sent with them (for the username), zipped
+  // up here the way the saved imports are.
+  async function driveExportZip(exp) {
+    if (exp.zip) return new File([await driveFile(exp.id)], exp.name, { type: 'application/zip' });
+    const wanted = (await driveList(`'${exp.id}' in parents`)).filter(f => ZIP_WANTED(f.name.toLowerCase()));
+    const info = (await driveList("name='personal_information.json'"))
+      .map(f => [f, Math.abs(Date.parse(f.createdTime) - exp.at)])
+      .filter(([, gap]) => gap < 60 * 60 * 1000).sort((a, b) => a[1] - b[1])[0];
+    if (info) wanted.push(info[0]);
+    const files = await Promise.all(wanted.map(async f => ({ name: f.name, data: await (await driveFile(f.id)).arrayBuffer() })));
+    return new File([makeZip(files, exp.at)], `instagram-${fileDate(exp.at)}.zip`, { type: 'application/zip' });
+  }
+  // Whose export it is, and whether it has lists at all (any zip in a
+  // folder called "information" would otherwise end in "no lists found").
+  async function peekExport(zip) {
+    try {
+      const inner = await unzipImportFiles(zip);
+      const info = inner.find(f => f.name.toLowerCase() === 'personal_information.json');
+      return { lists: inner.some(f => /^follow(ing|ers)/i.test(f.name)), who: info ? await usernameFromPersonalInfo(info) : null };
+    } catch (e) {
+      return { lists: false, who: null };
+    }
+  }
+
+  async function syncDrive() {
+    if (driveSync) return;
+    if (!GOOGLE_CLIENT_ID) {
+      await showSiteAlert("google drive isn't set up yet", "this app doesn't have its google sign-in yet.");
+      return;
+    }
+    const signIn = driveSignIn(); // first, while it's still the tap
+    driveSync = { changes: 0 };
+    refreshDrive();
+    let imported = 0;
+    try {
+      await signIn;
+      storageSet('drive_on', '1');
+      const firstSync = !storageGet('drive_checked');
+      const seen = new Set(driveSeen());
+      let fresh = (await findDriveExports()).filter(e => !seen.has(e.id) && Number.isFinite(e.at)).sort((a, b) => b.at - a.at);
+      if (firstSync) { fresh.slice(DRIVE_FIRST_MAX).forEach(e => markSeen(e.id)); fresh = fresh.slice(0, DRIVE_FIRST_MAX); }
+      fresh.reverse(); // oldest first
+      for (let i = 0; i < fresh.length; i++) {
+        const exp = fresh[i];
+        driveStatus(`importing ${i + 1} of ${fresh.length}`);
+        const zip = await driveExportZip(exp);
+        const { lists, who } = await peekExport(zip);
+        const latest = who ? Number(storageGet(getImportDateKey(who))) || 0 : 0;
+        if (lists && latest < exp.at) {
+          importAt = exp.at;
+          try { if (await processImportFiles([zip])) imported++; } finally { importAt = null; }
+          await new Promise(resolve => setTimeout(resolve, ROW_MOTION_MS));
+        }
+        markSeen(exp.id);
+      }
+      storageSet('drive_checked', String(Date.now()));
+      pushToCloud();
+      const { changes } = driveSync;
+      driveSync = null;
+      showToast(imported ? `${plural(imported, 'export')} from google drive · ${plural(changes, 'change')}` : 'no new exports in google drive',
+        imported && changes ? 'view' : null, () => { showView('changes'); viewNav && viewNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
+    } catch (err) {
+      console.error('[features] google drive sync failed:', err);
+      driveSync = null;
+      if (imported) pushToCloud();
+      showToast(`couldn't sync google drive (${String(err && err.message || err).toLowerCase().slice(0, 80)})`, 'retry', syncDrive, { duration: 10000 });
+    } finally {
+      driveSync = null;
+      refreshDrive();
+    }
+  }
+  async function disconnectDrive() {
+    const ok = await showSiteConfirm('disconnect google drive?', "the exports already imported stay. new ones won't come in until you connect again.", 'disconnect', 'cancel');
+    if (!ok) return;
+    if (driveToken && window.google && google.accounts && google.accounts.oauth2) google.accounts.oauth2.revoke(driveToken.value, () => {});
+    driveToken = null;
+    storageSet('drive_on', '0');
+    pushToCloud();
+    refreshDrive();
+  }
+  const driveStatus = (text) => swapText(document.getElementById('drive-desc'), text);
+  function refreshDrive() {
+    const row = document.getElementById('drive-row');
+    if (!row) return;
+    row.hidden = isNative(); // google's sign-in doesn't open inside the iphone app
+    if (driveReady()) loadGoogle();
+    const btn = document.getElementById('drive-sync-btn');
+    const off = document.getElementById('drive-disconnect-btn');
+    const on = driveOn();
+    swapText(btn, driveSync ? 'syncing' : on ? 'sync' : 'connect', { resize: true });
+    btn.disabled = !!driveSync;
+    const showOff = on && !driveSync;
+    if (showOff && off.hidden) { off.hidden = false; animateIn(off, 'scale(0.95)'); } else if (!showOff) off.hidden = true;
+    if (driveSync) return;
+    const at = Number(storageGet('drive_checked')) || 0;
+    const when = sameDay(at, Date.now()) ? 'today' : longDate(at);
+    driveStatus(on ? (at ? `last synced ${when}` : 'connected') : "import instagram's daily exports from your drive");
+  }
+  function setupDrive() {
+    const btn = document.getElementById('drive-sync-btn');
+    const off = document.getElementById('drive-disconnect-btn');
+    if (!btn || !off) return;
+    btn.addEventListener('click', (e) => { e.stopPropagation(); syncDrive(); });
+    off.addEventListener('click', (e) => { e.stopPropagation(); disconnectDrive(); });
+    refreshDrive();
+    // Once logged in with the cloud data in: connected and not synced
+    // today, offer the tap that syncs.
+    let tries = 0;
+    const timer = setInterval(() => {
+      if (++tries > 60) { clearInterval(timer); return; }
+      if (!canCloud() || !cloudReady) return;
+      clearInterval(timer);
+      refreshDrive();
+      const at = Number(storageGet('drive_checked')) || 0;
+      if (driveReady() && driveOn() && !sameDay(at, Date.now())) {
+        setTimeout(() => { if (!driveSync) showToast("check google drive for today's export?", 'sync', syncDrive, { duration: 12000 }); }, 2500);
+      }
     }, 2000);
   }
 
@@ -2838,6 +3061,7 @@
     safe(clearOldTally, 'cleanup');
     safe(setupNavOverflow, 'tab bars');
     safe(setupSavedImports, 'saved imports');
+    safe(setupDrive, 'google drive');
     safe(buildToolbar, 'toolbar');
     safe(buildViewSwitcher, 'views');
     safe(setupMobileLists, 'phone lists');

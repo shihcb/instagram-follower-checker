@@ -4837,6 +4837,31 @@ body.auth-logged-out #auth-form-view.smooth-exit {
   text-transform: lowercase;
 }
 
+/* Google Drive row: its buttons are the reset buttons' size */
+.drive-row[hidden] {
+  display: none !important;
+}
+
+.drive-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.drive-btn {
+  height: 24px;
+  line-height: 22px;
+  padding: 0 10px;
+  font-size: 0.72rem;
+  text-transform: lowercase;
+  box-sizing: border-box;
+}
+
+.drive-btn[hidden] {
+  display: none !important;
+}
+
 /* Fallback Hidden Card State */
 .hidden-card {
   display: none !important;
