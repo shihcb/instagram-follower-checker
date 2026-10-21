@@ -6291,8 +6291,10 @@ function initAuth() {
           const exists = acc && state.instagramAccounts.some(a => a.originalUsername.toLowerCase() === acc.toLowerCase());
           try { loadAccountData(exists ? acc : null); } catch (loadErr) { console.error('Error loading account data:', loadErr); }
           if (localIsThisUsers) {
-            // This device's copy is this user's latest: keep saving it.
+            // This device's copy is this user's latest: keep saving it
+            // (and try its unsent changes again soon)
             cloudReady = true;
+            retryCloudPushLater();
           } else {
             // Nothing of this user's here — uploading now would replace
             // their saved data with an empty copy. Load it once back online.
@@ -7027,7 +7029,11 @@ async function pullFromCloud(uploadLocalFirst = false) {
   if (!supabaseClient || !currentUser) return;
   if (uploadLocalFirst && storageGet(CLOUD_DIRTY_KEY) === currentUser.id) {
     cloudReady = true;
-    try { await pushToCloudNow(); } finally { cloudReady = false; }
+    let sent = false;
+    try { sent = await pushToCloudNow(); } finally { cloudReady = false; }
+    // Not up: the download would put the older cloud copy over them (the
+    // caller carries on with this device's copy instead)
+    if (!sent) throw new Error("this device's unsaved changes couldn't be uploaded");
   }
 
   isSyncingFromCloud = true;
@@ -7192,6 +7198,7 @@ let cloudReady = false;
 function pushToCloud() {
   if (!supabaseClient || !currentUser || !cloudReady) return Promise.resolve();
   storageSet(CLOUD_DIRTY_KEY, currentUser.id);
+  cloudChangeGen++;
   return new Promise((resolve) => {
     cloudPushWaiters.push(resolve);
     clearTimeout(cloudPushTimer);
@@ -7203,6 +7210,16 @@ function hasPendingCloudPush() {
   return cloudPushTimer !== null;
 }
 
+// Uploads go one at a time (an older one landing after a newer one put the
+// older lists back), and each knows which changes it carries: one that
+// finishes with newer changes waiting leaves them marked as unsent.
+let cloudChangeGen = 0;
+let cloudPushChain = Promise.resolve(true);
+function queueCloudPush() {
+  cloudPushChain = cloudPushChain.then(() => pushToCloudNow(), () => pushToCloudNow());
+  return cloudPushChain;
+}
+
 async function flushCloudPush() {
   if (cloudPushTimer === null) return;
   clearTimeout(cloudPushTimer);
@@ -7210,11 +7227,28 @@ async function flushCloudPush() {
   const waiters = cloudPushWaiters;
   cloudPushWaiters = [];
   try {
-    await pushToCloudNow();
+    await queueCloudPush();
   } finally {
     waiters.forEach(resolve => resolve());
   }
 }
+
+// A failed upload tries again (it used to wait for the next change, or the
+// hourly sign-in refresh: closing the app first lost the changes): when the
+// connection comes back, and every so often meanwhile, longer each time.
+let cloudRetryTimer = null;
+let cloudRetryDelay = 15000;
+function retryCloudPushLater() {
+  clearTimeout(cloudRetryTimer);
+  cloudRetryTimer = setTimeout(retryCloudPush, cloudRetryDelay);
+  cloudRetryDelay = Math.min(cloudRetryDelay * 2, 5 * 60 * 1000);
+}
+function retryCloudPush() {
+  clearTimeout(cloudRetryTimer);
+  cloudRetryTimer = null;
+  if (cloudReady && currentUser && storageGet(CLOUD_DIRTY_KEY) === currentUser.id && !hasPendingCloudPush()) queueCloudPush();
+}
+window.addEventListener('online', retryCloudPush);
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') flushCloudPush();
@@ -7222,7 +7256,8 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('pagehide', () => { flushCloudPush(); });
 
 async function pushToCloudNow() {
-  if (!supabaseClient || !currentUser || !cloudReady) return;
+  if (!supabaseClient || !currentUser || !cloudReady) return false;
+  const gen = cloudChangeGen; // the changes this upload carries
 
   try {
     const accountDataMap = {};
@@ -7314,11 +7349,15 @@ async function pushToCloudNow() {
 
     if (error) throw error;
     dropDeviceCopy(); // the cloud has it all now
-    if (storageGet(CLOUD_DIRTY_KEY) === currentUser.id && !hasPendingCloudPush()) {
+    if (storageGet(CLOUD_DIRTY_KEY) === currentUser.id && !hasPendingCloudPush() && gen === cloudChangeGen) {
       storageRemove(CLOUD_DIRTY_KEY);
     }
+    cloudRetryDelay = 15000;
+    return true;
   } catch (err) {
     console.error('Error syncing data to Supabase:', err);
+    retryCloudPushLater();
+    return false;
   } finally {
     updateStorageProgressBar();
   }

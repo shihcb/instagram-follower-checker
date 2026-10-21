@@ -3,7 +3,14 @@
 // behind a stale copy); the cached copy is only used when offline.
 const CACHE = 'ig-checker-v2';
 
-self.addEventListener('install', () => self.skipWaiting());
+// The app's own files are kept from the first visit (they used to be kept
+// only from the second: opened offline after one visit, the installed app
+// was the browser's error page). A file that can't be fetched is skipped.
+const APP_FILES = ['./', './index.html', './style.css', './script.js', './features.js', './manifest.json', './fonts/jakarta-centered.woff2'];
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+  event.waitUntil(caches.open(CACHE).then(cache => Promise.all(APP_FILES.map(url => cache.add(url).catch(() => {})))));
+});
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
@@ -23,10 +30,14 @@ self.addEventListener('fetch', (event) => {
       .then(res => {
         if (res.ok) {
           const copy = res.clone();
-          caches.open(CACHE).then(cache => cache.put(req, copy));
+          event.waitUntil(caches.open(CACHE).then(cache => cache.put(req, copy)));
         }
         return res;
       })
-      .catch(() => caches.match(req, { ignoreSearch: true }).then(hit => hit || caches.match('./index.html')))
+      // Only a page falls back to the app's page (a script or font that
+      // wasn't kept got the page instead, which broke it): anything else
+      // just fails, as it would without this worker.
+      .catch(() => caches.match(req, { ignoreSearch: true }).then(hit => hit
+        || (req.mode === 'navigate' ? caches.match('./index.html') : Response.error())))
   );
 });
