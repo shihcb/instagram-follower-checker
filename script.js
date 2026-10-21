@@ -1353,13 +1353,27 @@ function setCountBadge(el, n, word) {
     el._countWidth = w;
     el.style.clipPath = el.style.webkitClipPath = `inset(0 0 0 ${box - w / k}px round 99px)`;
   };
+  // Counting up, the digits run ahead of the width (250 is already three
+  // digits a third of the way across): a number the pill hasn't room for
+  // yet waits at 9, 99, 999… so its first digit isn't cut off at the edge.
+  const cs = getComputedStyle(el);
+  const inset = ((parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.borderLeftWidth) || 0)) * k;
   const t0 = performance.now();
   const step = (now) => {
     const t = Math.min(1, (now - t0) / COUNT_MS);
     const e = rowEase(t); // the list 3 slide's curve
-    el._countNow = Math.round(from + (n - from) * e);
-    num.textContent = String(el._countNow);
-    clip(startWidth + (endWidth - startWidth) * e);
+    const w = startWidth + (endWidth - startWidth) * e;
+    let shown = Math.round(from + (n - from) * e);
+    num.textContent = String(shown);
+    if (n > from) {
+      const edge = el.getBoundingClientRect().right - w + inset * 0.4; // (it may take a little of the padding)
+      while (shown >= 10 && num.getBoundingClientRect().left < edge) {
+        shown = 10 ** (String(shown).length - 1) - 1;
+        num.textContent = String(shown);
+      }
+    }
+    el._countNow = shown;
+    clip(w);
     if (t < 1 && el.isConnected) el._countRaf = requestAnimationFrame(step);
     else settle();
   };
