@@ -3,7 +3,8 @@
    words are all lowercase, and as the font comes their bodies sat ~1px under
    the middle of every button, pill and tab. Raised, they're centred; line
    heights and baselines are exactly as before. Letters it doesn't have (it's
-   the Latin set) come from Google's Plus Jakarta Sans. */
+   the Latin set) come from Google's Plus Jakarta Sans. (fonts/ goes into
+   the built site: package.json's build, vercel.json) */
 @font-face {
   font-family: 'Jakarta Centered';
   src: url('fonts/jakarta-centered.woff2') format('woff2');
