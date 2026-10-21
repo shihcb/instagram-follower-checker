@@ -575,6 +575,15 @@ button:disabled *,
   border: 1px solid #000000 !important;
 }
 
+/* A count pill's number and word are pinned to its right edge
+   (setCountBadge): only the number changes, the pill growing to its left,
+   the word never moving */
+.badge.count-badge,
+.badge.result-badge {
+  justify-content: flex-end;
+  box-sizing: border-box;
+}
+
 /* Dark theme overrides for list badges & card numbers */
 [data-theme="dark"] .card-num,
 [data-theme="dark"] .count-badge,

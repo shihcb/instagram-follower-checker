@@ -1294,48 +1294,63 @@ function deduplicateEntries(entries) {
 // (the list 3 slide, every number in between shows), and the pill eases
 // to its new width on the same curve instead of snapping.
 const COUNT_MS = 450;
+// A count pill ("12 found"): the number counts to its new value while the
+// pill eases to its new width, and the word never moves at all. They're two
+// parts — the number, the only thing rewritten, and the word, written once —
+// pinned to the pill's right edge (in a card's header it's the edge that
+// stays: the pill grows to the left). (Rewritten whole each frame and
+// centred, then pinned by a guess at which edge stayed, "found" slid 0.7px
+// on a phone, 6.7px on a computer, and again as each count ended.)
 function setCountBadge(el, n, word) {
   if (!el) return;
-  const text = `${n} ${word}`;
+  let num = el.querySelector(':scope > .count-num');
+  let label = el.querySelector(':scope > .count-word');
+  if (!num || !label) {
+    const shown = parseInt(el.textContent, 10);
+    num = document.createElement('span');
+    num.className = 'count-num';
+    num.textContent = String(Number.isFinite(shown) ? shown : 0);
+    label = document.createElement('span');
+    label.className = 'count-word';
+    el.replaceChildren(num, label);
+  }
+  const words = `\u00a0${word}`;
+  if (label.textContent !== words) label.textContent = words;
   if (el._countRaf) { cancelAnimationFrame(el._countRaf); el._countRaf = null; }
-  const shown = parseInt(el.textContent, 10);
   // (one appearing counts up from 0, like the dashboard's counts)
-  const from = Number.isFinite(el._countNow) ? el._countNow : (Number.isFinite(shown) ? shown : 0);
-  const before = el.getBoundingClientRect();
-  const startWidth = before.width;
+  const from = Number.isFinite(el._countNow) ? el._countNow : (parseInt(num.textContent, 10) || 0);
+  // From the width it's drawn at (mid-ease too) to the one the new number needs
+  const startWidth = el.getBoundingClientRect().width;
   el.style.transition = 'none';
   el.style.width = '';
-  el.textContent = text;
-  const after = el.getBoundingClientRect();
-  const endWidth = after.width;
+  num.textContent = String(n);
+  const endWidth = el.getBoundingClientRect().width;
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const reset = () => {
+  const settle = () => {
     el._countNow = undefined;
     el._countRaf = null;
-    ['transition', 'width', 'boxSizing', 'justifyContent'].forEach(p => { el.style[p] = ''; });
+    num.textContent = String(n);
+    el.style.transition = '';
+    el.style.width = '';
   };
-  if (!Number.isFinite(from) || from === n || !startWidth || !endWidth || reduced) { reset(); return; }
-  // The words hold still while the number counts: they're pinned to the
-  // badge's fixed edge (the right one, in a card's header — it grows to the
-  // left), so only the digits change. Centred, the whole "12 found" slid
-  // half a digit each time the number got longer or shorter, and again as
-  // the width eased under it.
-  const rightFixed = Math.abs(after.right - before.right) < Math.abs(after.left - before.left);
-  el.style.justifyContent = rightFixed ? 'flex-end' : 'flex-start';
-  el.style.boxSizing = 'border-box';
-  el.style.width = `${startWidth}px`;
+  if (from === n || !startWidth || !endWidth || reduced || !el.isConnected) { settle(); return; }
+  // Screen size to layout size (the guest preview draws the app a hair
+  // smaller: set as measured, the pill snapped 0.7px narrower first)
+  el.style.width = `${endWidth}px`;
+  const k = el.getBoundingClientRect().width / endWidth || 1;
+  el.style.width = `${startWidth / k}px`;
   void el.offsetWidth;
   el.style.transition = `width ${ROW_MOTION_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`; // the list 3 slide
-  el.style.width = `${endWidth}px`;
+  el.style.width = `${endWidth / k}px`;
   const t0 = performance.now();
   const step = (now) => {
     const t = Math.min(1, (now - t0) / COUNT_MS);
     el._countNow = Math.round(from + (n - from) * rowEase(t)); // the list 3 slide's curve
-    el.textContent = `${el._countNow} ${word}`;
+    num.textContent = String(el._countNow);
     if (t < 1 && el.isConnected) el._countRaf = requestAnimationFrame(step);
-    else { el.textContent = text; reset(); }
+    else settle();
   };
-  el.textContent = `${from} ${word}`;
+  num.textContent = String(from);
   el._countRaf = requestAnimationFrame(step);
 }
 
