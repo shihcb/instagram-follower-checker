@@ -818,26 +818,32 @@ function parseRawText(text) {
       let timestamp = null;
       let advance = 1;
 
-      // Lookahead at next 1-2 lines for names, dates, or buttons
-      if (i + 1 < lines.length) {
-        const nextLine = lines[i + 1];
-        const nextLower = nextLine.toLowerCase();
+      // A copied list gives "name's profile picture" and then the name
+      // again: the repeat is the same account, not another one.
+      let j = i + 1;
+      if (j < lines.length && lines[j].replace(/^@/, '').toLowerCase() === cleanLower) j++;
+      advance = j - i;
 
-        // If next line is not a valid username and not a standard button action, it's likely a Full Name
-        if (!isValidUsername(nextLine) && !EXCLUDE_KEYWORDS.has(nextLower) && !nextLine.includes('/') && !nextLine.includes('@')) {
+      // Lookahead at next 1-2 lines for names, dates, or buttons
+      if (j < lines.length) {
+        const nextLine = lines[j];
+        const nextLower = nextLine.toLowerCase();
+        const thirdLower = j + 1 < lines.length ? lines[j + 1].toLowerCase() : '';
+
+        // If next line is not a standard button action, it's likely a Full Name:
+        // one that isn't username-shaped, or a one-word one ("John") with a
+        // button after it (it used to be read as an account of its own)
+        if (!EXCLUDE_KEYWORDS.has(nextLower) && !nextLine.includes('/') && !nextLine.includes('@') &&
+            (!isValidUsername(nextLine) || EXCLUDE_KEYWORDS.has(thirdLower))) {
           fullName = nextLine;
-          advance = 2;
+          advance = j - i + 1;
 
           // Look at second next line for action/dates
-          if (i + 2 < lines.length) {
-            const thirdLine = lines[i + 2];
-            const thirdLower = thirdLine.toLowerCase();
-            if (EXCLUDE_KEYWORDS.has(thirdLower)) {
-              advance = 3;
-            }
+          if (EXCLUDE_KEYWORDS.has(thirdLower)) {
+            advance = j - i + 2;
           }
         } else if (EXCLUDE_KEYWORDS.has(nextLower)) {
-          advance = 2; // Skip buttons like "Following"
+          advance = j - i + 1; // Skip buttons like "Following"
         }
       }
 
@@ -2149,6 +2155,7 @@ function readAndProcessFile(file, type, append = false, isPending = false, { ren
       // Debounce delay buffer to ensure recalculation finishes before next file
       setTimeout(resolve, 300);
     };
+    reader.onerror = () => resolve(); // (an unreadable file left the import waiting forever)
     reader.readAsText(file);
   });
 }
@@ -2460,9 +2467,9 @@ async function processImportFiles(files, isFolderUpload = false, { username = nu
       try { inner = inner.concat(await unzipImportFiles(zip)); } catch (err) { console.error('Could not read zip:', err); }
     }
     const info = inner.find(f => f.name.toLowerCase() === 'personal_information.json');
-    if (info) knownUsername = await usernameFromPersonalInfo(info);
+    if (info) knownUsername = (await usernameFromPersonalInfo(info)) || knownUsername;
     files = Array.from(files).filter(f => !zips.includes(f)).concat(inner.filter(f => f !== info));
-    if (inner.length) isFolderUpload = true; // the whole export
+    isFolderUpload = true; // the whole export (one with nothing usable says so, rather than nothing happening)
   }
 
   let importedFollowing = false;
@@ -2522,8 +2529,10 @@ async function processImportFiles(files, isFolderUpload = false, { username = nu
     }
     if (!extractedUsername) {
       const fallback = await showSiteConfirm("which account is this?", "the files don't say which instagram account they're from. enter its username.", 'import', 'cancel',
-        { value: state.selectedAccountUsername || '', placeholder: '@username' });
-      if (fallback && fallback.trim().replace(/^@+/, '') !== '') {
+        { value: state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() !== DEMO_ID ? state.selectedAccountUsername : '', placeholder: '@username' });
+      // (with the demo on, this was filled in as "__demo__": the real lists
+      // went into the demo, and were gone with it)
+      if (fallback && fallback.trim().replace(/^@+/, '') !== '' && fallback.trim().replace(/^@+/, '').toLowerCase() !== DEMO_ID) {
         extractedUsername = fallback.trim().replace(/^@+/, '').toLowerCase(); // instagram usernames are lowercase
       }
     }
@@ -2559,8 +2568,12 @@ async function processImportFiles(files, isFolderUpload = false, { username = nu
       }
       partial[type] = all;
     }
-    const anyPartial = partial.following || partial.followers || unfollowedFiles.length > 0;
-    if (mainFiles.length && !anyPartial) await clearAllLists(true, { render: false });
+    // (a whole export has its recently-unfollowed file too: it's still whole)
+    const anyPartial = partial.following || partial.followers || (unfollowedFiles.length > 0 && !mainFiles.length);
+    // Just one of the two lists (only following.json, say): the other is left
+    // as it is — it used to be emptied too, list 3 then showing every account.
+    const bothLists = ['following', 'followers'].every(type => mainFiles.some(item => item.type === type));
+    if (bothLists && !anyPartial) await clearAllLists(true, { render: false });
     const wholeFollowing = mainFiles.some(item => item.type === 'following') && !partial.following;
     for (const item of mainFiles) {
       if (item.type === 'following') {
@@ -3089,6 +3102,15 @@ function applyAccountFromModal(username, index) {
     // Only update the display username, leaving the originalUsername untouched!
     state.instagramAccounts[index].username = username;
   } else {
+    // Adding the demo chip's name by hand turns the demo into that real
+    // account, as importing its files does (it used to be added beside the
+    // demo: two of the same chip, one over the account limit).
+    const lower = username.toLowerCase();
+    const demoIndex = state.instagramAccounts.findIndex(acc => isDemoAccount(acc) && acc.username.toLowerCase() === lower);
+    if (demoIndex >= 0 && !state.instagramAccounts.some(acc => !isDemoAccount(acc) && acc.originalUsername.toLowerCase() === lower)) {
+      state.instagramAccounts[demoIndex] = { username, originalUsername: username };
+      clearDemoData();
+    }
     // Adding manually: create an object with identical username and originalUsername
     const newAcc = { username: username, originalUsername: username };
     if (!state.instagramAccounts.some(acc => acc.originalUsername.toLowerCase() === username.toLowerCase())) {
@@ -4999,7 +5021,14 @@ function updateInstructionsStepUI() {
   elements.clearFollowing.addEventListener('click', () => {
     const searchFollowingInput = document.getElementById('search-following');
     if (searchFollowingInput) searchFollowingInput.value = '';
+    // The account it was cleared on: another chip picked during the fade
+    // had its own list emptied instead
+    const acc = state.selectedAccountUsername;
     smoothClearTextarea(elements.inputFollowing, () => {
+      if (state.selectedAccountUsername !== acc) { // (its words back: the fade emptied the box)
+        elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
+        return;
+      }
       state.following = [];
       storageSet(listStorageKey('following'), '[]');
       state.selectedIndex = -1; // Reset selection index
@@ -5011,7 +5040,14 @@ function updateInstructionsStepUI() {
   elements.clearFollowers.addEventListener('click', () => {
     const searchFollowersInput = document.getElementById('search-followers');
     if (searchFollowersInput) searchFollowersInput.value = '';
+    // The account it was cleared on: another chip picked during the fade
+    // had its own list emptied instead
+    const acc = state.selectedAccountUsername;
     smoothClearTextarea(elements.inputFollowers, () => {
+      if (state.selectedAccountUsername !== acc) { // (its words back: the fade emptied the box)
+        elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername}`).join('\n');
+        return;
+      }
       state.followers = [];
       storageSet(listStorageKey('followers'), '[]');
       state.selectedIndex = -1; // Reset selection index
