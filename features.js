@@ -258,7 +258,10 @@
     }
     // A plain tap on a list 3 row opens the profile and unfollows it.
     const row = e.target.closest('#list-unfollowers .user-row');
-    if (row && !row.classList.contains('username-exit') && !e.target.closest('.action-arrow, .user-row-actions')) {
+    // (not from the star rightwards, off the buttons: script.js ignores those taps)
+    const star = row ? row.querySelector('.action-star') : null;
+    const offButtons = star && e.clientX >= star.getBoundingClientRect().left;
+    if (row && !offButtons && !row.classList.contains('username-exit') && !e.target.closest('.action-arrow, .user-row-actions')) {
       const name = row.querySelector('.user-link');
       offerUndo(snapshot(), `${name ? name.textContent.trim() : 'account'} unfollowed`);
     }
@@ -308,6 +311,11 @@
     // new as the day it was made (the reset reminder still counts from now).
     storageSet(dataDateKey(accountUsername), String(now()));
     safe(() => recordChanges(accountUsername), 'import history');
+    // New lists in: the account's undo steps would put back lists from
+    // before them (the old following beside the new followers), so they go.
+    const k = accountUsername ? String(accountUsername).toLowerCase() : '_global_';
+    for (let i = undoStack.length - 1; i >= 0; i--) if (undoStack[i].snap.acc === k) undoStack.splice(i, 1);
+    safe(refreshUndo, 'undo');
     return result;
   };
   // While a google drive sync runs, the reset reminder and its buttons stay
@@ -453,16 +461,21 @@
       return false;
     }
     await dropFromDevice(key, n).catch(() => {});
+    // The import before this one is no longer the latest: unless it was a
+    // full save, it keeps just its changes.
+    const before0 = readJSON(logKey(key), []).find(x => x.n === n - 1);
+    let dropped = false;
+    if (before0 && before0.files && !before0.full) {
+      try { await cloudDel(key, before0.n); } catch (err) { console.error('[features] removing old import files failed:', err); }
+      dropped = true;
+    }
+    // Read only now, after the waits (a google drive sync goes on meanwhile:
+    // the copy from before them wrote over the imports it added)
     const fresh = readJSON(logKey(key), []);
     const mine = fresh.find(x => x.n === n);
     if (mine) mine.files = true;
-    // The import before this one is no longer the latest: unless it was a
-    // full save, it keeps just its changes.
-    const before = fresh.find(x => x.n === n - 1);
-    if (before && before.files && !before.full) {
-      try { await cloudDel(key, before.n); } catch (err) { console.error('[features] removing old import files failed:', err); }
-      before.files = false;
-    }
+    const before = dropped && fresh.find(x => x.n === n - 1);
+    if (before) before.files = false;
     writeJSON(logKey(key), fresh);
     refreshSavedImports();
     pushToCloud();
@@ -513,19 +526,23 @@
       tx.onerror = () => resolve(out);
     });
     let ok = true;
+    const moved = [];
     for (const [id, rec] of all) {
       const [key, n] = String(id).split('|');
-      const log = readJSON(logKey(key), []);
-      const entry = log.find(x => String(x.n) === n);
+      const entry = readJSON(logKey(key), []).find(x => String(x.n) === n);
       if (!entry || !rec || !rec.files || !rec.files.length) continue;
       try {
         await cloudPut(key, entry.n, makeZip(rec.files, entry.date));
-        entry.files = true;
-        writeJSON(logKey(key), log);
+        const log = readJSON(logKey(key), []); // (fresh, after the upload)
+        const now = log.find(x => String(x.n) === n);
+        if (now) { now.files = true; writeJSON(logKey(key), log); }
+        moved.push(id);
       } catch (err) { ok = false; console.error('[features] moving import files to the cloud failed:', err); }
     }
     db.close();
-    if (ok) indexedDB.deleteDatabase('ig-checker-files');
+    // Only what went up leaves the device: files this log doesn't know
+    // (another person's, logged in here before) used to be deleted too.
+    for (const id of moved) { const [key, n] = String(id).split('|'); await dropFromDevice(key, Number(n)).catch(() => {}); }
     if (all.length) { pushToCloud(); refreshSavedImports(); }
     return ok;
   }
@@ -3021,7 +3038,7 @@
     const b3 = makeIconButton('btn-export-list3', 'export lists');
     info.parentNode.insertBefore(b3, info);
     b3.addEventListener('click', (e) => { e.stopPropagation(); openExport(); });
-    [['search-following', 'following', 'export list 1'], ['search-followers', 'followers', 'export list 2']].forEach(([inputId, kind, title]) => {
+    [['search-following', 'following', 'export list 2'], ['search-followers', 'followers', 'export list 1']].forEach(([inputId, kind, title]) => {
       const box = document.getElementById(inputId)?.closest('.search-box');
       if (!box) return;
       const row = document.createElement('div');
@@ -3161,5 +3178,5 @@
   else init();
 
   // For the rest of the app (and tests).
-  window.igFeatures = { showView, showMobileList, showToast, setSelectMode, refreshToolbar, centerEmpties: () => safe(centerEmpties, 'empty texts') };
+  window.igFeatures = { resetDrive: () => { driveToken = null; }, showView, showMobileList, showToast, setSelectMode, refreshToolbar, centerEmpties: () => safe(centerEmpties, 'empty texts') };
 })();

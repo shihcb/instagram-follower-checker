@@ -5226,14 +5226,16 @@ function updateInstructionsStepUI() {
         ? pinPanelHeight(menuEl)
         : null;
 
-      exitListRow(itemEl, async () => {
-        state.starred = state.starred.filter(u => u.username !== username);
-        if (userObj && !state.unfollowed.some(u => u.username === username)) {
-          const currentAcc = (state.selectedAccountUsername || '_global_').toLowerCase();
-          state.unfollowed.unshift({ ...userObj, account: userObj.account || currentAcc });
-        }
-        saveCurrentAccountData();
+      // Moved now, on the tap, not once the row has gone: another chip picked
+      // during its slide had the move saved into that account's lists.
+      state.starred = state.starred.filter(u => u.username !== username);
+      if (userObj && !state.unfollowed.some(u => u.username === username)) {
+        const currentAcc = (state.selectedAccountUsername || '_global_').toLowerCase();
+        state.unfollowed.unshift({ ...userObj, account: userObj.account || currentAcc });
+      }
+      saveCurrentAccountData();
 
+      exitListRow(itemEl, async () => {
         const headerBar = elements.listStarred.querySelector('.dropdown-header-bar');
         const resetStarredBtn = document.getElementById('settings-reset-starred-btn');
         if (state.starred.length === 0) {
@@ -5316,13 +5318,17 @@ function updateInstructionsStepUI() {
         ? pinPanelHeight(menuEl)
         : null;
 
+      // (moved on the tap, as above)
+      if (userObj) {
+        state.unfollowed = state.unfollowed.filter(u => u.username !== username);
+        if (!state.starred.some(u => u.username === username)) {
+          state.starred.unshift(userObj);
+        }
+        saveCurrentAccountData();
+      }
+
       exitListRow(itemEl, async () => {
         if (userObj) {
-          state.unfollowed = state.unfollowed.filter(u => u.username !== username);
-          if (!state.starred.some(u => u.username === username)) {
-            state.starred.unshift(userObj);
-          }
-
           const followersSet = new Set(state.followers.map(user => user.username));
           const unfollowedSet = new Set(state.unfollowed.map(user => user.username));
           const starredSet = new Set(state.starred.map(user => user.username));
@@ -6254,9 +6260,6 @@ function initAuth() {
         cloudPushTimer = null;
         cloudPushWaiters.splice(0).forEach(resolve => resolve());
 
-        // Unlock List 1 & 2 from the guest demo now that a real account is active
-        applyGuestPreviewLock(true);
-
         // Another user's data left on this device (e.g. their upload failed
         // at logout, so it was kept): never show or upload it as this user's.
         // Only data this device already held for this same user (a reload
@@ -6266,6 +6269,11 @@ function initAuth() {
         const localIsThisUsers = owner === currentUser.id;
         if (owner && owner !== currentUser.id) clearLocalAccountData();
         storageSet(LOCAL_DATA_OWNER_KEY, currentUser.id);
+
+        // Unlock List 1 & 2 from the guest demo now that a real account is
+        // active (after the clear above: it loads this device's accounts,
+        // and another user's were shown and saved as this one's)
+        applyGuestPreviewLock(true);
 
         // Fetch cloud data and merge/sync. pullFromCloud loads the selected
         // account's lists itself. (A shared 'following_users' copy used to
@@ -6385,6 +6393,8 @@ function initAuth() {
           // keep it for that user's next login here, which uploads it first
           // (see pullFromCloud). Anyone else logging in clears it first.
           if (!storageGet(CLOUD_DIRTY_KEY)) clearLocalAccountData();
+          // Their google sign-in, held in memory, goes either way
+          if (window.igFeatures && window.igFeatures.resetDrive) window.igFeatures.resetDrive();
 
           elements.inputFollowing.value = '';
           elements.inputFollowers.value = '';
@@ -6686,7 +6696,10 @@ function initAuth() {
         if (document.activeElement && typeof document.activeElement.blur === 'function') {
           document.activeElement.blur();
         }
+        // (only once the app is in: on a slow connection the cloud data is
+        // still loading, and taking the log-in page away left a blank page)
         setTimeout(() => {
+          if (!document.documentElement.classList.contains('is-logged-in')) return;
           elements.authDropdown.classList.remove('show');
           clearAuthAlerts();
         }, 1200);
@@ -7164,6 +7177,9 @@ function clearLocalAccountData() {
   });
   ['instagram_accounts', 'selected_instagram_account', 'last_active_instagram_account',
    'selected_username', CLOUD_DIRTY_KEY, LOCAL_DATA_OWNER_KEY].forEach(storageRemove);
+  // Their settings too (google drive's sync among them: the next person
+  // here was "synced today", with their drive) — all but the theme
+  CLOUD_PREFS.filter(k => k !== 'theme' && k !== 'theme_at').forEach(storageRemove);
 }
 
 // Nothing is uploaded until this login's data has been downloaded. Logging
