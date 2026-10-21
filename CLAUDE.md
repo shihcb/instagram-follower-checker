@@ -40,7 +40,10 @@ sideways push (slideSub / TAB_MOTION), the area easing to the new pane's
 height (easeBoxHeight); texts just fade (fadeEmptyIn), and text that changes
 fades across — the old words out where they were, the new in (swapText;
 `{ resize: true }` for buttons and pills, so their width eases too). When the
-page gets shorter it glides up on the curve (setupPageGlide). With the
+page gets shorter it glides up on the curve (setupPageGlide). A button waiting on
+something (log in, google drive's sync, a saved import coming down) keeps its
+words, dimmed a little, and glides wider as a spinner swoops in after them,
+then back once done (workButton) — never "syncing". With the
 phone's Reduce Motion on, everything goes straight to where it's headed
 (spinners keep turning). These come from the financial dashboard.
 
