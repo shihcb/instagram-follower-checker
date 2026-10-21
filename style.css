@@ -1227,11 +1227,27 @@ button:disabled *,
   .preview-toggle span.btn-text-compact {
     display: none !important;
   }
+  /* (width: 100%, inside their share of the row: auto let them grow past
+     it, over the button beside them, at 1025-1200px) — the row shared by
+     how long each label is, and the two menus without their arrows, so
+     the words fit */
   #toggle-preview-unfollowed,
   #toggle-preview-starred {
-    width: auto !important;
+    width: 100% !important;
     min-width: 0 !important;
     padding: 0 6px !important;
+    overflow: hidden;
+  }
+  .results-dropdowns-group .dropdown-wrapper {
+    flex: 1 1 auto;
+  }
+  #toggle-preview-unfollowed .chevron-icon,
+  #toggle-preview-starred .chevron-icon,
+  #btn-add-account .chevron-icon {
+    display: none;
+  }
+  .results-dropdowns-group .import-button-row {
+    min-width: 0;
   }
 }
 
@@ -1247,8 +1263,9 @@ button:disabled *,
   }
   #toggle-preview-unfollowed,
   #toggle-preview-starred {
-    width: auto !important;
+    width: 100% !important;
     min-width: 0 !important;
+    overflow: hidden;
     padding: 0 4px !important;
     font-size: 0.72rem !important;
   }
@@ -2176,9 +2193,12 @@ body.hide-shortcuts #keyboard-hints {
 .instructions-modal-card {
   max-width: 480px !important;
   width: 92% !important;
-  height: 520px !important;
-  min-height: 520px !important;
+  /* (on a short or sideways screen it's shorter, scrolling: its title and
+     buttons were off the screen) */
+  height: min(520px, 90dvh) !important;
+  min-height: min(520px, 90dvh) !important;
   max-height: 90vh !important;
+  overflow-y: auto !important;
   padding: 24px !important;
   display: flex !important;
   flex-direction: column !important;
@@ -3385,6 +3405,7 @@ body.is-capacitor.auth-logged-out #theme-toggle {
   top: calc(100% + 10px);
   right: 0;
   width: 320px;
+  max-width: calc(100vw - 28px); /* (a 320px screen cut its left edge off) */
   border-radius: 12px;
   padding: 22px;
   display: flex;
@@ -4639,6 +4660,10 @@ textarea {
   color: var(--grad-3);
   font-family: var(--font-sans);
 }
+/* (dark's --grad-3 is near the panel's own colour: unreadable) */
+[data-theme="dark"] .storage-value {
+  color: var(--text-muted);
+}
 
 .storage-progress-bar {
   width: 100%;
@@ -5753,9 +5778,10 @@ select,
 /* It floats over the list: the chips' blur too, so rows don't show
    through its translucent background. */
 [data-theme="dark"] .row-select-bar {
-  background: var(--card-bg) !important;
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  backdrop-filter: blur(var(--glass-blur));
+  /* (solid underneath, like the menus: the rows showed through it) */
+  background: linear-gradient(var(--card-bg), var(--card-bg)), var(--bg-color) !important;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 /* Things sitting inside a 12px bar with 4px padding (the tab highlights and
