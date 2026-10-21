@@ -128,7 +128,8 @@
       acc: accKey(),
       following: state.following.slice(),
       unfollowed: state.unfollowed.slice(),
-      starred: state.starred.slice()
+      starred: state.starred.slice(),
+      dismissed: storageGet(dismissedKey())
     };
   }
   function restore(snap) {
@@ -143,6 +144,7 @@
     state.following = snap.following;
     state.unfollowed = snap.unfollowed;
     state.starred = snap.starred;
+    if (snap.dismissed == null) storageRemove(dismissedKey()); else storageSet(dismissedKey(), snap.dismissed);
     elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
     updateListUI('following');
     saveCurrentAccountData();
@@ -222,6 +224,9 @@
     info.parentNode.insertBefore(undoBtn, info.nextSibling);
     undoBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      // Not while a row is still sliding out: its step isn't on the stack
+      // yet, and its slide finishing took it out of the restored list 3
+      if (typeof rowExitsInFlight !== 'undefined' && rowExitsInFlight > 0) return;
       for (let i = undoStack.length - 1; i >= 0; i--) {
         if (undoStack[i].snap.acc !== accKey()) continue;
         const [{ snap }] = undoStack.splice(i, 1);
@@ -1254,7 +1259,14 @@
   // the rows without their selected outline, and the count kept usernames
   // that were no longer there.
   function keepSelection() {
-    if (!selectMode || selectOnPending()) return;
+    if (!selectMode) return;
+    if (selectOnPending()) {
+      // (another account's pending requests: the selection was kept over them)
+      const here = new Set((extraListsNow().pending || []).map(u => u.username));
+      [...selected].forEach(n => { if (!here.has(n)) selected.delete(n); });
+      if (!here.size) setSelectMode(false); else updateSelectCount();
+      return;
+    }
     // Nothing left to select (the account was deselected, the last row
     // left): select ends, instead of its bar staying up over an empty list.
     if (!state.unfollowers.length) { setSelectMode(false); return; }
@@ -3187,5 +3199,7 @@
   else init();
 
   // For the rest of the app (and tests).
-  window.igFeatures = { resetDrive: () => { driveToken = null; }, showView, showMobileList, showToast, setSelectMode, refreshToolbar, centerEmpties: () => safe(centerEmpties, 'empty texts') };
+  window.igFeatures = { resetDrive: () => { driveToken = null; },
+    dropUndo: (acc) => { const k = String(acc || '').toLowerCase(); for (let i = undoStack.length - 1; i >= 0; i--) if (undoStack[i].snap.acc === k) undoStack.splice(i, 1); safe(refreshUndo, 'undo'); },
+    markSelected: (list) => { if (selectMode && !selectOnPending()) list.querySelectorAll('.user-row').forEach(r => r.classList.toggle('multi-selected', selected.has(r.dataset.username))); }, showView, showMobileList, showToast, setSelectMode, refreshToolbar, centerEmpties: () => safe(centerEmpties, 'empty texts') };
 })();

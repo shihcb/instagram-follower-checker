@@ -891,6 +891,19 @@ function parseInput(text) {
  */
 let isSyncingFromCloud = false;
 
+// Usernames taken off list 3 with its X (neither unfollowed nor starred):
+// they stay off until the page is reloaded — they used to come straight
+// back with the next sort, undo or edit. Kept for this visit only.
+const dismissedKey = () => `hidden_users_${state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '_global_'}`;
+function dismissedUsernames() {
+  try { return new Set(JSON.parse(storageGet(dismissedKey()) || '[]')); } catch (e) { return new Set(); }
+}
+function dismissUsername(username) {
+  const set = dismissedUsernames();
+  set.add(username);
+  storageSet(dismissedKey(), JSON.stringify([...set]));
+}
+
 // { animate: true } when list 1/2 were just edited or cleared by the user,
 // so list 3's rows slide out/in/along instead of snapping (see
 // updateResultsUI). Loads, imports and cloud syncs stay instant.
@@ -900,10 +913,12 @@ function calculateUnfollowers({ animate = false, matchRenames = false } = {}) {
   const starredSet = new Set(state.starred.map(user => user.username));
   
   // Math difference: filter out any 'following' users that are in the 'followers' set, unfollowed list, or starred list
+  const dismissedSet = dismissedUsernames();
   state.unfollowers = state.following.filter(user => 
     !followersSet.has(user.username) && 
     !unfollowedSet.has(user.username) &&
-    !starredSet.has(user.username)
+    !starredSet.has(user.username) &&
+    !dismissedSet.has(user.username)
   );
   
   updateResultsUI({ animate, matchRenames });
@@ -1807,6 +1822,8 @@ function appendRowTail(listEl, filtered, from, delay) {
     listEl.insertAdjacentHTML('beforeend', filtered.slice(index, end)
       .map((user, i) => renderUnfollowerRowHtml(user, index + i).replace('class="user-row', 'class="user-row row-tail'))
       .join(''));
+    // (selected rows drawn later than the rest keep their outline)
+    if (window.igFeatures && window.igFeatures.markSelected) window.igFeatures.markSelected(listEl);
     index = end;
     if (index < pageEnd) { requestAnimationFrame(run); return; }
     reindexUnfollowerRows();
@@ -3191,6 +3208,8 @@ function deleteAccountFromModal() {
 
   const performDelete = () => {
     if (isDemoAccount(deletedAccount)) clearDemoData(); // nothing of the demo is kept
+    // Its undo steps go with it (undo put its deleted lists back)
+    if (window.igFeatures && window.igFeatures.dropUndo) window.igFeatures.dropUndo(acc);
     // Its latest unfollowed/starred first, if it's the one on screen.
     if (!isDemoAccount(deletedAccount) && state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === acc) {
       saveCurrentAccountData();
@@ -5106,7 +5125,9 @@ function updateInstructionsStepUI() {
         saveCurrentAccountData();
       }
 
+      const tappedOn = state.selectedAccountUsername;
       exitListRow(userRow, () => {
+        if (state.selectedAccountUsername !== tappedOn) return; // (another chip since: its list 3 isn't this one's)
         state.unfollowers = state.unfollowers.filter(u => u.username !== username);
         state.selectedIndex = -1;
         setCountBadge(elements.unfollowersCount, state.unfollowers.length, 'found');
@@ -5123,7 +5144,10 @@ function updateInstructionsStepUI() {
 
     const actionDismiss = e.target.closest('.action-dismiss');
     if (actionDismiss) {
+      dismissUsername(username);
+      const tappedOn = state.selectedAccountUsername;
       exitListRow(userRow, () => {
+        if (state.selectedAccountUsername !== tappedOn) return; // (another chip since: its list 3 isn't this one's)
         state.unfollowers = state.unfollowers.filter(u => u.username !== username);
         state.selectedIndex = -1;
         setCountBadge(elements.unfollowersCount, state.unfollowers.length, 'found');
@@ -5279,10 +5303,12 @@ function updateInstructionsStepUI() {
       const followersSet = new Set(state.followers.map(user => user.username));
       const unfollowedSet = new Set(state.unfollowed.map(user => user.username));
       const starredSet = new Set(state.starred.map(user => user.username));
+      const dismissedSet = dismissedUsernames();
       state.unfollowers = state.following.filter(user => 
         !followersSet.has(user.username) && 
         !unfollowedSet.has(user.username) &&
-        !starredSet.has(user.username)
+        !starredSet.has(user.username) &&
+        !dismissedSet.has(user.username)
       );
       updateResultsUI({ animate: true });
       saveCurrentAccountData();
@@ -5337,10 +5363,12 @@ function updateInstructionsStepUI() {
           const followersSet = new Set(state.followers.map(user => user.username));
           const unfollowedSet = new Set(state.unfollowed.map(user => user.username));
           const starredSet = new Set(state.starred.map(user => user.username));
+          const dismissedSet = dismissedUsernames();
           state.unfollowers = state.following.filter(user => 
             !followersSet.has(user.username) && 
             !unfollowedSet.has(user.username) &&
-            !starredSet.has(user.username)
+            !starredSet.has(user.username) &&
+            !dismissedSet.has(user.username)
           );
           updateResultsUI();
 
@@ -5388,10 +5416,12 @@ function updateInstructionsStepUI() {
       const followersSet = new Set(state.followers.map(user => user.username));
       const unfollowedSet = new Set(state.unfollowed.map(user => user.username));
       const starredSet = new Set(state.starred.map(user => user.username));
+      const dismissedSet = dismissedUsernames();
       state.unfollowers = state.following.filter(user => 
         !followersSet.has(user.username) && 
         !unfollowedSet.has(user.username) &&
-        !starredSet.has(user.username)
+        !starredSet.has(user.username) &&
+        !dismissedSet.has(user.username)
       );
       updateResultsUI({ animate: true });
 
@@ -5800,7 +5830,9 @@ function updateInstructionsStepUI() {
 
     saveCurrentAccountData();
 
+    const tappedOn = state.selectedAccountUsername;
     exitListRow(userRow, () => {
+      if (state.selectedAccountUsername !== tappedOn) return; // (another chip since: its list 3 isn't this one's)
       state.unfollowers = state.unfollowers.filter(u => u.username !== username);
       if (!keepSelection) state.selectedIndex = -1;
       setCountBadge(elements.unfollowersCount, state.unfollowers.length, 'found');
