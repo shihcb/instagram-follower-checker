@@ -48,11 +48,6 @@
   const writeJSON = (key, value) => storageSet(key, JSON.stringify(value));
   const esc = (v) => escapeHtml(v);
   const byName = (list) => new Map((list || []).map(u => [u.username, u]));
-  const animateIn = (el, from = 'translateY(6px)') => {
-    if (el && typeof el.animate === 'function') {
-      el.animate([{ opacity: 0, transform: from }, { opacity: 1, transform: 'none' }], { duration: 450, easing: EASE });
-    }
-  };
 
   let sortMode = 'default'; // 'default' | 'oldest' | 'newest'
   sortMode = storageGet('list3_sort') || 'default';
@@ -940,25 +935,53 @@
     pushToCloud();
     refreshDrive();
   }
-  const driveStatus = (text) => swapText(document.getElementById('drive-desc'), text);
+  // The row eases to its new height (the box ease) when its words go from two
+  // lines to one or its buttons widen — measured with the glides and slides
+  // started in `change` at their ends, so it lands where they do. (It
+  // dropped 30px in a frame as "last synced today" came in.)
+  function easeDriveRow(row, change) {
+    const from = row.getBoundingClientRect().height;
+    if (row._rowEase) { row._rowEase.cancel(); row._rowEase = null; }
+    change();
+    const live = row.getAnimations({ subtree: true }).filter(a => Number.isFinite(a.effect && a.effect.getComputedTiming().endTime));
+    const was = live.map(a => a.currentTime || 0);
+    live.forEach(a => { a.currentTime = a.effect.getComputedTiming().endTime; });
+    const to = row.getBoundingClientRect().height;
+    live.forEach((a, i) => { a.currentTime = was[i]; });
+    if (!canAnimate(row) || !row.offsetParent || Math.abs(to - from) < 0.5) return;
+    const an = row.animate([{ height: `${from}px`, overflow: 'hidden' }, { height: `${to}px`, overflow: 'hidden' }], MOTION);
+    row._rowEase = an;
+    an.finished.then(() => { if (row._rowEase === an) row._rowEase = null; }, () => {});
+  }
+  const setDriveDesc = (text) => swapText(document.getElementById('drive-desc'), text);
+  const driveStatus = (text) => { const row = document.getElementById('drive-row'); if (row) easeDriveRow(row, () => setDriveDesc(text)); };
   function refreshDrive() {
     const row = document.getElementById('drive-row');
     if (!row) return;
     row.hidden = isNative(); // google's sign-in doesn't open inside the iphone app
+    easeDriveRow(row, paintDrive);
+  }
+  function paintDrive() {
     if (driveReady()) loadGoogle();
     const btn = document.getElementById('drive-sync-btn');
-    const off = document.getElementById('drive-disconnect-btn');
     const on = driveOn();
-    // (at work: "sync" stays, a spinner after it — never "syncing")
-    swapText(btn, on || driveSync ? 'sync' : 'connect', { resize: true });
-    workButton(btn, !!driveSync);
-    btn.disabled = !!driveSync;
-    const showOff = on && !driveSync;
-    if (showOff && off.hidden) { off.hidden = false; animateIn(off, 'scale(0.95)'); } else if (!showOff) off.hidden = true;
+    // One glide for sync, whatever changed at once — its words ("connect" →
+    // "sync") and its spinner coming or going (at work: "sync" stays, the
+    // spinner after it — never "syncing"; a tap meanwhile does nothing) —
+    // from the width it's drawn at to its new one; disconnect slides open /
+    // shut beside it (its slot's width easing as it fades), so sync moves over
+    // with it. (Each eased on its own before — the words' width, the
+    // spinner's room — they fought and the button jumped 10–18px; disconnect
+    // came and went in one frame.)
+    glideWidth(btn, () => {
+      swapText(btn, on || driveSync ? 'sync' : 'connect');
+      workButton(btn, !!driveSync, { glide: true });
+    });
+    slideSlot(document.getElementById('drive-off-slot'), on && !driveSync);
     if (driveSync) return;
     const at = Number(storageGet('drive_checked')) || 0;
     const when = sameDay(at, Date.now()) ? 'today' : longDate(at);
-    driveStatus(on ? (at ? `last synced ${when}` : 'connected') : "import instagram's daily exports from your drive");
+    setDriveDesc(on ? (at ? `last synced ${when}` : 'connected') : "import instagram's daily exports from your drive");
   }
   function setupDrive() {
     const btn = document.getElementById('drive-sync-btn');

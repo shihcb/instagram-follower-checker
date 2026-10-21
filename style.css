@@ -4845,8 +4845,19 @@ body.auth-logged-out #auth-form-view.smooth-exit {
 .drive-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
   flex-shrink: 0;
+}
+
+/* disconnect slides open / shut beside sync (slideSlot): its slot holds it
+   and the 6px gap after it, clipped while it eases */
+.drive-off-slot {
+  display: inline-flex;
+  flex: none;
+  overflow: hidden;
+}
+.drive-off-slot > .drive-btn {
+  flex: none;
+  margin-right: 6px;
 }
 
 .drive-btn {

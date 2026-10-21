@@ -3512,7 +3512,11 @@ function swapText(el, text, { resize = false } = {}) {
 // (swapText wipes the spinner), then this.
 const SPIN_ROOM = 18;
 const SPIN_SWOOP = [{ opacity: 0, transform: 'scale(0.2)', filter: 'blur(1.5px)' }, { opacity: 1, transform: 'scale(1)', filter: 'blur(0)' }];
-function workButton(btn, busy) {
+// (`glide`: the button glides as a whole — glideWidth around this — so the
+// spinner's room isn't eased on its own: it's there at once and the glide
+// opens it; leaving, it's out of the way at once, the spinner swooping out
+// where it was as the glide shuts its room)
+function workButton(btn, busy, { glide = false } = {}) {
   if (!btn) return;
   btn.classList.toggle('at-work', busy);
   let sp = btn.querySelector(':scope > .work-spin');
@@ -3526,17 +3530,57 @@ function workButton(btn, busy) {
     sp.innerHTML = '<span class="work-spin-swoop"><span class="work-spinner"></span></span>';
     btn.append(sp);
     if (!canAnimate(btn)) return;
-    sp.animate([{ width: '0px' }, { width: `${SPIN_ROOM}px` }], MOTION);
+    if (!glide) sp.animate([{ width: '0px' }, { width: `${SPIN_ROOM}px` }], MOTION);
     sp.firstChild.animate(SPIN_SWOOP, MOTION);
     return;
   }
   if (!sp || sp._leaving) return;
   sp._leaving = true;
   if (!canAnimate(btn)) { sp.remove(); return; }
+  if (glide) {
+    sp.getAnimations().forEach(a => a.cancel());
+    Object.assign(sp.style, { width: '0px', overflow: 'visible' });
+    Object.assign(sp.firstChild.style, { right: 'auto', left: `${SPIN_ROOM - 12}px` });
+    const out = sp.firstChild.animate([...SPIN_SWOOP].reverse(), { duration: ROW_MOTION_MS * 0.6, easing: 'cubic-bezier(0.5, 0, 0.9, 0.4)', fill: 'forwards' });
+    out.finished.then(() => { if (sp._leaving) sp.remove(); }, () => {});
+    return;
+  }
   // (it goes a little quicker than it came, its room shutting just after)
   sp.firstChild.animate([...SPIN_SWOOP].reverse(), { duration: ROW_MOTION_MS * 0.6, easing: 'cubic-bezier(0.5, 0, 0.9, 0.4)', fill: 'forwards' });
   sp.animate([{ width: `${SPIN_ROOM}px` }, { width: '0px' }], { ...MOTION, delay: ROW_MOTION_MS * 0.35, fill: 'forwards' })
     .finished.then(() => { if (sp._leaving) sp.remove(); }, () => {});
+}
+// A button's width glides from where it's drawn to where it's headed after
+// `change` (its words, a spinner): one motion for all of it, so pieces easing
+// on their own never fight. Mid-glide it turns around from where it's drawn.
+function glideWidth(el, change) {
+  if (!el) { change(); return; }
+  const from = el.getBoundingClientRect().width;
+  if (el._glide) { el._glide.cancel(); el._glide = null; }
+  change();
+  const to = el.getBoundingClientRect().width;
+  if (!canAnimate(el) || !el.offsetParent || Math.abs(to - from) < 0.5) return;
+  const k = el.offsetWidth ? to / el.offsetWidth : 1; // (the guest preview draws the app scaled)
+  const at = (w) => ({ width: `${w / k}px`, boxSizing: 'border-box', overflow: 'hidden', whiteSpace: 'nowrap' });
+  el._glide = el.animate([at(from), at(to)], MOTION);
+  el._glide.finished.then(() => { el._glide = null; }, () => {});
+}
+// The word slide for a button that comes and goes beside others: its slot
+// (overflow hidden, the button's gap inside it) eases its width open or shut
+// while it fades, so the buttons beside it slide over; gone, it's inert.
+function slideSlot(slot, show) {
+  if (!slot || slot._shown === show) return;
+  slot._shown = show;
+  slot.inert = !show;
+  const cs = getComputedStyle(slot);
+  const from = slot.getBoundingClientRect().width, fromO = +cs.opacity;
+  if (slot._slide) { slot._slide.cancel(); slot._slide = null; }
+  slot.style.width = show ? '' : '0px';
+  slot.style.opacity = show ? '' : '0';
+  const to = slot.getBoundingClientRect().width;
+  if (!canAnimate(slot) || !slot.offsetParent) return;
+  slot._slide = slot.animate([{ width: `${from}px`, opacity: fromO }, { width: `${to}px`, opacity: show ? 1 : 0 }], MOTION);
+  slot._slide.finished.then(() => { slot._slide = null; }, () => {});
 }
 // The glide to top: when the page gets shorter, it keeps the room it needs
 // to stay put (a floor under the page, never shorter than the bottom of

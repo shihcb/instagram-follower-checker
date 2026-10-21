@@ -87,7 +87,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=428">
+  <link rel="stylesheet" href="style.css?v=429">
 </head>
 <body class="auth-logged-out">
   <script>
@@ -218,7 +218,7 @@
                       <span class="setting-desc" id="drive-desc">import instagram's daily exports from your drive</span>
                     </div>
                     <div class="drive-actions">
-                      <button type="button" class="btn btn-sm btn-danger-soft drive-btn" id="drive-disconnect-btn" hidden>disconnect</button>
+                      <span class="drive-off-slot" id="drive-off-slot" style="width: 0px; opacity: 0" inert><button type="button" class="btn btn-sm btn-danger-soft drive-btn" id="drive-disconnect-btn">disconnect</button></span>
                       <button type="button" class="btn btn-sm btn-primary drive-btn" id="drive-sync-btn">connect</button>
                     </div>
                   </div>
@@ -750,8 +750,8 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="script.js?v=426"></script>
-  <script src="features.js?v=160"></script>
+  <script src="script.js?v=427"></script>
+  <script src="features.js?v=161"></script>
   <script>
     // The opening spinner stays until the app is ready, like the dashboard's
     // boot waiting for its cards: the first sign-in check done (signed in,
