@@ -5109,6 +5109,20 @@ button:focus-visible,
   transform: translateX(12px); /* stays inside the box's padding */
   pointer-events: none;
 }
+/* …and the room they took goes to the name (it was kept: at 320px wide the
+   names you were picking showed as "@…"), easing shut and open with them,
+   the row's gap too. A name still too long glides (.glides). */
+#list-unfollowers .user-meta,
+.results-extra .user-meta {
+  max-width: 240px;
+  overflow: hidden;
+  transition: max-width 0.45s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+#list-unfollowers.select-mode .user-meta,
+.results-extra.select-mode .user-meta {
+  max-width: 0;
+  margin-left: -8px; /* (the row's gap) */
+}
 #list-unfollowers .user-row.multi-selected,
 .results-extra .user-row.multi-selected {
   border-color: #10b981 !important;
