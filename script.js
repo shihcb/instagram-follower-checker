@@ -1451,7 +1451,10 @@ function setCountBadge(el, n, word) {
   const digits = (x) => (x < 1 ? 1 : Math.log10(x) + 1);
   // (pinned to the real widths at both ends: 250 is 3.4 digits smoothly, 3 drawn)
   const offFrom = digits(from) - String(from).length, offTo = digits(n) - String(n).length;
-  const widthFor = (x, e) => Math.min(hi, Math.max(lo, base + digitW * (digits(x) - offFrom * (1 - e) - offTo * e)));
+  // (never narrower than the number on show needs: just past 10, the
+  // correction left a two-digit number pressed against the edge)
+  const widthFor = (x, e) => Math.min(hi, Math.max(lo, base + digitW * String(Math.round(x)).length,
+    base + digitW * (digits(x) - offFrom * (1 - e) - offTo * e)));
   const t0 = performance.now();
   const step = (now) => {
     const t = Math.min(1, (now - t0) / COUNT_MS);
@@ -7254,9 +7257,15 @@ function mergeOfflineWork(entries) {
     } else if (/^import_history_/.test(key) && cloud !== null) {
       storageSet(key, JSON.stringify([...parse(cloud, []), ...parse(value, [])].sort((a, b) => (a.date || 0) - (b.date || 0))));
     } else if (/^import_log_/.test(key) && cloud !== null) {
+      // The imports made here are numbered after the cloud's (numbered from
+      // nothing, they all clashed with the cloud's first ones and were
+      // dropped), their files kept here moving with them
       const have = parse(cloud, []);
-      const ns = new Set(have.map(x => x.n));
-      storageSet(key, JSON.stringify([...have, ...parse(value, []).filter(x => !ns.has(x.n))]));
+      let next = have.reduce((max, x) => Math.max(max, x.n || 0), 0);
+      const moves = [];
+      const mine = parse(value, []).map(x => { const n = ++next; if (n !== x.n) moves.push([x.n, n]); return { ...x, n }; });
+      storageSet(key, JSON.stringify([...have, ...mine]));
+      if (moves.length && window.igFeatures && window.igFeatures.renumberKept) window.igFeatures.renumberKept(key.slice('import_log_'.length), moves);
     } else {
       storageSet(key, value); // the lists imported here, this device's choice of account: newer
     }

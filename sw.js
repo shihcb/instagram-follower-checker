@@ -1,7 +1,7 @@
 // Offline support for the installed app. Network first, always: the live
 // files win whenever there's a connection (so an update is never hidden
 // behind a stale copy); the cached copy is only used when offline.
-const CACHE = 'ig-checker-v2';
+const CACHE = 'ig-checker-v3';
 
 // The app's own files are kept from the first visit (they used to be kept
 // only from the second: opened offline after one visit, the installed app
@@ -37,7 +37,9 @@ self.addEventListener('fetch', (event) => {
       // Only a page falls back to the app's page (a script or font that
       // wasn't kept got the page instead, which broke it): anything else
       // just fails, as it would without this worker.
-      .catch(() => caches.match(req, { ignoreSearch: true }).then(hit => hit
+      // (this very file first: matched by name alone, the copy from the
+      // install came back over a newer ?v= one)
+      .catch(() => caches.match(req).then(exact => exact || caches.match(req, { ignoreSearch: true })).then(hit => hit
         || (req.mode === 'navigate' ? caches.match('./index.html') : Response.error())))
   );
 });

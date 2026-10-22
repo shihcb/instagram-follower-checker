@@ -224,9 +224,20 @@
     info.parentNode.insertBefore(undoBtn, info.nextSibling);
     undoBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      // Not while a row is still sliding out: its step isn't on the stack
-      // yet, and its slide finishing took it out of the restored list 3
-      if (typeof rowExitsInFlight !== 'undefined' && rowExitsInFlight > 0) return;
+      // A row still sliding out: the undo waits for it (its slide finishing
+      // took it out of the restored list 3), then runs — the tap is kept
+      if (typeof rowExitsInFlight !== 'undefined' && rowExitsInFlight > 0) {
+        if (!undoBtn._waiting) {
+          undoBtn._waiting = true;
+          const wait = () => {
+            if (rowExitsInFlight > 0) { setTimeout(wait, 50); return; }
+            undoBtn._waiting = false;
+            undoBtn.click();
+          };
+          setTimeout(wait, 50);
+        }
+        return;
+      }
       for (let i = undoStack.length - 1; i >= 0; i--) {
         if (undoStack[i].snap.acc !== accKey()) continue;
         const [{ snap }] = undoStack.splice(i, 1);
@@ -519,6 +530,22 @@
     db.close();
   }
   const keepOnDevice = (key, n, files) => filesDbWrite(store => store.put({ files }, `${key}|${n}`));
+  // An import made offline numbered again after the cloud's (see
+  // mergeOfflineWork): its files kept here move to its new number with it
+  async function renumberKept(key, moves) {
+    const db = await openFilesDb();
+    if (!db) return;
+    const recs = await Promise.all(moves.map(([from]) => new Promise(resolve => {
+      const req = db.transaction('imports', 'readonly').objectStore('imports').get(`${key}|${from}`);
+      req.onsuccess = () => resolve(req.result); req.onerror = () => resolve(null);
+    })));
+    db.close();
+    await filesDbWrite(store => moves.forEach(([from, to], i) => {
+      if (!recs[i]) return;
+      store.delete(`${key}|${from}`);
+      store.put(recs[i], `${key}|${to}`);
+    }));
+  }
   const dropFromDevice = (key, n) => filesDbWrite(store => store.delete(`${key}|${n}`));
   // Files kept on this device (an upload that failed, or an earlier version
   // that saved them here) move up to the cloud, and the local copy is deleted.
@@ -3215,6 +3242,7 @@
 
   // For the rest of the app (and tests).
   window.igFeatures = { resetDrive: () => { driveToken = null; if (driveSync) driveSync.cancelled = true; }, driveBusy: () => !!driveSync,
+    renumberKept: (key, moves) => renumberKept(key, moves).catch(e => console.error('[features] moving kept import files failed:', e)),
     dropUndo: (acc) => { const k = String(acc || '').toLowerCase(); for (let i = undoStack.length - 1; i >= 0; i--) if (undoStack[i].snap.acc === k) undoStack.splice(i, 1); safe(refreshUndo, 'undo'); },
     markSelected: (list) => { if (selectMode && !selectOnPending()) list.querySelectorAll('.user-row').forEach(r => r.classList.toggle('multi-selected', selected.has(r.dataset.username))); }, showView, showMobileList, showToast, setSelectMode, refreshToolbar, centerEmpties: () => safe(centerEmpties, 'empty texts') };
 })();
