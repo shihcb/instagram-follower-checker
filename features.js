@@ -904,8 +904,14 @@
     }
     const signIn = driveSignIn(); // first, while it's still the tap
     driveSync = { changes: 0, unsaved: 0, why: '' };
+    // Logged out meanwhile (or someone else in): it stops at once — what it
+    // was bringing in used to land after the log-out, in the next person's
+    const sync = driveSync;
+    const uid = currentUser && currentUser.id;
+    const stillHere = () => { if (sync.cancelled || !currentUser || currentUser.id !== uid) throw Object.assign(new Error('stopped'), { cancelled: true }); };
     refreshDrive();
     let imported = 0;
+    let shown;
     try {
       await signIn;
       storageSet('drive_on', '1');
@@ -914,13 +920,16 @@
       let fresh = (await findDriveExports()).filter(e => !seen.has(e.id) && Number.isFinite(e.at)).sort((a, b) => b.at - a.at);
       if (firstSync) { fresh.slice(DRIVE_FIRST_MAX).forEach(e => markSeen(e.id)); fresh = fresh.slice(0, DRIVE_FIRST_MAX); }
       fresh.reverse(); // oldest first
-      const shown = state.selectedAccountUsername;
+      shown = state.selectedAccountUsername;
+      stillHere();
       for (let i = 0; i < fresh.length; i++) {
         const exp = fresh[i];
         driveStatus(`importing ${i + 1} of ${fresh.length}`);
         const files = await driveExportFiles(exp);
+        stillHere();
         let who = exp.who;
         if (exp.zip && !who) who = (await peekExport(files[0])).who;
+        stillHere();
         // Lists already newer than this export (an import since) stay.
         const latest = who ? Number(storageGet(dataDateKey(who)) || storageGet(getImportDateKey(who))) || 0 : 0;
         if (files.length && latest < exp.at) {
@@ -928,10 +937,11 @@
           try { if (await processImportFiles(files, true, { username: who })) imported++; } finally { importAt = null; }
           await new Promise(resolve => setTimeout(resolve, ROW_MOTION_MS));
         }
-        markSeen(exp.id);
+        // An export with no lists yet is still being put in drive (instagram
+        // makes its folder first): it's looked at again next time, for a
+        // few hours — it was marked done, and that day's lists never came in
+        if (files.length || !(Date.now() - exp.at < 6 * 3600 * 1000)) markSeen(exp.id);
       }
-      // Back to the account you were on.
-      if (imported && shown && state.selectedAccountUsername !== shown) ensureAccountSelected(shown);
       storageSet('drive_checked', String(Date.now()));
       pushToCloud();
       driveStatus('saving to the cloud');
@@ -947,12 +957,17 @@
           imported && changes ? 'view' : null, () => { showView('changes'); viewNav && viewNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
       }
     } catch (err) {
-      console.error('[features] google drive sync failed:', err);
       driveSync = null;
+      if (err && err.cancelled) return; // (logged out: nothing more, nothing said)
+      console.error('[features] google drive sync failed:', err);
       if (imported) pushToCloud();
       showToast(`couldn't sync google drive (${String(err && err.message || err).toLowerCase().slice(0, 80)})`, 'retry', syncDrive, { duration: 10000 });
     } finally {
       driveSync = null;
+      // Back to the account you were on (a sync that failed partway too)
+      if (imported && shown && currentUser && currentUser.id === uid && state.selectedAccountUsername !== shown) {
+        try { ensureAccountSelected(shown); } catch (e) {}
+      }
       refreshDrive();
       updateResetReminderUI();
     }
@@ -3199,7 +3214,7 @@
   else init();
 
   // For the rest of the app (and tests).
-  window.igFeatures = { resetDrive: () => { driveToken = null; },
+  window.igFeatures = { resetDrive: () => { driveToken = null; if (driveSync) driveSync.cancelled = true; }, driveBusy: () => !!driveSync,
     dropUndo: (acc) => { const k = String(acc || '').toLowerCase(); for (let i = undoStack.length - 1; i >= 0; i--) if (undoStack[i].snap.acc === k) undoStack.splice(i, 1); safe(refreshUndo, 'undo'); },
     markSelected: (list) => { if (selectMode && !selectOnPending()) list.querySelectorAll('.user-row').forEach(r => r.classList.toggle('multi-selected', selected.has(r.dataset.username))); }, showView, showMobileList, showToast, setSelectMode, refreshToolbar, centerEmpties: () => safe(centerEmpties, 'empty texts') };
 })();

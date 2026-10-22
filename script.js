@@ -1673,6 +1673,14 @@ else showAppVersion();
 // service worker and its cache) are dropped first, so nothing stale can
 // answer the reload.
 async function forceReload() {
+  // A change still waiting to go up goes up first (the reload lost it), the
+  // upload already under way too — never more than 3s
+  try {
+    await Promise.race([
+      Promise.all([flushCloudPush(), cloudPushChain]),
+      new Promise(resolve => setTimeout(resolve, 3000))
+    ]);
+  } catch (e) {}
   try {
     if ('serviceWorker' in navigator) {
       const regs = await navigator.serviceWorker.getRegistrations();
@@ -2394,7 +2402,7 @@ function isNewAccountOverLimit(username) {
   const lower = String(username || '').toLowerCase();
   const accounts = state.instagramAccounts || [];
   const exists = accounts.some(acc => acc.originalUsername.toLowerCase() === lower
-    || (isDemoAccount(acc) && acc.username.toLowerCase() === lower));
+    || acc.username.toLowerCase() === lower); // (a renamed chip, the demo too, by the name it shows)
   return !exists && accounts.length >= MAX_ACCOUNTS;
 }
 function showAccountLimitAlert() {
@@ -2424,15 +2432,17 @@ function ensureAccountSelected(username, { renderResults = true } = {}) {
     saveAccountsList();
   }
 
-  // Check if account already exists by matching originalUsername (case-insensitive)
-  const existingIndex = state.instagramAccounts.findIndex(
+  // Check if account already exists by matching originalUsername (case-insensitive),
+  // else a chip renamed to this name (its files made a second chip)
+  let existingIndex = state.instagramAccounts.findIndex(
     acc => acc.originalUsername.toLowerCase() === usernameLower
   );
+  if (existingIndex < 0) existingIndex = state.instagramAccounts.findIndex(acc => !isDemoAccount(acc) && acc.username.toLowerCase() === usernameLower);
 
   if (existingIndex >= 0) {
     // Account exists — select it if it's not already selected
     const originalName = state.instagramAccounts[existingIndex].originalUsername;
-    if (!state.selectedAccountUsername || state.selectedAccountUsername.toLowerCase() !== usernameLower) {
+    if (!state.selectedAccountUsername || state.selectedAccountUsername.toLowerCase() !== originalName.toLowerCase()) {
       if (state.selectedAccountUsername) {
         saveCurrentAccountData();
       }
@@ -2603,7 +2613,21 @@ function isPartialList(text, parsed) {
 
 // `username`: whose export it is, when that's already known (google drive:
 // from the export's folder name).
-async function processImportFiles(files, isFolderUpload = false, { username = null } = {}) {
+// While an import runs (files, a folder, a google drive sync), the account
+// it's for stays the one on screen: another chip picked meanwhile had the
+// import written into that account's lists instead (see selectAccount).
+let importsRunning = 0;
+function accountsBusy() {
+  return importsRunning > 0 || !!(window.igFeatures && window.igFeatures.driveBusy && window.igFeatures.driveBusy());
+}
+function sayAccountsBusy() {
+  if (window.igFeatures && window.igFeatures.showToast) window.igFeatures.showToast('wait for the import to finish');
+}
+async function processImportFiles(files, isFolderUpload = false, opts = {}) {
+  importsRunning++;
+  try { return await processImportFilesNow(files, isFolderUpload, opts); } finally { importsRunning--; }
+}
+async function processImportFilesNow(files, isFolderUpload = false, { username = null } = {}) {
   if (!files || files.length === 0) return false;
 
   // A .zip (what Instagram sends): its files are used as if the folder
@@ -2936,6 +2960,7 @@ function rememberNoAccountSelected() {
 }
 
 function selectAccount(username) {
+  if (accountsBusy()) { sayAccountsBusy(); return; }
   // Only an account that still exists — a tap on a chip just before it was
   // deleted fires after (single taps wait for a possible double tap), and
   // would select an account with no chip.
@@ -3178,9 +3203,14 @@ function renderAccountChips(animate = false, { force = false } = {}) {
 
 function openAccountModal(index = -1) {
   if (!elements.accountModalOverlay) return;
+  if (accountsBusy()) { sayAccountsBusy(); return; }
 
   state.editingAccountIndex = index;
   const accounts = state.instagramAccounts || [];
+  // Which account, by name: its place in the row can change while the
+  // window is open (one deleted just before shifted the rest, and the
+  // rename or delete hit the account after it)
+  state.editingAccountKey = index >= 0 && accounts[index] ? accounts[index].originalUsername.toLowerCase() : null;
 
   if (index >= 0 && index < accounts.length) {
     const acc = accounts[index];
@@ -3231,18 +3261,43 @@ function closeAccountModal() {
     // Clean up double-click active suppression state
     document.querySelectorAll('.account-chip').forEach(c => c.classList.remove('no-active'));
     state.editingAccountIndex = -1;
+    state.editingAccountKey = null;
   });
+}
+// The account the window is editing, where it is now (-1: adding; null: gone)
+function editingAccountNow() {
+  if (!state.editingAccountKey) return state.editingAccountIndex >= 0 ? null : -1;
+  const i = (state.instagramAccounts || []).findIndex(acc => acc.originalUsername.toLowerCase() === state.editingAccountKey);
+  return i >= 0 ? i : null;
 }
 
 function saveAccountFromModal() {
   if (!elements.accountUsernameInput) return;
 
-  let username = elements.accountUsernameInput.value.trim().replace(/^@+/, '');
+  // Instagram usernames are lowercase
+  let username = elements.accountUsernameInput.value.trim().replace(/^@+/, '').toLowerCase();
   if (!username) return;
 
   normalizeInstagramAccounts();
+  const index = editingAccountNow();
+  if (index === null) { closeAccountModal(); return; } // (deleted meanwhile)
 
-  if (state.editingAccountIndex < 0 && isNewAccountOverLimit(username)) {
+  // Only a name that can be an instagram username ("Carol Smith" was kept,
+  // and no export could ever be matched to it), and not another chip's
+  // (two "@bob" chips)
+  const refuse = (title, message) => { closeAccountModal(); setTimeout(() => showSiteAlert(title, message), OVERLAY_CLEAR_MS); };
+  if (!/^[a-z0-9._]{1,30}$/.test(username)) {
+    refuse('not an instagram username', 'usernames are up to 30 letters, numbers, dots and underscores.');
+    return;
+  }
+  const clash = (state.instagramAccounts || []).some((acc, i) => i !== index && !isDemoAccount(acc)
+    && (acc.username.toLowerCase() === username || acc.originalUsername.toLowerCase() === username));
+  if (clash) {
+    refuse('already an account', `@${username} is already one of your accounts.`);
+    return;
+  }
+
+  if (index < 0 && isNewAccountOverLimit(username)) {
     closeAccountModal();
     setTimeout(showAccountLimitAlert, OVERLAY_CLEAR_MS);
     return;
@@ -3250,12 +3305,15 @@ function saveAccountFromModal() {
 
   // The window closes first; the chip changes once it has cleared (it
   // covers the chip row while fading), so a new chip's entrance is seen.
-  const index = state.editingAccountIndex;
   closeAccountModal();
-  setTimeout(() => applyAccountFromModal(username, index), OVERLAY_CLEAR_MS);
+  const key = state.editingAccountKey;
+  setTimeout(() => applyAccountFromModal(username, index, key), OVERLAY_CLEAR_MS);
 }
 
-function applyAccountFromModal(username, index) {
+function applyAccountFromModal(username, index, key = null) {
+  // (by name again: the row may have changed during the window's fade)
+  if (key) index = state.instagramAccounts.findIndex(acc => acc.originalUsername.toLowerCase() === key);
+  if (key && index < 0) return;
   if (index >= 0 && index < state.instagramAccounts.length) {
     // Only update the display username, leaving the originalUsername untouched!
     state.instagramAccounts[index].username = username;
@@ -3331,11 +3389,12 @@ function animateChipExit(chip) {
 }
 
 function deleteAccountFromModal() {
-  const index = state.editingAccountIndex;
-  if (!(index >= 0 && index < (state.instagramAccounts || []).length)) return;
+  const index = editingAccountNow();
+  if (!(index !== null && index >= 0 && index < (state.instagramAccounts || []).length)) return;
   // One delete per opening: a second tap while the window closes finds
   // nothing to delete (it could otherwise have hit the next account).
   state.editingAccountIndex = -1;
+  state.editingAccountKey = null;
   const deletedAccount = state.instagramAccounts[index];
   const acc = deletedAccount.originalUsername.toLowerCase();
   const chipEl = elements.accountChipsList
