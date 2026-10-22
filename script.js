@@ -1415,9 +1415,32 @@ let glideFrame = 0;
 function measureGlide(box) {
   const inner = box.firstElementChild;
   if (!inner || !inner.classList.contains('glide-inner') || !box.clientWidth) return;
+  if (box._glideSettling) return; // (measured once its room has stopped changing)
   const over = inner.scrollWidth - box.clientWidth;
+  const was = box.style.getPropertyValue('--glide');
+  const glide = `${-Math.ceil(over)}px`;
+  // Its room changed while it glides (select mode easing the row's buttons
+  // away): it eases back to its start on the list 3 slide, and only once
+  // the room has settled is it measured again — changing how far it glides
+  // mid-glide threw the name sideways, then snapped it back.
+  if (box.classList.contains('glides') && was && was !== glide) {
+    const at = getComputedStyle(inner).transform;
+    box._glideSettling = true;
+    box.classList.remove('glides');
+    inner.style.transform = at === 'none' ? '' : at;
+    void inner.offsetWidth;
+    inner.style.transition = `transform ${ROW_MOTION_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`; // the list 3 slide
+    inner.style.transform = 'translateX(0)';
+    setTimeout(() => {
+      inner.style.transition = '';
+      inner.style.transform = '';
+      box._glideSettling = false;
+      measureGlide(box);
+    }, ROW_MOTION_MS + 50);
+    return;
+  }
   box.classList.toggle('glides', over > 1);
-  box.style.setProperty('--glide', `${-Math.ceil(over)}px`);
+  box.style.setProperty('--glide', glide);
   box.style.setProperty('--glide-time', `${Math.max(3, over / 20).toFixed(1)}s`);
 }
 function queueGlide(box) {
