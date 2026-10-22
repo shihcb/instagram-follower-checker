@@ -116,7 +116,16 @@ function normalizeInstagramAccounts() {
 const EXCLUDE_KEYWORDS = new Set([
   'following', 'follow', 'followers', 'message', 'remove', 'requested', 
   'verified', 'close friends', 'mutual', 'blocked', 'suggested', 'posts',
-  'search', 'log in', 'sign up', 'profile picture'
+  'search', 'log in', 'sign up', 'profile picture',
+  // The same buttons in the app's other languages (a list copied in Spanish
+  // had "Siguiendo" and "Eliminar" read as accounts that don't follow back)
+  'siguiendo', 'seguir', 'seguidores', 'eliminar', 'mensaje', 'solicitado', 'verificado',
+  'abonné', 'abonné(e)', 'abonnés', 'abonnements', "s'abonner", 'suivre', 'suivi(e)', 'supprimer', 'retirer', 'demandé', 'vérifié',
+  'gefolgt', 'folgen', 'follower', 'entfernen', 'nachricht', 'angefragt', 'verifiziert',
+  'seguindo', 'remover', 'mensagem', 'solicitado(a)',
+  'segui', 'seguiti', 'rimuovi', 'messaggio', 'richiesta inviata', 'verificato',
+  'takip', 'takiptesin', 'takip et', 'kaldır', 'mesaj', 'istendi',
+  'volgend', 'volgen', 'verwijderen', 'bericht', 'aangevraagd'
 ]);
 
 // -------------------------------------------------------------
@@ -660,6 +669,49 @@ function parseJSON(text) {
   }
 }
 
+// A follow date in an HTML export: "Jan 05, 2024", "5 Jan 2024", and the
+// same in other languages ("ene 05, 2024", "5 janv. 2024", "05. Mär. 2024",
+// "5 de jan de 2024"), or "2024-01-05". Read by its month's name, never
+// Date.parse (it only knows English: a Spanish export lost every date).
+const EXPORT_MONTHS = {
+  jan: 0, ene: 0, janv: 0, gen: 0, ocak: 0, januari: 0, january: 0, enero: 0, janvier: 0, januar: 0, janeiro: 0, gennaio: 0,
+  feb: 1, févr: 1, fev: 1, fév: 1, şub: 1, february: 1, febrero: 1, février: 1, februar: 1, fevereiro: 1, febbraio: 1, februari: 1,
+  mar: 2, mär: 2, mrz: 2, mars: 2, mart: 2, march: 2, marzo: 2, märz: 2, março: 2, maart: 2, mrt: 2,
+  apr: 3, abr: 3, avr: 3, nis: 3, april: 3, abril: 3, avril: 3, aprile: 3,
+  may: 4, mai: 4, mag: 4, mayo: 4, maggio: 4, maio: 4, mei: 4, mayıs: 4,
+  jun: 5, juin: 5, giu: 5, haz: 5, june: 5, junio: 5, juni: 5, junho: 5, giugno: 5,
+  jul: 6, juil: 6, lug: 6, tem: 6, july: 6, julio: 6, juillet: 6, juli: 6, julho: 6, luglio: 6,
+  aug: 7, ago: 7, août: 7, ağu: 7, august: 7, agosto: 7, augustus: 7,
+  sep: 8, sept: 8, set: 8, eyl: 8, september: 8, septiembre: 8, septembre: 8, setembro: 8, settembre: 8,
+  oct: 9, okt: 9, out: 9, ott: 9, eki: 9, october: 9, octubre: 9, octobre: 9, oktober: 9, outubro: 9, ottobre: 9,
+  nov: 10, kas: 10, november: 10, noviembre: 10, novembre: 10, novembro: 10,
+  dec: 11, dic: 11, déc: 11, dez: 11, ara: 11, december: 11, diciembre: 11, décembre: 11, dezember: 11, dezembro: 11, dicembre: 11
+};
+// An element's text with its pieces kept apart ("Date" "Jan 01, 2020",
+// not "DateJan 01, 2020": textContent runs the cells together)
+function spacedText(el) {
+  const parts = [];
+  const walk = (el.ownerDocument || document).createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  while (walk.nextNode()) parts.push(walk.currentNode.nodeValue);
+  return parts.join(' ');
+}
+function findExportDate(text) {
+  if (!text) return null;
+  const month = (word) => EXPORT_MONTHS[word.toLowerCase().replace(/\.$/, '')];
+  const at = (y, m, d) => {
+    if (m === undefined || d < 1 || d > 31 || y < 2000 || y > 2100) return null;
+    return new Date(y, m, d);
+  };
+  const name = '([\\p{L}]{3,10}\\.?)';
+  let match;
+  const monthFirst = new RegExp(`(?<![\\p{L}])${name}\\s+(\\d{1,2}),?\\s+(\\d{4})`, 'gu');
+  while ((match = monthFirst.exec(text))) { const d = at(+match[3], month(match[1]), +match[2]); if (d) return d; }
+  const dayFirst = new RegExp(`(?<!\\d)(\\d{1,2})\\.?\\s+(?:de\\s+)?${name}\\s+(?:de\\s+)?(\\d{4})`, 'gu');
+  while ((match = dayFirst.exec(text))) { const d = at(+match[3], month(match[2]), +match[1]); if (d) return d; }
+  const iso = /(?<!\d)(\d{4})-(\d{2})-(\d{2})(?!\d)/.exec(text);
+  return iso ? at(+iso[1], +iso[2] - 1, +iso[3]) : null;
+}
+
 /**
  * Parses text content as HTML and extracts user elements.
  */
@@ -673,6 +725,16 @@ function parseHTML(text) {
     const doc = parser.parseFromString(text, 'text/html');
     const results = [];
     const seenUsernames = new Set();
+    // How many tables / links a block holds, counted once per block (counted
+    // again for every entry, a big export took minutes)
+    const counts = new Map();
+    const countIn = (el, tag) => {
+      const key = el;
+      let c = counts.get(key);
+      if (!c) { c = {}; counts.set(key, c); }
+      if (c[tag] === undefined) c[tag] = el.getElementsByTagName(tag).length;
+      return c[tag];
+    };
 
     // 1. Try Meta HTML table format (like pending_follow_requests.html where usernames are in <td>)
     const tables = doc.querySelectorAll('table');
@@ -698,19 +760,15 @@ function parseHTML(text) {
         if (!seenUsernames.has(norm)) {
           seenUsernames.add(norm);
 
-          let timestamp = null;
+          // Its own table first, then only blocks holding just this table:
+          // one around every entry had their dates too (an entry took
+          // another's), and reading it again for each one took minutes on
+          // a big export.
+          let timestamp = findExportDate(spacedText(table));
           let parent = table.parentElement;
           let searchCount = 0;
-          while (parent && searchCount < 4) {
-            const siblingText = parent.textContent || '';
-            const dateMatch = siblingText.match(/(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+\d{4}/i) || 
-                              siblingText.match(/\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}/i);
-            if (dateMatch && !timestamp) {
-              const parsedDate = Date.parse(dateMatch[0]);
-              if (!isNaN(parsedDate)) {
-                timestamp = new Date(parsedDate);
-              }
-            }
+          while (!timestamp && parent && searchCount < 4 && countIn(parent, 'table') <= 1) {
+            timestamp = findExportDate(spacedText(parent));
             parent = parent.parentElement;
             searchCount++;
           }
@@ -757,16 +815,8 @@ function parseHTML(text) {
         let searchCount = 0;
         // Only this username's own block: one holding other links has their
         // dates too (a username without one took its neighbour's).
-        while (parent && searchCount < 3 && parent.querySelectorAll('a').length <= 1) {
-          const siblingText = parent.textContent || '';
-          const dateMatch = siblingText.match(/(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+\d{4}/i) || 
-                            siblingText.match(/\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}/i);
-          if (dateMatch && !timestamp) {
-            const parsedDate = Date.parse(dateMatch[0]);
-            if (!isNaN(parsedDate)) {
-              timestamp = new Date(parsedDate);
-            }
-          }
+        while (!timestamp && parent && searchCount < 3 && countIn(parent, 'a') <= 1) {
+          timestamp = findExportDate(spacedText(parent));
           parent = parent.parentElement;
           searchCount++;
         }
@@ -806,7 +856,8 @@ function parseRawText(text) {
     if (line.startsWith('@')) {
       line = line.substring(1);
     }
-    if (line.toLowerCase().endsWith("'s profile picture")) {
+    const fromPicture = line.toLowerCase().endsWith("'s profile picture");
+    if (fromPicture) {
       line = line.substring(0, line.length - 18).trim();
     }
 
@@ -821,7 +872,21 @@ function parseRawText(text) {
       // A copied list gives "name's profile picture" and then the name
       // again: the repeat is the same account, not another one.
       let j = i + 1;
-      if (j < lines.length && lines[j].replace(/^@/, '').toLowerCase() === cleanLower) j++;
+      // (only after its picture's line: a name spelled like the username —
+      // "marie", "Marie" — is the name)
+      if (fromPicture && j < lines.length && lines[j].replace(/^@/, '').toLowerCase() === cleanLower) j++;
+      // instagram.com's "·" between a name and its Follow button, and a
+      // "Verified" line, come before the full name: never the name itself
+      const filler = (l) => !/[\p{L}\p{N}]/u.test(l) || /^(verified|verificado|vérifié|verifiziert|verificato)$/i.test(l);
+      let dotted = false;
+      while (j < lines.length && filler(lines[j])) { if (!/[\p{L}\p{N}]/u.test(lines[j])) dotted = true; j++; }
+      // instagram.com's layout: "·", its Follow button, then the full name
+      // and its Remove button
+      if (dotted && j + 2 < lines.length + 1 && EXCLUDE_KEYWORDS.has((lines[j] || '').toLowerCase())
+          && lines[j + 1] && !EXCLUDE_KEYWORDS.has(lines[j + 1].toLowerCase()) && !lines[j + 1].includes('@')
+          && (!isValidUsername(lines[j + 1]) || EXCLUDE_KEYWORDS.has((lines[j + 2] || '').toLowerCase()))) {
+        j++;
+      }
       advance = j - i;
 
       // Lookahead at next 1-2 lines for names, dates, or buttons
