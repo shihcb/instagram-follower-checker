@@ -1415,8 +1415,9 @@ let glideFrame = 0;
 function measureGlide(box) {
   const inner = box.firstElementChild;
   if (!inner || !inner.classList.contains('glide-inner') || !box.clientWidth) return;
-  if (box._glideSettling) return; // (measured once its room has stopped changing)
   const over = inner.scrollWidth - box.clientWidth;
+  box.classList.toggle('overflows', over > 1); // (its faded edge, every frame)
+  if (box._glideSettling) return; // (measured once its room has stopped changing)
   const was = box.style.getPropertyValue('--glide');
   const glide = `${-Math.ceil(over)}px`;
   // Its room changed while it glides (select mode easing the row's buttons
@@ -1425,15 +1426,24 @@ function measureGlide(box) {
   // mid-glide threw the name sideways, then snapped it back.
   if (box.classList.contains('glides') && was && was !== glide) {
     const at = getComputedStyle(inner).transform;
+    const fade = getComputedStyle(box);
+    const fl = fade.getPropertyValue('--glide-fl'), fr = fade.getPropertyValue('--glide-fr');
     box._glideSettling = true;
     box.classList.remove('glides');
     inner.style.transform = at === 'none' ? '' : at;
+    // (its faded edges ease back from where they were too)
+    if (fl) box.style.setProperty('--glide-fl', fl.trim());
+    if (fr) box.style.setProperty('--glide-fr', fr.trim());
     void inner.offsetWidth;
     inner.style.transition = `transform ${ROW_MOTION_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`; // the list 3 slide
     inner.style.transform = 'translateX(0)';
+    box.style.setProperty('--glide-fl', '0px');
+    box.style.setProperty('--glide-fr', '14px');
     setTimeout(() => {
       inner.style.transition = '';
       inner.style.transform = '';
+      box.style.removeProperty('--glide-fl');
+      box.style.removeProperty('--glide-fr');
       box._glideSettling = false;
       measureGlide(box);
     }, ROW_MOTION_MS + 50);
