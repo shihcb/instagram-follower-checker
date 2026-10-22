@@ -1713,7 +1713,7 @@
     return `<div class="user-row" data-username="${esc(u.username)}">
           <div class="user-info">
             <a href="${href}" target="_blank" rel="noopener" class="user-avatar-link" title="visit instagram profile"><div class="user-avatar">${esc(name.substring(0, 2))}</div></a>
-            <div class="user-details"><a href="${href}" target="_blank" rel="noopener" class="user-link">@${esc(name)}</a>${note ? `<span class="user-fullname">${esc(note)}</span>` : ''}</div>
+            <div class="user-details"><a href="${href}" target="_blank" rel="noopener" class="user-link"><span class="glide-inner">@${esc(name)}</span></a>${note ? `<span class="user-fullname">${esc(note)}</span>` : ''}</div>
           </div>
           <div class="user-meta"><div class="user-row-actions">
             ${dismiss === 'pending' ? `<button class="action-star" aria-label="star this account" title="move to the starred list">${STAR_ICON}</button><button class="action-delete" aria-label="unfollow this account" title="move to the unfollowed list">${TRASH_ICON}</button>` : ''}

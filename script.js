@@ -1110,7 +1110,7 @@ function updateUnfollowedUI(enteringUsername) {
       <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; max-height: 440px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
           <div class="parsed-item" data-username="${escapeHtml(user.username)}" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-            <a href="${escapeHtml(safeProfileUrl(user))}" target="_blank" rel="noopener" class="parsed-username">@${escapeHtml(user.originalUsername)}</a>
+            <a href="${escapeHtml(safeProfileUrl(user))}" target="_blank" rel="noopener" class="parsed-username"><span class="glide-inner">@${escapeHtml(user.originalUsername)}</span></a>
             <div style="display: flex; align-items: center; gap: 6px;">
               <div class="dropdown-actions-group">
                 <button class="star-unfollowed-btn" data-username="${escapeHtml(user.username)}" aria-label="star this account" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-main); padding: 2px;" title="move to the starred list">
@@ -1219,7 +1219,7 @@ function updateStarredUI(enteringUsername) {
       <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; max-height: 440px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
           <div class="parsed-item" data-username="${escapeHtml(user.username)}" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-            <a href="${escapeHtml(safeProfileUrl(user))}" target="_blank" rel="noopener" class="parsed-username">@${escapeHtml(user.originalUsername)}</a>
+            <a href="${escapeHtml(safeProfileUrl(user))}" target="_blank" rel="noopener" class="parsed-username"><span class="glide-inner">@${escapeHtml(user.originalUsername)}</span></a>
             <div style="display: flex; align-items: center; gap: 6px;">
               <div class="dropdown-actions-group">
                 <button class="unstar-btn" data-username="${escapeHtml(user.username)}" aria-label="unstar this account" style="border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px;" title="unstar this account">
@@ -1404,6 +1404,46 @@ function setCountBadge(el, n, word) {
   el._countRaf = requestAnimationFrame(step);
 }
 
+// A username longer than its row glides sideways to show the rest, then
+// back, again and again — the financial dashboard's glide (its marquee):
+// it never wraps and never ends in "…". Only one that doesn't fit moves,
+// measured whenever a row comes in or its room changes (a narrower
+// screen, select mode). Its style is .glides in style.css.
+const GLIDE_NAMES = '.user-link, .parsed-username';
+const glideQueue = new Set();
+let glideFrame = 0;
+function measureGlide(box) {
+  const inner = box.firstElementChild;
+  if (!inner || !inner.classList.contains('glide-inner') || !box.clientWidth) return;
+  const over = inner.scrollWidth - box.clientWidth;
+  box.classList.toggle('glides', over > 1);
+  box.style.setProperty('--glide', `${-Math.ceil(over)}px`);
+  box.style.setProperty('--glide-time', `${Math.max(3, over / 20).toFixed(1)}s`);
+}
+function queueGlide(box) {
+  glideQueue.add(box);
+  if (!glideFrame) glideFrame = requestAnimationFrame(() => {
+    glideFrame = 0;
+    glideQueue.forEach(measureGlide);
+    glideQueue.clear();
+  });
+}
+const glideSizes = typeof ResizeObserver === 'function'
+  ? new ResizeObserver(entries => entries.forEach(entry => queueGlide(entry.target)))
+  : null;
+function watchGlides(root) {
+  if (!root || root.nodeType !== 1) return;
+  const boxes = root.matches(GLIDE_NAMES) ? [root] : root.querySelectorAll(GLIDE_NAMES);
+  boxes.forEach(box => { if (glideSizes) glideSizes.observe(box); queueGlide(box); });
+}
+if (typeof MutationObserver === 'function') {
+  new MutationObserver(records => records.forEach(record => record.addedNodes.forEach(watchGlides)))
+    .observe(document.documentElement, { childList: true, subtree: true });
+}
+// (the app's font arriving changes how long every name is)
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => document.querySelectorAll(GLIDE_NAMES).forEach(queueGlide));
+document.addEventListener('DOMContentLoaded', () => watchGlides(document.body));
+
 function updateListUI(type) {
   const listData = state[type];
   const countBadge = elements[`${type}Count`];
@@ -1434,9 +1474,7 @@ function renderUnfollowerRowHtml(user, index) {
           <div class="user-avatar">${initials}</div>
         </a>
         <div class="user-details">
-          <a href="${profileHref}" target="_blank" rel="noopener" class="user-link">
-            @${escapeHtml(user.originalUsername)}
-          </a>
+          <a href="${profileHref}" target="_blank" rel="noopener" class="user-link"><span class="glide-inner">@${escapeHtml(user.originalUsername)}</span></a>
           ${user.fullName ? `<span class="user-fullname">${escapeHtml(user.fullName)}</span>` : ''}
         </div>
       </div>

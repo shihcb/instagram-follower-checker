@@ -43,7 +43,10 @@ fades across — the old words out where they were, the new in (swapText;
 page gets shorter it glides up on the curve (setupPageGlide). A button waiting on
 something (log in, google drive's sync, a saved import coming down) keeps its
 words, dimmed a little, and glides wider as a spinner swoops in after them,
-then back once done (workButton) — never "syncing". With the
+then back once done (workButton) — never "syncing". A username too long
+for its row glides sideways to show the rest and back, on a loop, its
+passing edge fading (the dashboard's marquee: .glides, measureGlide) —
+never wrapped, never "…". With the
 phone's Reduce Motion on, everything goes straight to where it's headed
 (spinners keep turning). These come from the financial dashboard.
 

@@ -6714,6 +6714,34 @@ html.booting .app-container {
   opacity: 0 !important;
 }
 
+/* A username longer than its row glides to show the rest, then back, and
+   again (the financial dashboard's glide: its marquee) — one line, never
+   wrapped or ending in "…". measureGlide (script.js) adds .glides only to
+   one that doesn't fit, with how far (--glide) and how long (--glide-time).
+   It waits, glides, holds at the end, glides back; the edge it runs on past
+   fades out instead of cutting a letter in half (the right edge at rest,
+   the left at the far end). */
+.user-link > .glide-inner,
+.parsed-username > .glide-inner {
+  display: inline-block;
+  white-space: nowrap;
+}
+.user-link.glides > .glide-inner,
+.parsed-username.glides > .glide-inner {
+  animation: dd-glide var(--glide-time, 6s) ease-in-out infinite alternate;
+}
+@keyframes dd-glide { 0%, 20% { transform: translateX(0); } 80%, 100% { transform: translateX(var(--glide, 0px)); } }
+@property --glide-fl { syntax: '<length>'; inherits: false; initial-value: 0px; }
+@property --glide-fr { syntax: '<length>'; inherits: false; initial-value: 14px; }
+@keyframes glide-fade { 0%, 20% { --glide-fl: 0px; --glide-fr: 14px; } 80%, 100% { --glide-fl: 14px; --glide-fr: 0px; } }
+.user-link.glides,
+.parsed-username.glides {
+  text-overflow: clip;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--glide-fl), #000 calc(100% - var(--glide-fr)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--glide-fl), #000 calc(100% - var(--glide-fr)), transparent 100%);
+  animation: glide-fade var(--glide-time, 6s) ease-in-out infinite alternate;
+}
+
 /* Reduce Motion (the phone's setting), like the financial dashboard:
    everything goes straight to where it's headed. Only the loading spinners
    keep turning. (0.01ms, not 0: a transition that never runs never ends,
@@ -6729,4 +6757,8 @@ html.booting .app-container {
   }
   .rows-more-spinner, .work-spinner { animation-duration: 0.7s !important; animation-iteration-count: infinite !important; }
   .boot-spinner { animation-duration: 0.8s !important; animation-iteration-count: infinite !important; }
+  /* (a long name stays still, faded at its right edge: run once, the glide
+     would have ended at its far end) */
+  .user-link.glides, .parsed-username.glides,
+  .user-link.glides > .glide-inner, .parsed-username.glides > .glide-inner { animation: none !important; }
 }
