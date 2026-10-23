@@ -7187,3 +7187,55 @@ b, strong {
   display: inline-flex;
   flex: none;
 }
+
+/* Settings, spaced as the financial dashboard's: 340px, 18px in from its
+   edges, and everything in it 12px apart — the boxes, the rows (no padding
+   of their own: they were ~24px apart), the buttons one group 8px apart and
+   40px tall, the version 8px under them. Row labels 600, a box's value in
+   the accent, sync now dimmed while it can't be tapped. */
+html.is-logged-in .auth-dropdown {
+  width: 340px;
+  padding: 18px;
+  gap: 12px;
+}
+html.is-logged-in #auth-profile-view {
+  display: flex !important;
+  flex-direction: column;
+  gap: 12px;
+}
+html.is-logged-in #auth-profile-view > * {
+  margin: 0 !important;
+}
+html.is-logged-in .auth-settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+html.is-logged-in .auth-settings-section .setting-item-row {
+  padding: 0;
+  margin: 0;
+  min-height: 24px;
+}
+html.is-logged-in .auth-settings-section .setting-label {
+  font-weight: 600;
+}
+html.is-logged-in #auth-profile-view .storage-value {
+  color: var(--success-color);
+}
+html.is-logged-in #auth-profile-view > .btn.btn-block {
+  height: 40px;
+  min-height: 40px;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-radius: 10px;
+}
+html.is-logged-in #auth-profile-view > .btn.drive-sync {
+  margin-bottom: -4px !important; /* (with log out: one group, 8px apart) */
+}
+html.is-logged-in #auth-profile-view > .app-version {
+  margin-top: -4px !important; /* (8px under the buttons) */
+}
+.btn.drive-sync:disabled:not(.busy) {
+  opacity: .45;
+  cursor: default;
+}
