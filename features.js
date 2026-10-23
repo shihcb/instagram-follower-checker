@@ -1039,9 +1039,20 @@
       bar.stage('finding exports', 0.1);
       const firstSync = !storageGet('drive_checked');
       const seen = new Set(driveSeen());
-      let fresh = (await findDriveExports()).filter(e => !seen.has(e.id) && Number.isFinite(e.at)).sort((a, b) => b.at - a.at);
+      const all = (await findDriveExports()).filter(e => Number.isFinite(e.at));
+      let fresh = all.filter(e => !seen.has(e.id)).sort((a, b) => b.at - a.at);
       if (firstSync) { fresh.slice(DRIVE_FIRST_MAX).forEach(e => markSeen(e.id)); fresh = fresh.slice(0, DRIVE_FIRST_MAX); }
-      fresh.reverse(); // oldest first
+      // An account's newest export brought in before its followers had
+      // come into drive (list 2 full, list 1 empty): brought in again, once,
+      // now that they're there.
+      const repaired = new Set(readJSON('drive_repaired', []));
+      const newest = new Map();
+      all.filter(e => e.who && !e.zip).forEach(e => { if (!newest.has(e.who) || newest.get(e.who).at < e.at) newest.set(e.who, e); });
+      newest.forEach((e, who) => {
+        if (!seen.has(e.id) || repaired.has(e.id) || fresh.includes(e)) return;
+        if (readJSON(`following_users_${who}`, []).length && !readJSON(`followers_users_${who}`, []).length) { e.repair = true; fresh.push(e); }
+      });
+      fresh.sort((a, b) => a.at - b.at); // oldest first
       shown = state.selectedAccountUsername;
       stillHere();
       for (let i = 0; i < fresh.length; i++) {
@@ -1049,12 +1060,24 @@
         bar.stage(`importing ${i + 1} of ${fresh.length}`, 0.15 + 0.75 * (i / fresh.length));
         const files = await driveExportFiles(exp);
         stillHere();
+        // Instagram makes an export's folder first and puts its files in one
+        // by one: one with only following.json so far was brought in alone —
+        // list 1 left empty, everyone not following back — and never looked
+        // at again. It waits (looked at next time) until both lists are
+        // there, for a day; then what's there comes in.
+        const sides = (type) => files.some(f => (type === 'following' ? /^following\.(html|json)$/i : /^followers(_\d+)?\.(html|json)$/i).test(f.name));
+        const whole = exp.zip || (sides('following') && sides('followers'));
+        if (!whole && Date.now() - exp.at < 24 * 3600 * 1000) continue;
+        if (exp.repair) {
+          if (!whole) continue;
+          writeJSON('drive_repaired', [...readJSON('drive_repaired', []), exp.id].slice(-50));
+        }
         let who = exp.who;
         if (exp.zip && !who) who = (await peekExport(files[0])).who;
         stillHere();
         // Lists already newer than this export (an import since) stay.
         const latest = who ? Number(storageGet(dataDateKey(who)) || storageGet(getImportDateKey(who))) || 0 : 0;
-        if (files.length && latest < exp.at) {
+        if (files.length && (latest < exp.at || (exp.repair && latest <= exp.at))) {
           importAt = exp.at;
           try { if (await processImportFiles(files, true, { username: who })) imported++; } finally { importAt = null; }
           await new Promise(resolve => setTimeout(resolve, ROW_MOTION_MS));
