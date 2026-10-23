@@ -7488,6 +7488,14 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
 .account-modal-card {
   width: 100% !important;
 }
+/* (a computer's screen: every pop-up wider, the dashboard's 560px window
+   on 48rem and up) */
+@media (min-width: 48rem) {
+  .modal-overlay .account-modal-card,
+  .modal-overlay .confirm-modal-box {
+    max-width: 560px !important;
+  }
+}
 /* Phones: the dashboard's 16px sides, 24px top, 12px between, and its
    panels' 16px 18px */
 @media (max-width: 640px) {
