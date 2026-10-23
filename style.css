@@ -128,7 +128,10 @@ html, body {
   --accent: #23634a;
   --success-color: var(--accent);
   --error-color: #0f172a;
-  --warning-color: #f59e0b;
+  --warning-color: var(--warn);
+  /* The dashboard's red and amber */
+  --bad: #b3261e;
+  --warn: #9a6100;
 
   --scrollbar-thumb: rgba(9, 9, 11, 0.15);
   --scrollbar-track: rgba(9, 9, 11, 0.03);
@@ -139,6 +142,8 @@ html, body {
 [data-theme="dark"] {
   /* Dark Theme variables */
   --accent: #6cc39b;
+  --bad: #f29a90;
+  --warn: #e8b55c;
   --grad-1: #ffffff;
   --grad-2: #a1a1aa; /* Light gray */
   --grad-3: #3f3f46; /* Medium gray */
@@ -689,13 +694,13 @@ button:disabled *,
 }
 
 .import-account-warning svg {
-  color: #f59e0b;
+  color: var(--warn);
   flex-shrink: 0;
 }
 
 [data-theme="dark"] .import-account-warning {
-  background-color: rgba(245, 158, 11, 0.12);
-  border-color: rgba(245, 158, 11, 0.25);
+  background-color: color-mix(in srgb, var(--warn) 12%, transparent);
+  border-color: color-mix(in srgb, var(--warn) 25%, transparent);
   color: #ffffff !important;
 }
 
@@ -1149,9 +1154,9 @@ button:disabled *,
 
 #reset-unfollowed-btn,
 [data-theme="dark"] #reset-unfollowed-btn {
-  background-color: rgba(239, 68, 68, 0.12) !important;
-  color: #ef4444 !important;
-  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  background-color: color-mix(in srgb, var(--bad) 12%, transparent) !important;
+  color: var(--bad) !important;
+  border: 1px solid color-mix(in srgb, var(--bad) 30%, transparent) !important;
   font-weight: 600 !important;
   border-radius: 12px !important;
   transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -1159,17 +1164,17 @@ button:disabled *,
 
 #reset-unfollowed-btn svg,
 [data-theme="dark"] #reset-unfollowed-btn svg {
-  color: #ef4444 !important;
-  stroke: #ef4444 !important;
+  color: var(--bad) !important;
+  stroke: var(--bad) !important;
   transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 #reset-unfollowed-btn:hover,
 [data-theme="dark"] #reset-unfollowed-btn:hover {
-  background-color: #ef4444 !important;
-  color: #ffffff !important;
-  border-color: #ef4444 !important;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35) !important;
+  background-color: var(--bad) !important;
+  color: var(--card-bg) !important;
+  border-color: var(--bad) !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--bad) 35%, transparent) !important;
 }
 
 #reset-unfollowed-btn:hover svg,
@@ -1672,45 +1677,45 @@ body.hide-shortcuts #keyboard-hints {
 .action-star,
 .star-unfollowed-btn,
 .unstar-btn {
-  color: #f59e0b !important;
+  color: var(--warn) !important;
 }
 .action-star svg,
 .star-unfollowed-btn svg,
 .unstar-btn svg {
-  color: #f59e0b !important;
-  stroke: #f59e0b !important;
+  color: var(--warn) !important;
+  stroke: var(--warn) !important;
   fill: none !important;
 }
 [data-theme="dark"] .action-star svg,
 [data-theme="dark"] .star-unfollowed-btn svg,
 [data-theme="dark"] .unstar-btn svg {
-  color: #fbbf24 !important;
-  stroke: #fbbf24 !important;
+  color: var(--warn) !important;
+  stroke: var(--warn) !important;
   fill: none !important;
 }
 
 /* Only filled in for starred items (items in starred list, or starred action items) */
 .action-star.starred svg,
 .unstar-btn svg {
-  fill: #f59e0b !important;
+  fill: var(--warn) !important;
 }
 [data-theme="dark"] .action-star.starred svg,
 [data-theme="dark"] .unstar-btn svg {
-  fill: #fbbf24 !important;
+  fill: var(--warn) !important;
 }
 
 .unfollow-starred-btn,
 .action-delete,
 .remove-unfollowed-btn,
 .action-dismiss {
-  color: #ef4444 !important;
+  color: var(--bad) !important;
 }
 .unfollow-starred-btn svg,
 .action-delete svg,
 .remove-unfollowed-btn svg,
 .action-dismiss svg {
-  color: #ef4444 !important;
-  stroke: #ef4444 !important;
+  color: var(--bad) !important;
+  stroke: var(--bad) !important;
 }
 
 .action-arrow {
@@ -2100,7 +2105,7 @@ body.hide-shortcuts #keyboard-hints {
   background-color: transparent !important;
   border: none !important;
   line-height: 1;
-  color: #ef4444 !important;
+  color: var(--text-muted) !important;
   cursor: pointer;
   transition: color 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   outline: none !important;
@@ -2128,7 +2133,7 @@ body.hide-shortcuts #keyboard-hints {
 @media (hover: hover) {
   .modal-x:hover,
   .modal-close-btn:hover {
-    opacity: 0.75;
+    color: var(--text-main) !important;
     background: transparent !important;
     background-color: transparent !important;
   }
@@ -2672,7 +2677,7 @@ html.hide-shortcuts .account-chip-badge {
 }
 
 [data-theme="dark"] .modal-close-btn {
-  color: #ef4444 !important;
+  color: var(--text-muted) !important;
 }
 
 .account-modal-input-group {
@@ -2730,10 +2735,10 @@ html.hide-shortcuts .account-chip-badge {
 [data-theme="dark"] #btn-confirm-ok,
 [data-theme="dark"] #btn-modal-delete,
 [data-theme="dark"] .btn-danger-soft {
-  background-color: rgba(239, 68, 68, 0.12) !important;
-  background: rgba(239, 68, 68, 0.12) !important;
-  color: #ef4444 !important;
-  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  background-color: color-mix(in srgb, var(--bad) 12%, transparent) !important;
+  background: color-mix(in srgb, var(--bad) 12%, transparent) !important;
+  color: var(--bad) !important;
+  border: 1px solid color-mix(in srgb, var(--bad) 30%, transparent) !important;
   font-weight: 600 !important;
   border-radius: 12px !important;
   transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -2745,11 +2750,11 @@ html.hide-shortcuts .account-chip-badge {
 [data-theme="dark"] #btn-confirm-ok:hover,
 [data-theme="dark"] #btn-modal-delete:hover,
 [data-theme="dark"] .btn-danger-soft:hover:not(:disabled) {
-  background-color: #ef4444 !important;
-  background: #ef4444 !important;
-  color: #ffffff !important;
-  border-color: #ef4444 !important;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35) !important;
+  background-color: var(--bad) !important;
+  background: var(--bad) !important;
+  color: var(--card-bg) !important;
+  border-color: var(--bad) !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--bad) 35%, transparent) !important;
 }
 
 /* The pop-up's confirm button is red only when it deletes or resets
@@ -3136,23 +3141,23 @@ html.hide-shortcuts .account-chip-badge {
 }
 
 .action-star svg {
-  stroke: #f59e0b !important;
+  stroke: var(--warn) !important;
   fill: none !important;
 }
 
 [data-theme="dark"] .action-star svg {
-  stroke: #fbbf24 !important;
+  stroke: var(--warn) !important;
   fill: none !important;
 }
 
 .unstar-btn svg {
-  fill: #f59e0b !important;
-  stroke: #f59e0b !important;
+  fill: var(--warn) !important;
+  stroke: var(--warn) !important;
 }
 
 [data-theme="dark"] .unstar-btn svg {
-  fill: #fbbf24 !important;
-  stroke: #fbbf24 !important;
+  fill: var(--warn) !important;
+  stroke: var(--warn) !important;
 }
 
 /* -------------------------------------------------------------
@@ -4380,7 +4385,7 @@ body:not(.auth-logged-out) #theme-toggle {
 .love-card {
   background: rgba(255, 255, 255, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 25px 50px -12px rgba(239, 68, 68, 0.25), 0 0 40px rgba(239, 68, 68, 0.1);
+  box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--bad) 25%, transparent), 0 0 40px color-mix(in srgb, var(--bad) 10%, transparent);
   border-radius: 24px;
   padding: 40px;
   text-align: center;
@@ -4402,7 +4407,7 @@ body:not(.auth-logged-out) #theme-toggle {
 [data-theme="dark"] .love-card {
   background: rgba(24, 24, 27, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 25px 50px -12px rgba(239, 68, 68, 0.4), 0 0 45px rgba(239, 68, 68, 0.15);
+  box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--bad) 40%, transparent), 0 0 45px color-mix(in srgb, var(--bad) 15%, transparent);
 }
 
 .love-overlay.show .love-card {
@@ -4411,8 +4416,8 @@ body:not(.auth-logged-out) #theme-toggle {
 }
 
 .love-heart-main {
-  color: #ef4444;
-  filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.6));
+  color: var(--bad);
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--bad) 60%, transparent));
   animation: love-heart-beat 1.2s infinite alternate cubic-bezier(0.215, 0.61, 0.355, 1);
 }
 
@@ -4420,8 +4425,8 @@ body:not(.auth-logged-out) #theme-toggle {
   font-family: var(--font-display);
   font-size: 1.8rem;
   font-weight: 500;
-  color: #ef4444;
-  text-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+  color: var(--bad);
+  text-shadow: 0 0 15px color-mix(in srgb, var(--bad) 20%, transparent);
   letter-spacing: normal;
   margin: 0;
   animation: love-text-glow 1.5s infinite alternate;
@@ -4451,8 +4456,6 @@ body:not(.auth-logged-out) #theme-toggle {
 
 @media (hover: hover) {
   .love-close-btn:hover {
-    transform: scale(1.04);
-    opacity: 0.92;
     background: var(--text-main) !important;
     color: var(--text-inverse) !important;
   }
@@ -4482,14 +4485,14 @@ body:not(.auth-logged-out) #theme-toggle {
   }
   100% {
     opacity: 1;
-    text-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+    text-shadow: 0 0 20px color-mix(in srgb, var(--bad) 40%, transparent);
   }
 }
 
 /* Floating tiny background hearts */
 .love-heart-float {
   position: absolute;
-  color: rgba(239, 68, 68, 0.25);
+  color: color-mix(in srgb, var(--bad) 25%, transparent);
   pointer-events: none;
   animation: love-heart-float-up 4s linear infinite;
 }
@@ -4688,15 +4691,15 @@ textarea {
 }
 
 .reset-reminder-box.overdue {
-  border-color: rgba(239, 68, 68, 0.35);
+  border-color: color-mix(in srgb, var(--bad) 35%, transparent);
 }
 
 .reset-reminder-box.overdue .storage-value {
-  color: #ef4444;
+  color: var(--bad);
 }
 
 .reset-reminder-box.overdue .storage-progress-fill {
-  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  background: var(--bad);
 }
 
 /* Overlay simple slow fade out & blur exit */
@@ -5038,9 +5041,9 @@ button:focus-visible,
   /* Spans the content box, like the import files bar above it. */
   flex: 1 1 100%;
   justify-content: center;
-  border-color: #f59e0b;
+  border-color: var(--warn);
   color: #d97706;
-  background: rgba(245, 158, 11, 0.08);
+  background: color-mix(in srgb, var(--warn) 8%, transparent);
 }
 
 #list-unfollowers .user-row {
@@ -5182,7 +5185,7 @@ body.select-active #card-followers {
   color: #d97706;
 }
 .row-select-bar button[data-bulk="unfollow"] {
-  color: #ef4444;
+  color: var(--bad);
 }
 @media (hover: hover) {
   .row-select-bar button:not(:disabled):hover {
@@ -6402,7 +6405,7 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
   -webkit-user-select: none;
 }
 .app-version:active {
-  opacity: 0.6;
+  color: var(--text-main);
 }
 .app-version:empty {
   display: none;
@@ -6517,14 +6520,14 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
    filled red, and its row's text turns red, until that list is reset. */
 .btn-danger-soft.reset-due,
 [data-theme="dark"] .btn-danger-soft.reset-due {
-  background: #ef4444 !important;
-  background-color: #ef4444 !important;
-  color: #ffffff !important;
-  border-color: #ef4444 !important;
+  background: var(--bad) !important;
+  background-color: var(--bad) !important;
+  color: var(--card-bg) !important;
+  border-color: var(--bad) !important;
 }
 .setting-item-row.reset-due .setting-label,
 .setting-item-row.reset-due .setting-desc {
-  color: #ef4444;
+  color: var(--bad);
 }
 
 .saved-imports-help {
@@ -7303,7 +7306,7 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
 [data-theme="dark"] #btn-modal-delete {
   background: transparent !important;
   border: 1px solid var(--card-border) !important;
-  color: #ef4444 !important;
+  color: var(--bad) !important;
   box-shadow: none !important;
 }
 @media (hover: hover) {
@@ -7320,16 +7323,16 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
   #btn-modal-delete:hover,
   [data-theme="dark"] #btn-modal-delete:hover {
     background: transparent !important;
-    color: #ef4444 !important;
+    color: var(--bad) !important;
     border-color: var(--text-muted) !important;
   }
 }
 /* (a list due its reset keeps its filled red button: it's a state) */
 .btn-danger-soft.reset-due,
 [data-theme="dark"] .btn-danger-soft.reset-due {
-  background: #ef4444 !important;
-  border-color: #ef4444 !important;
-  color: #ffffff !important;
+  background: var(--bad) !important;
+  border-color: var(--bad) !important;
+  color: var(--card-bg) !important;
 }
 
 /* The search: the dashboard's — no glass, 7px 10px, the page's colour */
@@ -7598,7 +7601,7 @@ html.is-logged-in .auth-dropdown {
   background: transparent !important;
   background-color: transparent !important;
   border: 1px solid var(--card-border) !important;
-  color: #ef4444 !important;
+  color: var(--bad) !important;
   box-shadow: none !important;
 }
 /* Old dark colours on the new palette */
@@ -7612,7 +7615,29 @@ html.is-logged-in .auth-dropdown {
 /* A list due its reset: its button red in dark too */
 [data-theme="dark"] #settings-reset-unfollowed-btn.reset-due,
 [data-theme="dark"] #settings-reset-starred-btn.reset-due {
-  background: #ef4444 !important;
-  border-color: #ef4444 !important;
-  color: #ffffff !important;
+  background: var(--bad) !important;
+  border-color: var(--bad) !important;
+  color: var(--card-bg) !important;
 }
+
+/* Dark's leftovers from the old zinc palette, on the app's own colours */
+[data-theme="dark"] .btn-secondary,
+[data-theme="dark"] .preview-toggle,
+[data-theme="dark"] #toggle-preview-unfollowed:active,
+[data-theme="dark"] #toggle-preview-starred:active,
+[data-theme="dark"] .keyboard-hints kbd { color: var(--text-main) !important; }
+@media (hover: hover) and (pointer: fine) {
+  [data-theme="dark"] .btn-secondary:hover:not(:disabled) { background-color: color-mix(in srgb, var(--text-main) 6%, var(--btn-secondary-bg)) !important; }
+}
+[data-theme="dark"] .preview-toggle:disabled,
+[data-theme="dark"] .preview-toggle.is-empty { color: var(--text-muted) !important; border-color: var(--card-border) !important; }
+[data-theme="dark"] .auth-tab-indicator { background-color: var(--btn-secondary-bg); }
+.landing-header, [data-theme="light"] .landing-header { background: color-mix(in srgb, var(--bg-color) 85%, transparent); }
+/* Titles in one flat colour */
+.hero-headline, [data-theme="light"] .hero-headline,
+.auth-brand h2, [data-theme="light"] .auth-brand h2 {
+  background: none; -webkit-text-fill-color: currentColor; color: var(--text-main);
+}
+/* Settings' boxes on the page's colour */
+.supabase-storage-box, [data-theme="light"] .supabase-storage-box,
+.reset-reminder-box, [data-theme="light"] .reset-reminder-box { background: var(--bg-color); }

@@ -1102,7 +1102,7 @@
     }
   }
   async function disconnectDrive() {
-    const ok = await showSiteConfirm('disconnect google drive?', 'exports already imported stay — new ones won’t come in until you connect again', 'disconnect', 'cancel');
+    const ok = await showSiteConfirm('disconnect google drive?', '', 'disconnect', 'cancel');
     if (!ok) return;
     if (driveToken && window.google && google.accounts && google.accounts.oauth2) google.accounts.oauth2.revoke(driveToken.value, () => {});
     driveToken = null;
@@ -2177,8 +2177,8 @@
     const dots = [...fresh.querySelectorAll('.tl-dot')];
     dots.forEach(d => chart.appendChild(d));
     if (typeof chart.animate === 'function') {
-      oldDots.forEach(({ d }) => { d.classList.add('tl-dot-old'); d.animate([{ opacity: 1 }, { opacity: 0 }], { duration: TL_MS * 0.6, easing: MODAL_EASE, fill: 'forwards' }); });
-      dots.forEach(d => d.animate([{ opacity: 0 }, { opacity: 1 }], { duration: TL_MS * 0.6, delay: TL_MS * 0.4, easing: MODAL_EASE, fill: 'backwards' }));
+      oldDots.forEach(({ d }) => { d.classList.add('tl-dot-old'); d.animate([{ opacity: 1 }, { opacity: 0 }], { duration: TL_MS, easing: MODAL_EASE, fill: 'forwards' }); });
+      dots.forEach(d => d.animate([{ opacity: 0 }, { opacity: 1 }], { duration: TL_MS, easing: MODAL_EASE, fill: 'backwards' }));
     }
     setTimeout(() => oldDots.forEach(({ d }) => d.remove()), TL_MS + 50);
     const paths = [...chart.querySelectorAll('.tl-line')];

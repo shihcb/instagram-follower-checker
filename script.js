@@ -309,7 +309,7 @@ function setTheme(theme) {
     themeColorMeta.id = 'theme-color-meta';
     document.head.appendChild(themeColorMeta);
   }
-  themeColorMeta.setAttribute('content', theme === 'dark' ? '#09090b' : '#fafafa');
+  themeColorMeta.setAttribute('content', theme === 'dark' ? '#111513' : '#f4f5f3');
 }
 
 // Custom Site Pop-up Confirm & Alert Modal Helpers
@@ -6766,7 +6766,7 @@ function initAuth() {
     }, 0);
   });
   async function askNewPassword() {
-    let note = 'enter a new password for this account';
+    let note = '';
     for (;;) {
       const answer = await showSiteConfirm('new password', note, 'save', 'cancel', { value: '', placeholder: 'new password', type: 'password' });
       if (answer == null || answer === '') return;
@@ -7287,7 +7287,7 @@ function initAuth() {
       try { ({ error } = await supabaseClient.auth.signInWithPassword({ email, password })); } catch (err) { console.error(err); error = {}; }
       
       if (error) {
-        showAuthError(authMessage(error, 'couldn’t log in'));
+        showAuthError(authMessage(error, 'you couldn’t be logged in'));
       } else {
         loggedIn = true;
         if (document.activeElement && typeof document.activeElement.blur === 'function') {
@@ -7615,7 +7615,18 @@ function restartAlertAnimation(el) {
 function authMessage(error, fallback) {
   const msg = error && error.message;
   if (!msg || error.name === 'AuthRetryableFetchError' || error.status === 0 || /failed to fetch|load failed|network|fetch/i.test(msg)) return fallback;
-  return msg;
+  // Supabase's own words, said the app's way (what couldn't be done — why)
+  const why = [
+    [/invalid login credentials/i, 'wrong email or password'],
+    [/email not confirmed/i, 'email not confirmed yet'],
+    [/already (been )?registered|already exists/i, 'that email already has an account'],
+    [/at least (\d+) characters/i, m => `it needs at least ${m[1]} characters`],
+    [/different from the old/i, 'it’s the same as before'],
+    [/invalid format|valid email|email address .* is invalid/i, 'that email isn’t valid'],
+    [/rate limit|security purposes|too many/i, 'try again in a minute'],
+  ].find(([re]) => re.test(msg));
+  if (!why) return fallback;
+  return `${fallback} — ${typeof why[1] === 'function' ? why[1](msg.match(why[0])) : why[1]}`;
 }
 function showAuthError(msg) {
   setAuthAlert(elements.authSuccessMsg, null);
