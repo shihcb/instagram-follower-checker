@@ -7345,6 +7345,12 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
   font-weight: 600 !important;
   line-height: 28px !important;
 }
+/* (its ✕ centred on the title's letters, tall ones and all — the whole
+   word's middle sits a pixel over its line's, so on the line's middle the
+   ✕ read low) */
+.account-modal-header .modal-close-btn {
+  translate: 0 -1px;
+}
 .account-modal-input-group label {
   margin-bottom: 4px !important;
 }
