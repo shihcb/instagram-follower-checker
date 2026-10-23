@@ -804,7 +804,10 @@
       if (!entry || row.classList.contains('at-work')) return;
       // (its spinner after the words while the files come down)
       workButton(row, true);
-      downloadSaved(key, entry).then((saved) => workDone(row, !!saved),
+      // (the download starts once the spinner has glided in: saving the file
+      // at once — a changes-only import, a quick zip — froze the page as it
+      // came, the words snapping over and the spinner popping in)
+      new Promise(resolve => setTimeout(resolve, canAnimate(row) ? ROW_MOTION_MS : 0)).then(() => downloadSaved(key, entry)).then((saved) => workDone(row, !!saved),
         err => { workButton(row, false); console.error('[features] download failed:', err); showSiteAlert('import couldn’t be downloaded', 'its files aren’t in the cloud yet'); });
     });
     // Escape closes just this window (not the settings panel as well).
