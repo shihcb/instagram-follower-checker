@@ -1200,8 +1200,8 @@
         old.inert = true;
         holder.appendChild(node);
         const drop = () => old.remove();
-        old.animate([{ opacity: 1 }, { opacity: 0 }], { ...MOTION, fill: 'forwards' }).finished.then(drop, drop);
-        node.animate([{ opacity: 0 }, { opacity: 1 }], MOTION);
+        crossOut(old).finished.then(drop, drop);
+        crossIn(node);
       } else {
         holder.replaceChildren(node);
       }

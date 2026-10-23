@@ -3849,6 +3849,23 @@ if (typeof Element !== 'undefined' && Element.prototype.animate) {
 function fadeIn(node) {
   if (canAnimate(node)) node.animate([{ opacity: 0 }, { opacity: 1 }], { ...MOTION, fill: 'backwards' });
 }
+// The crossfade's two halves (swapText, and anything swapped in place): the
+// old words hold a moment, then go (easing in); the new come up at once
+// (easing out); both pass through a slight blur. Faded on the same curve,
+// the two met at half strength — a dip, two half-words on top of each
+// other; this way they read as one word turning into the next. The list 3
+// slide's 450ms, as everything.
+const CROSS_OUT = 'cubic-bezier(0.55, 0, 1, 0.45)';
+const CROSS_IN = 'cubic-bezier(0, 0.55, 0.45, 1)';
+function crossOut(node, from = 1) {
+  return node.animate([{ opacity: from, filter: 'blur(0px)' }, { opacity: 0, filter: 'blur(2px)' }],
+    { duration: ROW_MOTION_MS, easing: CROSS_OUT, fill: 'forwards' });
+}
+function crossIn(node) {
+  if (!canAnimate(node)) return null;
+  return node.animate([{ opacity: 0, filter: 'blur(2px)' }, { opacity: 1, filter: 'blur(0px)' }],
+    { duration: ROW_MOTION_MS, easing: CROSS_IN, fill: 'backwards' });
+}
 // The text swap: text that changes fades out exactly where it was (a copy
 // pinned there) while the new text fades in. `resize` (buttons, pills —
 // anything as wide as its words): the word slide too — its width eases from
@@ -3881,13 +3898,13 @@ function swapText(el, text, { resize = false } = {}) {
     });
     host.appendChild(ghost);
     const drop = () => ghost.remove();
-    ghost.animate([{ opacity: shown }, { opacity: 0 }], { ...MOTION, fill: 'forwards' }).finished.then(drop, drop);
+    crossOut(ghost, shown).finished.then(drop, drop);
     setTimeout(drop, ROW_MOTION_MS + 350);
   }
   if (el._swapWidth) { el._swapWidth.cancel(); el._swapWidth = null; }
   el.textContent = text;
   if (!(shown > 0.05) || !text.trim()) return;
-  fadeIn(el);
+  crossIn(el);
   if (!fromW) return;
   const toW = el.getBoundingClientRect().width;
   if (Math.abs(toW - fromW) < 0.5) return;
@@ -7133,10 +7150,15 @@ function initAuth() {
   // settings (a reset's confirm) still gets its tap
   document.addEventListener('click', (e) => {
     if (currentUser && elements.authDropdown.classList.contains('show')) {
+      // (a tap in a pop-up opened from settings — "disconnect google drive?",
+      // a reset's confirm — or on the bar at the bottom is that pop-up's or
+      // bar's own: its cancel closed settings with it)
+      if (e.target.closest('.modal-overlay, .feature-toast')) return;
       if (!e.target.closest('#auth-dropdown') && !e.target.closest('#auth-btn')) {
         elements.authDropdown.classList.remove('show');
         clearAuthAlerts();
-        if (!e.target.closest('.modal-overlay, .feature-toast')) { e.preventDefault(); e.stopPropagation(); }
+        e.preventDefault();
+        e.stopPropagation();
       }
     }
   }, true);
