@@ -1969,18 +1969,29 @@
     // (counted exactly like the stat boxes' numbers — countNum — their
     // width easing with them, so the key beside each glides, never jumps)
     tl.querySelectorAll('.timeline-key b').forEach((b, i) => countNum(b, oldNums[i] ?? 0, b.textContent));
-    // Dates: each rolls from the old date to the new one, month and day
-    // ticking through like the numbers count.
-    const oldTimes = [...tl.querySelectorAll('.timeline-dates [data-t]')].map(el => +el.dataset.t);
-    tl.querySelector('.timeline-dates').replaceWith(fresh.querySelector('.timeline-dates'));
-    tl.querySelectorAll('.timeline-dates [data-t]').forEach((el, i) => {
-      const a = oldTimes[i] ?? oldTimes[oldTimes.length - 1], z = +el.dataset.t;
-      if (a === undefined || shortDate(a) === shortDate(z)) return;
-      const t0 = performance.now();
-      el.textContent = shortDate(a);
-      const step = (now) => { const t = Math.min(1, (now - t0) / TL_MS); el.textContent = shortDate(a + (z - a) * tlEase(t)); if (t < 1 && el.isConnected) requestAnimationFrame(step); };
-      requestAnimationFrame(step);
-    });
+    // Dates: each fades across to its new one where it stands (swapText —
+    // the app's changing text). Rolled through day by day before, the
+    // words were rewritten every frame and each new month snapped in.
+    const oldDates = tl.querySelector('.timeline-dates'), newDates = fresh.querySelector('.timeline-dates');
+    const os = [...oldDates.children], ns = [...newDates.children];
+    if (os.length === ns.length) ns.forEach((n, i) => { os[i].dataset.t = n.dataset.t; swapText(os[i], n.textContent); });
+    else {
+      // One date ↔ two (a first import, or the example): the row crosses —
+      // the old dates fade out where they stood as the new fade in.
+      const r = oldDates.getBoundingClientRect(), tr = tl.getBoundingClientRect();
+      const k = tl.offsetWidth ? tr.width / tl.offsetWidth : 1;
+      oldDates.replaceWith(newDates);
+      if (canAnimate(tl)) {
+        if (getComputedStyle(tl).position === 'static') tl.style.position = 'relative';
+        Object.assign(oldDates.style, { position: 'absolute', margin: '0', left: `${(r.left - tr.left) / k}px`, top: `${(r.top - tr.top) / k}px`, width: `${r.width / k}px`, pointerEvents: 'none' });
+        oldDates.setAttribute('aria-hidden', 'true');
+        tl.appendChild(oldDates);
+        const drop = () => oldDates.remove();
+        oldDates.animate([{ opacity: 1 }, { opacity: 0 }], { ...MOTION, fill: 'forwards' }).finished.then(drop, drop);
+        setTimeout(drop, ROW_MOTION_MS + 350);
+        newDates.animate([{ opacity: 0 }, { opacity: 1 }], MOTION);
+      }
+    }
     // The line is drawn through every old and new point while it moves
     // (so the example's bends flatten out gradually rather than vanishing
     // when there are fewer points); the old points fade out and the new
