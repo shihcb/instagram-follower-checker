@@ -7676,3 +7676,24 @@ html.is-logged-in .auth-dropdown {
 :root[data-theme] #btn-instructions-info, :root[data-theme] .privacy-badge, :root[data-theme] .landing-version-badge,
 :root[data-theme] .hero-tag, :root[data-theme] .slider { border-radius: 8px !important; }
 :root[data-theme] .slider:before { border-radius: 6px !important; }
+
+/* Settings' words in the dashboard's colours: its panel takes the header's
+   muted colour — the title, the boxes' and rows' labels muted, the values
+   in the accent, buttons in the text colour; "logged in as" a status line
+   (small, muted, the address in the text colour) */
+html.is-logged-in #auth-dropdown .dropdown-header h3,
+html.is-logged-in #auth-profile-view .storage-label,
+html.is-logged-in #auth-profile-view .setting-label {
+  color: var(--text-muted);
+}
+html.is-logged-in #auth-profile-view .setting-item-row.reset-due .setting-label {
+  color: var(--bad);
+}
+html.is-logged-in #auth-profile-view .auth-status-text {
+  font-size: var(--fs-md);
+  color: var(--text-muted);
+}
+html.is-logged-in #auth-profile-view .auth-status-text strong {
+  color: var(--text-main);
+  font-weight: 600;
+}
