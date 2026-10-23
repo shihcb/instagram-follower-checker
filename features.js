@@ -1075,7 +1075,7 @@
       driveSync = null;
       if (unsaved) {
         // Kept on this device; they go up the next time the app opens.
-        showToast(`${plural(imported, 'export')} from google drive · ${unsaved === 1 ? 'one import’s files' : `${unsaved} imports’ files`} couldn’t be saved to the cloud${why ? ` (${why})` : ''}`,
+        showToast(`${plural(imported, 'export')} from google drive · ${unsaved === 1 ? 'one import’s files' : `${fmtNum(unsaved)} imports’ files`} couldn’t be saved to the cloud${why ? ` (${why})` : ''}`,
           'retry', () => moveLocalFilesToCloud().then(ok => showToast(ok ? 'files saved' : 'files couldn’t be saved')), { duration: 10000 });
       } else {
         synced = true;
@@ -1204,7 +1204,7 @@
     } else {
       node = document.createElement('button');
       node.type = 'button';
-      node.className = 'btn btn-sm btn-primary drive-btn';
+      node.className = 'btn btn-sm btn-secondary drive-btn';
       node.textContent = 'connect';
       node.addEventListener('click', (e) => { e.stopPropagation(); syncDrive(); });
     }
@@ -1638,7 +1638,7 @@
       const active = viewNav.querySelector('.insights-tab.active');
       if (!active || !active.offsetWidth) return;
       const indicator = viewNav.querySelector('.list3-views-indicator');
-      const running = indicator._anims && indicator._anims.some(an => an.playState === 'running');
+      const running = indicator._anim && indicator._anim.playState === 'running';
       const pos = indicator._pos;
       if (running || (pos && Math.abs(pos.x - active.offsetLeft) < 0.5 && Math.abs(pos.w - active.offsetWidth) < 0.5)) return;
       indicator._pos = null;
@@ -2617,7 +2617,7 @@
       nav._sizeWatch = new ResizeObserver(() => {
         const cur = nav.querySelector('.insights-tab.active');
         if (!cur || !cur.offsetWidth || !nav.isConnected) return;
-        const running = indicator._anims && indicator._anims.some(an => an.playState === 'running');
+        const running = indicator._anim && indicator._anim.playState === 'running';
         const pos = indicator._pos;
         if (running || (pos && Math.abs(pos.x - cur.offsetLeft) < 0.5 && Math.abs(pos.w - cur.offsetWidth) < 0.5)) return;
         indicator._pos = null;
@@ -3342,7 +3342,7 @@
     const image = exportOverlay.querySelector('.export-image').classList.contains('on');
     const go = exportOverlay.querySelector('[data-exp="go"]');
     go.disabled = lists === 0 && !image;
-    swapText(go, lists > 1 ? `export ${lists} lists` : 'export', { resize: true });
+    swapText(go, lists > 1 ? `export ${fmtNum(lists)} lists` : 'export', { resize: true });
     exportOverlay.querySelectorAll('.export-option[data-kind]').forEach(o => o.classList.toggle('muted', image));
     exportOverlay.querySelector('.export-image').classList.toggle('muted', lists > 0);
   }

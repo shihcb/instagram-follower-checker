@@ -131,7 +131,9 @@ html, body {
   --warning-color: var(--warn);
   /* The dashboard's red and amber */
   --bad: #b3261e;
+  --bad-bg: #fbe9e7;
   --warn: #9a6100;
+  --soft: #eef1ef;
 
   --scrollbar-thumb: rgba(9, 9, 11, 0.15);
   --scrollbar-track: rgba(9, 9, 11, 0.03);
@@ -143,7 +145,9 @@ html, body {
   /* Dark Theme variables */
   --accent: #6cc39b;
   --bad: #f29a90;
+  --bad-bg: #351c1a;
   --warn: #e8b55c;
+  --soft: #1f2522;
   --grad-1: #ffffff;
   --grad-2: #a1a1aa; /* Light gray */
   --grad-3: #3f3f46; /* Medium gray */
@@ -345,7 +349,7 @@ button,
 }
 
 .header-logo h1 {
-  font-size: 2.25rem;
+  font-size: clamp(1.8rem, 5vw, 2.3rem);
   font-weight: 400; /* (the dashboard's h1: a serif display at its regular weight) */
   line-height: 1.1;
   margin: 0;
@@ -3245,7 +3249,7 @@ html.hide-shortcuts .account-chip-badge {
     gap: 0 !important;
   }
   .header-logo h1 {
-    font-size: 1.75rem;
+    font-size: clamp(1.8rem, 5vw, 2.3rem);
   }
   .card {
     height: 460px;
@@ -5860,8 +5864,7 @@ select,
   color: var(--stat);
 }
 
-/* The tab highlight in three pieces (see moveInstructionsIndicator): the
-   caps carry the rounded ends, the middle only its top and bottom edges. */
+/* The tab highlight: one outlined piece (see moveInstructionsIndicator). */
 .instructions-nav-indicator.ind-split {
   border: none !important;
   background: none !important;
@@ -5869,31 +5872,16 @@ select,
   transform: none; /* not !important: the tab bar's scroll glide moves it */
   overflow: visible;
 }
-.instructions-nav-indicator.ind-split > span {
+.instructions-nav-indicator.ind-split > .ind-m {
   position: absolute;
   top: 0;
   left: 0;
+  width: 0;
   height: 100%;
   box-sizing: border-box;
   border: 1.5px solid var(--text-main);
-  will-change: transform;
-  transform-origin: left center;
-}
-.instructions-nav-indicator.ind-split > .ind-l {
-  width: 9px;
-  border-right: none;
-  border-radius: calc(var(--radius) - 5px) 0 0 calc(var(--radius) - 5px);
-}
-.instructions-nav-indicator.ind-split > .ind-m {
-  width: 100px;
-  border-left: none;
-  border-right: none;
-  border-radius: 0;
-}
-.instructions-nav-indicator.ind-split > .ind-r {
-  width: 9px;
-  border-left: none;
-  border-radius: 0 calc(var(--radius) - 5px) calc(var(--radius) - 5px) 0;
+  border-radius: calc(var(--radius) - 5px);
+  will-change: transform, width;
 }
 
 /* A view's old content while it fades away over the new. */
@@ -7626,18 +7614,43 @@ html.is-logged-in .auth-dropdown {
 [data-theme="dark"] #toggle-preview-unfollowed:active,
 [data-theme="dark"] #toggle-preview-starred:active,
 [data-theme="dark"] .keyboard-hints kbd { color: var(--text-main) !important; }
-@media (hover: hover) and (pointer: fine) {
-  [data-theme="dark"] .btn-secondary:hover:not(:disabled) { background-color: color-mix(in srgb, var(--text-main) 6%, var(--btn-secondary-bg)) !important; }
-}
 [data-theme="dark"] .preview-toggle:disabled,
 [data-theme="dark"] .preview-toggle.is-empty { color: var(--text-muted) !important; border-color: var(--card-border) !important; }
-[data-theme="dark"] .auth-tab-indicator { background-color: var(--btn-secondary-bg); }
 .landing-header, [data-theme="light"] .landing-header { background: color-mix(in srgb, var(--bg-color) 85%, transparent); }
 /* Titles in one flat colour */
 .hero-headline, [data-theme="light"] .hero-headline,
 .auth-brand h2, [data-theme="light"] .auth-brand h2 {
   background: none; -webkit-text-fill-color: currentColor; color: var(--text-main);
 }
-/* Settings' boxes on the page's colour */
+
+/* The dashboard's own, one by one */
+/* Block buttons, fields and choices: 10px corners */
+.btn.btn-block, #btn-confirm-ok, #btn-modal-delete, .love-close-btn, .export-option,
+.form-group input, .auth-form input[type="email"], .auth-form input[type="password"], .auth-form input[type="text"] { border-radius: 10px !important; }
+/* Primary buttons: no shadow */
+.btn-primary, [data-theme="dark"] .btn-primary, #btn-confirm-ok { box-shadow: none !important; }
+/* Fields: the line darkens on focus, no ring */
+.form-group input:focus { box-shadow: none !important; }
+/* The log-in tabs: the app's (and the dashboard's) tab switcher */
+.auth-tabs { background-color: var(--bg-color); border-radius: 10px !important; padding: 4px; gap: 4px; }
+.auth-tab { border-radius: 7px !important; padding: 7px 12px; }
+.auth-tab.active, [data-theme="dark"] .auth-tab.active { color: var(--text-main); }
+.auth-tab-indicator, [data-theme="dark"] .auth-tab-indicator {
+  top: 4px; bottom: 4px; left: 4px; width: calc((100% - 12px) / 2);
+  background: transparent !important; box-shadow: none !important;
+  border: 1.5px solid var(--text-main); border-radius: 7px; box-sizing: border-box;
+}
+/* Settings' title */
+.dropdown-header h3 { font-size: var(--fs-xl); font-weight: 600; letter-spacing: -0.02em; }
+/* Small buttons filled, as the dashboard's .btn-sm; danger ones on their red */
+.btn.btn-sm.btn-secondary, [data-theme="dark"] .btn.btn-sm.btn-secondary { background-color: var(--soft) !important; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important; }
+.btn.btn-sm.btn-danger-soft:not(.reset-due), [data-theme="dark"] .btn.btn-sm.btn-danger-soft:not(.reset-due) { background: var(--bad-bg) !important; border-color: transparent !important; }
+/* Settings' boxes: the dashboard's .info-box */
 .supabase-storage-box, [data-theme="light"] .supabase-storage-box,
-.reset-reminder-box, [data-theme="light"] .reset-reminder-box { background: var(--bg-color); }
+.reset-reminder-box, [data-theme="light"] .reset-reminder-box { background: rgba(0, 0, 0, 0.02); }
+/* A hover the same in both themes: only the line */
+@media (hover: hover) and (pointer: fine) {
+  [data-theme="dark"] .btn-secondary:not(.btn-sm):hover:not(:disabled) { background-color: transparent !important; }
+}
+/* The instructions' pictures in dark: on the palette */
+[data-theme="dark"] .step-image-container { background: var(--bg-color) !important; border-color: var(--card-border) !important; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important; }

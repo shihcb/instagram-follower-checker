@@ -5306,33 +5306,19 @@ function scrollInstructionsNav(nav, target) {
     { duration: IND_MS, easing: IND_EASE }));
 }
 
-// The highlight is an outline, and animating its width ran on the main
-// thread (it stuttered on phones); scaling it would stretch its border.
-// So it's drawn as three pieces that only ever move by transform (on the
-// GPU): a left cap, a middle that stretches (only its top and bottom
-// edges, which don't distort when stretched sideways) and a right cap.
-// All three share one timing, so they stay joined the whole way.
-const IND_CAP = 9;       // cap width (a little over the corner radius)
-const IND_MID_BASE = 100; // the middle's unscaled width
+// The highlight: one outlined piece (the financial dashboard's — never a
+// seam where pieces meet), its place and width easing together.
 const IND_MS = 450;
-// A gentle glide that starts softly: the window's fast-start curve covered
-// most of the distance in the first few frames, which read as a snap.
 const IND_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
-function indicatorParts(indicator) {
-  if (indicator._parts) return indicator._parts;
+function indicatorPill(indicator) {
+  if (indicator._pill) return indicator._pill;
   indicator.classList.add('ind-split');
-  indicator.innerHTML = '<span class="ind-l"></span><span class="ind-m"></span><span class="ind-r"></span>';
-  const [l, m, r] = indicator.children;
-  indicator._parts = { l, m, r };
-  return indicator._parts;
+  indicator.innerHTML = '<span class="ind-m"></span>';
+  indicator._pill = indicator.firstChild;
+  return indicator._pill;
 }
 function indicatorFrames(x, w) {
-  const mid = Math.max(0, w - IND_CAP * 2) / IND_MID_BASE;
-  return {
-    l: `translateX(${x}px)`,
-    m: `translateX(${x + IND_CAP}px) scaleX(${mid})`,
-    r: `translateX(${x + w - IND_CAP}px)`
-  };
+  return { transform: `translateX(${x}px)`, width: `${w}px` };
 }
 function moveInstructionsIndicator(indicator, tab) {
   const x = tab.offsetLeft;
@@ -5340,26 +5326,21 @@ function moveInstructionsIndicator(indicator, tab) {
   // A tab with no size yet (not laid out, fonts still loading): drawing the
   // outline from it left only its left end. Whoever placed it retries.
   if (!w) return;
-  const parts = indicatorParts(indicator);
+  const pill = indicatorPill(indicator);
   let from = indicator._pos || null;
-  // Mid-slide: start from where the pieces are right now.
-  if (indicator._anims && indicator._anims.some(an => an.playState === 'running') && from) {
-    const tx = (el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).m41;
-    const lx = tx(parts.l), rx = tx(parts.r);
-    from = { x: lx, w: rx - lx + IND_CAP };
+  // Mid-slide: start from where it is right now.
+  if (indicator._anim && indicator._anim.playState === 'running' && from) {
+    const cs = getComputedStyle(pill);
+    from = { x: new DOMMatrixReadOnly(cs.transform).m41, w: parseFloat(cs.width) };
   }
-  if (indicator._anims) indicator._anims.forEach(an => an.cancel());
-  indicator._anims = null;
+  if (indicator._anim) indicator._anim.cancel();
+  indicator._anim = null;
   const to = indicatorFrames(x, w);
-  parts.l.style.transform = to.l;
-  parts.m.style.transform = to.m;
-  parts.r.style.transform = to.r;
+  Object.assign(pill.style, to);
   indicator._pos = { x, w };
   const moved = from && (Math.abs(from.x - x) > 0.5 || Math.abs(from.w - w) > 0.5);
-  if (!moved || indicator.classList.contains('no-transition') || typeof parts.l.animate !== 'function') return;
-  const f = indicatorFrames(from.x, from.w);
-  const timing = { duration: IND_MS, easing: IND_EASE };
-  indicator._anims = ['l', 'm', 'r'].map(k => parts[k].animate([{ transform: f[k] }, { transform: to[k] }], timing));
+  if (!moved || indicator.classList.contains('no-transition') || typeof pill.animate !== 'function') return;
+  indicator._anim = pill.animate([indicatorFrames(from.x, from.w), to], { duration: IND_MS, easing: IND_EASE });
 }
 
 function settleStepOut(pane) {
