@@ -1987,16 +1987,9 @@
     // Legend: the numbers count from the old to the new.
     const oldNums = [...tl.querySelectorAll('.timeline-key b')].map(b => readNum(b.textContent) || 0);
     tl.querySelector('.timeline-legend').replaceWith(fresh.querySelector('.timeline-legend'));
-    tl.querySelectorAll('.timeline-key b').forEach((b, i) => {
-      const a = oldNums[i] ?? 0, z = readNum(b.textContent) || 0;
-      if (a === z) return;
-      const t0 = performance.now();
-      // Counted exactly like the stat boxes' numbers (updateStats): 650ms,
-      // easing out, so every number in between shows.
-      const step = (now) => { const t = Math.min(1, (now - t0) / 450); b.textContent = fmtNum(Math.round(a + (z - a) * rowEase(t))); if (t < 1 && b.isConnected) requestAnimationFrame(step); };
-      b.textContent = fmtNum(a);
-      requestAnimationFrame(step);
-    });
+    // (counted exactly like the stat boxes' numbers — countNum — their
+    // width easing with them, so the key beside each glides, never jumps)
+    tl.querySelectorAll('.timeline-key b').forEach((b, i) => countNum(b, oldNums[i] ?? 0, b.textContent));
     // Dates: each rolls from the old date to the new one, month and day
     // ticking through like the numbers count.
     const oldTimes = [...tl.querySelectorAll('.timeline-dates [data-t]')].map(el => +el.dataset.t);
