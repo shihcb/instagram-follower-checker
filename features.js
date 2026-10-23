@@ -189,7 +189,7 @@
   function refreshUndo() {
     const list = undoable();
     setUndoReady(list.length > 0);
-    if (undoBtn && list.length) undoBtn.title = `undo: ${list[list.length - 1].message}${list.length > 1 ? ` (${list.length} steps to undo)` : ''}`;
+    if (undoBtn && list.length) undoBtn.title = `undo ${list[list.length - 1].message}${list.length > 1 ? ` · ${list.length} steps` : ''}`;
   }
   function offerUndo(snap, message) {
     setTimeout(() => {
@@ -276,10 +276,10 @@
     ['#list-unfollowers .action-star', 'starred'],
     ['#list-unfollowers .action-delete', 'unfollowed'],
     ['#list-unfollowers .action-dismiss', 'removed from list 3'],
-    ['#list-unfollowed .star-unfollowed-btn', 'moved to starred'],
+    ['#list-unfollowed .star-unfollowed-btn', 'starred'],
     ['#list-unfollowed .remove-unfollowed-btn', 'moved back to list 3'],
     ['#list-starred .unstar-btn', 'unstarred'],
-    ['#list-starred .unfollow-starred-btn', 'moved to unfollowed'],
+    ['#list-starred .unfollow-starred-btn', 'unfollowed'],
     ['#list-starred .remove-unfollowed-btn', 'moved back to list 3'],
   ];
   document.addEventListener('click', (e) => {
@@ -481,7 +481,7 @@
     if (!canCloud()) {
       // Kept here until you log in (moveLocalFilesToCloud uploads them then).
       await keepOnDevice(key, n, stored).catch(err => console.error('[features] keeping the import files failed:', err));
-      showToast("log in to save this import's files to the cloud");
+      showToast('log in to save this import’s files');
       return;
     }
     await uploadImport(key, n, stored, entry.date);
@@ -527,10 +527,10 @@
   // What went wrong, in a few words (Supabase's own message otherwise).
   function cloudReason(err) {
     const msg = String((err && (err.message || err.error)) || '');
-    if (/bucket not found/i.test(msg)) return "the cloud's imports folder isn't set up";
-    if (/jwt|token|expired|exp claim/i.test(msg)) return 'your log-in ran out — log out and in again';
-    if (/row-level security|unauthorized|403/i.test(msg)) return "the cloud didn't allow it";
-    if (/payload too large|exceeded the maximum|413/i.test(msg)) return 'the files are too big';
+    if (/bucket not found/i.test(msg)) return 'the imports folder isn’t set up';
+    if (/jwt|token|expired|exp claim/i.test(msg)) return 'log out and in again';
+    if (/row-level security|unauthorized|403/i.test(msg)) return 'not allowed';
+    if (/payload too large|exceeded the maximum|413/i.test(msg)) return 'files too big';
     if (/failed to fetch|network|load failed/i.test(msg)) return 'no connection';
     return ''; // (anything else: just what failed, never the raw error)
   }
@@ -691,7 +691,7 @@
       // Not in the cloud yet (saved by an older version on another device
       // that hasn't been opened since): its changes download instead.
       if (!entry.changes) {
-        await showSiteAlert('import couldn’t be downloaded', "this import's files aren't in the cloud yet — open the app on the device that imported them once, and they'll be uploaded");
+        await showSiteAlert('import couldn’t be downloaded', 'its files aren’t in the cloud yet — open the app once on the device that imported it');
         return false;
       }
     }
@@ -725,7 +725,6 @@
       <div class="account-modal-card glass export-card">
         <div class="account-modal-header"><h3>saved imports</h3><button class="modal-close-btn" type="button" aria-label="close" data-saved="close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button></div>
         <div class="saved-imports-nav"></div>
-        <div class="insights-sub saved-imports-help">click an import to download it<br><b>full folder</b>: the exact files you uploaded<br><b>changes</b>: who followed or unfollowed since the import before it</div>
         <div class="saved-imports-panes"></div>
         <div class="account-modal-actions">
           <button class="btn btn-secondary" data-saved="close">close</button>
@@ -750,7 +749,7 @@
       // (its spinner after the words while the files come down)
       workButton(row, true);
       downloadSaved(key, entry).then((saved) => { if (saved) doneCheck(row); },
-        err => { console.error('[features] download failed:', err); showSiteAlert('import couldn’t be downloaded', "that import's files aren't in the cloud yet"); })
+        err => { console.error('[features] download failed:', err); showSiteAlert('import couldn’t be downloaded', 'its files aren’t in the cloud yet'); })
         .finally(() => workButton(row, false));
     });
     // Escape closes just this window (not the settings panel as well).
@@ -951,7 +950,7 @@
   async function syncDrive() {
     if (driveSync) return;
     if (!GOOGLE_CLIENT_ID) {
-      await showSiteAlert("google drive isn't set up yet", "this app doesn't have its google sign-in yet");
+      await showSiteAlert('google drive isn’t set up yet', 'google sign-in isn’t set up for this app');
       return;
     }
     const signIn = driveSignIn(); // first, while it's still the tap
@@ -997,14 +996,14 @@
       }
       storageSet('drive_checked', String(Date.now()));
       pushToCloud();
-      driveStatus('saving to the cloud');
+      driveStatus('saving imports');
       await Promise.allSettled([...savesRunning]);
       const { changes, unsaved, why } = driveSync;
       driveSync = null;
       if (unsaved) {
         // Kept on this device; they go up the next time the app opens.
-        showToast(`${plural(imported, 'export')} from google drive · ${unsaved === 1 ? "one import's files" : `${unsaved} imports' files`} couldn’t be saved to the cloud${why ? ` (${why})` : ''}`,
-          'retry', () => moveLocalFilesToCloud().then(ok => showToast(ok ? 'saved to the cloud' : 'files couldn’t be saved')), { duration: 10000 });
+        showToast(`${plural(imported, 'export')} from google drive · ${unsaved === 1 ? 'one import’s files' : `${unsaved} imports’ files`} couldn’t be saved to the cloud${why ? ` (${why})` : ''}`,
+          'retry', () => moveLocalFilesToCloud().then(ok => showToast(ok ? 'files saved' : 'files couldn’t be saved')), { duration: 10000 });
       } else {
         synced = true;
         showToast(imported ? `${plural(imported, 'export')} from google drive · ${plural(changes, 'change')}` : 'no new exports in google drive',
@@ -1028,7 +1027,7 @@
     }
   }
   async function disconnectDrive() {
-    const ok = await showSiteConfirm('disconnect google drive?', "the exports already imported stay — new ones won't come in until you connect again", 'disconnect', 'cancel');
+    const ok = await showSiteConfirm('disconnect google drive?', 'exports already imported stay — new ones won’t come in until you connect again', 'disconnect', 'cancel');
     if (!ok) return;
     if (driveToken && window.google && google.accounts && google.accounts.oauth2) google.accounts.oauth2.revoke(driveToken.value, () => {});
     driveToken = null;
@@ -1101,7 +1100,7 @@
       refreshDrive();
       const at = Number(storageGet('drive_checked')) || 0;
       if (driveReady() && driveOn() && !sameDay(at, Date.now())) {
-        setTimeout(() => { if (!driveSync) showToast("check google drive for today's export?", 'sync', syncDrive, { duration: 12000 }); }, 2500);
+        setTimeout(() => { if (!driveSync) showToast('check google drive for today’s export?', 'sync', syncDrive, { duration: 12000 }); }, 2500);
       }
     }, 2000);
   }
@@ -1121,12 +1120,12 @@
         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg>
         <span class="sort-window"><span class="toolbar-pill-text sort-current"></span><span class="toolbar-pill-text sort-probe" aria-hidden="true"></span></span>
       </button>
-      <button class="toolbar-pill" data-act="select" title="select several accounts">
+      <button class="toolbar-pill" data-act="select" title="select accounts">
         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         <span class="toolbar-pill-text">select</span>
       </button>
       </div>
-      <button class="toolbar-pill toolbar-reminder" data-act="reminder" title="import your files again"></button>`;
+      <button class="toolbar-pill toolbar-reminder" data-act="reminder" title="import again"></button>`;
     wrapper.parentNode.insertBefore(toolbar, wrapper);
     toolbar.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-act]');
@@ -1816,12 +1815,12 @@
     const note = noteOf && noteOf(u);
     return `<div class="user-row" data-username="${esc(u.username)}">
           <div class="user-info">
-            <a href="${href}" target="_blank" rel="noopener" class="user-avatar-link" title="visit instagram profile"><div class="user-avatar">${esc(name.substring(0, 2))}</div></a>
-            <div class="user-details"><a href="${href}" target="_blank" rel="noopener" class="user-link"><span class="glide-inner">@${esc(name)}</span></a>${note ? `<span class="user-fullname">${esc(note)}</span>` : ''}</div>
+            <a href="${href}" target="_blank" rel="noopener" class="user-avatar-link" title="open instagram profile"><div class="user-avatar">${esc(name.substring(0, 2))}</div></a>
+            <div class="user-details"><a href="${href}" target="_blank" rel="noopener" class="user-link"><span class="glide-inner">@${esc(name)}</span></a>${note ? `<span class="user-fullname"><span class="glide-inner">${esc(note)}</span></span>` : ''}</div>
           </div>
           <div class="user-meta"><div class="user-row-actions">
-            ${dismiss === 'pending' ? `<button class="action-star" aria-label="star this account" title="move to the starred list">${STAR_ICON}</button><button class="action-delete" aria-label="unfollow this account" title="move to the unfollowed list">${TRASH_ICON}</button>` : ''}
-            <a href="${href}" target="_blank" rel="noopener" class="action-arrow" aria-label="visit instagram profile" title="visit instagram profile">${ARROW_ICON}</a>
+            ${dismiss === 'pending' ? `<button class="action-star" aria-label="star" title="star">${STAR_ICON}</button><button class="action-delete" aria-label="unfollow" title="unfollow">${TRASH_ICON}</button>` : ''}
+            <a href="${href}" target="_blank" rel="noopener" class="action-arrow" aria-label="open instagram profile" title="open instagram profile">${ARROW_ICON}</a>
             ${dismiss ? `<button class="action-dismiss" aria-label="remove from this list" title="remove from this list">${X_ICON}</button>` : ''}
           </div></div>
         </div>`;
@@ -2069,21 +2068,21 @@
       html = `${subNavHtml(SUB_TABS.stats, subTab.stats)}
         ${pane('overview', `<div class="insights-stats">
           ${stat(following, 'following', 0)}${stat(followers, 'followers', 1)}${stat(`${ratio}%`, 'follow you back', 2)}
-          ${stat(state.unfollowers.length, "don't follow you back", 3)}${stat(state.unfollowed.length, 'unfollowed', 4)}${stat(state.starred.length, 'starred', 5)}
+          ${stat(state.unfollowers.length, 'don’t follow you back', 3)}${stat(state.unfollowed.length, 'unfollowed', 4)}${stat(state.starred.length, 'starred', 5)}
         </div>
         <div class="trend-wrap">${hasData ? chartHtml(heights, false) : chartHtml(MOCK_HEIGHTS, true)}</div>`)}
         ${pane('timeline', timelineHtml(key))}`;
     } else if (currentView === 'mutuals') {
       const fset = followersSet();
-      html = userRowsHtml(state.following.filter(u => fset.has(u.username)), 'no mutual accounts yet');
+      html = userRowsHtml(state.following.filter(u => fset.has(u.username)), 'no mutuals yet');
     } else if (currentView === 'fans') {
       const fset = followingSet();
-      html = `${userRowsHtml(state.followers.filter(u => !fset.has(u.username)), 'no fan accounts yet')}`;
+      html = `${userRowsHtml(state.followers.filter(u => !fset.has(u.username)), 'no fans yet')}`;
     } else if (currentView === 'compare') {
       let accounts = state.instagramAccounts.filter(a => !isDemoAccount(a));
       // The demo compares itself with a made-up second account.
       if (key === DEMO_ID) accounts = [{ username: DEMO_NAME, originalUsername: DEMO_ID }, { username: DEMO_COMPARE_NAME, originalUsername: DEMO_COMPARE_ID }];
-      if (accounts.length < 2) html = `<div class="dropdown-empty-message">add a second account to compare who follows each one</div>`;
+      if (accounts.length < 2) html = `<div class="dropdown-empty-message">add a second account to compare</div>`;
       else {
         const sel = [...altView.querySelectorAll('.compare-select')].map(s => s.value);
         const a = sel[0] || accounts[0].originalUsername.toLowerCase();
@@ -2100,8 +2099,8 @@
         const onlyA = fa.filter(u => !sb.has(u.username)), onlyB = fb.filter(u => !sa.has(u.username));
         const section = (title, users) => (users.length ? `<div class="insights-section"><div class="insights-section-title">${title}</div>${userRowsHtml(users, '')}</div>` : '');
         html = `<div class="compare-pickers">${pick(a)}<span>vs</span>${pick(b)}</div>
-          ${section('follows the first account but not the second account', onlyA)}
-          ${section('follows the second account but not the first account', onlyB)}`;
+          ${section(`follow ${nameOf(a)}, not ${nameOf(b)}`, onlyA)}
+          ${section(`follow ${nameOf(b)}, not ${nameOf(a)}`, onlyB)}`;
       }
     }
     if (dry) return html;
@@ -2391,8 +2390,8 @@
   // ---------- tab switchers inside the views (changes, stats, results) ----------
   // Worded like the unfollowed / starred submenus' empty lines.
   const CHANGE_EMPTY = {
-    lost: 'no accounts have unfollowed you', new: 'no new followers',
-    stopped: "no accounts you've stopped following", started: "no accounts you've started following"
+    lost: 'no one unfollowed you', new: 'no new followers',
+    stopped: 'no accounts you stopped following', started: 'no accounts you started following'
   };
   // Every switcher is the same bar, highlight and slide as list 3's own.
   const subNavHtml = (tabs, current) => `<div class="instructions-steps-nav changes-nav">
@@ -2760,7 +2759,7 @@
     if (id === 'closeFriends' && state.followers.length) {
       const f = followersSet();
       users = [...list.filter(u => !f.has(u.username)), ...list.filter(u => f.has(u.username))];
-      flagOf = (u) => (f.has(u.username) ? '' : "doesn't follow you back");
+      flagOf = (u) => (f.has(u.username) ? '' : 'doesn’t follow you back');
     }
     if (id === 'pending') return { sub: text.sub, body: boxRowsHtml(users, text.empty, flagOf, 'pending') };
     return { sub: text.sub, body: pendingRowsHtml(users, text.empty, flagOf) };
@@ -3067,7 +3066,7 @@
     const ratio = following ? Math.round((mutual / following) * 100) : 0;
     const counts = [following, followers, null, state.unfollowers.length, state.unfollowed.length, state.starred.length];
     const values = [following, followers, `${ratio}%`, state.unfollowers.length, state.unfollowed.length, state.starred.length];
-    const labels = ['following', 'followers', 'follow you back', "don't follow you back", 'unfollowed', 'starred'];
+    const labels = ['following', 'followers', 'follow you back', 'don’t follow you back', 'unfollowed', 'starred'];
     const maxCount = Math.max(1, ...counts.filter(c => c !== null));
     const heights = counts.map(c => (c === null ? Math.max(4, ratio) : Math.max(4, Math.round((Math.log1p(c) / Math.log1p(maxCount)) * 100))));
 

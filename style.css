@@ -1,17 +1,14 @@
-/* The app's font, its letters drawn 0.09em higher in their line (fonts/,
-   made from Plus Jakarta Sans — SIL Open Font License, fonts/OFL.txt): the
-   words are all lowercase, and as the font comes their bodies sat ~1px under
-   the middle of every button, pill and tab. Raised, they're centred; line
-   heights and baselines are exactly as before. Letters it doesn't have (it's
-   the Latin set) come from Google's Plus Jakarta Sans. (fonts/ goes into
-   the built site: package.json's build, vercel.json) */
+/* The app's font: the financial dashboard's Ledger Serif — Source Serif 4
+   (SIL Open Font License, fonts/OFL.txt) with its letters drawn 0.06em
+   higher in their line, so the lowercase words sit in the middle of every
+   button, pill and tab; line heights and baselines as the font has them.
+   (fonts/ goes into the built site: package.json's build, vercel.json) */
 @font-face {
-  font-family: 'Jakarta Centered';
-  src: url('fonts/jakarta-centered.woff2') format('woff2');
-  font-weight: 200 800;
+  font-family: 'Ledger Serif';
+  src: url('fonts/ledger-serif.woff2') format('woff2');
+  font-weight: 200 900;
   font-style: normal;
-  font-display: swap;
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  font-display: block;
 }
 
 /* Prevent CSS property transition animations on initial page load / reload */
@@ -73,8 +70,8 @@ html, body {
 }
 
 :root {
-  --font-display: 'Jakarta Centered', 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-sans: 'Jakarta Centered', 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: 'Ledger Serif', 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Ledger Serif', 'Source Serif 4', Georgia, 'Times New Roman', serif;
 
   /* The one duration/easing used for a username leaving OR entering any
      list — list 3's own row fade, list 3's FLIP sibling-shift (see
@@ -251,7 +248,7 @@ html, body, div, textarea, section, main, article, aside, ul, li {
 h1, h2, h3, h4, .card-num {
   font-family: var(--font-display);
   font-weight: 500;
-  letter-spacing: -0.02em;
+  letter-spacing: normal; /* (a serif: the sans' tight tracking crowded its letters) */
 }
 
 /* -------------------------------------------------------------
@@ -327,8 +324,8 @@ button,
 
 .header-logo h1 {
   font-size: 2.25rem;
-  font-weight: 600;
-  line-height: 1;
+  font-weight: 400; /* (the dashboard's h1: a serif display at its regular weight) */
+  line-height: 1.1;
   margin: 0;
   color: var(--logo-color);
   display: inline-block;
@@ -451,6 +448,7 @@ button:disabled *,
 .btn-primary {
   background: var(--btn-primary-bg);
   color: var(--btn-primary-text);
+  border: 1px solid transparent; /* (as tall as a .btn-secondary beside it, whose 1px line it lacked) */
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
@@ -568,7 +566,7 @@ button:disabled *,
   align-items: center;
   justify-content: center;
   line-height: 1;
-  padding-top: 3px; /* (its figure centred: the font's letters sit 0.09em higher in their line) */
+  padding: 0; /* (the font's raised letters centre its figure: never uneven padding) */
   box-sizing: border-box;
   color: var(--text-muted);
 }
@@ -862,7 +860,7 @@ button:disabled *,
   margin: 0 !important;
   padding: 0 !important;
   position: relative !important;
-  top: 0.5px !important; /* (centred with the font's raised letters) */
+  top: 0 !important; /* (the font's raised letters centre it; never a nudge) */
 }
 
 /* No hover highlight at all — neither background nor border changes. */
@@ -1569,11 +1567,6 @@ body.hide-shortcuts #keyboard-hints {
   background: rgba(255, 255, 255, 0.07) !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
   color: #f4f4f5 !important;
-  font-family: var(--font-sans) !important;
-  font-size: var(--fs-md) !important;
-  font-weight: 600 !important;
-  letter-spacing: 0 !important;
-  line-height: 1.2 !important;
   outline: none !important;
   -webkit-tap-highlight-color: transparent !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
@@ -3092,7 +3085,7 @@ html.hide-shortcuts .account-chip-badge {
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  display: block; /* (too long: it glides, as usernames do — never "…") */
 }
 
 .user-meta {
@@ -3690,10 +3683,10 @@ body.auth-logged-out #auth-form-view {
 }
 
 .landing-brand-name {
-  font-family: 'Outfit', sans-serif;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-weight: 500;
   font-size: var(--fs-xl);
-  letter-spacing: -0.02em;
+  letter-spacing: normal;
   color: var(--text-main);
 }
 
@@ -3802,11 +3795,11 @@ body.auth-logged-out #auth-form-view {
 }
 
 .hero-headline {
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(2.2rem, 4.2vw, 3.4rem);
-  font-weight: 600;
-  line-height: 1.12;
-  letter-spacing: -0.035em;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
   margin-bottom: 18px;
   text-transform: lowercase;
   background: linear-gradient(135deg, var(--text-main) 0%, rgba(161, 161, 170, 0.85) 100%);
@@ -3891,17 +3884,18 @@ body.auth-logged-out #auth-form-view {
   display: inline-block;
   font-size: var(--fs-sm);
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em; /* (spaced lowercase: .08em pulled a serif's letters apart) */
   text-transform: lowercase;
   color: var(--text-muted);
   margin-bottom: 8px;
 }
 
 .landing-section-header h2 {
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-display);
   font-size: clamp(1.5rem, 2.5vw, 2.1rem);
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
   color: var(--text-main);
   text-transform: lowercase;
   margin: 0;
@@ -3940,7 +3934,7 @@ body.auth-logged-out #auth-form-view {
 }
 
 .feature-card h3 {
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-display);
   font-size: var(--fs-lg);
   font-weight: 500;
   margin-bottom: 8px;
@@ -3977,7 +3971,7 @@ body.auth-logged-out #auth-form-view {
   border-radius: 10px;
   background: var(--text-main);
   color: var(--bg-color);
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--fs-base);
   display: flex;
@@ -3987,7 +3981,7 @@ body.auth-logged-out #auth-form-view {
 }
 
 .step-card h3 {
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-display);
   font-size: var(--fs-lg);
   font-weight: 500;
   margin-bottom: 8px;
@@ -4050,7 +4044,7 @@ body.auth-logged-out #auth-form-view {
 }
 
 .security-text h3 {
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-display);
   font-size: var(--fs-lg);
   font-weight: 500;
   margin-bottom: 6px;
@@ -4154,11 +4148,12 @@ body.auth-logged-out #auth-form-view {
 }
 
 .auth-brand h2 {
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-display);
   font-size: 2.2rem;
-  font-weight: 600;
+  font-weight: 400;
+  line-height: 1.2;
   color: var(--text-main);
-  letter-spacing: -0.03em;
+  letter-spacing: -0.01em;
   margin-bottom: 6px;
   background: linear-gradient(135deg, var(--text-main) 0%, rgba(255, 255, 255, 0.6) 100%);
   -webkit-background-clip: text;
@@ -4191,7 +4186,7 @@ body:not(.auth-logged-out) #theme-toggle {
   font-weight: 500;
   color: var(--text-main);
   white-space: nowrap;
-  letter-spacing: -0.02em;
+  letter-spacing: normal;
   margin: 0;
   text-transform: lowercase;
 }
@@ -4206,7 +4201,7 @@ body:not(.auth-logged-out) #theme-toggle {
   font-size: var(--fs-lg);
   font-weight: 500;
   color: var(--text-main);
-  letter-spacing: -0.02em;
+  letter-spacing: normal;
   margin: 0;
   text-transform: lowercase;
 }
@@ -4492,10 +4487,10 @@ body:not(.auth-logged-out) #theme-toggle {
 .love-text {
   font-family: var(--font-display);
   font-size: 1.8rem;
-  font-weight: 600;
+  font-weight: 500;
   color: #ef4444;
   text-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
-  letter-spacing: -0.03em;
+  letter-spacing: normal;
   margin: 0;
   animation: love-text-glow 1.5s infinite alternate;
 }
@@ -5470,7 +5465,7 @@ body.select-active #card-followers {
   animation: chip-fade-in 0.45s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 .insights-stat-value {
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-display);
   font-size: var(--fs-xl);
   font-weight: 600;
   color: var(--text-main);
@@ -6202,7 +6197,7 @@ select,
 }
 .timeline-key b {
   color: var(--text-main);
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-display);
   font-weight: 600;
   margin-left: 2px;
 }
@@ -6787,12 +6782,14 @@ html.booting .app-container {
    fades out instead of cutting a letter in half (the right edge at rest,
    the left at the far end). */
 .user-link > .glide-inner,
-.parsed-username > .glide-inner {
+.parsed-username > .glide-inner,
+.user-fullname > .glide-inner {
   display: inline-block;
   white-space: nowrap;
 }
 .user-link.glides > .glide-inner,
-.parsed-username.glides > .glide-inner {
+.parsed-username.glides > .glide-inner,
+.user-fullname.glides > .glide-inner {
   animation: dd-glide var(--glide-time, 6s) ease-in-out infinite alternate;
 }
 @keyframes dd-glide { 0%, 20% { transform: translateX(0); } 80%, 100% { transform: translateX(var(--glide, 0px)); } }
@@ -6804,15 +6801,18 @@ html.booting .app-container {
    it glides — and eases from one edge to the other on the list 3 slide. */
 .user-link.overflows,
 .parsed-username.overflows,
+.user-fullname.overflows,
 .user-link.glides,
-.parsed-username.glides {
+.parsed-username.glides,
+.user-fullname.glides {
   text-overflow: clip;
   -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--glide-fl), #000 calc(100% - var(--glide-fr)), transparent 100%);
   mask-image: linear-gradient(to right, transparent 0, #000 var(--glide-fl), #000 calc(100% - var(--glide-fr)), transparent 100%);
   transition: --glide-fl 0.45s cubic-bezier(0.4, 0, 0.2, 1), --glide-fr 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .user-link.glides,
-.parsed-username.glides {
+.parsed-username.glides,
+.user-fullname.glides {
   animation: glide-fade var(--glide-time, 6s) ease-in-out infinite alternate;
 }
 
@@ -6842,8 +6842,8 @@ html.booting .app-container {
   .boot-spinner { animation-duration: 0.8s !important; animation-iteration-count: infinite !important; }
   /* (a long name stays still, faded at its right edge: run once, the glide
      would have ended at its far end) */
-  .user-link.glides, .parsed-username.glides,
-  .user-link.glides > .glide-inner, .parsed-username.glides > .glide-inner { animation: none !important; }
+  .user-link.glides, .parsed-username.glides, .user-fullname.glides,
+  .user-link.glides > .glide-inner, .parsed-username.glides > .glide-inner, .user-fullname.glides > .glide-inner { animation: none !important; }
 }
 
 /* -------------------------------------------------------------
@@ -6950,3 +6950,52 @@ b, strong {
   }
 }
 
+
+/* ---- the serif's fallout (Ledger Serif replaced the sans) ---- */
+/* Figures that count or line up: same-width digits, so a number changing
+   (countTo) never jitters and columns of counts align. */
+.count-num, .export-count, .insights-stat-value, .storage-value,
+#storage-used-bytes, .app-version, .step-number, .saved-import-date,
+.dropdown-header-bar, .row-select-count, .badge {
+  font-variant-numeric: tabular-nums;
+}
+/* The toast's button is the select bar's buttons' size (the dashboard's
+   undo bar: its words small and muted, its button as the bar's). */
+.feature-toast-btn { font-size: var(--fs-md); }
+/* The landing page's three points: a long one wraps under itself, left
+   aligned beside its tick (it was centred, its tick floating beside it). */
+.highlight-item { text-align: left; }
+/* The settings' cards: a details line with nothing in it takes no room
+   (reset your lists / saved imports had an empty row under their bar). */
+.storage-details:not(:has(> span:not(:empty))) { display: none; }
+/* The landing header: never the name touching the buttons. */
+.landing-header { gap: 8px; }
+.landing-brand { min-width: 0; }
+@media (max-width: 360px) {
+  .landing-header-actions { gap: 6px; }
+  .landing-theme-btn { padding: 0 7px !important; }
+  .landing-cta-btn { padding: 0 10px !important; }
+}
+/* The import menu on a phone: its items as close as a menu's (8px gap +
+   6px margin + 10px padding each spread four short items over 200px). */
+@media (max-width: 1024px) {
+  #add-account-dropdown-menu { gap: 2px !important; padding: 6px !important; }
+  #add-account-dropdown-menu > * { margin-bottom: 0; }
+  #add-account-dropdown-menu .dropdown-item-btn { padding: 10px 12px !important; gap: 8px; }
+}
+/* The narrowest phones (320px): list 3's rows left a username 28px of
+   room beside the avatar and the four buttons (it glided through a slot
+   two letters wide). A little less padding around the box and the rows,
+   and the buttons closer, give it about 70px. */
+@media (max-width: 360px) {
+  #card-unfollowers .card-body { padding-left: 12px !important; padding-right: 12px !important; }
+  #card-unfollowers .results-list { padding-left: 6px !important; padding-right: 6px !important; }
+  #card-unfollowers .user-row { padding-left: 10px !important; padding-right: 8px !important; }
+  #card-unfollowers .user-info { gap: 10px !important; }
+  #card-unfollowers .user-row-actions { gap: 0 !important; }
+}
+
+/* (were inline in index.html) */
+#btn-add-account { width: 100%; justify-content: center; gap: 6px; }
+#add-account-dropdown-menu { min-width: 150px; padding: 4px 0; }
+#account-modal-original-caption { font-size: var(--fs-sm); color: var(--text-muted); margin-top: 6px; text-transform: lowercase; }

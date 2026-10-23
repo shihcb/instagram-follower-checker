@@ -83,14 +83,14 @@ uses the same glyph.
 
 ## Text centred in buttons — the app's font
 
-The app's font is `fonts/jakarta-centered.woff2` ('Jakarta Centered', in
-`--font-sans` / `--font-display`): Plus Jakarta Sans with its letters drawn
-0.09em higher in their line (line heights and baselines unchanged), so the
-lowercase words sit in the middle of every button, pill, tab and badge
-(measured in pixels: within ¼px). Never nudge a button's words with uneven
-padding or `top: 1px`; if the font is ever changed, raise the new one the
-same way (its glyphs, not its ascent/descent — those round per size and
-change line heights). OFL: `fonts/OFL.txt`.
+The app's font is the financial dashboard's: `fonts/ledger-serif.woff2`
+('Ledger Serif', in `--font-sans` / `--font-display`) — Source Serif 4 with
+its letters drawn 0.06em higher in their line (line heights and baselines
+unchanged), so the lowercase words sit in the middle of every button, pill,
+tab and badge. Never nudge a button's words with uneven padding or
+`top: 1px`; if the font is ever changed, raise the new one the same way
+(its glyphs, not its ascent/descent). OFL: `fonts/OFL.txt`. No other font
+is loaded (no Google Fonts).
 
 ## Saved import files live in Supabase Storage
 
