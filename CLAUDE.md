@@ -83,11 +83,18 @@ uses the same glyph.
 
 ## Text centred in buttons — the app's font
 
-The app's font is the financial dashboard's: `fonts/ledger-serif.woff2`
+The app's font is the financial dashboard's Ledger Serif, `fonts/ledger-serif.woff2`
 ('Ledger Serif', in `--font-sans` / `--font-display`) — Source Serif 4 with
-its letters drawn 0.06em higher in their line (line heights and baselines
-unchanged), so the lowercase words sit in the middle of every button, pill,
-tab and badge. Never nudge a button's words with uneven padding or
+its letters drawn higher in their line (line heights and baselines
+unchanged): the dashboard's 0.06em, and here 0.05em more (0.11em in all),
+measured so the lowercase words sit in the middle of every button, pill,
+tab and badge at this app's sizes (11.5–20px, at 2x and 3x: within ⅓px).
+Buttons and boxes take an exact line height — 1.4 (the browser's `normal`
+put this serif's extra gap all under the words), 22px for 15px words (21
+rounds them ¾px low); count pills have a set height with the 1.4 line
+inside; figures in the number squares are taken back down 2px (a figure
+stands as tall as a capital). To re-measure: screenshot each element and
+compare its lowercase letters' middle with the box's. Never nudge a button's words with uneven padding or
 `top: 1px`; if the font is ever changed, raise the new one the same way
 (its glyphs, not its ascent/descent). OFL: `fonts/OFL.txt`. No other font
 is loaded (no Google Fonts).

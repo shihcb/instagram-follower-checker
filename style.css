@@ -5,7 +5,7 @@
    (fonts/ goes into the built site: package.json's build, vercel.json) */
 @font-face {
   font-family: 'Ledger Serif';
-  src: url('fonts/ledger-serif.woff2') format('woff2');
+  src: url('fonts/ledger-serif.woff2?v=2') format('woff2');
   font-weight: 200 900;
   font-style: normal;
   font-display: block;
@@ -210,6 +210,19 @@ body {
   line-height: 1.5;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Buttons and text boxes: an exact line height. The browser gives them
+   `normal`, which for this serif puts its extra line gap all under the
+   words — they sat 1–1.5px low in every button, tab and pill. A number
+   shares any extra room evenly above and below, so the words sit in the
+   middle; 1.4 is the height `normal` came to, so nothing changes size.
+   (A rule of a button's own still wins — line-height: 1 on the small ones.) */
+button,
+input,
+select,
+textarea {
+  line-height: 1.4;
 }
 
 a {
@@ -7005,3 +7018,47 @@ b, strong {
 #btn-add-account { width: 100%; justify-content: center; gap: 6px; }
 #add-account-dropdown-menu { min-width: 150px; padding: 4px 0; }
 #account-modal-original-caption { font-size: var(--fs-sm); color: var(--text-muted); margin-top: 6px; text-transform: lowercase; }
+
+/* Words centred (with the font's glyphs raised 0.12em): buttons, pills,
+   chips and tabs of a set height take the 1.4 line height like every other
+   button — at 1 the browser's rounding put 11.5px words ¾px high. (Badges
+   keep 1: their height is their line's.) */
+.btn-sm,
+.card-num,
+.account-chip,
+.btn-add-account,
+.btn-add-account .btn-add-text,
+.drive-btn,
+.row-select-bar button,
+.feature-toast-btn,
+.insights-row-btn,
+.user-avatar,
+.row-shortcut-key {
+  line-height: 1.4;
+}
+.preview-toggle .btn-label-content {
+  line-height: 1.4 !important;
+}
+/* Count pills ("3 found", "12 loaded"): their height set (it came from a
+   1 line height and 2px padding — the same as before, 11.5 + 4 + 2) and the
+   1.4 line inside it, so the words sit in the middle like the buttons' */
+.badge {
+  height: calc(var(--fs-sm) + 6px);
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 1.4;
+  box-sizing: border-box;
+}
+/* The number squares: a figure stands as tall as a capital, so with the
+   font's glyphs raised for lowercase words it sat 1px high — taken back
+   down (the dashboard's digits badges do the same), the square's size kept */
+.card-num {
+  padding-top: 2px;
+  box-sizing: border-box;
+}
+/* 15px words (the full-size buttons, the card numbers): a 22px line —
+   at 21 (1.4) the browser rounds this size's font up and they sat ¾px low */
+.btn:not(.btn-sm):not(.drive-btn),
+.card-num {
+  line-height: 22px;
+}
