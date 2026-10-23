@@ -7151,6 +7151,7 @@ html.is-logged-in #auth-profile-view > .app-version {
 }
 .timeline-dates .tl-mon {
   display: inline-block;
+  vertical-align: top; /* (clipped while its width glides, a box sat on its own bottom edge: the row grew 5px and the graph jumped up) */
 }
 
 /* The app's own pop-up (showSiteConfirm) always over any window it was
