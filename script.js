@@ -2191,7 +2191,9 @@ function reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, rename
     row.style.left = `${b.left}px`;
     row.style.width = `${b.width}px`;
     row.style.margin = '0';
-    row.style.zIndex = '1';
+    // (searching: under the rows, which glide over it as it pops out — the
+    // dashboard's; see below)
+    row.style.zIndex = rowPop ? '0' : '1';
     leaving.push(row);
   });
   const template = document.createElement('template');
@@ -2206,9 +2208,14 @@ function reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, rename
   });
   const fragment = document.createDocumentFragment();
   ordered.forEach(row => fragment.appendChild(row));
-  // (After a blank a bottom removal left at the top, which stays first.)
-  const first = listEl.firstChild;
+  // (After a blank a bottom removal left at the top, which stays first;
+  // rows popping out, laid over their old places, don't count.)
+  let first = listEl.firstChild;
+  while (first && first.classList && first.classList.contains('username-exit')) first = first.nextSibling;
   listEl.insertBefore(fragment, first && first.classList && first.classList.contains('row-top-spacer') ? first.nextSibling : first);
+  // Searching: rows popping out go first, so the rows that stay are drawn
+  // over them as they glide to their new places (the dashboard's).
+  if (rowPop) leaving.forEach(row => listEl.insertBefore(row, listEl.firstChild));
   // Still-sliding-out rows stay (out of flow, so order doesn't matter).
   keptExits.forEach(row => { if (row.parentElement !== listEl) listEl.appendChild(row); });
   reindexUnfollowerRows();
@@ -2228,7 +2235,7 @@ function reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, rename
       addRowShift(row, was.top - top, DURATION);
       return;
     }
-    const resumeTop = resumeTops.get(name);
+    const resumeTop = rowPop ? undefined : resumeTops.get(name); // (searching: back afresh, popping in)
     if (resumeTop !== undefined) {
       // Was mid-slide out and is back: reverse from exactly where it is.
       const dy = (resumeTop - row.getBoundingClientRect().top) / visualScale;
@@ -2302,8 +2309,9 @@ function animateResultsReentry(listEl, previousTops, resumeTops = new Map(), { e
   rows.forEach(row => {
     const previousTop = previousTops.get(row.dataset.username);
     const resumeTop = resumeTops.get(row.dataset.username);
-    if (previousTop === undefined && resumeTop !== undefined) {
+    if (previousTop === undefined && resumeTop !== undefined && !rowPop) {
       // Was mid-slide out and is back: reverse from exactly where it is.
+      // (searching: it pops in afresh, as any row the search brings)
       const dy = (resumeTop - row.getBoundingClientRect().top) / visualScale;
       if (dy < 0) {
         slideRowIn(row, -dy, DURATION);
@@ -4357,19 +4365,27 @@ function slideRowIn(rowEl, distance, duration) {
 // glide to their new places, a row the search brings pops in from 14px down
 // at 95% as it fades in, one it hides pops out the same way. rowPop is on
 // only while a search redraws list 3.
+// The pop is added on top of the row's glide (composite 'add'), so a row
+// that has just popped in and is moved again by the next letter typed
+// glides at once — it used to sit still under the pop, then jump.
+// Popping out starts from exactly how it's drawn (mid-glide, mid-pop).
 let rowPop = false;
 function popRowIn(rowEl) {
   if (!canAnimate(rowEl)) return;
-  rowEl.animate([{ opacity: 0, transform: 'translateY(14px) scale(0.95)' }, { opacity: 1, transform: 'none' }], { ...MOTION, fill: 'backwards' });
+  rowEl.animate([{ opacity: 0 }, { opacity: 1 }], { ...MOTION, fill: 'backwards' });
+  rowEl.animate([{ transform: 'translateY(14px) scale(0.95)' }, { transform: 'translateY(0px) scale(1)' }], { ...MOTION, fill: 'backwards', composite: 'add' });
 }
 function popRowOut(rowEl, onDone) {
   let done = false;
   const finish = () => { if (done) return; done = true; onDone(); };
-  const ty = new DOMMatrixReadOnly(getComputedStyle(rowEl).transform).m42 || 0;
+  const cs = getComputedStyle(rowEl);
+  const m = new DOMMatrixReadOnly(cs.transform === 'none' ? undefined : cs.transform);
+  const from = { opacity: parseFloat(cs.opacity), transform: `translateY(${m.m42 || 0}px) scale(${m.a || 1})` };
   stopRowMotion(rowEl);
+  rowEl.getAnimations().forEach(a => a.cancel());
   onRowExitStarted(rowEl);
   if (!canAnimate(rowEl)) { finish(); return; }
-  rowEl.animate([{ opacity: 1, transform: `translateY(${ty}px)` }, { opacity: 0, transform: `translateY(${ty + 14}px) scale(0.95)` }], { ...MOTION, fill: 'forwards' })
+  rowEl.animate([from, { opacity: 0, transform: 'translateY(14px) scale(0.95)' }], { ...MOTION, fill: 'forwards' })
     .finished.then(finish, finish);
   setTimeout(finish, ROW_MOTION_MS + 1000); // (frames not coming: a hidden tab)
 }
