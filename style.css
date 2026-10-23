@@ -6203,7 +6203,7 @@ select,
 }
 .timeline-legend {
   display: flex;
-  justify-content: flex-start; /* (from the left like the dashboard's counted lines: a number counting moves only what's after it) */
+  justify-content: center;
   gap: 18px;
   font-size: var(--fs-sm);
   color: var(--text-muted);

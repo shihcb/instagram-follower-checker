@@ -1424,24 +1424,43 @@ function countTo(num, from, to, format = fmtNum) {
   // (screen size to layout size: the guest preview draws the app scaled)
   const k = num.offsetWidth ? endW / num.offsetWidth : 1;
   const c = num._count = { shown: from, raf: 0 };
-  // Growing, the digits come before the eased width does (0 to 1,245 has
-  // four figures a quarter of the way in): the box takes the number's
-  // digit count smoothly (log10) where that's wider, so it widens without
-  // a step as each digit or comma comes — what's beside it still glides.
-  let grow = () => 0;
-  if (endW > startW) {
-    const keep = num.textContent;
-    num.textContent = '0000000000';
-    const digitW = num.getBoundingClientRect().width / 10;
-    num.textContent = ',,,,,,,,,,';
-    const commaW = num.getBoundingClientRect().width / 10;
-    num.textContent = keep;
-    const drawn = (x) => { const t = fmtNum(Math.round(x)); const commas = (t.match(/,/g) || []).length; return digitW * (t.length - commas) + commaW * commas; };
-    const smooth = (x) => { const d = x < 1 ? 1 : Math.log10(x) + 1; return digitW * d + commaW * Math.max(0, (d - 1) / 3); };
-    const extra = endW - drawn(to); // (a "%" after it, say)
-    const offFrom = smooth(from) - drawn(from), offTo = smooth(to) - drawn(to);
-    grow = (x, e) => Math.min(endW, extra + smooth(x) - offFrom * (1 - e) - offTo * e);
+  // The figures change before the eased width does, both ways (0 to 1,245
+  // has four figures a quarter of the way in; counting down, 129 is still
+  // three at nine tenths), and a box squeezed to its figures stepped a whole
+  // digit as one came or went — or dropped the last one as the count ended.
+  // So the width is planned over the whole count: at each moment a digit or
+  // comma comes or goes the box is as wide as the wider of the two numbers,
+  // and between those moments it glides (a smooth curve through them,
+  // monotone cubic) — never narrower than the figures on show, never a step.
+  const keep = num.textContent;
+  num.textContent = '0000000000';
+  const digitW = num.getBoundingClientRect().width / 10;
+  num.textContent = ',,,,,,,,,,';
+  const commaW = num.getBoundingClientRect().width / 10;
+  num.textContent = keep;
+  const drawn = (x) => { const t = format(Math.round(x)); const commas = (t.match(/,/g) || []).length; const figs = (t.match(/\d/g) || []).length; return digitW * figs + commaW * commas; };
+  const extra = endW - drawn(to); // (a "%" after it, say)
+  const xAt = (t) => from + (to - from) * rowEase(t);
+  const pts = [[0, startW]];
+  const N = 240;
+  let level = drawn(from);
+  for (let i = 1; i < N; i++) {
+    const w = drawn(xAt(i / N));
+    if (Math.abs(w - level) > 0.01) { pts.push([i / N, extra + Math.max(w, level)]); level = w; }
   }
+  pts.push([1, endW]);
+  // (monotone cubic through the points: Fritsch–Carlson)
+  const n = pts.length;
+  const dx = [], sl = [], m = new Array(n).fill(0);
+  for (let i = 0; i < n - 1; i++) { dx[i] = pts[i + 1][0] - pts[i][0] || 1e-6; sl[i] = (pts[i + 1][1] - pts[i][1]) / dx[i]; }
+  for (let i = 1; i < n - 1; i++) m[i] = sl[i - 1] * sl[i] <= 0 ? 0 : (3 * (dx[i - 1] + dx[i])) / ((2 * dx[i] + dx[i - 1]) / sl[i - 1] + (dx[i] + 2 * dx[i - 1]) / sl[i]);
+  const widthAt = (t) => {
+    let i = 0;
+    while (i < n - 2 && t > pts[i + 1][0]) i++;
+    const h = dx[i], u = Math.min(1, Math.max(0, (t - pts[i][0]) / h));
+    const u2 = u * u, u3 = u2 * u;
+    return (2 * u3 - 3 * u2 + 1) * pts[i][1] + (u3 - 2 * u2 + u) * h * m[i] + (-2 * u3 + 3 * u2) * pts[i + 1][1] + (u3 - u2) * h * m[i + 1];
+  };
   const t0 = performance.now();
   const step = (now) => {
     const t = Math.min(1, (now - t0) / ROW_MOTION_MS);
@@ -1449,7 +1468,7 @@ function countTo(num, from, to, format = fmtNum) {
     const e = rowEase(t);
     c.shown = Math.round(from + (to - from) * e);
     num.textContent = format(c.shown);
-    num.style.width = `${Math.max(startW + (endW - startW) * e, grow(from + (to - from) * e, e)) / k}px`;
+    num.style.width = `${Math.max(widthAt(t), extra + drawn(c.shown)) / k}px`;
     c.raf = requestAnimationFrame(step);
   };
   num.textContent = format(from);
