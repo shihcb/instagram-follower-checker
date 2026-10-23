@@ -5,7 +5,7 @@
    (fonts/ goes into the built site: package.json's build, vercel.json) */
 @font-face {
   font-family: 'Ledger Serif';
-  src: url('fonts/ledger-serif.woff2?v=2') format('woff2');
+  src: url('fonts/ledger-serif.woff2?v=3') format('woff2');
   font-weight: 200 900;
   font-style: normal;
   font-display: block;
