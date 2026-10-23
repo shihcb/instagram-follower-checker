@@ -1,6 +1,6 @@
 {
-  "name": "IG checker",
-  "short_name": "IG checker",
+  "name": "Instagram by S",
+  "short_name": "Instagram by S",
   "description": "see who doesn't follow you back on instagram",
   "start_url": "./index.html",
   "scope": "./",
@@ -8,6 +8,17 @@
   "background_color": "#fafafa",
   "theme_color": "#fafafa",
   "icons": [
-    { "src": "images/app-icon.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
+    {
+      "src": "images/app-icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "images/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
   ]
 }

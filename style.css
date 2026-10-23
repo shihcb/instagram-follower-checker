@@ -3737,10 +3737,10 @@ body.auth-logged-out #auth-form-view {
   justify-content: center !important;
 }
 
-/* A 320px screen: the theme button is just its icon, so "log in / sign
-   up" fits beside the name (it was cut off at the right edge, the name
-   wrapping onto two lines) */
-@media (max-width: 360px) {
+/* A phone: the theme button is just its icon, so the name ("Instagram by
+   S") and "log in / sign up" fit on one line (it was cut off at the right
+   edge, the name wrapping onto two lines) */
+@media (max-width: 480px) {
   .landing-header-actions {
     gap: 8px;
   }
@@ -6934,3 +6934,19 @@ b, strong {
 [data-theme="dark"] .feature-toast {
   background: linear-gradient(var(--card-bg), var(--card-bg)), var(--bg-color); /* (solid, like the select bar) */
 }
+
+/* The narrowest phones (320px): a little less room around the name
+   (after the phone rules above, which it narrows further) */
+@media (max-width: 360px) {
+  .landing-header {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .landing-brand {
+    gap: 8px;
+  }
+  .landing-brand-name {
+    font-size: var(--fs-base);
+  }
+}
+

@@ -67,6 +67,18 @@ thousands separators. Changing text fades across (swapText), counts count;
 a finished action shows a check after its button's words (doneCheck), never
 a pop-up saying it's done. The toast is the select bar's own bar.
 
+## The app's name and icon
+
+The app is called **Instagram by S** (written just so: page title, home
+screen name, manifest, the iPhone app, the landing page and log-in card).
+Its icon follows the financial dashboard's icon rules: a 1024px square of
+one flat colour (the app's near-black, #09090b — iOS rounds the corners
+itself), one white line glyph from the app's own icon set (person with a
+check), stroke 2 on the 24-unit grid with round ends, drawn 32x and centred
+— no gradient, shadow or text. `images/app-icon.png` (1024, also the iPhone
+app's AppIcon) and `images/apple-touch-icon.png` (180); the landing logo
+uses the same glyph.
+
 ## Text centred in buttons — the app's font
 
 The app's font is `fonts/jakarta-centered.woff2` ('Jakarta Centered', in

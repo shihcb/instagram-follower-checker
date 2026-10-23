@@ -1,6 +1,6 @@
 {
   "appId": "com.shihab.igchecker",
-  "appName": "IG Checker",
+  "appName": "Instagram by S",
   "webDir": "public",
   "server": {
     "androidScheme": "https"

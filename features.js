@@ -685,7 +685,7 @@
       let blob = null;
       try { blob = canCloud() ? await cloudGet(key, entry.n) : null; } catch (err) { console.error('[features] downloading import files failed:', err); }
       if (blob) {
-        saveFile(`ig-checker-${who}-import-${entry.n}-${fileDate(entry.date)}.zip`, blob);
+        saveFile(`instagram-by-s-${who}-import-${entry.n}-${fileDate(entry.date)}.zip`, blob);
         return true;
       }
       // Not in the cloud yet (saved by an older version on another device
@@ -701,7 +701,7 @@
     const rows = [['change', 'username']];
     [['lost', 'unfollowed you'], ['gained', 'new follower'], ['stopped', 'you stopped following'], ['started', 'you started following']]
       .forEach(([k, label]) => (c[k] || []).forEach(name => rows.push([label, name])));
-    saveFile(`ig-checker-${who}-import-${entry.n}-changes-${fileDate(entry.date)}.csv`, new Blob(['\ufeff' + rows.map(r => r.map(cell).join(',')).join('\n')], { type: 'text/csv' }));
+    saveFile(`instagram-by-s-${who}-import-${entry.n}-changes-${fileDate(entry.date)}.csv`, new Blob(['\ufeff' + rows.map(r => r.map(cell).join(',')).join('\n')], { type: 'text/csv' }));
     return true;
   }
   let savedOverlay = null;
@@ -2970,7 +2970,7 @@
         rows.push(multi ? [name].concat(row) : row);
       });
     });
-    const file = multi ? 'ig-checker-lists.csv' : `ig-checker-${kinds[0]}.csv`;
+    const file = multi ? 'instagram-by-s-lists.csv' : `instagram-by-s-${kinds[0]}.csv`;
     saveFile(file, new Blob(['\ufeff' + rows.map(r => r.map(cell).join(',')).join('\n')], { type: 'text/csv' }));
   }
 
@@ -3125,7 +3125,7 @@
 
     ctx.fillStyle = C.muted;
     ctx.font = `500 24px ${body}`;
-    ctx.fillText((document.title || 'instagram follower checker').toLowerCase(), W / 2, H - P + 10);
+    ctx.fillText(document.title || 'Instagram by S', W / 2, H - P + 10);
     return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
   }
 
