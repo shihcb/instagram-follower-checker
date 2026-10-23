@@ -1629,7 +1629,7 @@
       // Its page is only reused while it's still sliding (turning round);
       // one put away earlier is drawn again — the data may have changed
       // since (an import on the results, say).
-      if (!live || live.dataset.view !== view || !at.has(altView)) { panes().filter(p => p !== live).forEach(p => p.remove()); renderView(); altView.scrollTop = 0; }
+      if (!live || live.dataset.view !== view || !at.has(altView)) { panes().filter(p => p !== live).forEach(p => p.remove()); renderView(false, true); altView.scrollTop = 0; }
       else {
         altView._html = renderView(true);
         // The page that's coming back was drawn off-centre inside the box:
@@ -1661,7 +1661,7 @@
         altView._html = renderView(true);
       } else {
         others.forEach(p => p.remove());
-        renderView();
+        renderView(false, true);
         target = altView.querySelector(':scope > .insights-pane');
         others.forEach(p => altView.appendChild(p));
       }
@@ -1907,7 +1907,7 @@
     if (real) {
       pts = hist.map(h => ({ t: h.date, a: h.following, b: h.followers }));
       const lastH = pts[pts.length - 1];
-      if (!lastH || lastH.a !== nowA || lastH.b !== nowB) pts.push({ t: Date.now(), a: nowA, b: nowB });
+      if (!lastH || lastH.a !== nowA || lastH.b !== nowB) pts.push({ t: Date.now(), a: nowA, b: nowB, now: true });
       if (pts.length === 1) { single = true; pts = [{ ...pts[0], t: pts[0].t - DAY }, pts[0]]; }
     } else {
       pts = MOCK_TIMELINE.map(([a, b], i) => ({ t: i, a, b }));
@@ -1927,7 +1927,9 @@
     const grid = [0.25, 0.5, 0.75].map(g => `<line class="tl-grid" x1="0" x2="${W}" y1="${(H * g).toFixed(1)}" y2="${(H * g).toFixed(1)}"/>`).join('');
     const dots = series.map(([k, , c]) => pts.map((p, i) => `<span class="tl-dot" style="--c:${c};--x:${fx(p, i).toFixed(3)};left:${(x(p, i) / W * 100).toFixed(2)}%;top:${(y(p[k]) / H * 100).toFixed(2)}%"></span>`).join('')).join('');
     const last = pts[pts.length - 1];
-    const sig = `${real ? 'r' : 'm'}:${pts.map(p => `${p.t}.${p.a}.${p.b}`).join(',')}`;
+    // ("now" by name, not its time: the time changed on every redraw, so
+    // the graph re-ran its morph each time, its points fading out and back)
+    const sig = `${real ? 'r' : 'm'}:${pts.map(p => `${p.now ? 'now' : p.t}.${p.a}.${p.b}`).join(',')}`;
     // Where each point is drawn (graph units), so a change can move the
     // lines from one set of points to the next (morphTimeline).
     const shape = pts.map((p, i) => `${x(p, i).toFixed(1)},${y(p.a).toFixed(1)},${y(p.b).toFixed(1)}`).join(';');
@@ -2046,7 +2048,10 @@
   }
 
   // dry: just return what the view would show (to tell if it changed).
-  function renderView(dry = false) {
+  // enter: the view has just come on screen (switched to) — its graph grows,
+  // its lines draw in and its numbers count up from 0, rather than carrying
+  // on from the copy that was put away.
+  function renderView(dry = false, enter = false) {
     const body = altView;
     const key = accKey();
     let html = '';
@@ -2119,14 +2124,15 @@
     // that's playing carries on through quick back-to-back redraws.
     // (Not while the page loads: the data arrives in steps, and it's drawn
     // straight at its numbers rather than counting up to each step's.)
-    const oldWrap = pageLoading ? null : body.querySelector('.insights-pane:not(.pane-leaving) .trend-wrap');
+    const reuse = !pageLoading && !enter;
+    const oldWrap = !reuse ? null : body.querySelector('.insights-pane:not(.pane-leaving) .trend-wrap');
     if (oldWrap) oldWrap.remove();
     // Same for the stat boxes: kept, and their numbers count to the new
     // values (rebuilding them re-ran their fade-in: a flicker).
-    const oldStats = pageLoading ? null : body.querySelector('.insights-pane:not(.pane-leaving) .insights-stats');
+    const oldStats = !reuse ? null : body.querySelector('.insights-pane:not(.pane-leaving) .insights-stats');
     if (oldStats) oldStats.remove();
     // And the timeline: kept while its numbers are the same.
-    const oldTl = pageLoading ? null : body.querySelector('.insights-pane:not(.pane-leaving) .timeline:not(.timeline-leaving)');
+    const oldTl = !reuse ? null : body.querySelector('.insights-pane:not(.pane-leaving) .timeline:not(.timeline-leaving)');
     if (oldTl) oldTl.remove();
     body.querySelectorAll('.pane-leaving').forEach(el => el.remove());
     const rowsBefore = captureViewRows(body);
@@ -2141,6 +2147,7 @@
     if (newStats && oldStats) { newStats.replaceWith(oldStats); updateStats(oldStats, newStats); }
     else if (newStats && !pageLoading) { // a reload: already in place, no entrance
       newStats.classList.add('stats-enter');
+      if (enter) countUpStats(newStats);
       setTimeout(() => newStats.classList.remove('stats-enter'), 500); // so moving it later can't replay it
     }
     const newWrap = body.querySelector('.trend-wrap');
@@ -2156,7 +2163,7 @@
         // last account's), like the stat boxes' numbers do.
         newTl.replaceWith(oldTl);
         morphTimeline(oldTl, newTl);
-      } else if (showing && !pageLoading) drawTimeline(tlPane);
+      } else if (showing && !pageLoading) { drawTimeline(tlPane); if (enter) countUpTimeline(newTl); }
     }
     applyPopped();
     centerSoon();
@@ -2286,20 +2293,32 @@
     stats.querySelectorAll('.insights-stat-value').forEach((el, i) => {
       const to = newVals[i];
       if (to === undefined || el.textContent === to) return;
-      const pct = to.endsWith('%');
-      const a = readNum(el.textContent) || 0, b = readNum(to) || 0;
-      const token = (el._countToken = {});
-      const t0 = performance.now(), dur = 450;
-      const ease = rowEase; // the list 3 slide's curve
-      const step = (now) => {
-        if (el._countToken !== token) return;
-        const t = Math.min(1, (now - t0) / dur);
-        el.textContent = `${fmtNum(Math.round(a + (b - a) * ease(t)))}${pct ? '%' : ''}`;
-        if (t < 1) requestAnimationFrame(step);
-      };
-      requestAnimationFrame(step);
+      countNum(el, readNum(el.textContent) || 0, to);
     });
   }
+  // A number counts from `a` to the text `to` on the list 3 slide (every
+  // number in between shows; "%" kept). Reduce Motion: straight there.
+  function countNum(el, a, to) {
+    const pct = to.endsWith('%');
+    const b = readNum(to) || 0;
+    const token = (el._countToken = {});
+    if (a === b || !canAnimate(el)) { el.textContent = to; return; }
+    const t0 = performance.now();
+    const show = (n) => { el.textContent = `${fmtNum(Math.round(n))}${pct ? '%' : ''}`; };
+    show(a);
+    const step = (now) => {
+      if (el._countToken !== token) return;
+      const t = Math.min(1, (now - t0) / ROW_MOTION_MS);
+      if (t >= 1) { el.textContent = to; return; }
+      show(a + (b - a) * rowEase(t));
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+  // The view just came on screen: its numbers count up from 0 (the
+  // financial dashboard's numbers do as they appear).
+  const countUpStats = (stats) => stats.querySelectorAll('.insights-stat-value').forEach(el => countNum(el, 0, el.textContent));
+  const countUpTimeline = (tl) => { if (!tl.classList.contains('timeline-mock')) tl.querySelectorAll('.timeline-key b').forEach(b => countNum(b, 0, b.textContent)); };
   // Tapping a stat box takes you to its list: following / followers →
   // list 1 / list 2 (brought into view with a brief outline), follow you
   // back → mutuals, don't follow you back → list 3's results, unfollowed /
@@ -2307,7 +2326,10 @@
   function goToStat(i) {
     // On a phone, its list comes into view first (lists 2 and 1 sit
     // behind the switcher there).
+    // On a phone it's the switcher's own slide, nothing more (scrolling to
+    // the card and flashing it as it slid in jerked the page about).
     if (phoneLayout.matches) showMobileList(i === 0 ? 'following' : i === 1 ? 'followers' : 'unfollowers');
+    if ((i === 0 || i === 1) && phoneLayout.matches) return;
     if (i === 0 || i === 1) {
       const card = document.getElementById(i === 0 ? 'card-following' : 'card-followers');
       if (!card) return;
@@ -2606,7 +2628,7 @@
     const target = all.find(p => p.dataset.pane === id);
     slideSub(altView, all, [target], 'active', p => order.indexOf(p.dataset.pane), dir);
     centerSoon();
-    if (id === 'timeline') drawTimeline(target);
+    if (id === 'timeline') { drawTimeline(target); const tl = target.querySelector('.timeline:not(.timeline-leaving)'); if (tl) countUpTimeline(tl); }
   }
 
   // ---------- empty texts: centered in list 3's whole box ----------
