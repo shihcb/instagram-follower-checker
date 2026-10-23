@@ -804,9 +804,8 @@
       if (!entry || row.classList.contains('at-work')) return;
       // (its spinner after the words while the files come down)
       workButton(row, true);
-      downloadSaved(key, entry).then((saved) => { if (saved) doneCheck(row); },
-        err => { console.error('[features] download failed:', err); showSiteAlert('import couldn’t be downloaded', 'its files aren’t in the cloud yet'); })
-        .finally(() => workButton(row, false));
+      downloadSaved(key, entry).then((saved) => workDone(row, !!saved),
+        err => { workButton(row, false); console.error('[features] download failed:', err); showSiteAlert('import couldn’t be downloaded', 'its files aren’t in the cloud yet'); });
     });
     // Escape closes just this window (not the settings panel as well).
     document.addEventListener('keydown', (e) => {

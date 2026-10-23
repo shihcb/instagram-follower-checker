@@ -4092,6 +4092,37 @@ function doneCheck(btn, ms = 1600) {
     }, ms);
   }
 }
+// A button's work done with a check (the dashboard's): the spinner swoops
+// away first, its room kept, then the check comes into that same room —
+// never the two in the line at once; were the check's room a shade
+// different, what's beside it glides there instead of stepping.
+function workDone(btn, ok = true) {
+  if (!btn) return;
+  const sp = btn.querySelector(':scope > .work-spin');
+  if (!ok || !sp || sp._leaving || !canAnimate(btn) || !btn.isConnected) { workButton(btn, false); if (ok) doneCheck(btn); return; }
+  sp._leaving = true;
+  btn.classList.remove('at-work');
+  sp.getAnimations().forEach(a => a.finish());
+  sp.firstChild.animate([...SPIN_SWOOP].reverse(), { duration: ROW_MOTION_MS * 0.6, easing: 'cubic-bezier(0.5, 0, 0.9, 0.4)', fill: 'forwards' })
+    .finished.then(() => {
+      if (!sp._leaving || !sp.isConnected) return;
+      const prev = sp.previousElementSibling;
+      const x0 = prev ? prev.getBoundingClientRect().right : 0;
+      const c = document.createElement('span');
+      c.className = 'done-check show';
+      c.setAttribute('aria-hidden', 'true');
+      c.innerHTML = CHECK_SVG;
+      c.style.transition = 'none';
+      sp.replaceWith(c);
+      const x1 = prev ? prev.getBoundingClientRect().right : 0;
+      const ml = parseFloat(getComputedStyle(c).marginLeft) || 0;
+      void c.offsetWidth;
+      c.style.transition = '';
+      c.animate([{ opacity: 0 }, { opacity: 1 }], MOTION);
+      if (Math.abs(x1 - x0) > 0.05) c.animate([{ marginLeft: `${ml + (x1 - x0)}px` }, { marginLeft: `${ml}px` }], MOTION);
+      doneCheck(btn); // (its moment, then it eases away as any check)
+    }, () => {});
+}
 // One switch at a time (the dashboard's gated): a tap while a switch is
 // still well under way waits until it's about 70% done, then goes; only the
 // last tap counts (several quick taps never pile up into half-slides).

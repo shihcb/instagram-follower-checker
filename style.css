@@ -6779,6 +6779,9 @@ b, strong {
    after the words like anywhere else */
 .btn > .done-check { margin-left: -8px; }
 .btn > .done-check.show { margin-left: calc(.35em - 8px); }
+/* (an export window's row spaces its pieces 10px: the same, taken back) */
+.export-option > .done-check { margin-left: -10px; }
+.export-option > .done-check.show { margin-left: calc(.35em - 10px); }
 /* (on a filled button — the toast's green one — the check is its words' colour) */
 .feature-toast-btn .done-check,
 .btn-primary .done-check {
