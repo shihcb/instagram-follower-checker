@@ -873,7 +873,7 @@ button:disabled *,
 .preview-toggle .btn-label-content {
   display: inline-flex !important;
   align-items: center !important;
-  line-height: 1 !important;
+  line-height: 1.4 !important; /* (as every button's: 1 left "import files" ¾px high) */
   margin: 0 !important;
   padding: 0 !important;
   position: relative !important;
@@ -925,8 +925,6 @@ button:disabled *,
   min-height: 14px !important;
   color: #000000 !important;
   stroke: #000000 !important;
-  position: relative;
-  top: 1px;
   transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
