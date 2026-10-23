@@ -785,9 +785,6 @@
         <div class="account-modal-header"><h3>saved imports</h3><button class="modal-close-btn" type="button" aria-label="close" data-saved="close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button></div>
         <div class="saved-imports-nav"></div>
         <div class="saved-imports-panes"></div>
-        <div class="account-modal-actions">
-          <button class="btn btn-secondary" data-saved="close">close</button>
-        </div>
       </div>`;
     document.body.appendChild(savedOverlay);
     // Its clicks stay inside it: the settings panel under it closes on any

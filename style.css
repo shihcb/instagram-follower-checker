@@ -2093,8 +2093,8 @@ body.hide-shortcuts #keyboard-hints {
   margin: 0;
 }
 
-/* A window's ✕ (the financial dashboard's .modal-x): a 28px box, its SVG ✕
-   centred, the one red; hovering only changes its colour. */
+/* A window's ✕ (the financial dashboard's .modal-x): a 28px box in the
+   head's top right, its 18px SVG ✕ centred, red; hovered, it dims. */
 .modal-x,
 .modal-close-btn {
   flex: none;
@@ -2109,7 +2109,7 @@ body.hide-shortcuts #keyboard-hints {
   background-color: transparent !important;
   border: none !important;
   line-height: 1;
-  color: var(--text-muted) !important;
+  color: #ef4444 !important; /* (every ✕ the one red — the dashboard's) */
   cursor: pointer;
   transition: color 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   outline: none !important;
@@ -2128,8 +2128,8 @@ body.hide-shortcuts #keyboard-hints {
 
 .modal-x svg,
 .modal-close-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   flex: none;
   display: block;
 }
@@ -2137,7 +2137,7 @@ body.hide-shortcuts #keyboard-hints {
 @media (hover: hover) {
   .modal-x:hover,
   .modal-close-btn:hover {
-    color: var(--text-main) !important;
+    opacity: .75;
     background: transparent !important;
     background-color: transparent !important;
   }
@@ -2680,9 +2680,6 @@ html.hide-shortcuts .account-chip-badge {
   background-color: var(--text-main);
 }
 
-[data-theme="dark"] .modal-close-btn {
-  color: var(--text-muted) !important;
-}
 
 .account-modal-input-group {
   margin-bottom: 22px;
@@ -6521,9 +6518,10 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
   font-weight: 600;
 }
 
-/* Saved imports: a tab per account (list 3's tab bar), and a taller,
-   fixed-height area where each account's list slides in and out like list
-   3's tabs (each list scrolls on its own). */
+/* Saved imports: a tab per account (list 3's tab bar), and an area as tall
+   as the list showing (up to a cap, past which it scrolls) where each
+   account's list slides in and out like list 3's tabs, the area easing to
+   the new list's height; nothing under it. */
 .saved-imports-nav[hidden] {
   display: none;
 }
@@ -6538,14 +6536,12 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 }
 .saved-imports-panes {
   position: relative;
-  height: min(56vh, 460px);
   overflow: hidden;
-  margin-bottom: 18px;
 }
 .saved-imports-panes > .saved-pane {
   display: none;
   flex-direction: column;
-  height: 100%;
+  max-height: min(56vh, 460px);
   margin: 0;
   overflow-y: auto;
   box-sizing: border-box;
@@ -6557,9 +6553,6 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 .saved-imports-panes > .saved-pane.pane-out {
   pointer-events: none;
   z-index: 1;
-}
-.saved-imports-panes > .saved-pane > .dropdown-empty-message {
-  margin: auto 0;
 }
 
 
@@ -7487,6 +7480,20 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
 .confirm-modal-box,
 .account-modal-card {
   width: 100% !important;
+}
+/* (a computer's screen: the drop-down menus wider too — the lists, import
+   files and the account menu) */
+@media (min-width: 1025px) {
+  #list-unfollowed,
+  #list-starred {
+    min-width: 360px !important;
+  }
+  #add-account-dropdown-menu {
+    width: 220px !important;
+  }
+  html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
+    width: 400px;
+  }
 }
 /* (a computer's screen: every pop-up wider, the dashboard's 560px window
    on 48rem and up) */
