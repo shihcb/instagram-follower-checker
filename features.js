@@ -460,7 +460,7 @@
   const canCloud = () => !!(supabaseClient && supabaseClient.storage && currentUser);
   // (and this user's log down from the cloud: numbered before it came, an
   // import went up as import-1.zip over the cloud's own first one)
-  const cloudLoaded = () => canCloud() && cloudReady;
+  const cloudLoaded = () => canCloud() && cloudReady && !cloudPulling;
   // The user's folder is the one logged in when the upload began: read on
   // each try, it threw once logged out — and went into another person's
   // folder if they logged in meanwhile.
@@ -644,7 +644,14 @@
         await cloudPut(key, entry.n, makeZip(rec.files, entry.date));
         const log = readJSON(logKey(key), []); // (fresh, after the upload)
         const now = log.find(x => String(x.n) === n);
-        if (now) { now.files = true; writeJSON(logKey(key), log); }
+        if (now) now.files = true;
+        // (as any upload: the import before it, no longer the latest, keeps
+        // just its changes unless it's a full save — its zip stayed for good)
+        const before = log.find(x => x.n === entry.n - 1);
+        if (before && before.files && !isFullSave(before.n) && before.n === Math.max(...log.filter(x => x.files && x.n < entry.n).map(x => x.n))) {
+          try { await cloudDel(key, before.n); before.files = false; } catch (err) { console.error('[features] removing old import files failed:', err); }
+        }
+        writeJSON(logKey(key), log);
         moved.push(id);
       } catch (err) { ok = false; console.error('[features] moving import files to the cloud failed:', err); }
     }
@@ -891,6 +898,7 @@
   // Zips that are Instagram's: by their own name or their folder's.
   const EXPORT_NAME = /instagram|meta|facebook|information|takeout/i;
   let driveToken = null; // { value, until }
+  let tokenGen = 0, askedGen = 0; // (a log-out bumps tokenGen: google's answer to an earlier ask is dropped)
   let tokenClient = null;
   let tokenWaiters = [];
   const isNative = () => !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
@@ -919,6 +927,7 @@
       client_id: GOOGLE_CLIENT_ID,
       scope: DRIVE_SCOPE,
       callback: (resp) => {
+        if (tokenGen !== askedGen) { settle(w => w.reject(new Error('stopped'))); return; } // (logged out since it was asked for)
         if (resp && resp.access_token) {
           driveToken = { value: resp.access_token, until: Date.now() + ((Number(resp.expires_in) || 3600) - 60) * 1000 };
           settle(w => w.resolve(driveToken.value));
@@ -937,6 +946,7 @@
     if (!client) { loadGoogle(); return Promise.reject(new Error("google's sign-in is still loading, try again")); }
     return new Promise((resolve, reject) => {
       tokenWaiters.push({ resolve, reject });
+      askedGen = tokenGen;
       client.requestAccessToken({ prompt: driveOn() ? '' : 'consent' });
     });
   }
@@ -1018,9 +1028,13 @@
     let synced = false; // (done in full: a check after sync's words)
     try {
       await signIn;
+      stillHere(); // (logged out while google's window was up: nothing of it is kept for the next person)
       storageSet('drive_on', '1');
       // (the account's address, for its badge — the dashboard's icloud mail)
-      fetchDriveEmail().then(email => { if (email && email !== storageGet('drive_email')) { storageSet('drive_email', email); pushToCloud(); refreshDrive(); } });
+      fetchDriveEmail().then(email => {
+        if (sync.cancelled || !currentUser || currentUser.id !== uid) return;
+        if (email && email !== storageGet('drive_email')) { storageSet('drive_email', email); pushToCloud(); refreshDrive(); }
+      });
       bar.stage('finding exports', 0.1);
       const firstSync = !storageGet('drive_checked');
       const seen = new Set(driveSeen());
@@ -3478,10 +3492,11 @@
   else init();
 
   // For the rest of the app (and tests).
-  window.igFeatures = { resetDrive: () => { driveToken = null; if (driveSync) driveSync.cancelled = true; }, driveBusy: () => !!driveSync,
+  window.igFeatures = { resetDrive: () => { driveToken = null; tokenGen++; tokenWaiters.splice(0).forEach(w => w.reject(Object.assign(new Error('stopped'), { cancelled: true }))); if (driveSync) driveSync.cancelled = true; }, driveBusy: () => !!driveSync,
     refreshView: () => safe(refreshView, 'view'),
     // (imports' files still going up — logging out waits for them, so their
     // "files saved" reaches the cloud; at most 15s)
+    savesPending: () => savesRunning.size > 0,
     savesSettled: () => Promise.race([Promise.allSettled([...savesRunning]), new Promise(r => setTimeout(r, 15000))]),
     moveLocalFilesToCloud: () => moveLocalFilesToCloud().catch(err => console.error('[features] moving import files failed:', err)),
     // The saved settings, read again once they've come (from the cloud, at

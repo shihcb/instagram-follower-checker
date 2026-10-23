@@ -2695,7 +2695,7 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
   // saved log-in): the import waits for it — made now, the download wrote
   // over it and it was gone. (Failed — offline — it goes ahead: kept and
   // merged in when the data comes; see retryCloudLoadWhenOnline.)
-  for (let waited = 0; currentUser && !cloudReady && !pendingCloudRetry && waited < 20000; waited += 200) {
+  for (let waited = 0; currentUser && (!cloudReady || cloudPulling) && !pendingCloudRetry && waited < 20000; waited += 200) {
     await new Promise(resolve => setTimeout(resolve, 200));
   }
 
@@ -2783,13 +2783,17 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
       for (;;) {
         const answer = await showSiteConfirm("which account is this?", note, 'import', 'cancel', { value, placeholder: '@username' });
         if (answer == null) return false;
-        const typed = String(answer).trim()
-          .replace(/^(https?:\/\/)?(www\.)?instagram\.com\//i, '').split(/[/?#]/)[0]
+        const raw = String(answer).trim();
+        // (a profile link — any of instagram's addresses — read for its name;
+        // a link with no name in it, or instagram's own address, asked again)
+        const linked = /instagram\.com/i.test(raw);
+        const typed = raw
+          .replace(/^(https?:\/\/)?([a-z0-9-]+\.)*instagram\.com\/?/i, '').split(/[/?#]/)[0]
           .replace(/^@+/, '').toLowerCase(); // instagram usernames are lowercase
-        if (!typed) return false;
+        if (!typed && !linked) return false;
         // (with the demo on, this was filled in as "__demo__": the real lists
         // went into the demo, and were gone with it)
-        if (typed !== DEMO_ID && /^[a-z0-9._]{1,30}$/.test(typed)) { extractedUsername = typed; break; }
+        if (typed && typed !== DEMO_ID && !/instagram\.com/.test(typed) && /^[a-z0-9._]{1,30}$/.test(typed)) { extractedUsername = typed; break; }
         value = String(answer);
         note = 'username couldn’t be read — enter it as instagram shows it';
       }
@@ -6698,7 +6702,7 @@ function initAuth() {
   {
     const params = new URLSearchParams((location.hash || '').replace(/^#/, ''));
     if (params.get('error') || params.get('error_code')) {
-      const reason = params.get('error_code') === 'otp_expired' ? 'reset link couldn’t be used — it has expired' : 'reset link couldn’t be used';
+      const reason = params.get('error_code') === 'otp_expired' ? 'link couldn’t be used — it has expired' : 'link couldn’t be used'; // (a sign-up's confirm link comes back the same way)
       try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
       setTimeout(() => { try { showAuthError(reason); } catch (e) {} }, 600);
     }
@@ -7146,12 +7150,13 @@ function initAuth() {
       // (a tap in a pop-up opened from settings — "disconnect google drive?",
       // a reset's confirm — or on the bar at the bottom is that pop-up's or
       // bar's own: its cancel closed settings with it)
-      if (e.target.closest('.modal-overlay, .feature-toast')) return;
+      if (e.target.closest('.modal-overlay')) return;
       if (!e.target.closest('#auth-dropdown') && !e.target.closest('#auth-btn')) {
         elements.authDropdown.classList.remove('show');
         clearAuthAlerts();
-        e.preventDefault();
-        e.stopPropagation();
+        // (the bar at the bottom's button still does its thing — "view" opens
+        // the changes, settings out of the way; any other tap only closes)
+        if (!e.target.closest('.feature-toast')) { e.preventDefault(); e.stopPropagation(); }
       }
     }
   }, true);
@@ -7278,15 +7283,23 @@ function initAuth() {
     // then the login page fades in (the SIGNED_OUT branch of
     // onAuthStateChange). This used to blur the app away while the header
     // stayed, then cut to the login page.
+    // Imports' files still going up are waited for first (logged out
+    // mid-upload, the cloud kept saying they weren't saved) — with the app
+    // still on screen, the button at work (its words, a spinner after them),
+    // not the page faded out and blank while they went.
+    const btn = elements.btnLogout;
+    if (btn._leaving) return;
+    btn._leaving = true;
+    if (window.igFeatures && window.igFeatures.savesPending && window.igFeatures.savesPending()) {
+      workButton(btn, true);
+      try { await window.igFeatures.savesSettled(); } catch (err) {}
+      workButton(btn, false);
+    }
+    btn._leaving = false;
     playAppExit();
     // Upload any batched changes while still signed in — alongside the
     // animation rather than after it.
-    // (imports' files still going up first: logged out mid-upload, the
-    // cloud kept saying they weren't saved)
-    const upload = (async () => {
-      if (window.igFeatures && window.igFeatures.savesSettled) await window.igFeatures.savesSettled();
-      await flushCloudPush();
-    })().catch(err => console.error('Error syncing before sign out:', err));
+    const upload = flushCloudPush().catch(err => console.error('Error syncing before sign out:', err));
 
     setTimeout(async () => {
       await upload;
@@ -7570,6 +7583,10 @@ function mergeOfflineWork(entries) {
       const moves = [];
       const mine = parse(value, []).map(x => { const n = ++next; if (n !== x.n) moves.push([x.n, n]); return { ...x, n, full: n === 1 || n % 5 === 0 }; }); // (a full save by its new number)
       storageSet(key, JSON.stringify([...have, ...mine]));
+      // (the cloud's "changes since your last import" were its last import's:
+      // an import made here since is the last now, so they go — they showed
+      // old changes. One made here with changes of its own puts them back.)
+      if (mine.length && !entries.some(([k]) => k === `import_diff_${key.slice('import_log_'.length)}`)) storageRemove(`import_diff_${key.slice('import_log_'.length)}`);
       if (moves.length && window.igFeatures && window.igFeatures.renumberKept) window.igFeatures.renumberKept(key.slice('import_log_'.length), moves);
     } else {
       storageSet(key, value); // the lists imported here, this device's choice of account: newer
@@ -7618,6 +7635,10 @@ function retryCloudLoadWhenOnline() {
 // overwrite them with the older cloud copy.
 async function pullFromCloud(uploadLocalFirst = false) {
   if (!supabaseClient || !currentUser) return;
+  cloudPulling = true;
+  try { return await pullFromCloudNow(uploadLocalFirst); } finally { cloudPulling = false; }
+}
+async function pullFromCloudNow(uploadLocalFirst) {
   if (uploadLocalFirst && storageGet(CLOUD_DIRTY_KEY) === currentUser.id) {
     cloudReady = true;
     let sent = false;
@@ -7787,6 +7808,10 @@ function clearLocalAccountData() {
 // before reading, overwriting the user's saved accounts and lists with
 // nothing.
 let cloudReady = false;
+// (this user's data on its way down — set for the whole of pullFromCloud,
+// which marks cloudReady for a moment while it first sends this device's
+// unsent changes: an import then didn't wait, and the download wiped it)
+let cloudPulling = false;
 
 function pushToCloud() {
   // (logged in offline, the cloud data not loaded yet: what's done meanwhile
