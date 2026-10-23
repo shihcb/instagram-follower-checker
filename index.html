@@ -88,7 +88,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=439">
+  <link rel="stylesheet" href="style.css?v=440">
 </head>
 <body class="auth-logged-out">
   <script>
@@ -132,7 +132,7 @@
             <div class="auth-dropdown glass" id="auth-dropdown">
               <div class="dropdown-header">
                 <h3>settings</h3>
-                <button id="theme-toggle-in-menu" class="btn btn-sm btn-secondary" style="display: inline-flex !important; align-items: center !important; gap: 6px !important; height: 26px !important; line-height: 1 !important; padding: 0 10px !important; font-size: 0.75rem !important; text-transform: lowercase !important; box-sizing: border-box !important;">
+                <button id="theme-toggle-in-menu" class="btn btn-sm btn-secondary">
                   <svg class="sun-icon theme-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="5"></circle>
                     <line x1="12" y1="1" x2="12" y2="3"></line>
@@ -159,7 +159,7 @@
                   <line x1="12" y1="8" x2="12" y2="12"></line>
                   <line x1="12" y1="16" x2="12.01" y2="16"></line>
                 </svg>
-                <span>please configure your supabase project url and anon key at the top of <code>script.js</code> to enable login.</span>
+                <span>please configure your supabase project url and anon key at the top of <code>script.js</code> to enable login</span>
               </div>
 
               <!-- Authenticated Profile View -->
@@ -240,14 +240,14 @@
                       <span class="setting-label">reset unfollowed list</span>
                       <span class="setting-desc">clear your unfollowed account history</span>
                     </div>
-                    <button class="btn btn-sm btn-danger-soft" id="settings-reset-unfollowed-btn" style="display: inline-block !important; height: 24px !important; line-height: 22px !important; padding: 0 10px !important; font-size: 0.72rem !important; text-transform: lowercase !important; text-align: center !important; vertical-align: middle !important; box-sizing: border-box !important;">reset</button>
+                    <button class="btn btn-sm btn-danger-soft" id="settings-reset-unfollowed-btn">reset</button>
                   </div>
                   <div class="setting-item-row" style="margin-top: 8px;">
                     <div class="setting-label-group">
                       <span class="setting-label">reset starred list</span>
                       <span class="setting-desc">clear your starred accounts</span>
                     </div>
-                    <button class="btn btn-sm btn-danger-soft" id="settings-reset-starred-btn" style="display: inline-block !important; height: 24px !important; line-height: 22px !important; padding: 0 10px !important; font-size: 0.72rem !important; text-transform: lowercase !important; text-align: center !important; vertical-align: middle !important; box-sizing: border-box !important;">reset</button>
+                    <button class="btn btn-sm btn-danger-soft" id="settings-reset-starred-btn">reset</button>
                   </div>
                 </div>
 
@@ -496,19 +496,19 @@
                                     </svg>
                                   </button>
                                   <div class="dropdown-menu" id="add-account-dropdown-menu" style="min-width: 150px; padding: 4px 0;">
-                                    <button id="btn-try-demo" class="dropdown-item-btn" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; font-size: 0.8rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                    <button id="btn-try-demo" class="dropdown-item-btn">
                                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
                                       <span>try a demo</span>
                                     </button>
-                                    <button id="btn-upload-zip" class="dropdown-item-btn" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; font-size: 0.8rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                    <button id="btn-upload-zip" class="dropdown-item-btn">
                                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;"><path d="M21 8v13H3V8"></path><rect x="1" y="3" width="22" height="5" rx="1"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
                                       <span>upload zip</span>
                                     </button>
-                                    <button id="btn-upload-files" class="dropdown-item-btn" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; font-size: 0.8rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                    <button id="btn-upload-files" class="dropdown-item-btn">
                                       <svg viewBox="2 0 20 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
                                       <span>upload files</span>
                                     </button>
-                                    <button id="btn-upload-folder" class="dropdown-item-btn" style="width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; font-size: 0.8rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                    <button id="btn-upload-folder" class="dropdown-item-btn">
                                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
                                       <span>upload folder</span>
                                     </button>
@@ -601,7 +601,7 @@
     <div class="account-modal-card glass">
       <div class="account-modal-header">
         <h3 id="account-modal-title">add instagram account</h3>
-        <button id="btn-modal-close" class="modal-close-btn" aria-label="close modal">&times;</button>
+        <button id="btn-modal-close" class="modal-close-btn" aria-label="close" type="button"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button>
       </div>
       <div class="account-modal-input-group">
         <label for="account-username-input">instagram username</label>
@@ -619,11 +619,11 @@
   <div id="confirm-modal-overlay" class="modal-overlay hidden">
     <div class="account-modal-card glass">
       <div class="account-modal-header">
-        <h3 id="confirm-modal-title">warning</h3>
-        <button id="btn-confirm-close" class="modal-close-btn" aria-label="close modal">&times;</button>
+        <h3 id="confirm-modal-title"></h3>
+        <button id="btn-confirm-close" class="modal-close-btn" aria-label="close" type="button"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button>
       </div>
-      <div class="account-modal-input-group" style="margin-bottom: 20px;">
-        <p id="confirm-modal-msg" style="font-size: 0.9rem; line-height: 1.5; color: var(--text-main); margin: 0;"></p>
+      <div class="account-modal-input-group confirm-modal-msg-group">
+        <p id="confirm-modal-msg"></p>
       </div>
       <div class="account-modal-input-group hidden" id="confirm-modal-field">
         <input type="text" id="confirm-modal-input" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-1p-ignore="true" aria-label="instagram username" />
@@ -642,6 +642,7 @@
     <div class="account-modal-card glass instructions-modal-card">
       <div class="account-modal-header">
         <h3>instructions</h3>
+        <button id="btn-instructions-modal-close" class="modal-close-btn" aria-label="close" type="button"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button>
       </div>
 
       <div class="instructions-steps-nav">
@@ -753,8 +754,8 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="script.js?v=445"></script>
-  <script src="features.js?v=169"></script>
+  <script src="script.js?v=446"></script>
+  <script src="features.js?v=170"></script>
   <script>
     // The opening spinner stays until the app is ready, like the dashboard's
     // boot waiting for its cards: the first sign-in check done (signed in,

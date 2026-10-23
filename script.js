@@ -369,7 +369,15 @@ window.tabSlideIn = tabSlideIn;
 
 // "1 day", "3 days": words spelled out, never "3d".
 function plural(n, word) {
-  return `${n} ${word}${n === 1 ? '' : 's'}`;
+  return `${fmtNum(n)} ${word}${n === 1 ? '' : 's'}`;
+}
+// Numbers as the dashboard writes them: thousands separated ("1,234"), and
+// read back the same way.
+function fmtNum(n) {
+  return Number(n).toLocaleString('en-US');
+}
+function readNum(text) {
+  return parseInt(String(text == null ? '' : text).replace(/,/g, ''), 10);
 }
 
 // iPhone Safari colors the strip at the top of the screen (behind the
@@ -432,7 +440,9 @@ function showSiteConfirm(title, message, confirmText = 'confirm', cancelText = '
     }
 
     titleEl.textContent = title.toLowerCase();
-    msgEl.textContent = message.toLowerCase();
+    msgEl.textContent = (message || '').toLowerCase();
+    // (a question that says it all in its title has no message under it)
+    if (msgEl.parentElement) msgEl.parentElement.classList.toggle('hidden', !message);
     okBtn.textContent = confirmText.toLowerCase();
     okBtn.classList.toggle('confirm-neutral', !/^(reset|delete|remove|clear)/i.test(confirmText));
 
@@ -524,7 +534,7 @@ function formatDate(dateVal) {
   }
 
   const formatted = new Intl.DateTimeFormat('en-US', {
-    month: 'short',
+    month: 'long',
     day: 'numeric',
     year: 'numeric'
   }).format(date);
@@ -1178,7 +1188,7 @@ function updateUnfollowedUI(enteringUsername) {
     // Render elements with a scroll container below
     listEl.innerHTML = `
       <div class="dropdown-header-bar">
-        ${listData.length} ${listData.length === 1 ? 'unfollowed account' : 'unfollowed accounts'}
+        ${fmtNum(listData.length)} ${listData.length === 1 ? 'unfollowed account' : 'unfollowed accounts'}
       </div>
       <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; max-height: 440px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
@@ -1287,7 +1297,7 @@ function updateStarredUI(enteringUsername) {
     // Render elements (same layout as parsed-list)
     listEl.innerHTML = `
       <div class="dropdown-header-bar">
-        ${listData.length} ${listData.length === 1 ? 'starred account' : 'starred accounts'}
+        ${fmtNum(listData.length)} ${listData.length === 1 ? 'starred account' : 'starred accounts'}
       </div>
       <div class="dropdown-scroll-items" style="display: flex; flex-direction: column; max-height: 440px; overflow-y: auto; width: 100%;">
         ${listData.map(user => `
@@ -1400,10 +1410,10 @@ function setCountBadge(el, n, word) {
   let num = el.querySelector(':scope > .count-num');
   let label = el.querySelector(':scope > .count-word');
   if (!num || !label) {
-    const shown = parseInt(el.textContent, 10);
+    const shown = readNum(el.textContent);
     num = document.createElement('span');
     num.className = 'count-num';
-    num.textContent = String(Number.isFinite(shown) ? shown : 0);
+    num.textContent = fmtNum(Number.isFinite(shown) ? shown : 0);
     label = document.createElement('span');
     label.className = 'count-word';
     el.replaceChildren(num, label);
@@ -1412,20 +1422,20 @@ function setCountBadge(el, n, word) {
   if (label.textContent !== words) label.textContent = words;
   if (el._countRaf) { cancelAnimationFrame(el._countRaf); el._countRaf = null; }
   // (one appearing counts up from 0, like the dashboard's counts)
-  const from = Number.isFinite(el._countNow) ? el._countNow : (parseInt(num.textContent, 10) || 0);
+  const from = Number.isFinite(el._countNow) ? el._countNow : (readNum(num.textContent) || 0);
   // From the width it's drawn at (mid-ease too) to the one the new number needs
   const startWidth = Number.isFinite(el._countWidth) ? el._countWidth : el.getBoundingClientRect().width;
   el.style.transition = 'none';
   el.style.width = '';
   el.style.clipPath = el.style.webkitClipPath = '';
-  num.textContent = String(n);
+  num.textContent = fmtNum(n);
   const endWidth = el.getBoundingClientRect().width;
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const settle = () => {
     el._countNow = undefined;
     el._countWidth = undefined;
     el._countRaf = null;
-    num.textContent = String(n);
+    num.textContent = fmtNum(n);
     el.style.transition = '';
     el.style.width = '';
     el.style.clipPath = el.style.webkitClipPath = '';
@@ -1453,29 +1463,44 @@ function setCountBadge(el, n, word) {
   // (log10) so it glides — and never waits a frame behind, the number up
   // against its edge, nor holds the number back.
   const numEnd = num.getBoundingClientRect().width;
-  const digitW = numEnd / String(n).length; // same-width digits (tabular-nums)
+  // The number is written with thousands separators ("1,234"): a digit's
+  // width and a comma's are measured on their own (same-width digits,
+  // tabular-nums), so the width is worked out from the written number.
+  num.textContent = '0000000000';
+  const digitW = num.getBoundingClientRect().width / 10;
+  num.textContent = ',,,,,,,,,,';
+  const commaW = num.getBoundingClientRect().width / 10;
+  num.textContent = fmtNum(n);
   const base = endWidth - numEnd;
   const lo = Math.min(startWidth, endWidth), hi = Math.max(startWidth, endWidth);
   const digits = (x) => (x < 1 ? 1 : Math.log10(x) + 1);
+  // (the drawn width of a number as written, commas and all)
+  const drawnW = (x) => {
+    const s = fmtNum(Math.round(x));
+    const commas = (s.match(/,/g) || []).length;
+    return digitW * (s.length - commas) + commaW * commas;
+  };
+  // (its digit count taken smoothly, a comma every three)
+  const smoothW = (x) => { const d = digits(x); return digitW * d + commaW * Math.max(0, (d - 1) / 3); };
   // (pinned to the real widths at both ends: 250 is 3.4 digits smoothly, 3 drawn)
-  const offFrom = digits(from) - String(from).length, offTo = digits(n) - String(n).length;
+  const offFrom = smoothW(from) - drawnW(from), offTo = smoothW(n) - drawnW(n);
   // (never narrower than the number on show needs: just past 10, the
   // correction left a two-digit number pressed against the edge)
-  const widthFor = (x, e) => Math.min(hi, Math.max(lo, base + digitW * String(Math.round(x)).length,
-    base + digitW * (digits(x) - offFrom * (1 - e) - offTo * e)));
+  const widthFor = (x, e) => Math.min(hi, Math.max(lo, base + drawnW(x),
+    base + smoothW(x) - offFrom * (1 - e) - offTo * e));
   const t0 = performance.now();
   const step = (now) => {
     const t = Math.min(1, (now - t0) / COUNT_MS);
     const e = rowEase(t); // the list 3 slide's curve
     const x = from + (n - from) * e;
     el._countNow = Math.round(x);
-    num.textContent = String(el._countNow);
+    num.textContent = fmtNum(el._countNow);
     const w = t < 1 ? widthFor(x, e) : endWidth;
     clip(w);
     if (t < 1 && el.isConnected) el._countRaf = requestAnimationFrame(step);
     else settle();
   };
-  num.textContent = String(from);
+  num.textContent = fmtNum(from);
   clip(startWidth);
   el._countRaf = requestAnimationFrame(step);
 }
@@ -2417,7 +2442,7 @@ function isNewAccountOverLimit(username) {
   return !exists && accounts.length >= MAX_ACCOUNTS;
 }
 function showAccountLimitAlert() {
-  return showSiteAlert('account limit reached', `you can have up to ${MAX_ACCOUNTS} accounts. delete one to add another.`);
+  return showSiteAlert('account limit reached', `you can have up to ${MAX_ACCOUNTS} accounts — delete one to add another`);
 }
 
 /**
@@ -2647,7 +2672,7 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
   const zips = Array.from(files).filter(f => /\.zip$/i.test(f.name));
   if (zips.length) {
     if (typeof DecompressionStream === 'undefined') {
-      await showSiteAlert("couldn't open the zip", "this browser can't open zip files. unzip it first, then upload the folder or its files.");
+      await showSiteAlert('zip couldn’t be opened', 'unzip it first, then upload the folder or its files');
       return false;
     }
     let inner = [];
@@ -2716,7 +2741,7 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
       if (extractedUsername) break;
     }
     if (!extractedUsername) {
-      const fallback = await showSiteConfirm("which account is this?", "the files don't say which instagram account they're from. enter its username.", 'import', 'cancel',
+      const fallback = await showSiteConfirm("which account is this?", "the files don't say which instagram account they're from — enter its username", 'import', 'cancel',
         { value: state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() !== DEMO_ID ? state.selectedAccountUsername : '', placeholder: '@username' });
       // (with the demo on, this was filled in as "__demo__": the real lists
       // went into the demo, and were gone with it)
@@ -2830,7 +2855,7 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
 
   // Also when a whole folder had nothing usable (that used to fail silently).
   if (validFilesToProcess.length === 0 && (invalidFiles.length > 0 || isFolderUpload)) {
-    await showSiteAlert('no lists found', 'no followers or following files (html, json or txt) were found in what you uploaded.');
+    await showSiteAlert('lists couldn’t be found', 'no followers or following files (html, json or txt) were found in what you uploaded');
   }
 
   return importedFollowing || importedFollowers || validFilesToProcess.some(item => item.type === 'extra' || item.type === 'unfollowedLately');
@@ -3158,23 +3183,10 @@ function renderAccountChips(animate = false, { force = false } = {}) {
     chip.setAttribute('data-index', index);
     const text = chip.querySelector('.chip-text');
     if (text.textContent !== `@${acc.username}`) {
-      // Renamed: the chip eases from its old width to the new name's
-      // instead of snapping (the other chips slide along, below).
-      const oldWidth = chip.isConnected ? chip.getBoundingClientRect().width : 0;
-      text.textContent = `@${acc.username}`;
-      if (oldWidth && typeof chip.animate === 'function') {
-        const newWidth = chip.getBoundingClientRect().width;
-        if (Math.abs(newWidth - oldWidth) > 0.5) {
-          // While it resizes the name sits still at the left and the chip
-          // opens/closes over it (no "…" and no re-centering each frame).
-          chip.classList.add('chip-resizing');
-          const anim = chip.animate([{ width: `${oldWidth}px` }, { width: `${newWidth}px` }],
-            { duration: ROW_MOTION_MS, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }); // the list 3 slide
-          const done = () => chip.classList.remove('chip-resizing');
-          anim.onfinish = done;
-          anim.oncancel = done;
-        }
-      }
+      // Renamed: the old name fades out where it was while the new one
+      // fades in, and the chip eases from the old name's width to the new
+      // one's (swapText's resize; the other chips slide along with it).
+      swapText(text, `@${acc.username}`, { resize: true });
     }
     chip.title = `@${acc.username}`; // the full name when it's cut off with "…"
     chip.classList.toggle('active', name === selected);
@@ -3223,6 +3235,7 @@ function openAccountModal(index = -1) {
   // rename or delete hit the account after it)
   state.editingAccountKey = index >= 0 && accounts[index] ? accounts[index].originalUsername.toLowerCase() : null;
 
+  disarmModalDelete(false);
   if (index >= 0 && index < accounts.length) {
     const acc = accounts[index];
     if (elements.accountModalTitle) elements.accountModalTitle.textContent = 'edit instagram account';
@@ -3298,13 +3311,13 @@ function saveAccountFromModal() {
   // (two "@bob" chips)
   const refuse = (title, message) => { closeAccountModal(); setTimeout(() => showSiteAlert(title, message), OVERLAY_CLEAR_MS); };
   if (!/^[a-z0-9._]{1,30}$/.test(username)) {
-    refuse('not an instagram username', 'usernames are up to 30 letters, numbers, dots and underscores.');
+    refuse('not an instagram username', 'usernames are up to 30 letters, numbers, dots and underscores');
     return;
   }
   const clash = (state.instagramAccounts || []).some((acc, i) => i !== index && !isDemoAccount(acc)
     && (acc.username.toLowerCase() === username || acc.originalUsername.toLowerCase() === username));
   if (clash) {
-    refuse('already an account', `@${username} is already one of your accounts.`);
+    refuse('already an account', `@${username} is already one of your accounts`);
     return;
   }
 
@@ -3398,6 +3411,35 @@ function animateChipExit(chip) {
     { opacity: 1, translate: '0 0', scale: 1 },
     { opacity: 0, translate: '0 14px', scale: 0.95 }
   ], { duration: CHIP_EXIT_MS, easing: ease, fill: 'forwards' });
+}
+
+// Delete asks first, in its own words: the first tap turns "delete" into
+// "delete?" (the words fade across, the button easing to their width); a
+// second tap within 4 seconds deletes, otherwise it goes back to "delete".
+const DELETE_ARM_MS = 4000;
+function disarmModalDelete(animate) {
+  const btn = elements.btnModalDelete;
+  if (!btn) return;
+  clearTimeout(btn._armTimer);
+  btn._armed = false;
+  btn.classList.remove('armed');
+  if (animate) swapText(btn, 'delete', { resize: true });
+  else btn.textContent = 'delete';
+}
+function tapModalDelete() {
+  const btn = elements.btnModalDelete;
+  if (!btn) return;
+  if (btn._armed) {
+    clearTimeout(btn._armTimer);
+    btn._armed = false;
+    deleteAccountFromModal();
+    return;
+  }
+  btn._armed = true;
+  btn.classList.add('armed');
+  swapText(btn, 'delete?', { resize: true });
+  clearTimeout(btn._armTimer);
+  btn._armTimer = setTimeout(() => disarmModalDelete(true), DELETE_ARM_MS);
 }
 
 function deleteAccountFromModal() {
@@ -3846,6 +3888,42 @@ function workButton(btn, busy, { glide = false } = {}) {
   sp.firstChild.animate([...SPIN_SWOOP].reverse(), { duration: ROW_MOTION_MS * 0.6, easing: 'cubic-bezier(0.5, 0, 0.9, 0.4)', fill: 'forwards' });
   sp.animate([{ width: `${SPIN_ROOM}px` }, { width: '0px' }], { ...MOTION, delay: ROW_MOTION_MS * 0.35, fill: 'forwards' })
     .finished.then(() => { if (sp._leaving) sp.remove(); }, () => {});
+}
+// A button done (the dashboard's doneCheck): a check after its words for a
+// moment — its words never change — easing in, then away.
+const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+function doneCheck(btn, ms = 1600) {
+  if (!btn || !btn.isConnected) return;
+  let c = btn.querySelector(':scope > .done-check');
+  if (!c) {
+    c = document.createElement('span');
+    c.className = 'done-check';
+    c.setAttribute('aria-hidden', 'true');
+    c.innerHTML = CHECK_SVG;
+    btn.append(c);
+  }
+  void c.offsetWidth;
+  c.classList.add('show');
+  clearTimeout(c._t);
+  if (ms) {
+    c._t = setTimeout(() => {
+      c.classList.remove('show');
+      // (gone once it has eased away)
+      setTimeout(() => { if (!c.classList.contains('show')) c.remove(); }, ROW_MOTION_MS + 50);
+    }, ms);
+  }
+}
+// One switch at a time (the dashboard's gated): a tap while a switch is
+// still well under way waits until it's about 70% done, then goes; only the
+// last tap counts (several quick taps never pile up into half-slides).
+const SWITCH_SETTLE = Math.round(ROW_MOTION_MS * 0.7);
+const switchGates = {};
+function gated(name, run) {
+  const g = switchGates[name] || (switchGates[name] = { at: -Infinity, timer: 0 });
+  clearTimeout(g.timer);
+  const go = () => { g.at = performance.now(); run(); };
+  const wait = g.at + SWITCH_SETTLE - performance.now();
+  if (wait > 0 && !reducedMotion()) g.timer = setTimeout(go, wait); else go();
 }
 // A button's width glides from where it's drawn to where it's headed after
 // `change` (its words, a spinner): one motion for all of it, so pieces easing
@@ -4865,7 +4943,7 @@ function setupEventListeners() {
     elements.btnModalSave.addEventListener('click', saveAccountFromModal);
   }
   if (elements.btnModalDelete) {
-    elements.btnModalDelete.addEventListener('click', deleteAccountFromModal);
+    elements.btnModalDelete.addEventListener('click', tapModalDelete);
   }
   if (elements.btnModalClose) {
     elements.btnModalClose.addEventListener('click', closeAccountModal);
@@ -4907,7 +4985,7 @@ function setupEventListeners() {
     elements.btnInstructionsPrev.addEventListener('click', () => {
       if (currentInstructionStep > 1) {
         currentInstructionStep--;
-        updateInstructionsStepUI();
+        showInstructionStep();
       }
     });
   }
@@ -4915,7 +4993,7 @@ function setupEventListeners() {
     elements.btnInstructionsNext.addEventListener('click', () => {
       if (currentInstructionStep < 5) {
         currentInstructionStep++;
-        updateInstructionsStepUI();
+        showInstructionStep();
       } else {
         closeInstructionsModal();
       }
@@ -4925,7 +5003,7 @@ function setupEventListeners() {
     elements.btnInstructionsBack.addEventListener('click', () => {
       if (currentInstructionStep > 1) {
         currentInstructionStep--;
-        updateInstructionsStepUI();
+        showInstructionStep();
       }
     });
   }
@@ -4936,7 +5014,7 @@ function setupEventListeners() {
       const s = parseInt(tab.getAttribute('data-step'), 10);
       if (s) {
         currentInstructionStep = s;
-        updateInstructionsStepUI();
+        showInstructionStep();
       }
     });
   });
@@ -4945,7 +5023,7 @@ function setupEventListeners() {
       const s = parseInt(dot.getAttribute('data-step'), 10);
       if (s) {
         currentInstructionStep = s;
-        updateInstructionsStepUI();
+        showInstructionStep();
       }
     });
   });
@@ -4964,19 +5042,19 @@ function setupEventListeners() {
       e.preventDefault();
       if (currentInstructionStep > 1) {
         currentInstructionStep--;
-        updateInstructionsStepUI();
+        showInstructionStep();
       }
     } else if (e.key === 'ArrowRight' || e.key === 'Right') {
       e.preventDefault();
       if (currentInstructionStep < 5) {
         currentInstructionStep++;
-        updateInstructionsStepUI();
+        showInstructionStep();
       }
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (currentInstructionStep < 5) {
         currentInstructionStep++;
-        updateInstructionsStepUI();
+        showInstructionStep();
       } else {
         closeInstructionsModal();
       }
@@ -4987,6 +5065,13 @@ function setupEventListeners() {
 // Instructions / How-To-Use Modal Logic
 // -------------------------------------------------------------
 let currentInstructionStep = 1;
+// A step picked (tab, dot, arrow, key): the step is taken at once — so keys
+// pressed quickly still count every step — and the slide to it is gated:
+// a quick second pick waits until the running one is ~70% done, and only
+// the last one is shown.
+function showInstructionStep() {
+  gated('instructions', updateInstructionsStepUI);
+}
 
 function openInstructionsModal(step = 1) {
   if (!elements.instructionsModalOverlay) return;
@@ -5478,7 +5563,7 @@ function updateInstructionsStepUI() {
           updateStarredUI();
         } else {
           if (headerBar) {
-            swapText(headerBar, `${state.starred.length} ${state.starred.length === 1 ? 'starred account' : 'starred accounts'}`);
+            swapText(headerBar, `${fmtNum(state.starred.length)} ${state.starred.length === 1 ? 'starred account' : 'starred accounts'}`);
           }
           if (resetStarredBtn) resetStarredBtn.removeAttribute('disabled');
         }
@@ -5529,7 +5614,7 @@ function updateInstructionsStepUI() {
           updateStarredUI();
         } else {
           if (headerBar) {
-            swapText(headerBar, `${state.starred.length} ${state.starred.length === 1 ? 'starred account' : 'starred accounts'}`);
+            swapText(headerBar, `${fmtNum(state.starred.length)} ${state.starred.length === 1 ? 'starred account' : 'starred accounts'}`);
           }
           if (resetStarredBtn) {
             resetStarredBtn.removeAttribute('disabled');
@@ -5589,7 +5674,7 @@ function updateInstructionsStepUI() {
             updateUnfollowedUI();
           } else {
             if (headerBar) {
-              swapText(headerBar, `${state.unfollowed.length} ${state.unfollowed.length === 1 ? 'unfollowed account' : 'unfollowed accounts'}`);
+              swapText(headerBar, `${fmtNum(state.unfollowed.length)} ${state.unfollowed.length === 1 ? 'unfollowed account' : 'unfollowed accounts'}`);
             }
             if (resetUnfollowedBtn) {
               resetUnfollowedBtn.removeAttribute('disabled');
@@ -5643,7 +5728,7 @@ function updateInstructionsStepUI() {
           updateUnfollowedUI();
         } else {
           if (headerBar) {
-            swapText(headerBar, `${state.unfollowed.length} ${state.unfollowed.length === 1 ? 'unfollowed account' : 'unfollowed accounts'}`);
+            swapText(headerBar, `${fmtNum(state.unfollowed.length)} ${state.unfollowed.length === 1 ? 'unfollowed account' : 'unfollowed accounts'}`);
           }
           if (resetUnfollowedBtn) {
             resetUnfollowedBtn.removeAttribute('disabled');
@@ -5749,7 +5834,7 @@ function updateInstructionsStepUI() {
   // Sync Folder Feature using File System Access API
   async function scanLocalDirectory() {
     if (typeof window.showDirectoryPicker !== 'function') {
-      await showSiteAlert("couldn't open the folder", "this browser can't pick folders. use chrome, edge or opera on a computer, or upload the zip or its files instead.");
+      await showSiteAlert('folder couldn’t be opened', 'this browser can’t pick folders — use chrome, edge or opera on a computer, or upload the zip or its files instead');
       return;
     }
 
@@ -5765,11 +5850,11 @@ function updateInstructionsStepUI() {
         if (entry.kind === 'file') files.push(await entry.getFile());
       }
       const importedAny = await processImportFiles(files, true);
-      if (importedAny) await showSiteAlert("folder imported", "the files in your folder were imported.");
+      if (importedAny) await showSiteAlert('folder imported', 'the files in your folder were imported');
     } catch (err) {
       if (err.name !== 'AbortError') {
         console.error(err);
-        await showSiteAlert("couldn't read the folder", err.message);
+        await showSiteAlert('folder couldn’t be read', '');
       }
     }
   }
@@ -5843,8 +5928,7 @@ function updateInstructionsStepUI() {
       e.stopPropagation();
       if (settingsResetUnfollowedBtn.disabled || state.unfollowed.length === 0) return;
       const currentAcc = state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '';
-      const listName = currentAcc ? `@${currentAcc}'s unfollowed list` : 'your global unfollowed list';
-      const confirmed = await showSiteConfirm('reset unfollowed list', `are you sure you want to reset ${listName}?`, 'reset', 'cancel');
+      const confirmed = await showSiteConfirm('reset unfollowed list?', '', 'reset', 'cancel');
       if (confirmed) {
         state.unfollowed = [];
         storageSet(listResetKey('unfollowed'), String(Date.now()));
@@ -5863,6 +5947,7 @@ function updateInstructionsStepUI() {
         calculateUnfollowers({ animate: true }); // usernames return to list 3 — slide them in
         updateUnfollowedUI();
         updateResetReminderUI();
+        doneCheck(settingsResetUnfollowedBtn); // (a check after "reset" for a moment)
         await pushToCloud();
       }
     });
@@ -5874,8 +5959,7 @@ function updateInstructionsStepUI() {
       e.stopPropagation();
       if (settingsResetStarredBtn.disabled || state.starred.length === 0) return;
       const currentAcc = state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '';
-      const listName = currentAcc ? `@${currentAcc}'s starred list` : 'your global starred list';
-      const confirmed = await showSiteConfirm('reset starred list', `are you sure you want to reset ${listName}?`, 'reset', 'cancel');
+      const confirmed = await showSiteConfirm('reset starred list?', '', 'reset', 'cancel');
       if (confirmed) {
         state.starred = [];
         storageSet(listResetKey('starred'), String(Date.now()));
@@ -5893,6 +5977,7 @@ function updateInstructionsStepUI() {
         calculateUnfollowers({ animate: true }); // usernames return to list 3 — slide them in
         updateStarredUI();
         updateResetReminderUI();
+        doneCheck(settingsResetStarredBtn); // (a check after "reset" for a moment)
         await pushToCloud();
       }
     });
@@ -6100,8 +6185,9 @@ function updateInstructionsStepUI() {
       state.pendingAutoOpen = false; // Reset to avoid double execution
 
       // Check if we've already automatically opened 5 profiles
-      if (state.autoOpenCount >= 5) {
-        const proceed = await showSiteConfirm('auto-open', '5 profiles have been opened automatically. do you want to open the next 5?', 'continue', 'stop');
+      const batch = 5;
+      if (state.autoOpenCount >= batch) {
+        const proceed = await showSiteConfirm(`open the next ${batch}?`, '', 'continue', 'stop');
         if (!proceed) {
           autoOpenToggle.checked = false;
           state.pendingAutoOpen = false;
@@ -6811,6 +6897,9 @@ function initAuth() {
     }
 
     isSigningUp = signup;
+    // (the button's words ride the tab push: the old form's copy carries
+    // "log in" out while the form slides in with "sign up" — a swapText
+    // copy here would stay pinned in the middle while both forms slide)
     if (signup) {
       elements.authSubmitBtn.textContent = 'sign up';
       if (elements.btnForgotPassword) elements.btnForgotPassword.classList.add('hidden');
@@ -6841,13 +6930,15 @@ function initAuth() {
     if (holder) holder.style.minHeight = '';
   });
 
+  // (gated: a quick second tap waits until the running switch is ~70% done;
+  // only the last tap counts)
   elements.tabLogin.addEventListener('click', (e) => {
     e.preventDefault();
-    switchTab(false);
+    gated('auth-tabs', () => switchTab(false));
   });
   elements.tabSignup.addEventListener('click', (e) => {
     e.preventDefault();
-    switchTab(true);
+    gated('auth-tabs', () => switchTab(true));
   });
 
   const landingCtaBtn = document.getElementById('landing-cta-btn');
@@ -6924,20 +7015,21 @@ function initAuth() {
     if (isSigningUp) {
       // Supabase Sign Up
       let error = null;
-      try { ({ error } = await supabaseClient.auth.signUp({ email, password })); } catch (err) { error = err; }
+      // (a thrown error — offline — is never shown as it is: just what failed)
+      try { ({ error } = await supabaseClient.auth.signUp({ email, password })); } catch (err) { console.error(err); error = {}; }
       
       if (error) {
-        showAuthError(error.message || "something went wrong, try again");
+        showAuthError(error.message || 'account couldn’t be created');
       } else {
-        showAuthSuccess('account created! check your email to confirm it, or try logging in.');
+        showAuthSuccess('account created — check your email to confirm it');
       }
     } else {
       // Supabase Log In
       let error = null;
-      try { ({ error } = await supabaseClient.auth.signInWithPassword({ email, password })); } catch (err) { error = err; }
+      try { ({ error } = await supabaseClient.auth.signInWithPassword({ email, password })); } catch (err) { console.error(err); error = {}; }
       
       if (error) {
-        showAuthError(error.message || "something went wrong, try again");
+        showAuthError(error.message || 'couldn’t log in');
       } else {
         if (document.activeElement && typeof document.activeElement.blur === 'function') {
           document.activeElement.blur();
@@ -6973,11 +7065,11 @@ function initAuth() {
       if (forgotBusy) return;
       forgotBusy = true;
       let error = null;
-      try { ({ error } = await supabaseClient.auth.resetPasswordForEmail(email)); } catch (err) { error = err; }
+      try { ({ error } = await supabaseClient.auth.resetPasswordForEmail(email)); } catch (err) { console.error(err); error = {}; }
       forgotBusy = false;
 
       if (error) {
-        showAuthError(error.message || "something went wrong, try again");
+        showAuthError(error.message || 'reset email couldn’t be sent');
       } else {
         showAuthSuccess('check your email for a password reset link');
       }
@@ -7230,7 +7322,8 @@ function restartAlertAnimation(el) {
 
 function showAuthError(msg) {
   setAuthAlert(elements.authSuccessMsg, null);
-  setAuthAlert(elements.authErrorMsg, msg.toLowerCase());
+  // (Supabase's messages end in a full stop: short messages here don't)
+  setAuthAlert(elements.authErrorMsg, String(msg).trim().replace(/\.+$/, '').toLowerCase());
 }
 
 function showAuthSuccess(msg) {
@@ -7795,7 +7888,7 @@ function updateResetReminderUI() {
   const importedAt = parseInt(importedAtRaw, 10);
   const now = Date.now();
   const remainingMs = (importedAt + RESET_REMINDER_MS) - now;
-  const importedDateText = new Date(importedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).toLowerCase();
+  const importedDateText = new Date(importedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }).toLowerCase();
   const dayMs = 24 * 60 * 60 * 1000;
 
   if (remainingMs <= 0 && !resetStillDue(importedAt + RESET_REMINDER_MS)) {

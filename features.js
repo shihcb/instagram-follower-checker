@@ -95,24 +95,50 @@
   // ---------- toast (undo, messages) ----------
   let toastEl = null;
   let toastTimer = null;
-  function showToast(message, action, onAction, { tone = '', duration = 5000 } = {}) {
+  // A toast already up keeps its place: its words fade across to the new
+  // ones (swapText — the bar easing to their width) and its button slides
+  // in or out beside them (slideSlot), instead of the bar being rewritten.
+  let toastAction = null;
+  function showToast(message, action, onAction, { tone = '', duration = 6000 } = {}) {
     if (!toastEl) {
       toastEl = document.createElement('div');
       toastEl.className = 'feature-toast';
+      toastEl.innerHTML = '<span class="feature-toast-text"></span><span class="feature-toast-slot" style="width: 0px; opacity: 0" inert><button class="feature-toast-btn"></button></span>';
+      toastEl._slot = toastEl.querySelector('.feature-toast-slot');
+      toastEl._slot._shown = false;
+      toastEl.querySelector('.feature-toast-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const run = toastAction;
+        toastAction = null;
+        hideToast();
+        if (run) run();
+      });
       document.body.appendChild(toastEl);
     }
     clearTimeout(toastTimer);
-    toastEl.className = `feature-toast ${tone}${action ? '' : ' no-action'}`;
-    toastEl.innerHTML = `<span class="feature-toast-text">${esc(message)}</span>${action ? `<button class="feature-toast-btn">${esc(action)}</button>` : ''}`;
-    if (action) {
-      toastEl.querySelector('.feature-toast-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        hideToast();
-        onAction();
-      }, { once: true });
+    const up = toastEl.classList.contains('show');
+    const text = toastEl.querySelector('.feature-toast-text');
+    const btn = toastEl.querySelector('.feature-toast-btn');
+    toastEl.classList.toggle('warn', tone === 'warn');
+    toastEl.classList.toggle('no-action', !action);
+    toastAction = action ? onAction : null;
+    if (up) {
+      swapText(text, message, { resize: true });
+      if (action) swapText(btn, action, { resize: true });
+      slideSlot(toastEl._slot, !!action);
+    } else {
+      text.textContent = message;
+      if (action) btn.textContent = action;
+      // (a toast coming up: its button just there, the bar coming in with it)
+      const slot = toastEl._slot;
+      if (slot._slide) { slot._slide.cancel(); slot._slide = null; }
+      slot._shown = !!action;
+      slot.inert = !action;
+      slot.style.width = action ? '' : '0px';
+      slot.style.opacity = action ? '' : '0';
+      void toastEl.offsetWidth;
+      toastEl.classList.add('show');
     }
-    void toastEl.offsetWidth;
-    toastEl.classList.add('show');
     toastTimer = setTimeout(hideToast, duration);
   }
   function hideToast() {
@@ -373,7 +399,7 @@
       const total = diff.lostFollowers.length + diff.newFollowers.length + diff.stoppedFollowing.length + diff.startedFollowing.length;
       // A google drive sync adds them up for its own toast at the end.
       if (driveSync) driveSync.changes += total;
-      else setTimeout(() => showToast(total ? `${total} change${total === 1 ? '' : 's'} since your last import` : 'no changes since your last import',
+      else setTimeout(() => showToast(total ? `${fmtNum(total)} change${total === 1 ? '' : 's'} since your last import` : 'no changes since your last import',
         total ? 'view' : null, () => { showView('changes'); viewNav && viewNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }), 900);
     }
     // Full lists only for the latest import (for the next comparison);
@@ -473,7 +499,7 @@
       const why = cloudReason(err);
       // A google drive sync says it once, at the end.
       if (driveSync) { driveSync.unsaved++; driveSync.why = why; return false; }
-      showToast(`couldn't save this import's files to the cloud${why ? ` (${why})` : ''}`, 'retry',
+      showToast(`import’s files couldn’t be saved to the cloud${why ? ` (${why})` : ''}`, 'retry',
         () => { if (canCloud()) uploadImport(key, n, stored, date); }, { duration: 10000 });
       return false;
     }
@@ -506,7 +532,7 @@
     if (/row-level security|unauthorized|403/i.test(msg)) return "the cloud didn't allow it";
     if (/payload too large|exceeded the maximum|413/i.test(msg)) return 'the files are too big';
     if (/failed to fetch|network|load failed/i.test(msg)) return 'no connection';
-    return msg.toLowerCase().slice(0, 80);
+    return ''; // (anything else: just what failed, never the raw error)
   }
   const openFilesDb = () => new Promise(resolve => {
     if (!window.indexedDB) { resolve(null); return; }
@@ -652,7 +678,7 @@
   // start with a BOM, so Excel reads names in any script.
   const csvCell = (v) => { let s = String(v ?? ''); if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`; return `"${s.replace(/"/g, '""')}"`; };
   const fileDate = (t) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
-  const longDate = (t) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }).toLowerCase();
+  const longDate = (t) => new Date(t).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toLowerCase();
   async function downloadSaved(key, entry) {
     const who = key === '_global_' ? 'lists' : key;
     if (entry.files) {
@@ -660,13 +686,13 @@
       try { blob = canCloud() ? await cloudGet(key, entry.n) : null; } catch (err) { console.error('[features] downloading import files failed:', err); }
       if (blob) {
         saveFile(`ig-checker-${who}-import-${entry.n}-${fileDate(entry.date)}.zip`, blob);
-        return;
+        return true;
       }
       // Not in the cloud yet (saved by an older version on another device
       // that hasn't been opened since): its changes download instead.
       if (!entry.changes) {
-        await showSiteAlert("couldn't download", "this import's files aren't in the cloud yet. open the app on the device that imported them once, and they'll be uploaded.");
-        return;
+        await showSiteAlert('import couldn’t be downloaded', "this import's files aren't in the cloud yet — open the app on the device that imported them once, and they'll be uploaded");
+        return false;
       }
     }
     // Just the changes: one row per username, with what happened.
@@ -676,6 +702,7 @@
     [['lost', 'unfollowed you'], ['gained', 'new follower'], ['stopped', 'you stopped following'], ['started', 'you started following']]
       .forEach(([k, label]) => (c[k] || []).forEach(name => rows.push([label, name])));
     saveFile(`ig-checker-${who}-import-${entry.n}-changes-${fileDate(entry.date)}.csv`, new Blob(['\ufeff' + rows.map(r => r.map(cell).join(',')).join('\n')], { type: 'text/csv' }));
+    return true;
   }
   let savedOverlay = null;
   let savedKey = null; // whose imports the window is showing (its tab)
@@ -696,7 +723,7 @@
     savedOverlay.className = 'modal-overlay hidden export-overlay saved-imports-overlay';
     savedOverlay.innerHTML = `
       <div class="account-modal-card glass export-card">
-        <div class="account-modal-header"><h3>saved imports</h3></div>
+        <div class="account-modal-header"><h3>saved imports</h3><button class="modal-close-btn" type="button" aria-label="close" data-saved="close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button></div>
         <div class="saved-imports-nav"></div>
         <div class="insights-sub saved-imports-help">click an import to download it<br><b>full folder</b>: the exact files you uploaded<br><b>changes</b>: who followed or unfollowed since the import before it</div>
         <div class="saved-imports-panes"></div>
@@ -712,7 +739,7 @@
       e.stopPropagation();
       if (e.target === savedOverlay || e.target.closest('[data-saved="close"]')) { closeSavedImports(); return; }
       const tab = e.target.closest('.saved-imports-nav [data-sub]');
-      if (tab) { switchSavedTab(tab.dataset.sub); return; }
+      if (tab) { const id = tab.dataset.sub; gated('saved-tabs', () => switchSavedTab(id)); return; }
       const row = e.target.closest('[data-import]');
       if (!row) return;
       const pane = row.closest('.saved-pane');
@@ -722,7 +749,8 @@
       if (!entry || row.classList.contains('at-work')) return;
       // (its spinner after the words while the files come down)
       workButton(row, true);
-      downloadSaved(key, entry).catch(err => { console.error('[features] download failed:', err); showSiteAlert("couldn't download", "that import's files aren't in the cloud yet."); })
+      downloadSaved(key, entry).then((saved) => { if (saved) doneCheck(row); },
+        err => { console.error('[features] download failed:', err); showSiteAlert('import couldn’t be downloaded', "that import's files aren't in the cloud yet"); })
         .finally(() => workButton(row, false));
     });
     // Escape closes just this window (not the settings panel as well).
@@ -923,7 +951,7 @@
   async function syncDrive() {
     if (driveSync) return;
     if (!GOOGLE_CLIENT_ID) {
-      await showSiteAlert("google drive isn't set up yet", "this app doesn't have its google sign-in yet.");
+      await showSiteAlert("google drive isn't set up yet", "this app doesn't have its google sign-in yet");
       return;
     }
     const signIn = driveSignIn(); // first, while it's still the tap
@@ -936,6 +964,7 @@
     refreshDrive();
     let imported = 0;
     let shown;
+    let synced = false; // (done in full: a check after sync's words)
     try {
       await signIn;
       storageSet('drive_on', '1');
@@ -974,9 +1003,10 @@
       driveSync = null;
       if (unsaved) {
         // Kept on this device; they go up the next time the app opens.
-        showToast(`${plural(imported, 'export')} from google drive · ${unsaved === 1 ? "one import's files" : `${unsaved} imports' files`} couldn't be saved to the cloud${why ? ` (${why})` : ''}`,
-          'retry', () => moveLocalFilesToCloud().then(ok => showToast(ok ? 'saved to the cloud' : "still couldn't save them")), { duration: 10000 });
+        showToast(`${plural(imported, 'export')} from google drive · ${unsaved === 1 ? "one import's files" : `${unsaved} imports' files`} couldn’t be saved to the cloud${why ? ` (${why})` : ''}`,
+          'retry', () => moveLocalFilesToCloud().then(ok => showToast(ok ? 'saved to the cloud' : 'files couldn’t be saved')), { duration: 10000 });
       } else {
+        synced = true;
         showToast(imported ? `${plural(imported, 'export')} from google drive · ${plural(changes, 'change')}` : 'no new exports in google drive',
           imported && changes ? 'view' : null, () => { showView('changes'); viewNav && viewNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
       }
@@ -985,7 +1015,7 @@
       if (err && err.cancelled) return; // (logged out: nothing more, nothing said)
       console.error('[features] google drive sync failed:', err);
       if (imported) pushToCloud();
-      showToast(`couldn't sync google drive (${String(err && err.message || err).toLowerCase().slice(0, 80)})`, 'retry', syncDrive, { duration: 10000 });
+      showToast('google drive couldn’t be synced', 'retry', syncDrive, { duration: 10000 });
     } finally {
       driveSync = null;
       // Back to the account you were on (a sync that failed partway too)
@@ -994,10 +1024,11 @@
       }
       refreshDrive();
       updateResetReminderUI();
+      if (synced) doneCheck(document.getElementById('drive-sync-btn'));
     }
   }
   async function disconnectDrive() {
-    const ok = await showSiteConfirm('disconnect google drive?', "the exports already imported stay. new ones won't come in until you connect again.", 'disconnect', 'cancel');
+    const ok = await showSiteConfirm('disconnect google drive?', "the exports already imported stay — new ones won't come in until you connect again", 'disconnect', 'cancel');
     if (!ok) return;
     if (driveToken && window.google && google.accounts && google.accounts.oauth2) google.accounts.oauth2.revoke(driveToken.value, () => {});
     driveToken = null;
@@ -1252,7 +1283,7 @@
       selectBar = document.createElement('div');
       selectBar.className = 'row-select-bar';
       selectBar.innerHTML = `
-        <span class="row-select-count">0 selected</span>
+        <span class="row-select-count"><span class="count-num">0</span>\u00a0selected</span>
         <button data-bulk="star">star</button>
         <button data-bulk="unfollow">unfollow</button>
         <button data-bulk="cancel" class="muted">cancel</button>`;
@@ -1319,20 +1350,51 @@
   }
   function updateSelectCount() {
     if (!selectBar) return;
-    // The count pill eases to its new width (the bar, sized to its content,
-    // follows along), instead of snapping when the number gets a digit.
+    // The number counts to its new value on the list 3 slide while the
+    // pill eases to its new width (the bar, sized to its content, follows
+    // along); the word "selected" is written once and never changes.
     const count = selectBar.querySelector('.row-select-count');
-    const text = `${selected.size} selected`;
-    if (count.textContent !== text) {
-      const from = count.getBoundingClientRect().width;
-      if (count._anim) count._anim.cancel();
-      count.textContent = text;
-      const to = count.getBoundingClientRect().width;
-      if (from && Math.abs(from - to) > 0.5 && selectBar.classList.contains('show') && typeof count.animate === 'function') {
-        count._anim = count.animate([{ width: `${from}px` }, { width: `${to}px` }], { duration: 450, easing: EASE });
-      }
-    }
+    countSelected(count, selected.size, selectBar.classList.contains('show'));
     selectBar.querySelectorAll('[data-bulk]:not([data-bulk="cancel"])').forEach(b => { b.disabled = selected.size === 0; });
+  }
+  function countSelected(count, n, animate) {
+    let num = count.querySelector(':scope > .count-num');
+    if (!num) {
+      num = document.createElement('span');
+      num.className = 'count-num';
+      num.textContent = fmtNum(readNum(count.textContent) || 0);
+      count.replaceChildren(num, document.createTextNode('\u00a0selected'));
+    }
+    if (count._countRaf) { cancelAnimationFrame(count._countRaf); count._countRaf = null; }
+    const from = Number.isFinite(count._countNow) ? count._countNow : (readNum(num.textContent) || 0);
+    const fromW = count.getBoundingClientRect().width;
+    count.style.width = '';
+    num.textContent = fmtNum(n);
+    const toW = count.getBoundingClientRect().width;
+    count._countNow = undefined;
+    if (from === n || !animate || !fromW || reducedMotion()) return;
+    // The pill's width eases from the old to the new on the same curve, but
+    // never narrower than the number on show needs (it never clips a digit
+    // or the word while it counts).
+    const k = count.offsetWidth ? toW / count.offsetWidth : 1; // (the guest preview draws the app scaled)
+    const t0 = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - t0) / ROW_MOTION_MS);
+      const e = rowEase(t);
+      count._countNow = Math.round(from + (n - from) * e);
+      num.textContent = fmtNum(count._countNow);
+      count.style.width = '';
+      const need = count.getBoundingClientRect().width;
+      count.style.width = `${Math.max(need, fromW + (toW - fromW) * e) / k}px`;
+      if (t < 1 && count.isConnected) { count._countRaf = requestAnimationFrame(step); return; }
+      count._countNow = undefined;
+      count._countRaf = null;
+      num.textContent = fmtNum(n);
+      count.style.width = '';
+    };
+    num.textContent = fmtNum(from);
+    count.style.width = `${fromW / k}px`;
+    count._countRaf = requestAnimationFrame(step);
   }
   // Pending requests' rows, in select mode.
   document.addEventListener('click', (e) => {
@@ -1817,7 +1879,7 @@
   const chartHtml = (heights, mock) => `<div class="trend-chart${mock ? ' trend-mock' : ''}"${mock ? ' aria-hidden="true"' : ''}>${heights.map((h, i) =>
     `<div class="trend-bar" style="height:${h}%;--bar:${STAT_COLORS[i]}"></div>`).join('')}</div>`;
   const asUsers = (names) => names.map(n => ({ username: n, originalUsername: n }));
-  const stat = (value, label, i) => `<div class="insights-stat" style="--stat:${STAT_COLORS[i]}"><div class="insights-stat-value">${value}</div><div class="insights-stat-label">${label}</div></div>`;
+  const stat = (value, label, i) => `<div class="insights-stat" style="--stat:${STAT_COLORS[i]}"><div class="insights-stat-value">${typeof value === 'number' ? fmtNum(value) : value}</div><div class="insights-stat-label">${label}</div></div>`;
 
   // ---------- stats: timeline ----------
   // Following and followers at each import (the last 24), as two lines in
@@ -1864,7 +1926,7 @@
     // lines from one set of points to the next (morphTimeline).
     const shape = pts.map((p, i) => `${x(p, i).toFixed(1)},${y(p.a).toFixed(1)},${y(p.b).toFixed(1)}`).join(';');
     return `<div class="timeline${real ? '' : ' timeline-mock'}" data-sig="${sig}" data-pts="${shape}">
-        <div class="timeline-legend">${series.map(([k, label, c]) => `<span class="timeline-key" style="--c:${c}"><i></i>${label}<b>${real ? last[k] : 0}</b></span>`).join('')}</div>
+        <div class="timeline-legend">${series.map(([k, label, c]) => `<span class="timeline-key" style="--c:${c}"><i></i>${label}<b>${fmtNum(real ? last[k] : 0)}</b></span>`).join('')}</div>
         <div class="timeline-chart"${real ? '' : ' aria-hidden="true"'}>
           <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${grid}${series.map(([k, , c]) => `<path class="tl-line" d="${path(k)}" style="--c:${c}"/>`).join('')}</svg>
           ${dots}
@@ -1893,16 +1955,16 @@
     tl.dataset.sig = fresh.dataset.sig;
     tl.dataset.pts = fresh.dataset.pts;
     // Legend: the numbers count from the old to the new.
-    const oldNums = [...tl.querySelectorAll('.timeline-key b')].map(b => parseInt(b.textContent, 10) || 0);
+    const oldNums = [...tl.querySelectorAll('.timeline-key b')].map(b => readNum(b.textContent) || 0);
     tl.querySelector('.timeline-legend').replaceWith(fresh.querySelector('.timeline-legend'));
     tl.querySelectorAll('.timeline-key b').forEach((b, i) => {
-      const a = oldNums[i] ?? 0, z = parseInt(b.textContent, 10) || 0;
+      const a = oldNums[i] ?? 0, z = readNum(b.textContent) || 0;
       if (a === z) return;
       const t0 = performance.now();
       // Counted exactly like the stat boxes' numbers (updateStats): 650ms,
       // easing out, so every number in between shows.
-      const step = (now) => { const t = Math.min(1, (now - t0) / 450); b.textContent = Math.round(a + (z - a) * rowEase(t)); if (t < 1 && b.isConnected) requestAnimationFrame(step); };
-      b.textContent = a;
+      const step = (now) => { const t = Math.min(1, (now - t0) / 450); b.textContent = fmtNum(Math.round(a + (z - a) * rowEase(t))); if (t < 1 && b.isConnected) requestAnimationFrame(step); };
+      b.textContent = fmtNum(a);
       requestAnimationFrame(step);
     });
     // Dates: each rolls from the old date to the new one, month and day
@@ -2216,14 +2278,14 @@
       const to = newVals[i];
       if (to === undefined || el.textContent === to) return;
       const pct = to.endsWith('%');
-      const a = parseInt(el.textContent, 10) || 0, b = parseInt(to, 10) || 0;
+      const a = readNum(el.textContent) || 0, b = readNum(to) || 0;
       const token = (el._countToken = {});
       const t0 = performance.now(), dur = 450;
       const ease = rowEase; // the list 3 slide's curve
       const step = (now) => {
         if (el._countToken !== token) return;
         const t = Math.min(1, (now - t0) / dur);
-        el.textContent = `${Math.round(a + (b - a) * ease(t))}${pct ? '%' : ''}`;
+        el.textContent = `${fmtNum(Math.round(a + (b - a) * ease(t)))}${pct ? '%' : ''}`;
         if (t < 1) requestAnimationFrame(step);
       };
       requestAnimationFrame(step);
@@ -2919,7 +2981,7 @@
       exportOverlay.className = 'modal-overlay hidden export-overlay';
       exportOverlay.innerHTML = `
         <div class="account-modal-card glass export-card">
-          <div class="account-modal-header"><h3>export</h3></div>
+          <div class="account-modal-header"><h3>export</h3><button class="modal-close-btn" type="button" aria-label="close" data-exp="cancel"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button></div>
           <div class="insights-sub">choose the lists you want to download as a spreadsheet (csv), and the stats image if you want it</div>
           <div class="export-options"></div>
           <button class="export-option export-image" data-exp="image">
@@ -2967,7 +3029,7 @@
       <button class="export-option${i === 0 ? ' on' : ''}" data-kind="${kind}">
         <span class="export-check"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
         <span class="export-label">${esc(label)}</span>
-        <span class="export-count">${listFor(kind).length}</span>
+        <span class="export-count">${fmtNum(listFor(kind).length)}</span>
       </button>`).join('');
     exportOverlay.querySelector('.export-image').classList.remove('on');
     updateExportButton();
@@ -3021,7 +3083,7 @@
     ctx.fillText('my instagram stats', P, P + 60);
     ctx.fillStyle = C.muted;
     ctx.font = `500 30px ${body}`;
-    ctx.fillText(new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' }).toLowerCase(), P, P + 112);
+    ctx.fillText(new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toLowerCase(), P, P + 112);
 
     // The six boxes, three to a row.
     const gap = 20, top = P + 170, bw = (W - P * 2 - gap * 2) / 3, bh = 190;
@@ -3036,7 +3098,7 @@
       ctx.stroke();
       ctx.fillStyle = C.text;
       ctx.font = `800 64px ${display}`;
-      ctx.fillText(String(v), x + bw / 2, y + 102);
+      ctx.fillText(typeof v === 'number' ? fmtNum(v) : String(v), x + bw / 2, y + 102);
       ctx.fillStyle = C.muted;
       ctx.font = `500 25px ${body}`;
       ctx.fillText(labels[i], x + bw / 2, y + 146);

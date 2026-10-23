@@ -85,6 +85,14 @@ html, body {
   --list-item-motion-duration: 0.45s;
   --list-item-motion-easing: cubic-bezier(0.4, 0, 0.2, 1);
 
+  /* The type scale (the financial dashboard's): each step about 1.14× the
+     last, anchored on the body's 15px — labels, tags, pills, badges and
+     small buttons 11.5; what a line says under its title, tabs, chips and
+     menu items 13; rows, titles and body 15; group and card headings 17;
+     section titles and stat figures 20 (only the few big display figures
+     above it). Every text uses one of these steps, never a size of its own. */
+  --fs-xs: .72rem; --fs-sm: .72rem; --fs-md: .82rem; --fs-base: .9375rem; --fs-lg: 1.0625rem; --fs-xl: 1.25rem;
+
   /* Grayscale Theme Gradient Colors */
   --grad-1: #000000;
   --grad-2: #3f3f46;
@@ -192,12 +200,8 @@ html, body, button, input, textarea, select {
   -moz-osx-font-smoothing: grayscale !important;
 }
 
-html {
-  font-size: 16px !important;
-}
-
 body {
-  font-size: 1rem !important;
+  font-size: var(--fs-base) !important;
   font-family: var(--font-sans) !important;
   background-color: var(--bg-color) !important;
   background: var(--bg-color) !important;
@@ -246,7 +250,7 @@ html, body, div, textarea, section, main, article, aside, ul, li {
  * ------------------------------------------------------------- */
 h1, h2, h3, h4, .card-num {
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.02em;
 }
 
@@ -323,6 +327,7 @@ button,
 
 .header-logo h1 {
   font-size: 2.25rem;
+  font-weight: 600;
   line-height: 1;
   margin: 0;
   color: var(--logo-color);
@@ -331,7 +336,7 @@ button,
 
 .header-subtitle {
   color: var(--text-muted);
-  font-size: 1.05rem;
+  font-size: var(--fs-base);
   max-width: 600px;
   font-weight: 400;
 }
@@ -353,7 +358,7 @@ button,
   border: 1px solid var(--card-border);
   padding: 6px 12px;
   border-radius: 99px;
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   font-weight: 500;
 }
@@ -376,7 +381,7 @@ button,
   cursor: pointer;
   transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   border: none;
-  font-size: 0.95rem;
+  font-size: var(--fs-base);
   white-space: nowrap;
 }
 
@@ -432,8 +437,15 @@ button:disabled *,
 }
 
 .btn-sm {
-  padding: 8px 16px;
-  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 0 9px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  border-radius: 8px;
+  line-height: 1;
 }
 
 .btn-primary {
@@ -545,7 +557,8 @@ button:disabled *,
 }
 
 .card-num {
-  font-size: 0.95rem;
+  font-size: var(--fs-base);
+  font-weight: 600;
   width: 24px;
   height: 24px;
   border-radius: 6px;
@@ -612,9 +625,9 @@ button:disabled *,
 
 
 .badge {
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 4px 10px;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  padding: 2px 10px;
   border-radius: 99px;
   display: inline-flex;
   align-items: center;
@@ -724,7 +737,7 @@ button:disabled *,
   padding: 14px;
   color: var(--text-main);
   font-family: var(--font-sans);
-  font-size: 0.9rem;
+  font-size: var(--fs-base);
   resize: none;
   outline: none;
   line-height: 1.6;
@@ -783,7 +796,7 @@ button:disabled *,
 }
 
 .textarea-hint {
-  font-size: 0.72rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   user-select: none;
 }
@@ -804,7 +817,7 @@ button:disabled *,
 }
 
 .preview-toggle {
-  font-size: 0.8rem !important;
+  font-size: var(--fs-md) !important;
   font-weight: 600 !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -832,7 +845,7 @@ button:disabled *,
 }
 
 .preview-toggle.btn-sm {
-  font-size: 0.74rem !important;
+  font-size: var(--fs-sm) !important;
   padding: 0 8px !important;
   gap: 4px !important;
 }
@@ -1267,7 +1280,7 @@ button:disabled *,
     min-width: 0 !important;
     overflow: hidden;
     padding: 0 4px !important;
-    font-size: 0.72rem !important;
+    font-size: var(--fs-sm) !important;
   }
 }
 
@@ -1293,7 +1306,7 @@ button:disabled *,
   #btn-add-account {
     width: 100% !important;
     min-width: 0 !important;
-    font-size: 0.74rem !important;
+    font-size: var(--fs-sm) !important;
     padding: 0 6px !important;
     gap: 4px !important;
   }
@@ -1312,7 +1325,7 @@ button:disabled *,
   .results-dropdowns-group .dropdown-wrapper button {
     width: 100% !important;
     min-width: 0 !important;
-    font-size: 0.74rem !important;
+    font-size: var(--fs-sm) !important;
     padding: 0 6px !important;
     gap: 4px !important;
   }
@@ -1362,7 +1375,7 @@ button:disabled *,
     width: auto !important;
   }
   #btn-add-account {
-    font-size: 0.78rem !important;
+    font-size: var(--fs-sm) !important;
     padding: 0 8px !important;
     gap: 4px !important;
     width: 100% !important;
@@ -1388,7 +1401,7 @@ button:disabled *,
 }
 
 .parsed-item {
-  font-size: 0.8rem;
+  font-size: var(--fs-md);
   color: var(--text-muted);
   padding: 6px 8px;
   border-radius: 4px;
@@ -1470,7 +1483,7 @@ button:disabled *,
 .keyboard-hints {
   display: flex;
   gap: 16px;
-  font-size: 0.75rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   justify-content: center;
   align-items: center;
@@ -1525,7 +1538,7 @@ body.hide-shortcuts #keyboard-hints {
   color: var(--text-main);
   padding: 2px 6px;
   font-family: inherit;
-  font-size: 0.7rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
 }
 
@@ -1557,7 +1570,7 @@ body.hide-shortcuts #keyboard-hints {
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
   color: #f4f4f5 !important;
   font-family: var(--font-sans) !important;
-  font-size: 0.8rem !important;
+  font-size: var(--fs-md) !important;
   font-weight: 600 !important;
   letter-spacing: 0 !important;
   line-height: 1.2 !important;
@@ -1890,8 +1903,8 @@ body.hide-shortcuts #keyboard-hints {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 12px;
-  font-size: 0.85rem;
-  font-weight: 500;
+  font-size: var(--fs-md);
+  font-weight: 600;
   line-height: 1;
   text-align: center;
   color: var(--text-main);
@@ -1991,8 +2004,8 @@ body.hide-shortcuts #keyboard-hints {
   height: 32px;
   padding: 0 14px;
   border-radius: 12px;
-  font-size: 0.85rem;
-  font-weight: 500;
+  font-size: var(--fs-md);
+  font-weight: 600;
   line-height: 1;
   cursor: pointer;
   transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
@@ -2145,23 +2158,32 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 .account-modal-header h3 {
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: var(--fs-lg);
+  font-weight: 500;
   color: var(--text-main);
   text-transform: lowercase;
   margin: 0;
 }
 
+/* A window's ✕ (the financial dashboard's .modal-x): a 28px box, its SVG ✕
+   centred, the one red; hovering only changes its colour. */
+.modal-x,
 .modal-close-btn {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 -6px 0 12px;
+  padding: 0;
   background: transparent !important;
   background-color: transparent !important;
   border: none !important;
-  font-size: 1.5rem;
   line-height: 1;
-  color: var(--text-main) !important;
+  color: #ef4444 !important;
   cursor: pointer;
-  padding: 0 4px;
-  transition: color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: color 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   outline: none !important;
   box-shadow: none !important;
   -webkit-tap-highlight-color: transparent !important;
@@ -2176,9 +2198,18 @@ body.hide-shortcuts #keyboard-hints {
   box-shadow: none !important;
 }
 
+.modal-x svg,
+.modal-close-btn svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: block;
+}
+
 @media (hover: hover) {
+  .modal-x:hover,
   .modal-close-btn:hover {
-    color: #ef4444 !important;
+    opacity: 0.75;
     background: transparent !important;
     background-color: transparent !important;
   }
@@ -2300,7 +2331,7 @@ body.hide-shortcuts #keyboard-hints {
 .instructions-tab {
   flex: 0 0 auto;
   padding: 7px 12px;
-  font-size: 0.78rem;
+  font-size: var(--fs-md);
   font-weight: 600;
   border-radius: 7px;
   border: 1px solid transparent;
@@ -2446,8 +2477,8 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 .export-mockup-title {
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: var(--fs-md);
+  font-weight: 500;
   color: var(--text-main);
   text-transform: lowercase;
 }
@@ -2467,7 +2498,7 @@ body.hide-shortcuts #keyboard-hints {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  font-size: 0.78rem;
+  font-size: var(--fs-md);
   color: var(--text-muted);
   border-bottom: 1px solid var(--card-border);
   text-transform: lowercase;
@@ -2503,15 +2534,15 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 .option-title {
-  font-size: 0.76rem;
-  font-weight: 700;
+  font-size: var(--fs-sm);
+  font-weight: 600;
   color: var(--text-main);
   text-transform: lowercase;
   line-height: 1.2;
 }
 
 .option-sub {
-  font-size: 0.68rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   text-transform: lowercase;
   line-height: 1.2;
@@ -2519,7 +2550,7 @@ body.hide-shortcuts #keyboard-hints {
 
 .option-sub.highlight {
   color: #059669;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 [data-theme="dark"] .option-sub.highlight {
@@ -2535,9 +2566,11 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 .export-pill {
-  font-size: 0.72rem;
-  padding: 3px 10px;
-  border-radius: 6px;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  padding: 2px 10px;
+  border-radius: 999px;
   background-color: var(--card-bg);
   border: 1px solid var(--card-border);
   color: var(--text-main);
@@ -2545,7 +2578,7 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 .export-pill strong {
-  font-weight: 700;
+  font-weight: 600;
   color: #10b981;
 }
 
@@ -2559,7 +2592,7 @@ body.hide-shortcuts #keyboard-hints {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 0.83rem;
+  font-size: var(--fs-md);
   color: var(--text-main);
   line-height: 1.4;
   box-sizing: border-box;
@@ -2569,13 +2602,13 @@ body.hide-shortcuts #keyboard-hints {
   background-color: var(--input-bg);
   padding: 2px 6px;
   border-radius: 4px;
-  font-size: 0.78rem;
+  font-size: var(--fs-sm);
   border: 1px solid var(--input-border);
 }
 
 .row-shortcut-key {
-  font-size: 0.65rem;
-  font-weight: 700;
+  font-size: var(--fs-sm);
+  font-weight: 600;
   color: var(--text-muted);
   background-color: var(--input-bg);
   border: 1px solid var(--input-border);
@@ -2612,8 +2645,8 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 .account-chip-badge {
-  font-size: 0.62rem;
-  font-weight: 700;
+  font-size: var(--fs-sm);
+  font-weight: 600;
   color: var(--text-muted);
   background-color: var(--input-bg);
   border: 1px solid var(--input-border);
@@ -2720,7 +2753,7 @@ html.hide-shortcuts .account-chip-badge {
 }
 
 [data-theme="dark"] .modal-close-btn {
-  color: #ffffff !important;
+  color: #ef4444 !important;
 }
 
 .account-modal-input-group {
@@ -2729,8 +2762,8 @@ html.hide-shortcuts .account-chip-badge {
 
 .account-modal-input-group label {
   display: block;
-  font-size: 0.8rem;
-  font-weight: 500;
+  font-size: var(--fs-sm);
+  font-weight: 600;
   color: var(--text-muted);
   margin-bottom: 8px;
   text-transform: lowercase;
@@ -2743,7 +2776,7 @@ html.hide-shortcuts .account-chip-badge {
   border: 1px solid var(--input-border);
   background: var(--input-bg);
   color: var(--text-main);
-  font-size: 0.95rem;
+  font-size: var(--fs-base);
   outline: none;
   transition: border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -2765,7 +2798,7 @@ html.hide-shortcuts .account-chip-badge {
   flex: 1;
   padding: 10px 16px;
   border-radius: 10px;
-  font-size: 0.9rem;
+  font-size: var(--fs-base);
   font-weight: 600;
   display: inline-flex;
   align-items: center;
@@ -2884,7 +2917,7 @@ html.hide-shortcuts .account-chip-badge {
   border-radius: 12px;
   color: var(--text-main);
   font-family: var(--font-sans);
-  font-size: 0.9rem;
+  font-size: var(--fs-base);
   outline: none;
   transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -2928,12 +2961,12 @@ html.hide-shortcuts .account-chip-badge {
 }
 
 .empty-title {
-  font-weight: 700;
-  font-size: 1.1rem;
+  font-weight: 500;
+  font-size: var(--fs-lg);
 }
 
 .empty-desc {
-  font-size: 0.85rem;
+  font-size: var(--fs-md);
   color: var(--text-muted);
   max-width: 260px;
 }
@@ -3022,8 +3055,8 @@ html.hide-shortcuts .account-chip-badge {
   padding: 0 !important;
   box-sizing: border-box;
   font-family: var(--font-display);
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: var(--fs-md);
+  font-weight: 600;
   color: var(--text-inverse);
   background: var(--text-main);
   border: 1px solid var(--card-border);
@@ -3040,8 +3073,8 @@ html.hide-shortcuts .account-chip-badge {
 }
 
 .user-link {
-  font-weight: 600;
-  font-size: 0.95rem;
+  font-weight: 500;
+  font-size: var(--fs-base);
   color: var(--text-main);
   display: block;
   white-space: nowrap;
@@ -3055,7 +3088,7 @@ html.hide-shortcuts .account-chip-badge {
 }
 
 .user-fullname {
-  font-size: 0.75rem;
+  font-size: var(--fs-md);
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -3088,7 +3121,7 @@ html.hide-shortcuts .account-chip-badge {
 }
 
 .follow-date {
-  font-size: 0.7rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   display: flex;
   align-items: center;
@@ -3239,7 +3272,7 @@ html.hide-shortcuts .account-chip-badge {
   #add-account-dropdown-menu .dropdown-item-btn {
     padding: 10px 14px !important;
     border-radius: 8px !important;
-    font-size: 0.85rem !important;
+    font-size: var(--fs-md) !important;
   }
 
   html, body {
@@ -3658,14 +3691,14 @@ body.auth-logged-out #auth-form-view {
 
 .landing-brand-name {
   font-family: 'Outfit', sans-serif;
-  font-weight: 800;
-  font-size: 1.25rem;
+  font-weight: 600;
+  font-size: var(--fs-xl);
   letter-spacing: -0.02em;
   color: var(--text-main);
 }
 
 .landing-version-badge {
-  font-size: 0.7rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 20px;
@@ -3687,7 +3720,7 @@ body.auth-logged-out #auth-form-view {
   gap: 6px !important;
   height: 32px !important;
   padding: 0 12px !important;
-  font-size: 0.78rem !important;
+  font-size: var(--fs-md) !important;
   border-radius: 10px !important;
   text-transform: lowercase !important;
 }
@@ -3696,7 +3729,7 @@ body.auth-logged-out #auth-form-view {
   height: 32px !important;
   line-height: 32px !important;
   padding: 0 16px !important;
-  font-size: 0.8rem !important;
+  font-size: var(--fs-md) !important;
   border-radius: 10px !important;
   text-decoration: none !important;
   display: inline-flex !important;
@@ -3761,7 +3794,7 @@ body.auth-logged-out #auth-form-view {
   border-radius: 30px;
   background: var(--card-bg);
   border: 1px solid var(--card-border);
-  font-size: 0.78rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--text-muted);
   margin-bottom: 20px;
@@ -3771,7 +3804,7 @@ body.auth-logged-out #auth-form-view {
 .hero-headline {
   font-family: 'Outfit', sans-serif;
   font-size: clamp(2.2rem, 4.2vw, 3.4rem);
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.12;
   letter-spacing: -0.035em;
   margin-bottom: 18px;
@@ -3790,7 +3823,7 @@ body.auth-logged-out #auth-form-view {
 }
 
 .hero-subtext {
-  font-size: 1.05rem;
+  font-size: var(--fs-lg);
   line-height: 1.6;
   color: var(--text-muted);
   margin-bottom: 28px;
@@ -3808,7 +3841,7 @@ body.auth-logged-out #auth-form-view {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 0.9rem;
+  font-size: var(--fs-base);
   font-weight: 500;
   color: var(--text-main);
   text-transform: lowercase;
@@ -3856,8 +3889,8 @@ body.auth-logged-out #auth-form-view {
 
 .landing-section-badge {
   display: inline-block;
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: var(--fs-sm);
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: lowercase;
   color: var(--text-muted);
@@ -3867,7 +3900,7 @@ body.auth-logged-out #auth-form-view {
 .landing-section-header h2 {
   font-family: 'Outfit', sans-serif;
   font-size: clamp(1.5rem, 2.5vw, 2.1rem);
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--text-main);
   text-transform: lowercase;
@@ -3908,15 +3941,15 @@ body.auth-logged-out #auth-form-view {
 
 .feature-card h3 {
   font-family: 'Outfit', sans-serif;
-  font-size: 1.1rem;
-  font-weight: 700;
+  font-size: var(--fs-lg);
+  font-weight: 500;
   margin-bottom: 8px;
   color: var(--text-main);
   text-transform: lowercase;
 }
 
 .feature-card p {
-  font-size: 0.88rem;
+  font-size: var(--fs-md);
   line-height: 1.5;
   color: var(--text-muted);
   margin: 0;
@@ -3945,8 +3978,8 @@ body.auth-logged-out #auth-form-view {
   background: var(--text-main);
   color: var(--bg-color);
   font-family: 'Outfit', sans-serif;
-  font-weight: 800;
-  font-size: 1rem;
+  font-weight: 600;
+  font-size: var(--fs-base);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3955,15 +3988,15 @@ body.auth-logged-out #auth-form-view {
 
 .step-card h3 {
   font-family: 'Outfit', sans-serif;
-  font-size: 1.1rem;
-  font-weight: 700;
+  font-size: var(--fs-lg);
+  font-weight: 500;
   margin-bottom: 8px;
   color: var(--text-main);
   text-transform: lowercase;
 }
 
 .step-card p {
-  font-size: 0.88rem;
+  font-size: var(--fs-md);
   line-height: 1.55;
   color: var(--text-muted);
   margin: 0;
@@ -3975,7 +4008,7 @@ body.auth-logged-out #auth-form-view {
   border: 1px solid var(--card-border);
   padding: 2px 6px;
   border-radius: 4px;
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
   color: var(--text-main);
 }
 
@@ -4018,15 +4051,15 @@ body.auth-logged-out #auth-form-view {
 
 .security-text h3 {
   font-family: 'Outfit', sans-serif;
-  font-size: 1.15rem;
-  font-weight: 700;
+  font-size: var(--fs-lg);
+  font-weight: 500;
   margin-bottom: 6px;
   color: var(--text-main);
   text-transform: lowercase;
 }
 
 .security-text p {
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
   line-height: 1.5;
   color: var(--text-muted);
   margin: 0;
@@ -4046,7 +4079,7 @@ body.auth-logged-out #auth-form-view {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   text-transform: lowercase;
 }
@@ -4098,7 +4131,7 @@ body.auth-logged-out #auth-form-view {
   }
 
   .landing-brand-name {
-    font-size: 1.1rem;
+    font-size: var(--fs-lg);
   }
 
   .landing-hero {
@@ -4123,7 +4156,7 @@ body.auth-logged-out #auth-form-view {
 .auth-brand h2 {
   font-family: 'Outfit', sans-serif;
   font-size: 2.2rem;
-  font-weight: 800;
+  font-weight: 600;
   color: var(--text-main);
   letter-spacing: -0.03em;
   margin-bottom: 6px;
@@ -4141,7 +4174,7 @@ body.auth-logged-out #auth-form-view {
 }
 
 .auth-brand p {
-  font-size: 0.88rem;
+  font-size: var(--fs-md);
   color: var(--text-muted);
   line-height: 1.4;
   margin: 0;
@@ -4154,8 +4187,8 @@ body:not(.auth-logged-out) #theme-toggle {
 }
 
 .card-header h2 {
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: var(--fs-lg);
+  font-weight: 500;
   color: var(--text-main);
   white-space: nowrap;
   letter-spacing: -0.02em;
@@ -4170,8 +4203,8 @@ body:not(.auth-logged-out) #theme-toggle {
 }
 
 .dropdown-header h3 {
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: var(--fs-lg);
+  font-weight: 500;
   color: var(--text-main);
   letter-spacing: -0.02em;
   margin: 0;
@@ -4199,7 +4232,7 @@ body:not(.auth-logged-out) #theme-toggle {
   background-color: var(--btn-secondary-bg);
   border: 1px solid var(--card-border);
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: var(--fs-sm);
   line-height: 1.5;
 }
 
@@ -4216,7 +4249,7 @@ body:not(.auth-logged-out) #theme-toggle {
   background-color: var(--btn-secondary-bg);
   border: 1px solid var(--card-border);
   color: var(--error-color);
-  font-size: 0.75rem;
+  font-size: var(--fs-sm);
   text-transform: lowercase;
 }
 
@@ -4226,7 +4259,7 @@ body:not(.auth-logged-out) #theme-toggle {
   background-color: rgba(16, 185, 129, 0.06);
   border: 1px solid rgba(16, 185, 129, 0.12);
   color: var(--success-color);
-  font-size: 0.75rem;
+  font-size: var(--fs-sm);
   text-transform: lowercase;
 }
 
@@ -4235,7 +4268,7 @@ body:not(.auth-logged-out) #theme-toggle {
   border: none;
   padding: 0;
   align-self: flex-end;
-  font-size: 0.75rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   cursor: pointer;
   text-decoration: underline;
@@ -4251,7 +4284,7 @@ body:not(.auth-logged-out) #theme-toggle {
 }
 
 .auth-status-text {
-  font-size: 0.9rem;
+  font-size: var(--fs-base);
   color: var(--text-main);
   text-transform: lowercase;
   margin: 0 0 10px 0;
@@ -4259,7 +4292,7 @@ body:not(.auth-logged-out) #theme-toggle {
 }
 
 .auth-desc {
-  font-size: 0.75rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   line-height: 1.6;
   margin: 0 0 20px 0;
@@ -4282,7 +4315,7 @@ body:not(.auth-logged-out) #theme-toggle {
   border: none;
   color: var(--text-muted);
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: var(--fs-md);
   padding: 8px 12px;
   border-radius: 7px;
   cursor: pointer;
@@ -4356,7 +4389,7 @@ body:not(.auth-logged-out) #theme-toggle {
 }
 
 .form-group label {
-  font-size: 0.75rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--text-muted);
   text-transform: lowercase;
@@ -4369,7 +4402,7 @@ body:not(.auth-logged-out) #theme-toggle {
   padding: 10px 12px;
   color: var(--text-main);
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: var(--fs-base);
   outline: none;
   transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -4459,7 +4492,7 @@ body:not(.auth-logged-out) #theme-toggle {
 .love-text {
   font-family: var(--font-display);
   font-size: 1.8rem;
-  font-weight: 800;
+  font-weight: 600;
   color: #ef4444;
   text-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
   letter-spacing: -0.03em;
@@ -4477,8 +4510,8 @@ body:not(.auth-logged-out) #theme-toggle {
   color: var(--text-inverse) !important;
   padding: 10px 22px;
   border-radius: 12px;
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-size: var(--fs-base);
+  font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -4617,7 +4650,7 @@ body:not(.auth-logged-out) #theme-toggle {
 }
 
 #auto-open-label {
-  font-size: 0.8rem;
+  font-size: var(--fs-md);
   font-weight: 600;
   color: var(--text-muted);
   cursor: pointer;
@@ -4664,7 +4697,7 @@ textarea {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.82rem;
+  font-size: var(--fs-md);
   font-weight: 600;
 }
 
@@ -4701,7 +4734,7 @@ textarea {
 .storage-details {
   display: flex;
   justify-content: space-between;
-  font-size: 0.72rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
 }
 
@@ -4815,7 +4848,7 @@ body.auth-logged-out #auth-form-view.smooth-exit {
 
 .dropdown-header-bar {
   padding: 6px 10px 8px 10px;
-  font-size: 0.76rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--text-muted);
   text-transform: lowercase;
@@ -4839,7 +4872,7 @@ body.auth-logged-out #auth-form-view.smooth-exit {
    something other than a blank box if the user still has it open. */
 .dropdown-empty-message {
   padding: 16px 10px 20px 10px;
-  font-size: 0.78rem;
+  font-size: var(--fs-md);
   color: var(--text-muted);
   text-align: center;
   /* When the panel is held at its old size after its last row is
@@ -4901,14 +4934,14 @@ body.auth-logged-out #auth-form-view.smooth-exit {
 }
 
 .setting-label {
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: var(--fs-base);
+  font-weight: 500;
   color: var(--text-main);
   text-transform: lowercase;
 }
 
 .setting-desc {
-  font-size: 0.72rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   text-transform: lowercase;
 }
@@ -4938,9 +4971,10 @@ body.auth-logged-out #auth-form-view.smooth-exit {
 
 .drive-btn {
   height: 24px;
-  line-height: 22px;
-  padding: 0 10px;
-  font-size: 0.72rem;
+  line-height: 1;
+  padding: 0 9px;
+  border-radius: 8px;
+  font-size: var(--fs-sm);
   text-transform: lowercase;
   box-sizing: border-box;
 }
@@ -5054,7 +5088,7 @@ button:focus-visible,
   border: 1px solid var(--input-border);
   background: var(--input-bg);
   color: var(--text-main);
-  font-size: 0.72rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -5129,14 +5163,14 @@ button:focus-visible,
 .row-select-bar {
   position: fixed;
   left: 50%;
-  bottom: calc(18px + env(safe-area-inset-bottom));
+  bottom: calc(24px + env(safe-area-inset-bottom));
   z-index: 9000;
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 4px;
   max-width: calc(100vw - 24px);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--bg-color);
   border: 1px solid var(--input-border);
   box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.22);
@@ -5188,7 +5222,7 @@ body.select-active #card-followers {
   box-sizing: border-box;
 }
 .row-select-count {
-  font-size: 0.78rem;
+  font-size: var(--fs-md);
   font-weight: 600;
   padding: 0 11.5px; /* the buttons' 12px + 1px border, with this 1.5px outline */
   border-radius: var(--radius);
@@ -5208,7 +5242,7 @@ body.select-active #card-followers {
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.78rem;
+  font-size: var(--fs-md);
   font-weight: 600;
   cursor: pointer;
   transition: color 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
@@ -5233,7 +5267,7 @@ body.select-active #card-followers {
 .feature-toast {
   position: fixed;
   left: 50%;
-  bottom: calc(18px + env(safe-area-inset-bottom));
+  bottom: calc(24px + env(safe-area-inset-bottom));
   z-index: 9500;
   display: flex;
   align-items: center;
@@ -5245,7 +5279,7 @@ body.select-active #card-followers {
   border-radius: 14px;
   background: var(--text-main);
   color: var(--bg-color);
-  font-size: 0.8rem;
+  font-size: var(--fs-md);
   font-weight: 600;
   box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.4);
   opacity: 0;
@@ -5273,14 +5307,18 @@ body.select-active #card-followers {
 }
 .feature-toast-btn {
   flex-shrink: 0;
-  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
   padding: 0 12px;
-  border-radius: 9px;
+  line-height: 1;
+  border-radius: calc(var(--radius) - 5px);
   border: none;
   background: #10b981;
   color: #ffffff;
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: var(--fs-md);
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -5336,7 +5374,7 @@ body.select-active #card-followers {
 .insights-tab {
   flex: 0 0 auto;
   padding: 7px 12px;
-  font-size: 0.78rem;
+  font-size: var(--fs-md);
   font-weight: 600;
   border-radius: 7px;
   border: 1px solid transparent;
@@ -5363,7 +5401,7 @@ body.select-active #card-followers {
   animation: paneFadeIn 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .insights-sub {
-  font-size: 0.76rem;
+  font-size: var(--fs-md);
   color: var(--text-muted);
   margin-bottom: 10px;
 }
@@ -5371,7 +5409,7 @@ body.select-active #card-followers {
   margin-bottom: 14px;
 }
 .insights-section-title {
-  font-size: 0.78rem;
+  font-size: var(--fs-md);
   font-weight: 400;
   color: var(--text-main);
   margin: 6px 0 6px;
@@ -5398,13 +5436,18 @@ body.select-active #card-followers {
   background: var(--input-bg);
   color: var(--text-main);
   border-radius: 8px;
-  font-size: 0.7rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
-  padding: 3px 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 0 9px;
+  line-height: 1;
   cursor: pointer;
 }
 .insights-more {
-  font-size: 0.72rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   padding: 6px 8px;
 }
@@ -5428,12 +5471,12 @@ body.select-active #card-followers {
 }
 .insights-stat-value {
   font-family: 'Outfit', sans-serif;
-  font-size: 1.35rem;
-  font-weight: 800;
+  font-size: var(--fs-xl);
+  font-weight: 600;
   color: var(--text-main);
 }
 .insights-stat-label {
-  font-size: 0.68rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   margin-top: 2px;
 }
@@ -5490,7 +5533,7 @@ body.select-active #card-followers {
   align-items: center;
   gap: 8px;
   margin-bottom: 12px;
-  font-size: 0.76rem;
+  font-size: var(--fs-md);
   color: var(--text-muted);
 }
 /* The chosen account shows as a centered label; the (invisible) native
@@ -5510,7 +5553,7 @@ body.select-active #card-followers {
 }
 .compare-pick-label {
   color: var(--text-main);
-  font-size: 0.8rem;
+  font-size: var(--fs-sm);
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -5531,7 +5574,7 @@ body.select-active #card-followers {
   height: 100%;
   opacity: 0;
   cursor: pointer;
-  font-size: 16px; /* no zoom-in on iOS */
+  font-size: var(--fs-md); /* no zoom-in on iOS */
 }
 .insights-buttons {
   display: flex;
@@ -5543,7 +5586,7 @@ body.select-active #card-followers {
 .insights-share {
   padding: 9px 14px;
   border-radius: 10px;
-  font-size: 0.8rem;
+  font-size: var(--fs-md);
   font-weight: 600;
 }
 .insights-share {
@@ -5602,7 +5645,7 @@ body.select-active #card-followers {
   border: 1px solid var(--input-border);
   background: var(--input-bg);
   color: var(--text-main);
-  font-size: 0.82rem;
+  font-size: var(--fs-md);
   font-weight: 600;
   text-align: left;
   cursor: pointer;
@@ -5640,7 +5683,7 @@ body.select-active #card-followers {
 .export-count {
   color: var(--text-muted);
   font-weight: 600;
-  font-size: 0.74rem;
+  font-size: var(--fs-sm);
 }
 .export-card .account-modal-actions button:disabled {
   opacity: 0.45;
@@ -5823,6 +5866,20 @@ select,
 .row-select-bar .row-select-count,
 .row-select-bar button {
   border-radius: calc(var(--radius) - 5px) !important; /* 4px padding + the bar's 1px border */
+}
+
+/* Small buttons (the financial dashboard's .btn-sm): one size wherever they
+   are — 24px tall, 9px each side, 8px corners. (The buttons styled bigger on
+   purpose — the landing header's, the instructions' arrows, list 1/2's
+   toggles — keep theirs.) The bottom toast's button sits in its bar with the
+   bar buttons' corners. */
+.btn.btn-sm:not(.landing-theme-btn):not(.landing-cta-btn):not(.instructions-arrow-btn),
+.btn.drive-btn,
+.insights-row-btn {
+  border-radius: 8px !important;
+}
+.feature-toast-btn {
+  border-radius: calc(var(--radius) - 5px) !important;
 }
 
 /* List 3's views: the explanation lines and section headings sit centered
@@ -6102,7 +6159,7 @@ select,
 .insights-row-flag {
   margin-left: auto;
   padding-left: 10px;
-  font-size: 0.7rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   white-space: nowrap;
 }
@@ -6128,7 +6185,7 @@ select,
   display: flex;
   justify-content: center;
   gap: 18px;
-  font-size: 0.76rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   margin-bottom: 10px;
 }
@@ -6146,7 +6203,7 @@ select,
 .timeline-key b {
   color: var(--text-main);
   font-family: 'Outfit', sans-serif;
-  font-weight: 700;
+  font-weight: 600;
   margin-left: 2px;
 }
 .timeline-chart {
@@ -6189,7 +6246,7 @@ select,
 .timeline-dates {
   display: flex;
   justify-content: space-between;
-  font-size: 0.7rem;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
   margin: 8px 2px 0;
 }
@@ -6401,7 +6458,7 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 /* The version, centered at the bottom of the settings panel. */
 .app-version {
   text-align: center;
-  font-size: 0.72rem;
+  font-size: var(--fs-sm);
   line-height: 1.5;
   color: var(--text-muted);
   margin: 10px 0 0;
@@ -6519,7 +6576,7 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 .saved-import-date {
   font-weight: 500;
   color: var(--text-muted);
-  font-size: 0.76rem;
+  font-size: var(--fs-md);
 }
 .saved-import:disabled {
   opacity: 0.5;
@@ -6788,3 +6845,58 @@ html.booting .app-container {
   .user-link.glides, .parsed-username.glides,
   .user-link.glides > .glide-inner, .parsed-username.glides > .glide-inner { animation: none !important; }
 }
+
+/* -------------------------------------------------------------
+ * The financial dashboard's conventions
+ * ------------------------------------------------------------- */
+/* Bold inside text: the labels' weight, never 700. */
+b, strong {
+  font-weight: 600;
+}
+
+/* A button done: a check eases in after its words for a moment (its words
+   never change) — <span class="done-check"><svg…></span> appended to the
+   button, .show added, then taken off. The list 3 slide. */
+.done-check {
+  display: inline-flex;
+  width: 0;
+  overflow: hidden;
+  vertical-align: -.12em;
+  color: #10b981;
+  opacity: 0;
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), margin 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.done-check.show {
+  width: 1em;
+  margin-left: .35em;
+  opacity: 1;
+}
+.done-check svg {
+  width: 1em;
+  height: 1em;
+  flex: none;
+}
+/* (on a filled button — the toast's green one — the check is its words' colour) */
+.feature-toast-btn .done-check,
+.btn-primary .done-check {
+  color: inherit;
+}
+
+/* No zoom-in on iOS when a box is focused: a phone's inputs at 16px. */
+@media (pointer: coarse) { input, select, textarea { font-size: 16px !important; } }
+
+/* ---- the toast's button slides in / out beside its words (slideSlot), the bar's padding easing with it ---- */
+.feature-toast-slot { display: inline-flex; flex: none; overflow: hidden; margin-left: -12px; } /* (cancels the bar's 12px gap: the gap lives inside the slot) */
+.feature-toast-slot > .feature-toast-btn { flex: none; margin-left: 12px; }
+.feature-toast { transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), padding 0.45s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* ---- the confirm window's message (was inline) ---- */
+.confirm-modal-msg-group { margin-bottom: 20px; }
+#confirm-modal-msg { font-size: var(--fs-base); line-height: 1.5; color: var(--text-main); margin: 0; }
+
+/* ---- the import menu's items (were inline on each button) ---- */
+.dropdown-item-btn { width: 100%; text-align: left; padding: 8px 12px; background: transparent; border: none; font-size: var(--fs-md); color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.dropdown-item-btn svg { margin: 0; }
+
+/* ---- select bar: "N selected" — the number counts in a span of its own ---- */
+.row-select-count .count-num { font-variant-numeric: tabular-nums; }
