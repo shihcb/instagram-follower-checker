@@ -458,20 +458,27 @@
   // on the device, so every device and the home-screen app see the same.
   const BUCKET = 'imports';
   const canCloud = () => !!(supabaseClient && supabaseClient.storage && currentUser);
-  const cloudPath = (key, n) => `${currentUser.id}/${key}/import-${n}.zip`;
+  // (and this user's log down from the cloud: numbered before it came, an
+  // import went up as import-1.zip over the cloud's own first one)
+  const cloudLoaded = () => canCloud() && cloudReady;
+  // The user's folder is the one logged in when the upload began: read on
+  // each try, it threw once logged out — and went into another person's
+  // folder if they logged in meanwhile.
+  const cloudPath = (key, n, uid = currentUser && currentUser.id) => `${uid}/${key}/import-${n}.zip`;
   // One upload at a time (a google drive sync imports several in a row,
   // and they all went up at once), each tried again up to 3 times when the
   // connection dropped or the log-in's pass ran out (it's renewed first).
   let uploadChain = Promise.resolve();
-  function cloudPut(key, n, blob) {
-    const run = uploadChain.then(() => cloudPutNow(key, n, blob));
+  function cloudPut(key, n, blob, uid = currentUser && currentUser.id) {
+    const run = uploadChain.then(() => cloudPutNow(key, n, blob, uid));
     uploadChain = run.catch(() => {});
     return run;
   }
-  async function cloudPutNow(key, n, blob) {
+  async function cloudPutNow(key, n, blob, uid) {
     for (let attempt = 1; ; attempt++) {
+      if (!uid || !currentUser || currentUser.id !== uid) throw new Error('logged out');
       let error;
-      try { ({ error } = await supabaseClient.storage.from(BUCKET).upload(cloudPath(key, n), blob, { upsert: true, contentType: 'application/zip' })); } catch (err) { error = err; }
+      try { ({ error } = await supabaseClient.storage.from(BUCKET).upload(cloudPath(key, n, uid), blob, { upsert: true, contentType: 'application/zip' })); } catch (err) { error = err; }
       if (!error) return;
       const msg = String(error.message || error.error || error);
       const expired = /jwt|token|expired|exp claim/i.test(msg);
@@ -507,10 +514,12 @@
     const files = (typeof lastImportFiles !== 'undefined' ? lastImportFiles : []) || [];
     if (!files.length) return;
     const stored = await Promise.all(files.map(async file => ({ name: file.webkitRelativePath || file.name, data: await file.arrayBuffer() })));
-    if (!canCloud()) {
-      // Kept here until you log in (moveLocalFilesToCloud uploads them then).
+    if (!cloudLoaded()) {
+      // Kept here until you log in, or this user's log has come down from
+      // the cloud (moveLocalFilesToCloud uploads them then, under the number
+      // the log gives them).
       await keepOnDevice(key, n, stored).catch(err => console.error('[features] keeping the import files failed:', err));
-      showToast('log in to save this import’s files');
+      if (!canCloud()) showToast('log in to save this import’s files');
       return;
     }
     await uploadImport(key, n, stored, entry.date);
@@ -520,24 +529,31 @@
   // tries again now, and the next time the app opens they go up on their own
   // (moveLocalFilesToCloud) — the latest import's files are never lost.
   async function uploadImport(key, n, stored, date) {
+    const uid = currentUser && currentUser.id;
     try {
-      await cloudPut(key, n, makeZip(stored, date));
+      await cloudPut(key, n, makeZip(stored, date), uid);
     } catch (err) {
       console.error('[features] saving the import files to the cloud failed:', err);
       await keepOnDevice(key, n, stored).catch(e => console.error('[features] keeping the import files failed:', e));
       const why = cloudReason(err);
       // A google drive sync says it once, at the end.
       if (driveSync) { driveSync.unsaved++; driveSync.why = why; return false; }
+      // (the retry finds the import again by its date: renumbered meanwhile —
+      // the log merged with the cloud's — the old number overwrote another)
       showToast(`import’s files couldn’t be saved to the cloud${why ? ` (${why})` : ''}`, 'retry',
-        () => { if (canCloud()) uploadImport(key, n, stored, date); }, { duration: 10000 });
+        () => {
+          const mine = readJSON(logKey(key), []).find(x => x.date === date);
+          if (cloudLoaded() && mine && !mine.files) uploadImport(key, mine.n, stored, date);
+        }, { duration: 10000 });
       return false;
     }
     await dropFromDevice(key, n).catch(() => {});
+    if (!currentUser || currentUser.id !== uid) return true; // (logged out meanwhile: the log here isn't theirs any more)
     // The import before this one is no longer the latest: unless it was a
     // full save, it keeps just its changes.
     const before0 = readJSON(logKey(key), []).find(x => x.n === n - 1);
     let dropped = false;
-    if (before0 && before0.files && !before0.full) {
+    if (before0 && before0.files && !isFullSave(before0.n)) { // (by its number: a renumbered one's stored flag was its old number's)
       try { await cloudDel(key, before0.n); } catch (err) { console.error('[features] removing old import files failed:', err); }
       dropped = true;
     }
@@ -599,10 +615,15 @@
     }));
   }
   const dropFromDevice = (key, n) => filesDbWrite(store => store.delete(`${key}|${n}`));
+  // (kept files being moved to their new numbers: read before that was done,
+  // an offline import's files went up under its old number — the cloud's
+  // own first import, replaced)
+  let renumbering = Promise.resolve();
   // Files kept on this device (an upload that failed, or an earlier version
   // that saved them here) move up to the cloud, and the local copy is deleted.
   async function moveLocalFilesToCloud() {
-    if (!window.indexedDB || !canCloud()) return false;
+    if (!window.indexedDB || !cloudLoaded()) return false;
+    await renumbering;
     const db = await openFilesDb();
     if (!db) return true;
     const all = await new Promise(resolve => {
@@ -846,7 +867,7 @@
     let tries = 0;
     const timer = setInterval(() => {
       if (++tries > 60) { clearInterval(timer); return; }
-      if (!canCloud()) return;
+      if (!cloudLoaded()) return; // (the log down from the cloud first: read before it came, every kept file was skipped)
       clearInterval(timer);
       moveLocalFilesToCloud().catch(err => console.error('[features] moving import files failed:', err));
     }, 2000);
@@ -3361,6 +3382,10 @@
   // For the rest of the app (and tests).
   window.igFeatures = { resetDrive: () => { driveToken = null; if (driveSync) driveSync.cancelled = true; }, driveBusy: () => !!driveSync,
     refreshView: () => safe(refreshView, 'view'),
+    // (imports' files still going up — logging out waits for them, so their
+    // "files saved" reaches the cloud; at most 15s)
+    savesSettled: () => Promise.race([Promise.allSettled([...savesRunning]), new Promise(r => setTimeout(r, 15000))]),
+    moveLocalFilesToCloud: () => moveLocalFilesToCloud().catch(err => console.error('[features] moving import files failed:', err)),
     // The saved settings, read again once they've come (from the cloud, at
     // log in) or gone (log out): read only as the page opened, before the
     // cloud's, list 3's sort and the stats / results tabs were never restored
@@ -3376,7 +3401,7 @@
       const results = savedSub('results_sub', 'results');
       if (results !== subTab.results) jumpResultsSub(results);
     }, 'settings'),
-    renumberKept: (key, moves) => renumberKept(key, moves).catch(e => console.error('[features] moving kept import files failed:', e)),
+    renumberKept: (key, moves) => (renumbering = renumbering.then(() => renumberKept(key, moves)).catch(e => console.error('[features] moving kept import files failed:', e))),
     dropUndo: (acc) => { const k = String(acc || '').toLowerCase(); for (let i = undoStack.length - 1; i >= 0; i--) if (undoStack[i].snap.acc === k) undoStack.splice(i, 1); safe(refreshUndo, 'undo'); },
     markSelected: (list) => { if (selectMode && !selectOnPending()) list.querySelectorAll('.user-row').forEach(r => r.classList.toggle('multi-selected', selected.has(r.dataset.username))); }, showView, showMobileList, showToast, setSelectMode, refreshToolbar, centerEmpties: () => safe(centerEmpties, 'empty texts') };
 })();

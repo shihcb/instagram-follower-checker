@@ -2690,6 +2690,13 @@ async function processImportFiles(files, isFolderUpload = false, opts = {}) {
 }
 async function processImportFilesNow(files, isFolderUpload = false, { username = null } = {}) {
   if (!files || files.length === 0) return false;
+  // Logged in, this user's data still on its way down (a reload with a
+  // saved log-in): the import waits for it — made now, the download wrote
+  // over it and it was gone. (Failed — offline — it goes ahead: kept and
+  // merged in when the data comes; see retryCloudLoadWhenOnline.)
+  for (let waited = 0; currentUser && !cloudReady && !pendingCloudRetry && waited < 20000; waited += 200) {
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
 
   // A .zip (what Instagram sends): its files are used as if the folder
   // inside it was picked.
@@ -7220,7 +7227,12 @@ function initAuth() {
     playAppExit();
     // Upload any batched changes while still signed in — alongside the
     // animation rather than after it.
-    const upload = flushCloudPush().catch(err => console.error('Error syncing before sign out:', err));
+    // (imports' files still going up first: logged out mid-upload, the
+    // cloud kept saying they weren't saved)
+    const upload = (async () => {
+      if (window.igFeatures && window.igFeatures.savesSettled) await window.igFeatures.savesSettled();
+      await flushCloudPush();
+    })().catch(err => console.error('Error syncing before sign out:', err));
 
     setTimeout(async () => {
       await upload;
@@ -7493,7 +7505,7 @@ function mergeOfflineWork(entries) {
       const have = parse(cloud, []);
       let next = have.reduce((max, x) => Math.max(max, x.n || 0), 0);
       const moves = [];
-      const mine = parse(value, []).map(x => { const n = ++next; if (n !== x.n) moves.push([x.n, n]); return { ...x, n }; });
+      const mine = parse(value, []).map(x => { const n = ++next; if (n !== x.n) moves.push([x.n, n]); return { ...x, n, full: n === 1 || n % 5 === 0 }; }); // (a full save by its new number)
       storageSet(key, JSON.stringify([...have, ...mine]));
       if (moves.length && window.igFeatures && window.igFeatures.renumberKept) window.igFeatures.renumberKept(key.slice('import_log_'.length), moves);
     } else {
@@ -7519,6 +7531,8 @@ function retryCloudLoadWhenOnline() {
       offlineWork = false;
       try { renderAccountChips(false); } catch (chipErr) { console.error('Error rendering account chips:', chipErr); }
       if (work) pushToCloud();
+      // (files of imports made meanwhile, kept here: up now, under their new numbers)
+      if (window.igFeatures && window.igFeatures.moveLocalFilesToCloud) window.igFeatures.moveLocalFilesToCloud();
       cleanup();
     } catch (err) {
       console.error('Error loading cloud data:', err);
