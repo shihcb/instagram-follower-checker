@@ -8242,7 +8242,7 @@ function updateStorageProgressBar() {
   const usedEl = document.getElementById('storage-used-bytes');
 
   if (percentageEl) swapText(percentageEl, percentageText);
-  if (fillEl) fillEl.style.width = `${Math.min(percentage, 100)}%`;
+  if (fillEl) { fillEl.style.width = `${Math.min(percentage, 100)}%`; fillEl.classList.toggle('full', percentage >= 100); } // (full: red, the dashboard's)
   if (usedEl) swapText(usedEl, `${usedText} used`);
 }
 

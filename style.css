@@ -4576,13 +4576,13 @@ body:not(.auth-logged-out) #theme-toggle {
 }
 
 .switch input:checked + .slider {
-  background-color: var(--text-main);
+  background-color: var(--accent);
   border-color: transparent;
 }
 
 .switch input:checked + .slider:before {
   transform: translateX(16px);
-  background-color: var(--text-inverse);
+  background-color: var(--card-bg);
 }
 
 #auto-open-label {
@@ -4643,12 +4643,8 @@ textarea {
 }
 
 .storage-value {
-  color: var(--grad-3);
+  color: var(--accent);
   font-family: var(--font-sans);
-}
-/* (dark's --grad-3 is near the panel's own colour: unreadable) */
-[data-theme="dark"] .storage-value {
-  color: var(--text-muted);
 }
 
 .storage-progress-bar {
@@ -4659,12 +4655,16 @@ textarea {
   overflow: hidden;
 }
 
+/* (the dashboard's .bar-fill: the accent, red when full) */
 .storage-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--grad-2), var(--grad-3));
+  background: var(--accent);
   border-radius: 3px;
   width: 0%;
-  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.storage-progress-fill.full {
+  background: var(--bad);
 }
 
 .storage-details {
@@ -4692,9 +4692,6 @@ textarea {
   background: rgba(0, 0, 0, 0.02);
 }
 
-.reset-reminder-box .storage-progress-fill {
-  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1), background 0.45s cubic-bezier(0.4, 0, 0.2, 1);
-}
 
 .reset-reminder-box.overdue {
   border-color: color-mix(in srgb, var(--bad) 35%, transparent);
@@ -5755,11 +5752,8 @@ select,
  * switchers, sort / select, the bulk bar, and every button use the chips'
  * background (--card-bg). Light mode is unchanged.
  * ------------------------------------------------------------- */
-[data-theme="dark"] .instructions-steps-nav,
 [data-theme="dark"] .toolbar-pill,
-[data-theme="dark"] .export-option,
-[data-theme="dark"] #settings-reset-unfollowed-btn,
-[data-theme="dark"] #settings-reset-starred-btn {
+[data-theme="dark"] .export-option {
   background: var(--card-bg) !important;
 }
 /* It floats over the list: the chips' blur too, so rows don't show
@@ -7096,9 +7090,6 @@ html.is-logged-in .auth-settings-section .setting-item-row {
 html.is-logged-in .auth-settings-section .setting-label {
   font-weight: 600;
 }
-html.is-logged-in #auth-profile-view .storage-value {
-  color: var(--success-color);
-}
 html.is-logged-in #auth-profile-view > .btn.btn-block {
   height: 40px;
   min-height: 40px;
@@ -7663,9 +7654,10 @@ html.is-logged-in .auth-dropdown {
 /* Small buttons filled, as the dashboard's .btn-sm; danger ones on their red */
 .btn.btn-sm.btn-secondary, [data-theme="dark"] .btn.btn-sm.btn-secondary { background-color: var(--soft) !important; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important; }
 .btn.btn-sm.btn-danger-soft:not(.reset-due), [data-theme="dark"] .btn.btn-sm.btn-danger-soft:not(.reset-due) { background: var(--bad-bg) !important; border-color: transparent !important; }
-/* Settings' boxes: the dashboard's .info-box */
-.supabase-storage-box, [data-theme="light"] .supabase-storage-box,
-.reset-reminder-box, [data-theme="light"] .reset-reminder-box { background: rgba(0, 0, 0, 0.02); }
+/* Settings' boxes: the dashboard's .info-box — a 2% tint of the text's
+   colour (light and dark) inside a hairline */
+.supabase-storage-box, [data-theme] .supabase-storage-box,
+.reset-reminder-box, [data-theme] .reset-reminder-box { background: color-mix(in srgb, var(--text-main) 2%, transparent); }
 /* A hover the same in both themes: only the line */
 @media (hover: hover) and (pointer: fine) {
   [data-theme="dark"] .btn-secondary:not(.btn-sm):hover:not(:disabled) { background-color: transparent !important; }
