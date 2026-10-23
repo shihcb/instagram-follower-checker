@@ -6203,7 +6203,7 @@ select,
 }
 .timeline-legend {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start; /* (from the left like the dashboard's counted lines: a number counting moves only what's after it) */
   gap: 18px;
   font-size: var(--fs-sm);
   color: var(--text-muted);
@@ -7078,13 +7078,12 @@ b, strong {
 /* A number counting (countNum in features.js): figures all one width, so
    it doesn't jitter as it counts; its width glides to the final number's. */
 .count-num {
+  /* (the financial dashboard's: its box eases with the count, never
+     narrower than its figures, the figures at its left) */
   display: inline-block;
-  font-variant-numeric: tabular-nums;
+  min-width: max-content;
   white-space: nowrap;
-  text-align: center;
-}
-/* (in a count pill the figures keep to the word after them as the
-   number's width eases) */
-.badge .count-num {
-  text-align: right;
+  vertical-align: baseline;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
 }

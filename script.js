@@ -1399,40 +1399,65 @@ function deduplicateEntries(entries) {
 // (the list 3 slide, every number in between shows), and the pill eases
 // to its new width on the same curve instead of snapping.
 const COUNT_MS = 450;
-// How wide a counting number is drawn at each step (the financial
-// dashboard's count: the words beside it glide as it widens, never jump).
-// The number is written with thousands separators ("1,234"): a digit's
-// width and a comma's are measured on their own (same-width digits,
-// tabular-nums), so the width is worked out from the written number. The
-// digits come early (0 to 108 is three digits a third of the way across),
-// so the width follows the number, not the clock — its digit count taken
-// smoothly (log10), so it glides, and never narrower than the number on
-// show needs. `num` shows `to` when called (and is left showing it).
-function countWidths(num, from, to) {
-  const keep = num.textContent;
-  num.textContent = '0000000000';
-  const digitW = num.getBoundingClientRect().width / 10;
-  num.textContent = ',,,,,,,,,,';
-  const commaW = num.getBoundingClientRect().width / 10;
-  num.textContent = keep;
-  const extra = num.getBoundingClientRect().width - drawnOf(to); // a "%" after it, say
-  function drawnOf(x) {
-    const s = fmtNum(Math.round(x));
-    const commas = (s.match(/,/g) || []).length;
-    return digitW * (s.length - commas) + commaW * commas;
+// A number counting to a new value — the financial dashboard's countTo,
+// exactly: every number in between shows on the list 3 slide's curve, and
+// the number's own box eases from the width it's drawn at to the new
+// number's on the same curve (never narrower than the figures on show:
+// min-width max-content, the figures at its left), so whatever is beside
+// it glides over rather than jumping as a digit or a comma comes or goes.
+// Picked up mid-count, it carries on from the number on show.
+function countTo(num, from, to, format = fmtNum) {
+  if (!num) return;
+  const running = num._count;
+  if (running) { cancelAnimationFrame(running.raf); from = running.shown; }
+  num.classList.add('count-num');
+  // (measured at the number it counts from: one redrawn already showing
+  // its new number would otherwise ease from the new width to itself)
+  if (!running) { num.style.width = ''; num.textContent = format(from); }
+  const startW = num.getBoundingClientRect().width;
+  num.style.width = '';
+  num.textContent = format(to);
+  const endW = num.getBoundingClientRect().width;
+  num._count = null;
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (from === to || reduced || !num.isConnected || !num.offsetParent) return;
+  // (screen size to layout size: the guest preview draws the app scaled)
+  const k = num.offsetWidth ? endW / num.offsetWidth : 1;
+  const c = num._count = { shown: from, raf: 0 };
+  // Growing, the digits come before the eased width does (0 to 1,245 has
+  // four figures a quarter of the way in): the box takes the number's
+  // digit count smoothly (log10) where that's wider, so it widens without
+  // a step as each digit or comma comes — what's beside it still glides.
+  let grow = () => 0;
+  if (endW > startW) {
+    const keep = num.textContent;
+    num.textContent = '0000000000';
+    const digitW = num.getBoundingClientRect().width / 10;
+    num.textContent = ',,,,,,,,,,';
+    const commaW = num.getBoundingClientRect().width / 10;
+    num.textContent = keep;
+    const drawn = (x) => { const t = fmtNum(Math.round(x)); const commas = (t.match(/,/g) || []).length; return digitW * (t.length - commas) + commaW * commas; };
+    const smooth = (x) => { const d = x < 1 ? 1 : Math.log10(x) + 1; return digitW * d + commaW * Math.max(0, (d - 1) / 3); };
+    const extra = endW - drawn(to); // (a "%" after it, say)
+    const offFrom = smooth(from) - drawn(from), offTo = smooth(to) - drawn(to);
+    grow = (x, e) => Math.min(endW, extra + smooth(x) - offFrom * (1 - e) - offTo * e);
   }
-  const digits = (x) => (x < 1 ? 1 : Math.log10(x) + 1);
-  // (its digit count taken smoothly, a comma every three)
-  const smoothW = (x) => { const d = digits(x); return digitW * d + commaW * Math.max(0, (d - 1) / 3); };
-  // (pinned to the real widths at both ends: 250 is 3.4 digits smoothly, 3 drawn)
-  const offFrom = smoothW(from) - drawnOf(from), offTo = smoothW(to) - drawnOf(to);
-  const lo = Math.min(drawnOf(from), drawnOf(to)), hi = Math.max(drawnOf(from), drawnOf(to));
-  return (x, e) => extra + Math.min(hi, Math.max(lo, drawnOf(x), smoothW(x) - offFrom * (1 - e) - offTo * e));
+  const t0 = performance.now();
+  const step = (now) => {
+    const t = Math.min(1, (now - t0) / ROW_MOTION_MS);
+    if (t >= 1 || !num.isConnected) { num._count = null; num.textContent = format(to); num.style.width = ''; return; }
+    const e = rowEase(t);
+    c.shown = Math.round(from + (to - from) * e);
+    num.textContent = format(c.shown);
+    num.style.width = `${Math.max(startW + (endW - startW) * e, grow(from + (to - from) * e, e)) / k}px`;
+    c.raf = requestAnimationFrame(step);
+  };
+  num.textContent = format(from);
+  num.style.width = `${startW / k}px`;
+  c.raf = requestAnimationFrame(step);
 }
-// A count pill ("12 found"): the number counts to its new value and its
-// own width eases with it (countWidths: the financial dashboard's count),
-// so the word beside it and the pill's edge glide over as it widens or
-// narrows — never a jump as a digit or a comma comes or goes.
+// A count pill ("12 found"): its number counts (countTo) and the word
+// after it, and the pill's edge, glide with the number's width.
 function setCountBadge(el, n, word) {
   if (!el) return;
   let num = el.querySelector(':scope > .count-num');
@@ -1448,46 +1473,7 @@ function setCountBadge(el, n, word) {
   }
   const words = `\u00a0${word}`;
   if (label.textContent !== words) label.textContent = words;
-  if (el._countRaf) { cancelAnimationFrame(el._countRaf); el._countRaf = null; }
-  // (one appearing counts up from 0, like the dashboard's counts)
-  const from = Number.isFinite(el._countNow) ? el._countNow : (readNum(num.textContent) || 0);
-  // From the width it's drawn at (mid-count too) to the one the new number needs
-  const startW = Number.isFinite(el._countWidth) ? el._countWidth : num.getBoundingClientRect().width;
-  num.style.width = '';
-  el.style.width = '';
-  el.style.clipPath = el.style.webkitClipPath = '';
-  num.textContent = fmtNum(n);
-  const endW = num.getBoundingClientRect().width;
-  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const settle = () => {
-    el._countNow = undefined;
-    el._countWidth = undefined;
-    el._countRaf = null;
-    num.textContent = fmtNum(n);
-    num.style.width = '';
-  };
-  if (from === n || !endW || reduced || !el.isConnected) { settle(); return; }
-  // Screen size to layout size (the guest preview draws the app scaled)
-  const k = num.offsetWidth ? endW / num.offsetWidth : 1;
-  const widthAt = countWidths(num, from, n);
-  // (picked up mid-count: eased from the width it was drawn at)
-  const fix = startW - widthAt(from, 0);
-  const t0 = performance.now();
-  const step = (now) => {
-    const t = Math.min(1, (now - t0) / COUNT_MS);
-    const e = rowEase(t); // the list 3 slide's curve
-    const x = from + (n - from) * e;
-    el._countNow = Math.round(x);
-    num.textContent = fmtNum(el._countNow);
-    const w = widthAt(x, e) + fix * (1 - e);
-    el._countWidth = w;
-    num.style.width = `${w / k}px`;
-    if (t < 1 && el.isConnected) el._countRaf = requestAnimationFrame(step);
-    else settle();
-  };
-  num.textContent = fmtNum(from);
-  num.style.width = `${startW / k}px`;
-  el._countRaf = requestAnimationFrame(step);
+  countTo(num, readNum(num.textContent) || 0, n);
 }
 
 // A username longer than its row glides sideways to show the rest, then

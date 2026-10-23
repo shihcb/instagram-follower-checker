@@ -1366,40 +1366,8 @@
       num.textContent = fmtNum(readNum(count.textContent) || 0);
       count.replaceChildren(num, document.createTextNode('\u00a0selected'));
     }
-    if (count._countRaf) { cancelAnimationFrame(count._countRaf); count._countRaf = null; }
-    const from = Number.isFinite(count._countNow) ? count._countNow : (readNum(num.textContent) || 0);
-    const fromW = count.getBoundingClientRect().width;
-    count.style.width = '';
-    num.textContent = fmtNum(n);
-    const toW = count.getBoundingClientRect().width;
-    count._countNow = undefined;
-    if (from === n || !animate || !fromW || reducedMotion()) return;
-    // The pill's width eases from the old to the new on the same curve, but
-    // never narrower than the number on show needs (it never clips a digit
-    // or the word while it counts).
-    const k = count.offsetWidth ? toW / count.offsetWidth : 1; // (the guest preview draws the app scaled)
-    // (the number's width follows the number smoothly — countWidths in
-    // script.js — so "selected" glides beside it, never jumps a digit)
-    const numW = countWidths(num, from, n);
-    const base = toW - num.getBoundingClientRect().width;
-    const lo = Math.min(fromW, toW), hi = Math.max(fromW, toW);
-    const t0 = performance.now();
-    const step = (now) => {
-      const t = Math.min(1, (now - t0) / ROW_MOTION_MS);
-      const e = rowEase(t);
-      const x = from + (n - from) * e;
-      count._countNow = Math.round(x);
-      num.textContent = fmtNum(count._countNow);
-      count.style.width = `${Math.min(hi, Math.max(lo, base + numW(x, e))) / k}px`;
-      if (t < 1 && count.isConnected) { count._countRaf = requestAnimationFrame(step); return; }
-      count._countNow = undefined;
-      count._countRaf = null;
-      num.textContent = fmtNum(n);
-      count.style.width = '';
-    };
-    num.textContent = fmtNum(from);
-    count.style.width = `${fromW / k}px`;
-    count._countRaf = requestAnimationFrame(step);
+    if (!animate) { if (num._count) cancelAnimationFrame(num._count.raf); num._count = null; num.style.width = ''; num.textContent = fmtNum(n); return; }
+    countTo(num, readNum(num.textContent) || 0, n);
   }
   // Pending requests' rows, in select mode.
   document.addEventListener('click', (e) => {
@@ -2315,30 +2283,7 @@
   // number in between shows; "%" kept). Reduce Motion: straight there.
   function countNum(el, a, to) {
     const pct = to.endsWith('%');
-    const b = readNum(to) || 0;
-    const token = (el._countToken = {});
-    el.style.width = '';
-    if (a === b || !canAnimate(el)) { el.textContent = to; return; }
-    el.classList.add('count-num');
-    const t0 = performance.now();
-    const show = (n) => { el.textContent = `${fmtNum(Math.round(n))}${pct ? '%' : ''}`; };
-    // Its width glides with the number (the financial dashboard's count:
-    // countWidths), so the words beside it glide over rather than jump.
-    el.textContent = to;
-    el.style.width = '';
-    const k = el.offsetWidth ? el.getBoundingClientRect().width / el.offsetWidth : 1; // (the guest preview draws the app scaled)
-    const widthAt = el.offsetParent ? countWidths(el, a, b) : null;
-    const draw = (x, e) => { show(x); if (widthAt) el.style.width = `${widthAt(x, e) / k}px`; };
-    draw(a, 0);
-    const step = (now) => {
-      if (el._countToken !== token) return;
-      const t = Math.min(1, (now - t0) / ROW_MOTION_MS);
-      if (t >= 1) { el.textContent = to; el.style.width = ''; return; }
-      const e = rowEase(t);
-      draw(a + (b - a) * e, e);
-      requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
+    countTo(el, a, readNum(to) || 0, (n) => `${fmtNum(n)}${pct ? '%' : ''}`);
   }
   // The view just came on screen: its numbers count up from 0 (the
   // financial dashboard's numbers do as they appear).
