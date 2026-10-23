@@ -1409,6 +1409,9 @@ const COUNT_MS = 450;
 function countTo(num, from, to, format = fmtNum) {
   if (!num) return;
   const running = num._count;
+  // (set again to where it's already counting — list 3's badge is, as its
+  // rows finish sliding: carried on as it is; cut short, its width snapped)
+  if (running && running.to === to && num.isConnected) return;
   if (running) { cancelAnimationFrame(running.raf); from = running.shown; }
   num.classList.add('count-num');
   // Measured in layout pixels, not as drawn: a count starting while its
@@ -1432,7 +1435,7 @@ function countTo(num, from, to, format = fmtNum) {
   num._count = null;
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (from === to || reduced || !num.isConnected || !num.offsetParent) return;
-  const c = num._count = { shown: from, raf: 0 };
+  const c = num._count = { shown: from, raf: 0, to };
   // The figures change before the eased width does, both ways (0 to 1,245
   // has four figures a quarter of the way in; counting down, 129 is still
   // three at nine tenths), and a box squeezed to its figures stepped a whole

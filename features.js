@@ -2288,7 +2288,7 @@
   // The view just came on screen: its numbers count up from 0 (the
   // financial dashboard's numbers do as they appear).
   const countUpStats = (stats) => stats.querySelectorAll('.insights-stat-value').forEach(el => countNum(el, 0, el.textContent));
-  const countUpTimeline = (tl) => { if (!tl.classList.contains('timeline-mock')) tl.querySelectorAll('.timeline-key b').forEach(b => countNum(b, 0, b.textContent)); };
+  const countUpTimeline = (tl) => { if (!tl.classList.contains('timeline-mock')) tl.querySelectorAll('.timeline-key b').forEach(b => { if (!b._count) countNum(b, 0, b.textContent); }); }; // (one still counting carries on: its text then is a number on the way)
   // Tapping a stat box takes you to its list: following / followers →
   // list 1 / list 2 (brought into view with a brief outline), follow you
   // back → mutuals, don't follow you back → list 3's results, unfollowed /
