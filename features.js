@@ -1396,7 +1396,7 @@
     // (only rows on show stay picked: ones the search hides were still
     // counted, and starred or unfollowed with the rest)
     const q = searchQuery(elements.searchUnfollowers);
-    const here = new Set(state.unfollowers.filter(u => !q || u.originalUsername.toLowerCase().includes(q) || (u.fullName && u.fullName.toLowerCase().includes(q))).map(u => u.username));
+    const here = new Set(state.unfollowers.filter(u => !q || String(u.originalUsername || u.username || '').toLowerCase().includes(q) || (u.fullName && u.fullName.toLowerCase().includes(q))).map(u => u.username));
     [...selected].forEach(n => { if (!here.has(n)) selected.delete(n); });
     elements.listUnfollowers.classList.add('select-mode');
     elements.listUnfollowers.querySelectorAll('.user-row').forEach(r => r.classList.toggle('multi-selected', selected.has(r.dataset.username)));

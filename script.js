@@ -438,6 +438,7 @@ function showSiteConfirm(title, message, confirmText = 'confirm', cancelText = '
       inputGroup.classList.toggle('hidden', !field);
       input.value = field ? field.value || '' : '';
       input.placeholder = field ? field.placeholder || '' : '';
+      input.type = field && field.type ? field.type : 'text'; // ('password': a new password, hidden as it's typed)
     }
 
     titleEl.textContent = title.toLowerCase();
@@ -1845,7 +1846,7 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
   const query = searchQuery(elements.searchUnfollowers);
   const filtered = state.unfollowers.filter(user => 
     !pendingRemoval.has(user.username) && (
-    user.originalUsername.toLowerCase().includes(query) || 
+    String(user.originalUsername || user.username || '').toLowerCase().includes(query) || 
     (user.fullName && user.fullName.toLowerCase().includes(query)))
   );
 
@@ -2773,15 +2774,25 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
       if (extractedUsername) break;
     }
     if (!extractedUsername) {
-      const fallback = await showSiteConfirm("which account is this?", 'the files don’t name their instagram account — enter its username', 'import', 'cancel',
-        { value: state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() !== DEMO_ID ? state.selectedAccountUsername : '', placeholder: '@username' });
-      // (with the demo on, this was filled in as "__demo__": the real lists
-      // went into the demo, and were gone with it)
-      const typed = (fallback || '').trim().replace(/^@+/, '').toLowerCase(); // instagram usernames are lowercase
-      if (typed && typed !== DEMO_ID && /^[a-z0-9._]{1,30}$/.test(typed)) extractedUsername = typed;
-      // Cancelled (or nothing usable typed): nothing is imported. It carried
-      // on before, replacing the lists of whatever account was on screen.
-      if (!extractedUsername) return false;
+      // Asked again when what's typed can't be a username (it imported
+      // nothing without a word); a profile link is read for its username.
+      // Cancelled, or left empty: nothing is imported (it carried on before,
+      // replacing the lists of whatever account was on screen).
+      let value = state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() !== DEMO_ID ? state.selectedAccountUsername : '';
+      let note = 'the files don’t name their instagram account — enter its username';
+      for (;;) {
+        const answer = await showSiteConfirm("which account is this?", note, 'import', 'cancel', { value, placeholder: '@username' });
+        if (answer == null) return false;
+        const typed = String(answer).trim()
+          .replace(/^(https?:\/\/)?(www\.)?instagram\.com\//i, '').split(/[/?#]/)[0]
+          .replace(/^@+/, '').toLowerCase(); // instagram usernames are lowercase
+        if (!typed) return false;
+        // (with the demo on, this was filled in as "__demo__": the real lists
+        // went into the demo, and were gone with it)
+        if (typed !== DEMO_ID && /^[a-z0-9._]{1,30}$/.test(typed)) { extractedUsername = typed; break; }
+        value = String(answer);
+        note = 'username couldn’t be read — enter it as instagram shows it';
+      }
     }
     if (extractedUsername && isNewAccountOverLimit(extractedUsername)) {
       await showAccountLimitAlert();
@@ -5916,6 +5927,7 @@ function updateInstructionsStepUI() {
 
   // Sync Folder Feature using File System Access API
   async function scanLocalDirectory(e) {
+    if (elements.btnAddAccount && elements.btnAddAccount.disabled) return; // (logged out: no folder picker for an import that can't happen)
     // (done: a check after the list's title for a moment — the dashboard's
     // doneCheck — instead of a "folder imported" pop-up)
     const title = e && e.currentTarget && e.currentTarget.querySelector ? e.currentTarget.querySelector('h2') : null;
@@ -6652,8 +6664,35 @@ function initAuth() {
   supabaseClient.auth.onAuthStateChange((event, session) => {
     setTimeout(() => {
       authQueue = authQueue.then(() => handleAuthChange(event, session));
+      // Opened from a password reset email: logged in, then asked for the
+      // new password (the link only ever logged in — the password was never
+      // changed, and still unknown)
+      if (event === 'PASSWORD_RECOVERY') authQueue = authQueue.then(askNewPassword);
     }, 0);
   });
+  async function askNewPassword() {
+    let note = 'enter a new password for this account';
+    for (;;) {
+      const answer = await showSiteConfirm('new password', note, 'save', 'cancel', { value: '', placeholder: 'new password', type: 'password' });
+      if (answer == null || answer === '') return;
+      if (answer.length < 6) { note = 'password couldn’t be saved — it needs at least 6 characters'; continue; }
+      let error = null;
+      try { ({ error } = await supabaseClient.auth.updateUser({ password: answer })); } catch (err) { error = {}; }
+      if (!error) { if (window.igFeatures && window.igFeatures.showToast) window.igFeatures.showToast('password changed'); return; }
+      note = authMessage(error, 'password couldn’t be saved').toLowerCase();
+    }
+  }
+  // A reset link that's expired or already used: Supabase sends it back with
+  // the reason in the address — said on the log-in card, and taken out of
+  // the address (it stayed there, and nothing was said).
+  {
+    const params = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+    if (params.get('error') || params.get('error_code')) {
+      const reason = params.get('error_code') === 'otp_expired' ? 'reset link couldn’t be used — it has expired' : 'reset link couldn’t be used';
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+      setTimeout(() => { try { showAuthError(reason); } catch (e) {} }, 600);
+    }
+  }
 
   async function handleAuthChange(event, session) {
     const firstCheck = isInitialAuthCheck;
@@ -7132,7 +7171,7 @@ function initAuth() {
       try { ({ data, error } = await supabaseClient.auth.signUp({ email, password })); } catch (err) { console.error(err); error = {}; }
       
       if (error) {
-        showAuthError(error.message || 'account couldn’t be created');
+        showAuthError(authMessage(error, 'account couldn’t be created'));
       } else if (data && data.session) {
         // Signed in at once (no email to confirm): the same way into the
         // app as logging in — the button keeps its spinner till the card goes.
@@ -7147,7 +7186,7 @@ function initAuth() {
       try { ({ error } = await supabaseClient.auth.signInWithPassword({ email, password })); } catch (err) { console.error(err); error = {}; }
       
       if (error) {
-        showAuthError(error.message || 'couldn’t log in');
+        showAuthError(authMessage(error, 'couldn’t log in'));
       } else {
         loggedIn = true;
         if (document.activeElement && typeof document.activeElement.blur === 'function') {
@@ -7204,7 +7243,7 @@ function initAuth() {
       forgotBusy = false;
 
       if (error) {
-        showAuthError(error.message || 'password reset email couldn’t be sent');
+        showAuthError(authMessage(error, 'password reset email couldn’t be sent'));
       } else {
         showAuthSuccess('password reset link sent — check your email');
       }
@@ -7344,6 +7383,7 @@ function initAuth() {
   // Sit button back down automatically after clicking on mobile by removing focus
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('button, .account-chip, .btn, [role="button"]');
+    if (e.detail === 0) return; // (from the keyboard — Enter or space: the focus stays, so Tab carries on from there)
     if (btn && window.innerWidth <= 1024) {
       btn.blur();
     }
@@ -7460,6 +7500,14 @@ function restartAlertAnimation(el) {
   el.style.animation = '';
 }
 
+// What an auth failure says: Supabase's own words, but never the browser's
+// "failed to fetch" (offline it answers with that rather than throwing) —
+// the app's own "… couldn’t …" line then.
+function authMessage(error, fallback) {
+  const msg = error && error.message;
+  if (!msg || error.name === 'AuthRetryableFetchError' || error.status === 0 || /failed to fetch|load failed|network|fetch/i.test(msg)) return fallback;
+  return msg;
+}
 function showAuthError(msg) {
   setAuthAlert(elements.authSuccessMsg, null);
   // (Supabase's messages end in a full stop: short messages here don't)
@@ -7754,7 +7802,16 @@ function queueCloudPush() {
 }
 
 async function flushCloudPush() {
-  if (cloudPushTimer === null) return;
+  if (cloudPushTimer === null) {
+    // Nothing batched, but an upload that failed is waiting to be tried
+    // again (every 15s and longer): sent now — logging out or closing the
+    // app meanwhile lost those changes.
+    if (currentUser && cloudReady && storageGet(CLOUD_DIRTY_KEY) === currentUser.id) {
+      clearTimeout(cloudRetryTimer);
+      await queueCloudPush();
+    }
+    return;
+  }
   clearTimeout(cloudPushTimer);
   cloudPushTimer = null;
   const waiters = cloudPushWaiters;
