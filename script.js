@@ -223,7 +223,7 @@ const appGridLandingHome = elements.appGrid ? elements.appGrid.parentElement : n
 // Settings kept in the cloud with the rest (see pushToCloud).
 // drive_*: the google drive connection (features.js) — on or off, the
 // exports already brought in, and when it was last synced.
-const CLOUD_PREFS = ['theme', 'theme_at', 'list3_sort', 'list3_view', 'stats_sub', 'results_sub', 'mobile_list', 'drive_on', 'drive_seen', 'drive_checked', 'drive_email'];
+const CLOUD_PREFS = ['theme', 'theme_at', 'list3_sort', 'list3_view', 'stats_sub', 'results_sub', 'mobile_list', 'drive_on', 'drive_seen', 'drive_checked', 'drive_email', 'auto_open'];
 function applyCloudPrefs(prefs) {
   // The light/dark choice: whichever was picked last wins — this device's
   // or the cloud's. The cloud's copy can be behind (a reload right after
@@ -252,6 +252,8 @@ function applyCloudPrefs(prefs) {
     try { window.igFeatures.showMobileList(prefs.mobile_list, false); } catch (e) {}
   }
   if (window.igFeatures && window.igFeatures.applyPrefs) window.igFeatures.applyPrefs(); // (sort, stats / results tabs)
+  const autoOpen = document.getElementById('auto-open-toggle');
+  if (autoOpen) autoOpen.checked = storageGet('auto_open') === '1';
 }
 
 function initTheme() {
@@ -871,9 +873,25 @@ function parseHTML(text) {
  * Parses raw text line-by-line using a state-machine looking for username structures.
  */
 function parseRawText(text) {
+  // (a profile link is its username — "instagram.com/erin",
+  // "https://www.instagram.com/dave/" — and a line of names with commas
+  // between, or "@alice @bob", is each of them, when every one is a
+  // username. Both were dropped.)
   const lines = text.split('\n')
     .map(line => line.trim())
-    .filter(line => line.length > 0);
+    .filter(line => line.length > 0)
+    .flatMap(line => {
+      const link = /^(https?:\/\/)?([a-z0-9-]+\.)*instagram\.com\/([a-z0-9._]{1,30})\/?(\?.*)?$/i.exec(line);
+      if (link && !EXCLUDE_KEYWORDS.has(link[3].toLowerCase())) return [link[3]];
+      // (commas always; spaces only between names written with "@" — a
+      // lowercase full name, "dan smith", is never two accounts)
+      const bySpace = /^@\S+(\s+@\S+)+$/.test(line);
+      if (line.includes(',') || bySpace) {
+        const parts = line.split(line.includes(',') ? /\s*,\s*/ : /\s+/).map(p => p.replace(/^@+/, '')).filter(Boolean);
+        if (parts.length > 1 && parts.every(p => isValidUsername(p))) return parts;
+      }
+      return [line];
+    });
 
   const results = [];
   let i = 0;
@@ -2281,11 +2299,16 @@ function animateResultsReentry(listEl, previousTops, resumeTops = new Map(), { e
 
 // Debounce helper to prevent lags on massive lists
 function debounce(fn, delay) {
-  let timeout;
-  return function(...args) {
+  let timeout, pending = null;
+  const run = function(...args) {
     clearTimeout(timeout);
-    timeout = setTimeout(() => fn.apply(this, args), delay);
+    pending = { self: this, args };
+    timeout = setTimeout(() => { pending = null; fn.apply(this, args); }, delay);
   };
+  // (now, if one is waiting: a list left, or another account picked, before
+  // its wait ran out lost what was typed)
+  run.flush = () => { if (!pending) return; clearTimeout(timeout); const p = pending; pending = null; fn.apply(p.self, p.args); };
+  return run;
 }
 
 // Where list 1 ('following') / list 2 ('followers') are saved for whatever
@@ -2482,6 +2505,7 @@ function showAccountLimitAlert() {
  */
 function ensureAccountSelected(username, { renderResults = true } = {}) {
   if (!username) return;
+  flushListInputs();
 
   const usernameLower = username.toLowerCase();
 
@@ -2958,6 +2982,11 @@ function saveCurrentAccountData() {
 // left as it is — the import redraws it once, animated, with the new files
 // (processImportFiles), instead of first showing the account's old list 3.
 function loadAccountData(username, animate = false, animateResults = false, { renderResults = true } = {}) {
+  // (another account's lists: list 1 and 2's searches are cleared — kept,
+  // they said one thing while the box showed the whole new list)
+  ['search-following', 'search-followers'].forEach(id => { const el = document.getElementById(id); if (el && el.value) el.value = ''; });
+  if (elements.inputFollowing) elements.inputFollowing.placeholder = 'enter usernames';
+  if (elements.inputFollowers) elements.inputFollowers.placeholder = 'enter usernames';
   if (username) {
     state.selectedAccountUsername = username;
     storageSet('selected_instagram_account', username);
@@ -3053,8 +3082,15 @@ function rememberNoAccountSelected() {
   storageSet('last_active_instagram_account', '');
 }
 
+// What's been typed in list 1 / 2 and is still waiting to be read: read
+// now, into the account it was typed for (picked another account straight
+// after typing, it was lost).
+function flushListInputs() {
+  try { handleFollowingInput.flush(); handleFollowersInput.flush(); } catch (e) {}
+}
 function selectAccount(username) {
   if (accountsBusy()) { sayAccountsBusy(); return; }
+  flushListInputs();
   // Only an account that still exists — a tap on a chip just before it was
   // deleted fires after (single taps wait for a possible double tap), and
   // would select an account with no chip.
@@ -6002,6 +6038,27 @@ function updateInstructionsStepUI() {
     textareaEl.addEventListener('dblclick', (e) => {
       const text = textareaEl.value;
       const caretPos = textareaEl.selectionStart;
+      // (only a word double-clicked: below the last line, or on blank space,
+      // nothing is picked — it opened the last username's profile)
+      if (!text.substring(textareaEl.selectionStart, textareaEl.selectionEnd).trim()) return;
+      // …and only on the word itself: the browser picks the nearest word
+      // for a double-click past the end of a line or under the last one.
+      // Where the picked word is drawn is measured on a copy of the box.
+      {
+        const cs = getComputedStyle(textareaEl);
+        const copy = document.createElement('div');
+        ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth', 'boxSizing', 'textTransform', 'tabSize'].forEach(k => { copy.style[k] = cs[k]; });
+        Object.assign(copy.style, { position: 'absolute', visibility: 'hidden', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: `${textareaEl.offsetWidth}px`, borderStyle: 'solid', borderColor: 'transparent', left: '-9999px', top: '0' });
+        const word = document.createElement('span');
+        word.textContent = text.substring(textareaEl.selectionStart, textareaEl.selectionEnd);
+        copy.append(document.createTextNode(text.substring(0, textareaEl.selectionStart)), word, document.createTextNode(text.substring(textareaEl.selectionEnd) || ' '));
+        document.body.appendChild(copy);
+        const cr = copy.getBoundingClientRect(), wr = word.getBoundingClientRect();
+        copy.remove();
+        const x = e.offsetX + textareaEl.scrollLeft, y = e.offsetY + textareaEl.scrollTop;
+        const left = wr.left - cr.left, top = wr.top - cr.top;
+        if (x < left - 4 || x > left + wr.width + 4 || y < top - 2 || y > top + wr.height + 2) return;
+      }
       
       // Find word boundaries around the caret position
       let start = caretPos;
@@ -6172,14 +6229,13 @@ function updateInstructionsStepUI() {
       if (searchFollowingInput && searchFollowingInput.value.trim() !== '') {
         return;
       }
-      const lines = elements.inputFollowing.value.split('\n');
-      const formatted = lines.map(line => {
-        const trimmed = line.trim();
-        if (!trimmed) return '';
-        return trimmed.startsWith('@') ? trimmed : `@${trimmed}`;
-      });
-      elements.inputFollowing.value = formatted.filter(l => l !== '').join('\n');
-      elements.inputFollowing.dispatchEvent(new Event('input'));
+      // What's in the box is read first (now, not after its wait), then the
+      // box is written back as the usernames that were read — "@" put in
+      // front of every raw line before reading wiped a pasted export, and
+      // made accounts of one-word full names.
+      handleFollowingInput.flush();
+      const tidy = state.following.map(u => `@${u.originalUsername || u.username}`).join('\n');
+      if (elements.inputFollowing.value !== tidy) elements.inputFollowing.value = tidy;
     });
   }
 
@@ -6196,14 +6252,13 @@ function updateInstructionsStepUI() {
       if (searchFollowersInput && searchFollowersInput.value.trim() !== '') {
         return;
       }
-      const lines = elements.inputFollowers.value.split('\n');
-      const formatted = lines.map(line => {
-        const trimmed = line.trim();
-        if (!trimmed) return '';
-        return trimmed.startsWith('@') ? trimmed : `@${trimmed}`;
-      });
-      elements.inputFollowers.value = formatted.filter(l => l !== '').join('\n');
-      elements.inputFollowers.dispatchEvent(new Event('input'));
+      // What's in the box is read first (now, not after its wait), then the
+      // box is written back as the usernames that were read — "@" put in
+      // front of every raw line before reading wiped a pasted export, and
+      // made accounts of one-word full names.
+      handleFollowersInput.flush();
+      const tidy = state.followers.map(u => `@${u.originalUsername || u.username}`).join('\n');
+      if (elements.inputFollowers.value !== tidy) elements.inputFollowers.value = tidy;
     });
   }
 
@@ -6332,12 +6387,23 @@ function updateInstructionsStepUI() {
       }
 
       // Wait a tiny bit for the page focus layout to stabilise
-      setTimeout(() => {
+      setTimeout(async () => {
         // The first row actually showing (and not already sliding out) —
         // not state.unfollowers[0], which differs whenever a search filter
         // is active and would open one profile while removing another row.
         const firstRow = getLiveUnfollowerRows()[0];
         if (!firstRow) return;
+        // On a computer the browser opens a new tab only straight after a
+        // tap — coming back to the page isn't one, so the profile was
+        // blocked while its row still went to "unfollowed": asked, and the
+        // "open" tap opens it.
+        const mustAsk = !IS_PHONE && navigator.userActivation && !navigator.userActivation.isActive;
+        if (mustAsk) {
+          const name = firstRow.dataset.username || '';
+          const yes = await showSiteConfirm('open the next profile?', name ? `@${name}` : '', 'open', 'stop');
+          if (!yes) { autoOpenToggle.checked = false; autoOpenToggle.dispatchEvent(new Event('change')); return; }
+          if (!firstRow.isConnected) return;
+        }
 
         unfollowAndExitRow(firstRow, { fromAutoOpen: true });
         // Re-arm for the next return to this tab, and count towards the
@@ -6359,6 +6425,10 @@ function updateInstructionsStepUI() {
   if (autoOpenToggle) {
     autoOpenToggle.addEventListener('change', () => {
       if (!autoOpenToggle.checked) { state.pendingAutoOpen = false; state.autoOpenCount = 0; }
+      // (kept, with the other settings in the cloud: it switched itself off
+      // on every reload — the iPhone app often reloads after instagram)
+      storageSet('auto_open', autoOpenToggle.checked ? '1' : '0');
+      pushToCloud();
     });
   }
   if (autoOpenLabel && autoOpenToggle) {

@@ -427,6 +427,7 @@
           const first = Object.keys(keys).find(k => (diff[keys[k]] || []).length);
           if (first && currentView === 'changes') showAltSub(first);
           else if (first) subTab.changes = first;
+          if (phoneLayout.matches) showMobileList('unfollowers'); // (on a phone, list 3 — the changes are there — comes up first)
           showView('changes');
           viewNav && viewNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }), 900);
@@ -1081,7 +1082,7 @@
         // (what it did, on the button for a few seconds — the dashboard's
         // "3 pages updated"; the changes, when there are some, with "view")
         said = imported ? `${plural(imported, 'export')} imported` : 'no new exports';
-        if (imported && changes) showToast(`${plural(changes, 'change')} since your last import`, 'view', () => { showView('changes'); viewNav && viewNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
+        if (imported && changes) showToast(`${plural(changes, 'change')} since your last import`, 'view', () => { if (phoneLayout.matches) showMobileList('unfollowers'); showView('changes'); viewNav && viewNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
       }
     } catch (err) {
       driveSync = null;
