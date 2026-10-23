@@ -23,6 +23,30 @@ When a change is done, commit it and push it straight to `main` (after
 bumping the version tags above) — that's what deploys the app (Vercel).
 Don't leave work only on a side branch or ask first.
 
+## One look with the financial dashboard — always
+
+The owner wants this app and the financial dashboard
+(`shihcb/financial-dashboard`, `public/index.html`) to feel like one app.
+The dashboard's look is the source: **whenever the dashboard's style changes,
+this app's changes to match, in the same piece of work** — colours and
+tokens, type sizes and weights, corners, borders and hairlines, shadows,
+spacing, buttons, pills and badges, tab switchers, menus, windows, icons,
+motion, wording style. Never leave one updated and the other behind.
+
+- Working in the dashboard and changing how it looks: make the same change
+  here too (bump the `?v=` tags, push to `main`), and the other way round —
+  a look the owner asks for here goes into the dashboard as well.
+- Before any style work here, look at the dashboard's current CSS
+  (`public/index.html`) and match it — measure both (sizes, colours,
+  computed styles, screenshots side by side), don't guess.
+- Where the owner has asked this app to look different from the dashboard,
+  it stays different until they say otherwise — but say so when it comes up,
+  and ask whether the dashboard should take it too. Today: fields, search
+  boxes, buttons, username rows and count pills are white in light mode
+  (the dashboard's are the page grey); the ✕ sits 1px higher, centred on the
+  title's letters.
+- These notes are kept in step with the dashboard's own CLAUDE.md.
+
 ## "The list 3 slide" — the app's standard motion
 
 When the user says **"the list 3 slide"** (or "the app's animation", "same
