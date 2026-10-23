@@ -3202,7 +3202,7 @@
           </button>
           <div class="account-modal-actions">
             <button class="btn btn-secondary" data-exp="cancel">cancel</button>
-            <button class="btn btn-primary" data-exp="go">export</button>
+            <button class="btn btn-primary" data-exp="go"><span class="exp-words">export</span></button>
           </div>
         </div>`;
       document.body.appendChild(exportOverlay);
@@ -3347,13 +3347,16 @@
     const go = exportOverlay.querySelector('[data-exp="go"]');
     go.disabled = lists === 0 && !image;
     // (between counts only the number counts — the words stay put; they
-    // fade across only when they change: "export" ↔ "export n lists")
-    const n = go.querySelector('.exp-n');
+    // fade across only when they change: "export" ↔ "export n lists" — the
+    // words alone, never the button, its width gliding)
+    const words = go.querySelector('.exp-words');
+    const n = words.querySelector('.exp-n');
+    const text = lists > 1 ? `export ${fmtNum(lists)} lists` : 'export';
     if (lists > 1 && n) countTo(n, readNum(n.textContent) || 0, lists);
-    else {
-      swapText(go, lists > 1 ? `export ${fmtNum(lists)} lists` : 'export', { resize: true });
-      if (lists > 1) go.innerHTML = `export <span class="exp-n count-num">${fmtNum(lists)}</span> lists`;
-    }
+    else if (words.textContent !== text) glideWidth(go, () => {
+      swapText(words, text);
+      if (lists > 1) words.innerHTML = `export <span class="exp-n count-num">${fmtNum(lists)}</span> lists`;
+    });
     exportOverlay.querySelectorAll('.export-option[data-kind]').forEach(o => o.classList.toggle('muted', image));
     exportOverlay.querySelector('.export-image').classList.toggle('muted', lists > 0);
   }

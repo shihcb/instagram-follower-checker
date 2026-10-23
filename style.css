@@ -112,11 +112,13 @@ html, body {
   --text-main: #1b1f1d;
   --text-muted: #66706b;
   --text-inverse: #f4f5f3;
-  --input-bg: #f4f5f3;
+  --input-bg: #ffffff;
+  /* (text boxes, search boxes, buttons and tab switchers: all the cards' white) */
+  --field-bg: #ffffff;
   --input-border: #e1e5e2;
   --btn-primary-bg: #1b1f1d;
   --btn-primary-text: #f4f5f3;
-  --btn-secondary-bg: #eef1ef;
+  --btn-secondary-bg: #ffffff;
   --btn-secondary-hover: #eef1ef;
   --btn-secondary-border: #e1e5e2;
   
@@ -133,7 +135,7 @@ html, body {
   --bad: #b3261e;
   --bad-bg: #fbe9e7;
   --warn: #9a6100;
-  --soft: #eef1ef;
+  --soft: #ffffff;
 
   --scrollbar-thumb: rgba(9, 9, 11, 0.15);
   --scrollbar-track: rgba(9, 9, 11, 0.03);
@@ -163,6 +165,7 @@ html, body {
   --text-muted: #9aa49f;
   --text-inverse: #111513;
   --input-bg: #111513;
+  --field-bg: #111513;
   --input-border: #29302d;
   --btn-primary-bg: #e8ece9;
   --btn-primary-text: #111513;
@@ -2179,7 +2182,7 @@ body.hide-shortcuts #keyboard-hints {
   gap: 6px;
   /* White (black in dark mode) with just an outline marking the bar; the
      view it's on is outlined in the text color (the highlight below). */
-  background-color: var(--bg-color);
+  background-color: var(--field-bg);
   border: 1px solid var(--input-border);
   padding: 4px;
   border-radius: 10px;
@@ -7316,7 +7319,7 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
 /* The search: the dashboard's — no glass, 7px 10px, the page's colour */
 .search-box input,
 [data-theme="dark"] .search-box input {
-  background: var(--bg-color) !important;
+  background: var(--field-bg) !important;
 }
 
 /* No focus ring on fields (the dashboard has none) */
@@ -7348,7 +7351,7 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
 .account-modal-input-group input,
 [data-theme="dark"] .account-modal-input-group input {
   padding: 10px 12px !important;
-  background: var(--bg-color) !important;
+  background: var(--field-bg) !important;
 }
 .account-modal-actions button {
   height: 40px !important;
@@ -7433,7 +7436,7 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
   min-height: 32px !important;
   padding: 0 !important;
   border-radius: 8px !important;
-  background: var(--bg-color) !important;
+  background: var(--field-bg) !important;
   border: 1px solid var(--card-border) !important;
   box-shadow: none !important;
   align-self: center;
@@ -7462,11 +7465,11 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
 [data-theme="dark"] .header-logo h1 {
   color: var(--text-main) !important;
 }
-/* The round account / settings button: the page's colour on the line */
+/* The account / settings button: the buttons' white on the line */
 .icon-btn,
 #auth-btn,
 [data-theme="dark"] #auth-btn {
-  background: var(--bg-color) !important;
+  background: var(--field-bg) !important;
   border-color: var(--card-border) !important;
   box-shadow: none !important;
   transition: background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -7490,6 +7493,13 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
   }
   #add-account-dropdown-menu {
     width: 220px !important;
+  }
+  /* (list 3's menus open over list 2 beside it, not cut off at list 3's
+     edge: the card lets them out and sits over its neighbour) */
+  #card-unfollowers {
+    overflow: visible;
+    position: relative;
+    z-index: 2;
   }
   html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
     width: 400px;
@@ -7579,8 +7589,8 @@ html.is-logged-in .auth-dropdown {
   min-height: 32px !important;
   padding: 0 !important;
   border-radius: 8px !important;
-  background: var(--bg-color) !important;
-  background-color: var(--bg-color) !important;
+  background: var(--field-bg) !important;
+  background-color: var(--field-bg) !important;
   border: 1px solid var(--card-border) !important;
   box-shadow: none !important;
   align-self: center;
@@ -7644,7 +7654,7 @@ html.is-logged-in .auth-dropdown {
 /* Fields: the line darkens on focus, no ring */
 .form-group input:focus { box-shadow: none !important; }
 /* The log-in tabs: the app's (and the dashboard's) tab switcher */
-.auth-tabs { background-color: var(--bg-color); border-radius: 10px !important; padding: 4px; gap: 4px; }
+.auth-tabs { background-color: var(--field-bg); border-radius: 10px !important; padding: 4px; gap: 4px; }
 .auth-tab { border-radius: 7px !important; padding: 7px 12px; }
 .auth-tab.active, [data-theme="dark"] .auth-tab.active { color: var(--text-main); }
 .auth-tab-indicator, [data-theme="dark"] .auth-tab-indicator {
