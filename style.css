@@ -2498,7 +2498,7 @@ body.hide-shortcuts #keyboard-hints {
   font-weight: 500;
   white-space: nowrap;
   padding: 2px 10px;
-  border-radius: 999px;
+  border-radius: 8px;
   background-color: var(--card-bg);
   border: 1px solid var(--card-border);
   color: var(--text-main);
@@ -5018,7 +5018,7 @@ button:focus-visible,
   gap: 5px;
   height: 28px;
   padding: 0 11px;
-  border-radius: 999px;
+  border-radius: 8px;
   border: 1px solid var(--input-border);
   background: var(--input-bg);
   color: var(--text-main);
@@ -5530,22 +5530,16 @@ body.select-active #card-followers {
 }
 
 /* Undo (right of list 3's info button): dimmed until there's something
-   to undo, then outlined green. */
+   to undo, then its arrow green. */
 #btn-undo.undo-btn {
   opacity: 0.4;
   transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
-/* Blue, the usual undo color (green means "on" elsewhere in the app). */
+/* Ready: its arrow in the green, as the dashboard's undo (its look otherwise
+   the buttons' beside it). */
 #btn-undo.undo-btn.ready {
   opacity: 1;
-  border-color: #3b82f6 !important;
-  color: #2563eb !important;
-  background: rgba(59, 130, 246, 0.08) !important;
-}
-[data-theme="dark"] #btn-undo.undo-btn.ready {
-  border-color: #60a5fa !important;
-  color: #60a5fa !important;
-  background: rgba(96, 165, 250, 0.1) !important;
+  color: var(--accent) !important;
 }
 
 /* Lists 1 & 2: search box + export button in one row */
@@ -7065,7 +7059,7 @@ b, strong {
   gap: 5px;
   max-width: 100%;
   padding: 2px 10px;
-  border-radius: 999px;
+  border-radius: 8px;
   font-size: var(--fs-sm);
   font-weight: 500;
   line-height: 1.4;
@@ -7207,7 +7201,7 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
   color: var(--text-muted) !important;
   border: 0 !important;
   box-shadow: inset 0 0 0 1px var(--card-border) !important;
-  border-radius: 999px !important;
+  border-radius: 8px !important;
   font-weight: 500 !important;
   height: calc(var(--fs-sm) * 1.5 + 4px) !important;
   line-height: 1.5 !important;
@@ -7226,7 +7220,7 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
 .badge,
 .toolbar-pill,
 .account-chip {
-  border-radius: 999px !important;
+  border-radius: 8px !important;
 }
 .user-row,
 .instructions-steps-nav,
@@ -7434,7 +7428,7 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
 [data-theme="dark"] .search-box input {
   padding: 7px 10px !important;
 }
-/* The icon buttons beside it: the dashboard's round 32px buttons */
+/* The icon buttons beside it: the dashboard's 32px buttons, on the search box's corners */
 .search-row > button,
 .search-row > .btn {
   width: 32px !important;
@@ -7442,7 +7436,7 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
   min-width: 32px !important;
   min-height: 32px !important;
   padding: 0 !important;
-  border-radius: 999px !important;
+  border-radius: 8px !important;
   background: var(--bg-color) !important;
   border: 1px solid var(--card-border) !important;
   box-shadow: none !important;
@@ -7566,7 +7560,7 @@ html.is-logged-in .auth-dropdown {
   min-width: 32px !important;
   min-height: 32px !important;
   padding: 0 !important;
-  border-radius: 999px !important;
+  border-radius: 8px !important;
   background: var(--bg-color) !important;
   background-color: var(--bg-color) !important;
   border: 1px solid var(--card-border) !important;
@@ -7654,3 +7648,15 @@ html.is-logged-in .auth-dropdown {
 }
 /* The instructions' pictures in dark: on the palette */
 [data-theme="dark"] .step-image-container { background: var(--bg-color) !important; border-color: var(--card-border) !important; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important; }
+
+/* No circles: everything round is a squircle on the small buttons' and the
+   search box's 8px corners — the financial dashboard's too (spinners and the
+   timeline's points stay round) */
+:root[data-theme] .icon-btn, :root[data-theme] .btn-add-account.compact, :root[data-theme] .export-pill,
+:root[data-theme] .user-avatar, :root[data-theme] .user-badge, :root[data-theme] .highlight-check,
+:root[data-theme] .toolbar-pill, :root[data-theme] .drive-badge, :root[data-theme] .badge,
+:root[data-theme] #unfollowers-count, :root[data-theme] .account-chip,
+:root[data-theme] .search-row > .btn, :root[data-theme] .list-search-row > .export-wrap > button,
+:root[data-theme] #btn-instructions-info, :root[data-theme] .privacy-badge, :root[data-theme] .landing-version-badge,
+:root[data-theme] .hero-tag, :root[data-theme] .slider { border-radius: 8px !important; }
+:root[data-theme] .slider:before { border-radius: 6px !important; }
