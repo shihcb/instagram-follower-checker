@@ -3849,22 +3849,15 @@ if (typeof Element !== 'undefined' && Element.prototype.animate) {
 function fadeIn(node) {
   if (canAnimate(node)) node.animate([{ opacity: 0 }, { opacity: 1 }], { ...MOTION, fill: 'backwards' });
 }
-// The crossfade's two halves (swapText, and anything swapped in place): the
-// old words hold a moment, then go (easing in); the new come up at once
-// (easing out); both pass through a slight blur. Faded on the same curve,
-// the two met at half strength — a dip, two half-words on top of each
-// other; this way they read as one word turning into the next. The list 3
-// slide's 450ms, as everything.
-const CROSS_OUT = 'cubic-bezier(0.55, 0, 1, 0.45)';
-const CROSS_IN = 'cubic-bezier(0, 0.55, 0.45, 1)';
+// The crossfade's two halves (swapText, and anything swapped in place) —
+// exactly the financial dashboard's: the old fades out where it was and the
+// new fades in, both on the list 3 slide (450ms, MOTION's curve), at once.
 function crossOut(node, from = 1) {
-  return node.animate([{ opacity: from, filter: 'blur(0px)' }, { opacity: 0, filter: 'blur(2px)' }],
-    { duration: ROW_MOTION_MS, easing: CROSS_OUT, fill: 'forwards' });
+  return node.animate([{ opacity: from }, { opacity: 0 }], { ...MOTION, fill: 'forwards' });
 }
 function crossIn(node) {
   if (!canAnimate(node)) return null;
-  return node.animate([{ opacity: 0, filter: 'blur(2px)' }, { opacity: 1, filter: 'blur(0px)' }],
-    { duration: ROW_MOTION_MS, easing: CROSS_IN, fill: 'backwards' });
+  return node.animate([{ opacity: 0 }, { opacity: 1 }], { ...MOTION, fill: 'backwards' });
 }
 // The text swap: text that changes fades out exactly where it was (a copy
 // pinned there) while the new text fades in. `resize` (buttons, pills —
