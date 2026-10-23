@@ -3154,14 +3154,21 @@
   }
   function saveFile(name, blob) {
     const file = new File([blob], name, { type: blob.type });
-    if (navigator.canShare && navigator.canShare({ files: [file] }) && /iPhone|iPad|Android/i.test(navigator.userAgent)) {
-      return navigator.share({ files: [file] }).catch(() => {});
+    // (an iPad says it's a Mac: it got the download link, not the share sheet)
+    const phone = /iPhone|iPad|Android/i.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+    if (phone && navigator.canShare && navigator.canShare({ files: [file] })) {
+      // Only a cancel is the end of it: a share sheet the phone refused
+      // (the tap too long ago, after building the file) saved nothing
+      return navigator.share({ files: [file] }).catch(e => { if (!e || e.name !== 'AbortError') download(); });
     }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = name;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    download();
+    function download() {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    }
   }
   // One list: its own file. Several: one file with a 'list' column.
   function exportCsv(kinds) {
@@ -3430,7 +3437,14 @@
     }
     const native = window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform();
     if (!native && 'serviceWorker' in navigator && location.protocol === 'https:') {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+      // Named after the app's version (the sum of the page's ?v= tags), so
+      // each release installs a worker, and an offline copy, of its own
+      const version = ['style.css', 'script.js', 'features.js'].reduce((sum, file) => {
+        const tag = document.querySelector(`link[href*="${file}"], script[src*="${file}"]`);
+        const v = tag && /[?&]v=(\d+)/.exec(tag.getAttribute('href') || tag.getAttribute('src'));
+        return sum + (v ? +v[1] : 0);
+      }, 0);
+      navigator.serviceWorker.register(`sw.js?v=${version}`, { updateViaCache: 'none' }).catch(() => {});
     }
   }
 
