@@ -174,13 +174,10 @@
   }
   function setUndoReady(ready) {
     if (!undoBtn) return;
-    const was = undoBtn.classList.contains('ready');
     undoBtn.classList.toggle('ready', ready);
     undoBtn.setAttribute('aria-disabled', ready ? 'false' : 'true');
     if (!ready) undoBtn.title = 'nothing to undo';
-    if (ready && !was && typeof undoBtn.animate === 'function') {
-      undoBtn.animate([{ scale: 0.85 }, { scale: 1 }], { duration: 450, easing: EASE });
-    }
+    // (no pop: the financial dashboard's ready states only change colour)
   }
   // An open unfollowed/starred submenu closes first (its usual close
   // animation), and the undo plays out once it's gone. Undos tapped while
@@ -1154,9 +1151,11 @@
     win._widthTimer = setTimeout(() => { win.style.width = ''; }, ROW_MOTION_MS + 40);
     if (typeof text.animate !== 'function') { old.remove(); return; }
     const timing = { duration: 450, easing: EASE };
-    old.animate([{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: 'translateX(-16px)' }], { ...timing, fill: 'forwards' })
+    // Text that changes fades across, the old out where it was, the new in
+    // (swapText's way, the financial dashboard's) — it slid sideways
+    old.animate([{ opacity: 1 }, { opacity: 0 }], { ...timing, fill: 'forwards' })
       .finished.then(() => old.remove(), () => old.remove());
-    text.animate([{ opacity: 0, transform: 'translateX(16px)' }, { opacity: 1, transform: 'translateX(0)' }], timing);
+    text.animate([{ opacity: 0 }, { opacity: 1 }], timing);
   }
 
   function refreshToolbar() {
@@ -1579,8 +1578,9 @@
         altView.querySelectorAll(':scope > .insights-pane.pane-leaving').forEach(p => {
           const f = at.get(p) || { x: 0, o: 0.35 };
           const rel = f.x - (a ? a.x : 0);
-          const to = rel < 0 ? rel - w * 0.5 : rel + w * 0.5;
-          if (typeof p.animate === 'function') p.animate([{ transform: `translateX(${rel}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: 0 }], { duration: 450, easing: TAB_MOTION.in.easing, fill: 'forwards' });
+          // (the whole width at .35, the financial dashboard's push)
+          const to = rel < 0 ? rel - w : rel + w;
+          if (typeof p.animate === 'function') p.animate([{ transform: `translateX(${rel}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { duration: 450, easing: TAB_MOTION.in.easing, fill: 'forwards' });
           else p.remove();
         });
       }
@@ -1719,9 +1719,9 @@
     const drop = () => oldPane.remove();
     oldPane.animate(MODAL_OUT, LEAVE).finished.then(drop, drop);
     setTimeout(drop, LEAVE.duration + 400);
-    // The new content only comes in once the old has gone, so the two never
-    // show on top of each other (two texts in the same spot did).
-    contentIn(altView.querySelector('.insights-pane:not(.pane-leaving)'), LEAVE.duration);
+    // The new content comes in as the old goes, crossing (the financial
+    // dashboard's text and pane changes cross; this waited for the old first)
+    contentIn(altView.querySelector('.insights-pane:not(.pane-leaving)'));
   }
   // The new content comes in as one block, the exit played backwards
   // (the changes view's switcher stays put, only what's under it moves).
@@ -1963,18 +1963,17 @@
     requestAnimationFrame(step);
   }
 
-  // The lines draw in from the left, the points pop in as the line reaches
-  // them.
+  // The lines draw in from the left as the points pop in, all at once on
+  // the list 3 slide (the financial dashboard staggers nothing).
   function drawTimeline(scope) {
     const tl = scope && scope.querySelector('.timeline:not(.timeline-leaving)');
     const svg = tl && tl.querySelector('svg');
     if (!svg || typeof svg.animate !== 'function') return;
-    const D = 450, DELAY = 120;
+    const D = 450, DELAY = 0;
     svg.animate([{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)' }], { duration: D, delay: DELAY, easing: GLIDE, fill: 'backwards' });
     tl.querySelectorAll('.tl-dot').forEach(d => {
-      const at = parseFloat(d.style.getPropertyValue('--x')) || 0;
       d.animate([{ opacity: 0, transform: 'translate(-50%, -50%) scale(0.3)' }, { opacity: 1, transform: 'translate(-50%, -50%) scale(1)' }],
-        { duration: 450, delay: DELAY + D * 0.75 * at, easing: EASE, fill: 'backwards' });
+        { duration: 450, delay: DELAY, easing: EASE, fill: 'backwards' });
     });
   }
 
@@ -2277,7 +2276,7 @@
     if (!chart || typeof chart.animate !== 'function') return;
     chart.querySelectorAll('.trend-bar').forEach((bar, i) => bar.animate(
       [{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }],
-      { duration: 450, delay: i * 50, easing: GLIDE, fill: 'backwards' }));
+      { duration: 450, easing: GLIDE, fill: 'backwards' })); // (all together, as the financial dashboard's bars)
   }
   function updateChart(wrap, fresh) {
     const cur = wrap.querySelector('.trend-chart:not(.trend-leaving)');
@@ -2321,9 +2320,10 @@
     cur.animate([{ transform: `translateY(${fromY}px)`, opacity: 1 - Math.min(1, fromY / h) }, { transform: 'translateY(105%)', opacity: 0 }],
       { duration: 450, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' })
       .finished.then(() => cur.remove(), () => cur.remove());
-    setTimeout(() => cur.remove(), 1100); // never left behind
+    setTimeout(() => cur.remove(), ROW_MOTION_MS + 400); // never left behind
+    // (in as the old goes out, crossing — the financial dashboard's way)
     next.animate([{ transform: 'translateY(105%)', opacity: 0 }, { transform: 'translateY(0)', opacity: 1 }],
-      { duration: 450, delay: 450, easing: GLIDE, fill: 'backwards' });
+      { duration: 450, easing: GLIDE, fill: 'backwards' });
   }
 
   // ---------- tab switchers inside the views (changes, stats, results) ----------
@@ -2740,8 +2740,8 @@
     old.animate(MODAL_OUT, LEAVE).finished.then(drop, drop);
     setTimeout(drop, LEAVE.duration + 400);
     [...fresh.children].filter(el => !(keepSub && el.matches('.insights-sub')))
-      .forEach(el => (el.matches('.dropdown-empty-message') ? fadeEmptyIn(el, LEAVE.duration)
-        : el.animate(MODAL_IN, { duration: 450, easing: MODAL_EASE, delay: LEAVE.duration, fill: 'backwards' })));
+      .forEach(el => (el.matches('.dropdown-empty-message') ? fadeEmptyIn(el)
+        : el.animate(MODAL_IN, { duration: 450, easing: MODAL_EASE, fill: 'backwards' }))); // (crossing, as above)
   }
   // Pending requests change like list 3's rows (an account picked, files
   // imported): the boxes on screen slide out, the new ones slide in, each

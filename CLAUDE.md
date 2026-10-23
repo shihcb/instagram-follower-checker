@@ -33,8 +33,12 @@ exactly the instructions modal's open/close timing: every animation in the
 app (entering, leaving, resizing, sliding, tab switches, counters, charts)
 uses it unless told otherwise — hover/press/focus color changes too. Only
 loading spinners and looping decorations are exempt. Shapes are shared
-too: pop-ups (and the log-in card) come in from 14px down at 95% scale and
-leave the same way back; usernames and banners use list 3's row engine
+too: pop-ups (and the log-in card, account chips) come in from 14px down at
+95% scale and leave the same way back; the bottom bars (toast, select) from
+16px at 96%; the app itself (after logging in / out) from 16px at 97%;
+nothing is staggered, and what replaces something crosses it (never out,
+then in); presses and hovers only change colour; switching light / dark
+eases every colour (theme-fade); spinners turn every 0.8s; usernames and banners use list 3's row engine
 (slideRowIn/slideRowOut, rows around them shifting); tab switches are the
 sideways push (slideSub / TAB_MOTION), the area easing to the new pane's
 height (easeBoxHeight); texts just fade (fadeEmptyIn), and text that changes

@@ -288,6 +288,14 @@ function initTheme() {
 }
 
 function setTheme(theme) {
+  // A switch once the page is up eases every colour across (theme-fade,
+  // style.css — the financial dashboard's); the first one, as it opens, doesn't
+  const root = elements.html;
+  if (document.readyState === 'complete' && root.getAttribute('data-theme') && root.getAttribute('data-theme') !== theme) {
+    root.classList.add('theme-fade');
+    clearTimeout(root._themeTimer);
+    root._themeTimer = setTimeout(() => root.classList.remove('theme-fade'), 500);
+  }
   elements.html.setAttribute('data-theme', theme);
   document.querySelector('meta[name="color-scheme"]').setAttribute('content', theme);
   
@@ -302,14 +310,14 @@ function setTheme(theme) {
 }
 
 // Custom Site Pop-up Confirm & Alert Modal Helpers
-// Popups fade out over 450ms (the list 3 slide) and only get .hidden (and
-// any reset) once that's surely done, at 600ms.
+// Popups fade out over 450ms (the list 3 slide) and get .hidden (and any
+// reset) as that ends, at 450ms (the financial dashboard's timing).
 // Reopening one inside that window used to let the old close's timer fire
 // afterwards and hide the freshly opened popup (and, for the account
 // modal, forget which account was being edited). Opening now cancels any
 // pending hide for that popup.
 const pendingOverlayHides = new WeakMap();
-function scheduleOverlayHide(overlay, fn, delay = 600) {
+function scheduleOverlayHide(overlay, fn, delay = ROW_MOTION_MS) {
   cancelOverlayHide(overlay);
   overlay._showToken = null; // closed before it finished opening: stay closed
   pendingOverlayHides.set(overlay, setTimeout(() => {
@@ -3354,7 +3362,7 @@ function applyAccountFromModal(username, index, key = null) {
 // bounce the chip out behind the still-open window, then switch list 3,
 // rebuild and re-slide every chip and close the window in one go.
 // A menu or window fading out over the chip row has mostly cleared by now.
-const OVERLAY_CLEAR_MS = 220; // pop-ups close with an even 450ms fade: ~70% gone by now
+const OVERLAY_CLEAR_MS = 450; // a pop-up's 450ms close has finished (the financial dashboard waits for it too)
 const CHIP_EXIT_DELAY = OVERLAY_CLEAR_MS;
 const CHIP_EXIT_MS = 450;
 let chipRenderHolds = 0; // chips still animating out (the row waits for all of them)
@@ -3384,10 +3392,11 @@ function animateChipExit(chip) {
       c.animate([{ transform: `translateX(${dx}px)` }, { transform: 'translateX(0)' }], { duration: CHIP_EXIT_MS, easing: ease });
     }
   });
-  // `scale`, not `transform` (forced by the hover/pressed styles).
+  // `translate` / `scale`, not `transform` (forced by the hover/pressed
+  // styles): the financial dashboard's pop out, to 14px down at 95%.
   chip.animate([
-    { opacity: 1, scale: 1 },
-    { opacity: 0, scale: 0.85 }
+    { opacity: 1, translate: '0 0', scale: 1 },
+    { opacity: 0, translate: '0 14px', scale: 0.95 }
   ], { duration: CHIP_EXIT_MS, easing: ease, fill: 'forwards' });
 }
 
@@ -5002,7 +5011,7 @@ function openInstructionsModal(step = 1) {
   if (indicator) indicator.classList.remove('no-transition');
   showModalOverlay(overlay);
   lockPageScroll();
-  setTimeout(() => overlay.classList.remove('opening'), 600);
+  setTimeout(() => overlay.classList.remove('opening'), ROW_MOTION_MS);
 }
 
 function closeInstructionsModal() {
@@ -6270,10 +6279,10 @@ function playAppEntrance() {
   const ease = 'cubic-bezier(0.4, 0, 0.2, 1)';
   const grid = elements.appGrid;
   document.body.classList.add('login-entering');
-  setTimeout(() => document.body.classList.remove('login-entering'), 700);
+  setTimeout(() => document.body.classList.remove('login-entering'), ROW_MOTION_MS);
   if (grid && typeof grid.animate === 'function') {
     grid.animate([
-      { opacity: 0, transform: 'translateY(14px) scale(0.95)' },
+      { opacity: 0, transform: 'translateY(16px) scale(0.97)' }, // (the financial dashboard's app entrance)
       { opacity: 1, transform: 'none' }
     ], { duration: 450, easing: ease });
   }
@@ -6300,7 +6309,7 @@ function playAppExit() {
   if (grid && typeof grid.animate === 'function') {
     appExitAnimations.push(grid.animate([
       { opacity: 1, transform: 'none' },
-      { opacity: 0, transform: 'translateY(14px) scale(0.95)' }
+      { opacity: 0, transform: 'translateY(16px) scale(0.97)' }
     ], { duration: APP_EXIT_MS, easing, fill: 'forwards' }));
   }
   // The profile menu (where "log out" was tapped) fades out quickly ahead

@@ -669,7 +669,7 @@ button:disabled *,
 
 .import-account-warning.hidden-warning {
   opacity: 0;
-  transform: translateY(-8px) scale(0.96);
+  transform: translateY(-10px) scale(0.96);
   pointer-events: none;
 }
 
@@ -1500,7 +1500,7 @@ html.hide-shortcuts #keyboard-hints,
 body.hide-shortcuts #keyboard-hints {
   max-height: 0 !important;
   opacity: 0 !important;
-  transform: translateY(12px) scale(0.96) !important;
+  transform: translateY(-10px) scale(0.96) !important;
   margin-top: 0 !important;
   margin-bottom: 0 !important;
   padding-top: 0 !important;
@@ -1829,7 +1829,7 @@ body.hide-shortcuts #keyboard-hints {
 .account-mgmt-row.empty-chips {
   max-height: 0 !important;
   opacity: 0 !important;
-  transform: translateY(-8px) scale(0.96) !important;
+  transform: translateY(-10px) scale(0.96) !important;
   margin-top: 0 !important;
   margin-bottom: -6px !important;
   padding-top: 0 !important;
@@ -1975,10 +1975,7 @@ body.hide-shortcuts #keyboard-hints {
   }
 }
 
-#btn-add-account:active {
-  transform: translateY(0) scale(0.96) !important;
-  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
+/* (no press shrink: the financial dashboard's buttons only change colour) */
 
 .account-chip.no-active:active,
 #btn-add-account.no-active:active {
@@ -2660,8 +2657,7 @@ body.hide-shortcuts #keyboard-hints {
 
 .hide-shortcuts .shortcut-hint,
 html.hide-shortcuts .shortcut-hint {
-  opacity: 0 !important;
-  transform: scale(0.8) !important;
+  opacity: 0 !important; /* (fades, its width easing shut — the financial dashboard's slideWords; no shrink) */
   pointer-events: none !important;
 }
 
@@ -2675,8 +2671,7 @@ body.hide-shortcuts .row-shortcut-key {
   border-left-width: 0 !important;
   border-right-width: 0 !important;
   border-color: transparent !important;
-  opacity: 0 !important;
-  transform: scale(0.7) !important;
+  opacity: 0 !important; /* (as above) */
   pointer-events: none !important;
 }
 
@@ -2689,8 +2684,7 @@ html.hide-shortcuts .account-chip-badge {
   border-left-width: 0 !important;
   border-right-width: 0 !important;
   border-color: transparent !important;
-  opacity: 0 !important;
-  transform: scale(0.8) !important;
+  opacity: 0 !important; /* (fades, its width easing shut — the financial dashboard's slideWords; no shrink) */
   pointer-events: none !important;
 }
 
@@ -3142,16 +3136,19 @@ html.hide-shortcuts .account-chip-badge {
 
 
 /* A new chip comes in exactly as a deleted one leaves (animateChipExit in
-   script.js), reversed: fade + 0.85 -> 1 scale, the list 3 slide.
-   `scale` rather than `transform`, which the hover/pressed styles force
-   (!important) and which would otherwise cancel the grow. */
+   script.js), reversed: the financial dashboard's pop — from 14px down at
+   95% — on the list 3 slide. `translate` / `scale` rather than `transform`,
+   which the hover/pressed styles force (!important) and which would
+   otherwise cancel it. */
 @keyframes chip-fade-in {
   from {
     opacity: 0;
-    scale: 0.85;
+    translate: 0 14px;
+    scale: 0.95;
   }
   to {
     opacity: 1;
+    translate: 0 0;
     scale: 1;
   }
 }
@@ -3160,21 +3157,20 @@ html.hide-shortcuts .account-chip-badge {
   animation: chip-fade-in 0.45s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
-/* The first chip: its row is still opening (0.45s, clipped), so the chip
-   comes in as the row makes room for it rather than finishing unseen. */
-.account-chip.fade-in.after-row {
-  animation-delay: 0.16s;
-}
+/* The first chip comes in as its row opens, together — no delay (the
+   financial dashboard's panels open their box and content at once). */
 
 @keyframes chip-bounce-out {
   /* A deleted chip: chip-fade-in played backwards (no pop). */
   from {
     opacity: 1;
-    transform: scale(1);
+    translate: 0 0;
+    scale: 1;
   }
   to {
     opacity: 0;
-    transform: scale(0.85);
+    translate: 0 14px;
+    scale: 0.95;
   }
 }
 
@@ -3894,8 +3890,7 @@ body.auth-logged-out #auth-form-view {
 }
 
 .feature-card:hover {
-  transform: translateY(-4px);
-  border-color: var(--highlight-border);
+  border-color: var(--highlight-border); /* (no lift: the financial dashboard's cards only change colour) */
 }
 
 .feature-icon {
@@ -5147,7 +5142,7 @@ button:focus-visible,
   box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.22);
   opacity: 0;
   pointer-events: none;
-  transform: translate(-50%, 14px) scale(0.95);
+  transform: translate(-50%, 16px) scale(0.96); /* (the financial dashboard's bottom bar) */
   /* The list 3 slide. */
   transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -5255,7 +5250,7 @@ body.select-active #card-followers {
   box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.4);
   opacity: 0;
   pointer-events: none;
-  transform: translate(-50%, 14px) scale(0.95);
+  transform: translate(-50%, 16px) scale(0.96); /* (the financial dashboard's bottom bar) */
   transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .feature-toast.no-action {
@@ -5484,7 +5479,7 @@ body.select-active #card-followers {
 }
 /* Its box tapped: popped out and stays out. */
 .trend-bar.bar-on {
-  transform: translateY(-8px) scaleX(1.06);
+  transform: none; /* (no pop-out: the financial dashboard's bars don't move) */
 }
 @keyframes trend-grow {
   from { transform: scaleY(0); }
@@ -5638,9 +5633,7 @@ body.select-active #card-followers {
   border-color: #10b981;
   color: #ffffff;
 }
-.export-option:active .export-check {
-  transform: scale(0.88);
-}
+/* (no press shrink on the tick, as the financial dashboard's) */
 .export-label {
   flex: 1 1 auto;
 }
@@ -6005,14 +5998,15 @@ select,
 #btn-instructions-next .btn-next-icon {
   transform: translate(-50%, -50%);
 }
+/* The arrow and "close" fade across in place (the financial dashboard's
+   way for what a button says: swapText) — they slid and shrank */
 #btn-instructions-next .btn-next-text-span {
   opacity: 0;
-  transform: translate(calc(-50% + 18px), -50%) scale(0.85);
+  transform: translate(-50%, -50%);
 }
-/* The arrow shrinks as it goes, so the two never sit on top of each other. */
 #btn-instructions-next.is-close .btn-next-icon {
   opacity: 0;
-  transform: translate(calc(-50% - 18px), -50%) scale(0.5);
+  transform: translate(-50%, -50%);
 }
 #btn-instructions-next.is-close .btn-next-text-span {
   opacity: 1;
@@ -6362,7 +6356,7 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 }
 .row-select-bar,
 .feature-toast {
-  transform: translate(-50%, 14px) scale(0.95);
+  transform: translate(-50%, 16px) scale(0.96); /* (the financial dashboard's bottom bar) */
   transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .row-select-bar.show,
@@ -6442,7 +6436,7 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
   border-radius: 50%;
   border: 2px solid var(--card-border);
   border-top-color: var(--text-muted);
-  animation: rows-more-spin 0.7s linear infinite;
+  animation: rows-more-spin 0.8s linear infinite; /* (the financial dashboard's spinner) */
 }
 @keyframes rows-more-spin {
   to { transform: rotate(360deg); }
@@ -6479,7 +6473,7 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
   border-radius: 50%;
   border: 2px solid color-mix(in srgb, currentColor 25%, transparent);
   border-top-color: currentColor;
-  animation: rows-more-spin 0.7s linear infinite;
+  animation: rows-more-spin 0.8s linear infinite; /* (the financial dashboard's spinner) */
 }
 
 /* A stat box tapped (following / followers): its list gets a brief outline. */
@@ -6765,6 +6759,15 @@ html.booting .app-container {
   animation: glide-fade var(--glide-time, 6s) ease-in-out infinite alternate;
 }
 
+/* Switching light / dark: every colour eases across on the list 3 slide
+   while it changes (the financial dashboard's theme-fade) — ones without
+   a transition of their own snapped. */
+:where(html.theme-fade) :where(*), :where(html.theme-fade) {
+  transition: background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), fill 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+    stroke 0.45s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* Reduce Motion (the phone's setting), like the financial dashboard:
    everything goes straight to where it's headed. Only the loading spinners
    keep turning. (0.01ms, not 0: a transition that never runs never ends,
@@ -6778,7 +6781,7 @@ html.booting .app-container {
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
   }
-  .rows-more-spinner, .work-spinner { animation-duration: 0.7s !important; animation-iteration-count: infinite !important; }
+  .rows-more-spinner, .work-spinner { animation-duration: 0.8s !important; animation-iteration-count: infinite !important; }
   .boot-spinner { animation-duration: 0.8s !important; animation-iteration-count: infinite !important; }
   /* (a long name stays still, faded at its right edge: run once, the glide
      would have ended at its far end) */
