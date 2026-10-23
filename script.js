@@ -1399,6 +1399,36 @@ function deduplicateEntries(entries) {
 // (the list 3 slide, every number in between shows), and the pill eases
 // to its new width on the same curve instead of snapping.
 const COUNT_MS = 450;
+// How wide a counting number is drawn at each step (the financial
+// dashboard's count: the words beside it glide as it widens, never jump).
+// The number is written with thousands separators ("1,234"): a digit's
+// width and a comma's are measured on their own (same-width digits,
+// tabular-nums), so the width is worked out from the written number. The
+// digits come early (0 to 108 is three digits a third of the way across),
+// so the width follows the number, not the clock — its digit count taken
+// smoothly (log10), so it glides, and never narrower than the number on
+// show needs. `num` shows `to` when called (and is left showing it).
+function countWidths(num, from, to) {
+  const keep = num.textContent;
+  num.textContent = '0000000000';
+  const digitW = num.getBoundingClientRect().width / 10;
+  num.textContent = ',,,,,,,,,,';
+  const commaW = num.getBoundingClientRect().width / 10;
+  num.textContent = keep;
+  const extra = num.getBoundingClientRect().width - drawnOf(to); // a "%" after it, say
+  function drawnOf(x) {
+    const s = fmtNum(Math.round(x));
+    const commas = (s.match(/,/g) || []).length;
+    return digitW * (s.length - commas) + commaW * commas;
+  }
+  const digits = (x) => (x < 1 ? 1 : Math.log10(x) + 1);
+  // (its digit count taken smoothly, a comma every three)
+  const smoothW = (x) => { const d = digits(x); return digitW * d + commaW * Math.max(0, (d - 1) / 3); };
+  // (pinned to the real widths at both ends: 250 is 3.4 digits smoothly, 3 drawn)
+  const offFrom = smoothW(from) - drawnOf(from), offTo = smoothW(to) - drawnOf(to);
+  const lo = Math.min(drawnOf(from), drawnOf(to)), hi = Math.max(drawnOf(from), drawnOf(to));
+  return (x, e) => extra + Math.min(hi, Math.max(lo, drawnOf(x), smoothW(x) - offFrom * (1 - e) - offTo * e));
+}
 // A count pill ("12 found"): the number counts to its new value while the
 // pill eases to its new width, and the word never moves at all. They're two
 // parts — the number, the only thing rewritten, and the word, written once —
@@ -1464,31 +1494,10 @@ function setCountBadge(el, n, word) {
   // (log10) so it glides — and never waits a frame behind, the number up
   // against its edge, nor holds the number back.
   const numEnd = num.getBoundingClientRect().width;
-  // The number is written with thousands separators ("1,234"): a digit's
-  // width and a comma's are measured on their own (same-width digits,
-  // tabular-nums), so the width is worked out from the written number.
-  num.textContent = '0000000000';
-  const digitW = num.getBoundingClientRect().width / 10;
-  num.textContent = ',,,,,,,,,,';
-  const commaW = num.getBoundingClientRect().width / 10;
-  num.textContent = fmtNum(n);
+  const numW = countWidths(num, from, n);
   const base = endWidth - numEnd;
   const lo = Math.min(startWidth, endWidth), hi = Math.max(startWidth, endWidth);
-  const digits = (x) => (x < 1 ? 1 : Math.log10(x) + 1);
-  // (the drawn width of a number as written, commas and all)
-  const drawnW = (x) => {
-    const s = fmtNum(Math.round(x));
-    const commas = (s.match(/,/g) || []).length;
-    return digitW * (s.length - commas) + commaW * commas;
-  };
-  // (its digit count taken smoothly, a comma every three)
-  const smoothW = (x) => { const d = digits(x); return digitW * d + commaW * Math.max(0, (d - 1) / 3); };
-  // (pinned to the real widths at both ends: 250 is 3.4 digits smoothly, 3 drawn)
-  const offFrom = smoothW(from) - drawnW(from), offTo = smoothW(n) - drawnW(n);
-  // (never narrower than the number on show needs: just past 10, the
-  // correction left a two-digit number pressed against the edge)
-  const widthFor = (x, e) => Math.min(hi, Math.max(lo, base + drawnW(x),
-    base + smoothW(x) - offFrom * (1 - e) - offTo * e));
+  const widthFor = (x, e) => Math.min(hi, Math.max(lo, base + numW(x, e)));
   const t0 = performance.now();
   const step = (now) => {
     const t = Math.min(1, (now - t0) / COUNT_MS);

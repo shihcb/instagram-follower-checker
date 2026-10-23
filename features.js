@@ -1378,15 +1378,19 @@
     // never narrower than the number on show needs (it never clips a digit
     // or the word while it counts).
     const k = count.offsetWidth ? toW / count.offsetWidth : 1; // (the guest preview draws the app scaled)
+    // (the number's width follows the number smoothly — countWidths in
+    // script.js — so "selected" glides beside it, never jumps a digit)
+    const numW = countWidths(num, from, n);
+    const base = toW - num.getBoundingClientRect().width;
+    const lo = Math.min(fromW, toW), hi = Math.max(fromW, toW);
     const t0 = performance.now();
     const step = (now) => {
       const t = Math.min(1, (now - t0) / ROW_MOTION_MS);
       const e = rowEase(t);
-      count._countNow = Math.round(from + (n - from) * e);
+      const x = from + (n - from) * e;
+      count._countNow = Math.round(x);
       num.textContent = fmtNum(count._countNow);
-      count.style.width = '';
-      const need = count.getBoundingClientRect().width;
-      count.style.width = `${Math.max(need, fromW + (toW - fromW) * e) / k}px`;
+      count.style.width = `${Math.min(hi, Math.max(lo, base + numW(x, e))) / k}px`;
       if (t < 1 && count.isConnected) { count._countRaf = requestAnimationFrame(step); return; }
       count._countNow = undefined;
       count._countRaf = null;
@@ -2320,28 +2324,25 @@
     const pct = to.endsWith('%');
     const b = readNum(to) || 0;
     const token = (el._countToken = {});
-    if (el._countWidth) { el._countWidth.cancel(); el._countWidth = null; }
+    el.style.width = '';
     if (a === b || !canAnimate(el)) { el.textContent = to; return; }
     el.classList.add('count-num');
     const t0 = performance.now();
     const show = (n) => { el.textContent = `${fmtNum(Math.round(n))}${pct ? '%' : ''}`; };
-    // Its width glides from where it's drawn to the final number's on the
-    // same curve and is held there until the count lands (the financial
-    // dashboard's countTo): a width of its own each step jerked the words
-    // beside it about.
-    show(a);
-    const from = el.getBoundingClientRect().width;
+    // Its width glides with the number (the financial dashboard's count:
+    // countWidths), so the words beside it glide over rather than jump.
     el.textContent = to;
-    const end = el.getBoundingClientRect().width;
-    show(a);
-    if (el.offsetParent && Math.abs(end - from) > 0.5) {
-      el._countWidth = el.animate([{ width: `${from}px` }, { width: `${end}px` }], { ...MOTION, fill: 'forwards' });
-    }
+    el.style.width = '';
+    const k = el.offsetWidth ? el.getBoundingClientRect().width / el.offsetWidth : 1; // (the guest preview draws the app scaled)
+    const widthAt = el.offsetParent ? countWidths(el, a, b) : null;
+    const draw = (x, e) => { show(x); if (widthAt) el.style.width = `${widthAt(x, e) / k}px`; };
+    draw(a, 0);
     const step = (now) => {
       if (el._countToken !== token) return;
       const t = Math.min(1, (now - t0) / ROW_MOTION_MS);
-      if (t >= 1) { el.textContent = to; if (el._countWidth) { el._countWidth.cancel(); el._countWidth = null; } return; }
-      show(a + (b - a) * rowEase(t));
+      if (t >= 1) { el.textContent = to; el.style.width = ''; return; }
+      const e = rowEase(t);
+      draw(a + (b - a) * e, e);
       requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
