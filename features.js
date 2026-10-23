@@ -1124,7 +1124,7 @@
     }
   }
   async function disconnectDrive() {
-    const ok = await showSiteConfirm('disconnect google drive?', '', 'disconnect', 'cancel');
+    const ok = await showSiteConfirm('remove google drive?', '', 'remove', 'cancel');
     if (!ok) return;
     if (driveToken && window.google && google.accounts && google.accounts.oauth2) google.accounts.oauth2.revoke(driveToken.value, () => {});
     driveToken = null;
@@ -1217,12 +1217,23 @@
     holder.dataset.state = want;
     let node;
     if (on) {
-      node = document.createElement('button');
-      node.type = 'button';
-      node.className = 'drive-badge';
-      node.title = 'google drive';
-      node.innerHTML = `<span class="drive-addr">${esc(email || 'connected')}</span>`; // (the logged in as badge's look: the address alone)
-      node.addEventListener('click', (e) => { e.stopPropagation(); if (!driveSync) disconnectDrive(); });
+      // The dashboard's icloud mail badge: the address with its arrow — a
+      // tap opens the exports in google drive; disconnecting is its own
+      // "remove" (asked first), as the dashboard removes a bank.
+      node = document.createElement('span');
+      node.className = 'drive-on';
+      const badge = document.createElement('button');
+      badge.type = 'button';
+      badge.className = 'drive-badge';
+      badge.title = 'open google drive';
+      badge.innerHTML = `<span class="drive-addr">${esc(email || 'connected')}</span><span class="drive-open">${ARROW_SVG}</span>`;
+      badge.addEventListener('click', (e) => { e.stopPropagation(); window.open('https://drive.google.com/drive/search?q=instagram', '_blank', 'noopener'); });
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'btn btn-sm btn-danger-soft drive-remove';
+      remove.textContent = 'remove';
+      remove.addEventListener('click', (e) => { e.stopPropagation(); if (!driveSync) disconnectDrive(); });
+      node.append(badge, remove);
     } else {
       node = document.createElement('button');
       node.type = 'button';
@@ -2350,7 +2361,7 @@
         const sa = new Set(fa.map(u => u.username)), sb = new Set(fb.map(u => u.username));
         const nameOf = (v) => `@${esc((accounts.find(x => x.originalUsername.toLowerCase() === v) || {}).username || v)}`;
         const chevron = '<svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
-        const pick = (v) => `<div class="compare-pick dropdown-wrapper" data-v="${esc(v)}"><button type="button" class="preview-toggle btn-sm compare-pick-btn" aria-label="account" aria-haspopup="true"><span class="compare-pick-label">${nameOf(v)}</span>${chevron}</button><div class="dropdown-menu compare-menu" inert>${opts(v)}</div></div>`;
+        const pick = (v) => `<div class="compare-pick dropdown-wrapper" data-v="${esc(v)}"><button type="button" class="dd-btn compare-pick-btn" aria-label="account" aria-haspopup="true"><span class="compare-pick-label glide-box"><span class="glide-inner">${nameOf(v)}</span></span>${chevron}</button><div class="dropdown-menu compare-menu" inert>${opts(v)}</div></div>`;
         // A side with nobody in it isn't shown at all (its heading on its
         // own read as the other side's heading repeated).
         const onlyA = fa.filter(u => !sb.has(u.username)), onlyB = fb.filter(u => !sa.has(u.username));
@@ -2409,7 +2420,9 @@
         const f = fresh[i];
         if (!f) return;
         p.dataset.v = f.dataset.v;
-        swapText(p.querySelector('.compare-pick-label'), f.querySelector('.compare-pick-label').textContent);
+        const label = p.querySelector('.compare-pick-label');
+        swapText(label.querySelector('.glide-inner'), f.querySelector('.compare-pick-label').textContent);
+        queueGlide(label); // (a longer or shorter name: measured again — it glides only when it doesn't fit)
         p.querySelectorAll('.compare-menu .dropdown-item-btn').forEach(b => b.classList.toggle('on', b.dataset.v === f.dataset.v));
       });
     }

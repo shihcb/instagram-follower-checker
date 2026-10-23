@@ -7327,12 +7327,6 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
 }
 /* The account picked shows in its menu in the accent, like a list's tab */
 .compare-menu .dropdown-item-btn.on { color: var(--accent); font-weight: 600; }
-/* (its ✕ centred on the title's letters, tall ones and all — the whole
-   word's middle sits a pixel over its line's, so on the line's middle the
-   ✕ read low) */
-.account-modal-header .modal-close-btn {
-  translate: 0 -1px;
-}
 .account-modal-input-group label {
   margin-bottom: 4px !important;
 }
@@ -7728,3 +7722,92 @@ html.is-logged-in #auth-profile-view .account-row {
 #auth-btn .user-badge {
   display: none !important;
 }
+
+/* ---- one look with the dashboard (Oct 23, 2026) ---- */
+/* List 3's menu buttons (unfollowed, starred, import files): small buttons,
+   the one size (24px), as the dashboard's .btn-sm */
+#toggle-preview-unfollowed,
+#toggle-preview-starred,
+#btn-add-account {
+  height: 24px !important;
+  min-height: 24px !important;
+  border-radius: 8px !important;
+}
+/* Compare's account pickers: the dashboard's field drop-down (.dd-btn) —
+   its words on the left at the body's size, the chevron at the right, a
+   field's corners and line */
+.compare-pick .dd-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  background: var(--field-bg);
+  color: var(--text-main);
+  font: inherit;
+  font-size: var(--fs-base);
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  min-width: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.compare-pick .dd-btn .compare-pick-label {
+  overflow: hidden;
+  white-space: nowrap;
+  min-width: 0;
+}
+.compare-pick .dd-btn .chevron-icon {
+  flex: none;
+  color: var(--text-muted);
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.compare-pick .dd-btn.active .chevron-icon {
+  transform: rotate(180deg);
+}
+.compare-pick .compare-menu.dropdown-menu { top: calc(100% + 8px); }
+/* The instructions' arrows: the dashboard's arrow buttons (its calendar's
+   month arrows) — 30px squares on the small corners; back dimmed on the
+   first step, next on the last */
+.instructions-arrow-btn {
+  height: 30px !important;
+  min-width: 30px;
+  border-radius: 8px !important;
+}
+#btn-instructions-back,
+#btn-instructions-next {
+  width: 30px !important;
+}
+#btn-instructions-next:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+/* The love note's ✕: a window's, in its top right corner */
+.love-card > .love-x {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  margin: 0;
+  z-index: 2;
+}
+/* Google drive: its badge (with the dashboard's arrow) and "remove" */
+.drive-on {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+.drive-on .drive-badge {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+.drive-on .drive-remove {
+  flex: none;
+}
+.drive-badge .drive-open svg { width: 10px; height: 10px; }

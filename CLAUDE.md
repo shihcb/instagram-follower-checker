@@ -43,8 +43,7 @@ motion, wording style. Never leave one updated and the other behind.
   it stays different until they say otherwise — but say so when it comes up,
   and ask whether the dashboard should take it too. Today: fields, search
   boxes, buttons, username rows and count pills are white in light mode
-  (the dashboard's are the page grey); the ✕ sits 1px higher, centred on the
-  title's letters.
+  (the dashboard's are the page grey). Nothing else differs.
 - These notes are kept in step with the dashboard's own CLAUDE.md.
 
 ## "The list 3 slide" — the app's standard motion
@@ -69,9 +68,13 @@ height (easeBoxHeight); texts just fade (fadeEmptyIn), and text that changes
 fades across — the old words out where they were, the new in (swapText;
 `{ resize: true }` for buttons and pills, so their width eases too). When the
 page gets shorter it glides up on the curve (setupPageGlide). A button waiting on
-something (log in, google drive's sync, a saved import coming down) keeps its
-words, dimmed a little, and glides wider as a spinner swoops in after them,
-then back once done (workButton) — never "syncing". A username too long
+something (log in, a saved import coming down) keeps its words, dimmed a
+little, and glides wider as a spinner swoops in after them, then back once
+done (workButton) — never "syncing"; done with a check, the spinner swoops
+away first and the check comes into its room (workDone). Google drive's
+"sync now" is the dashboard's sync button: its fill grows and its words say
+the stage it's at ("finding exports", "importing 1 of 2", "saving imports"),
+crossing over (swapText), then what it did ("2 exports imported"). A username too long
 for its row glides sideways to show the rest and back, on a loop, its
 passing edge fading (the dashboard's marquee: .glides, measureGlide) —
 never wrapped, never "…". With the
@@ -92,7 +95,18 @@ status line that changes, like "last synced …", is fine; with nothing to
 say it takes no room). Text sizes are only the `--fs-*` steps (sm 11.5,
 md 13, base 15, lg 17, xl 20; only the big display figures above them),
 weights 400 / 500 titles / 600 labels and buttons. Small buttons are one
-size (24px, `.btn-sm`). Wording is lowercase, no full stops or "!",
+size (24px, `.btn-sm`) — list 3's menu buttons (unfollowed, starred, import
+files) too; a pick that's a form field (compare's account pickers) is the
+dashboard's field drop-down (`.dd-btn`: the body's size, words left, chevron
+right); arrow buttons are its 30px squares (the instructions' back / next —
+back dimmed on the first step, next on the last). A window's ✕ only closes
+it, in its top right corner on its title's line (the dashboard's
+`.modal-x`) — no "close" buttons anywhere (the love note too). An account
+badge is the dashboard's email badge (`.pill.mail-badge`): small, muted, the
+page colour in a hairline; with its ↗ when a tap opens something (google
+drive's opens the exports in drive; disconnecting is its own "remove",
+asked first, as the dashboard removes a bank), without when it doesn't
+(logged in as). Wording is lowercase, no full stops or "!",
 failures as "… couldn’t be …", months in full ("october 20"), numbers with
 thousands separators. Changing text fades across (swapText), counts count;
 a finished action shows a check after its button's words (doneCheck), never

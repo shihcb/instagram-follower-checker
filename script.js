@@ -1560,7 +1560,7 @@ function setCountBadge(el, n, word) {
 // (a row's name glides in a box of its own inside its link: the faded edge
 // on the link itself clipped the link's cover over the whole row too, and a
 // tap beside a long name missed it)
-const GLIDE_NAMES = '.user-link > .glide-box, .parsed-username, .user-fullname'; // (full names too: never "…")
+const GLIDE_NAMES = '.user-link > .glide-box, .compare-pick-label.glide-box, .parsed-username, .user-fullname'; // (full names too: never "…")
 const glideQueue = new Set();
 let glideFrame = 0;
 function measureGlide(box) {
@@ -5576,33 +5576,10 @@ function updateInstructionsStepUI() {
     dot.classList.toggle('active', s === currentInstructionStep);
   });
 
-  // The arrows: back is dimmed on the first step; on the last step the
-  // next arrow widens into a "close" button (and back into an arrow).
+  // The arrows: back is dimmed on the first step, next on the last (a
+  // window's ✕ closes it — no "close" button, the dashboard's rule).
   if (elements.btnInstructionsBack) elements.btnInstructionsBack.disabled = currentInstructionStep <= 1;
-  if (elements.btnInstructionsNext) {
-    const btn = elements.btnInstructionsNext;
-    const toClose = currentInstructionStep === 5;
-    btn.setAttribute('aria-label', toClose ? 'close' : 'next step');
-    if (btn.classList.contains('is-close') !== toClose || (toClose && !btn.style.width)) {
-      btn.classList.toggle('is-close', toClose);
-      // Its width slides (CSS, the list 3 slide) to an exact size — the
-      // word plus 18px each side — instead of jumping to "auto"; a tap
-      // mid-slide carries on from where it is.
-      const setWidth = (tries = 0) => {
-        const text = btn.querySelector('.btn-next-text-span');
-        const w = toClose ? (text ? text.scrollWidth : 0) : 0;
-        if (toClose && !w) { // not laid out yet (the window still opening)
-          if (tries < 20) requestAnimationFrame(() => setWidth(tries + 1));
-          return;
-        }
-        const instant = instructionsInstant;
-        if (instant) btn.style.setProperty('transition', 'none', 'important');
-        btn.style.width = toClose ? `${Math.ceil(w) + 36}px` : '';
-        if (instant) { void btn.offsetWidth; btn.style.removeProperty('transition'); }
-      };
-      setWidth();
-    }
-  }
+  if (elements.btnInstructionsNext) elements.btnInstructionsNext.disabled = currentInstructionStep >= 5;
 }
 
   // Realtime search filtering
