@@ -4001,6 +4001,12 @@ function swapText(el, text, { resize = false } = {}) {
       font: cs.font, letterSpacing: cs.letterSpacing, lineHeight: cs.lineHeight, color: cs.color, textTransform: cs.textTransform, textAlign: cs.textAlign
     });
     host.appendChild(ghost);
+    // (its words exactly where they were: the copy is a pixel wider than
+    // them so they can't wrap, and centred words sat up to a pixel right in
+    // it — the old words stepped right as they faded)
+    const inkLeft = (node) => { const rg = document.createRange(); rg.selectNodeContents(node); return rg.getBoundingClientRect().left; };
+    const dx = (inkLeft(ghost) - inkLeft(el)) / k;
+    if (Math.abs(dx) > 0.01) ghost.style.left = `${parseFloat(ghost.style.left) - dx}px`;
     const drop = () => ghost.remove();
     crossOut(ghost, shown).finished.then(drop, drop);
     setTimeout(drop, ROW_MOTION_MS + 350);

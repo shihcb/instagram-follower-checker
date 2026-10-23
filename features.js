@@ -1618,8 +1618,41 @@
       e.stopPropagation();
       showView(tab.dataset.view);
     });
-    altView.addEventListener('change', (e) => { if (e.target.matches('.compare-select')) renderView(); });
+    // Compare's account pickers: the import files menu's open and close.
+    const closeCompareMenus = (except) => altView.querySelectorAll('.compare-pick').forEach(p => {
+      if (p === except) return;
+      const menu = p.querySelector('.compare-menu');
+      menu.classList.remove('show');
+      menu.inert = true;
+      p.querySelector('.compare-pick-btn').classList.remove('active');
+    });
+    // (a tap outside an open one only closes it, like the other menus)
+    document.addEventListener('click', (e) => {
+      if (!altView.querySelector('.compare-menu.show') || e.target.closest('.compare-pick')) return;
+      closeCompareMenus();
+      e.preventDefault();
+      e.stopPropagation();
+    }, true);
     altView.addEventListener('click', (e) => {
+      const pickBtn = e.target.closest('.compare-pick-btn');
+      if (pickBtn) {
+        e.stopPropagation();
+        const pick = pickBtn.closest('.compare-pick');
+        const menu = pick.querySelector('.compare-menu');
+        closeCompareMenus(pick);
+        const on = menu.classList.toggle('show');
+        menu.inert = !on;
+        pickBtn.classList.toggle('active', on);
+        return;
+      }
+      const item = e.target.closest('.compare-menu .dropdown-item-btn');
+      if (item) {
+        e.stopPropagation();
+        const pick = item.closest('.compare-pick');
+        closeCompareMenus();
+        if (pick.dataset.v !== item.dataset.v) { pick.dataset.v = item.dataset.v; renderView(); }
+        return;
+      }
       const box = e.target.closest('.insights-stat');
       if (box) { safe(() => goToStat([...box.parentNode.children].indexOf(box)), 'stat box'); return; }
       const tab = e.target.closest('[data-sub]');
@@ -2272,7 +2305,7 @@
         // (only picks still on offer: after the demo, or an account deleted,
         // the old picks compared accounts the menus no longer listed)
         const offered = new Set(accounts.map(x => x.originalUsername.toLowerCase()));
-        const sel = [...altView.querySelectorAll('.compare-select')].map(s => (offered.has(s.value) ? s.value : ''));
+        const sel = [...altView.querySelectorAll('.compare-pick')].map(s => (offered.has(s.dataset.v) ? s.dataset.v : ''));
         let a = sel[0] || accounts[0].originalUsername.toLowerCase();
         let b = sel[1] || (a === accounts[1].originalUsername.toLowerCase() ? accounts[0] : accounts[1]).originalUsername.toLowerCase();
         // One picked to the account the other shows: they trade places (an
@@ -2284,13 +2317,15 @@
           else b = accounts.map(x => x.originalUsername.toLowerCase()).find(v => v !== a) || b;
         }
         if (!dry) body._cmp = [a, b];
-        const opts = (v) => accounts.map(x => `<option value="${esc(x.originalUsername.toLowerCase())}"${x.originalUsername.toLowerCase() === v ? ' selected' : ''}>@${esc(x.username)}</option>`).join('');
+        // (the app's own drop-down — the import files menu's — not the
+        // phone's picker)
+        const opts = (v) => accounts.map(x => `<button type="button" class="dropdown-item-btn${x.originalUsername.toLowerCase() === v ? ' on' : ''}" data-v="${esc(x.originalUsername.toLowerCase())}"><span>@${esc(x.username)}</span></button>`).join('');
         const fol = (k) => readJSON(`followers_users_${k}`, []);
         const fa = fol(a), fb = fol(b);
         const sa = new Set(fa.map(u => u.username)), sb = new Set(fb.map(u => u.username));
         const nameOf = (v) => `@${esc((accounts.find(x => x.originalUsername.toLowerCase() === v) || {}).username || v)}`;
-        const chevron = '<svg class="compare-pick-chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
-        const pick = (v) => `<label class="compare-pick"><span class="compare-pick-label">${nameOf(v)}</span>${chevron}<select class="compare-select" aria-label="account">${opts(v)}</select></label>`;
+        const chevron = '<svg class="chevron-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+        const pick = (v) => `<div class="compare-pick dropdown-wrapper" data-v="${esc(v)}"><button type="button" class="preview-toggle btn-sm compare-pick-btn" aria-label="account" aria-haspopup="true"><span class="compare-pick-label">${nameOf(v)}</span>${chevron}</button><div class="dropdown-menu compare-menu" inert>${opts(v)}</div></div>`;
         // A side with nobody in it isn't shown at all (its heading on its
         // own read as the other side's heading repeated).
         const onlyA = fa.filter(u => !sb.has(u.username)), onlyB = fb.filter(u => !sa.has(u.username));
@@ -2317,6 +2352,10 @@
     // And the timeline: kept while its numbers are the same.
     const oldTl = !reuse ? null : body.querySelector('.insights-pane:not(.pane-leaving) .timeline:not(.timeline-leaving)');
     if (oldTl) oldTl.remove();
+    // And compare's account pickers: kept, so a menu just picked from
+    // closes on its own animation and the names fade across (swapText).
+    const oldPicks = !reuse ? null : body.querySelector('.insights-pane:not(.pane-leaving) .compare-pickers');
+    if (oldPicks) oldPicks.remove();
     body.querySelectorAll('.pane-leaving').forEach(el => el.remove());
     const rowsBefore = captureViewRows(body);
     // Another account picked: its usernames only come in once the last
@@ -2336,6 +2375,19 @@
     const newWrap = body.querySelector('.trend-wrap');
     if (newWrap && oldWrap) { newWrap.replaceWith(oldWrap); updateChart(oldWrap, newWrap); }
     else if (newWrap && !pageLoading) growChart(newWrap.querySelector('.trend-chart'));
+    const newPicks = body.querySelector('.compare-pickers');
+    const pickSig = (row) => [...row.querySelectorAll('.compare-menu .dropdown-item-btn')].map(b => b.dataset.v + b.textContent).join('|');
+    if (newPicks && oldPicks && pickSig(newPicks) === pickSig(oldPicks)) {
+      const fresh = [...newPicks.querySelectorAll('.compare-pick')];
+      newPicks.replaceWith(oldPicks);
+      oldPicks.querySelectorAll('.compare-pick').forEach((p, i) => {
+        const f = fresh[i];
+        if (!f) return;
+        p.dataset.v = f.dataset.v;
+        swapText(p.querySelector('.compare-pick-label'), f.querySelector('.compare-pick-label').textContent);
+        p.querySelectorAll('.compare-menu .dropdown-item-btn').forEach(b => b.classList.toggle('on', b.dataset.v === f.dataset.v));
+      });
+    }
     const newTl = body.querySelector('.timeline');
     if (newTl) {
       const tlPane = newTl.parentNode;
