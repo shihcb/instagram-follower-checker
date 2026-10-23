@@ -1411,18 +1411,27 @@ function countTo(num, from, to, format = fmtNum) {
   const running = num._count;
   if (running) { cancelAnimationFrame(running.raf); from = running.shown; }
   num.classList.add('count-num');
+  // Measured in layout pixels, not as drawn: a count starting while its
+  // card is still easing in from 95% (unselecting an account) measured
+  // every width 5% small, and the figures pushed the box open — the words
+  // after it shifting — then it shrank under them as it ended.
+  let k = 1;
+  for (let e = num; e && e !== document.documentElement; e = e.parentElement) {
+    const cs = getComputedStyle(e);
+    if (cs.transform && cs.transform !== 'none') { const m = new DOMMatrixReadOnly(cs.transform); k *= Math.hypot(m.a, m.b) || 1; }
+    if (cs.scale && cs.scale !== 'none') k *= parseFloat(cs.scale) || 1;
+  }
+  const wOf = () => num.getBoundingClientRect().width / k;
   // (measured at the number it counts from: one redrawn already showing
   // its new number would otherwise ease from the new width to itself)
   if (!running) { num.style.width = ''; num.textContent = format(from); }
-  const startW = num.getBoundingClientRect().width;
+  const startW = wOf();
   num.style.width = '';
   num.textContent = format(to);
-  const endW = num.getBoundingClientRect().width;
+  const endW = wOf();
   num._count = null;
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (from === to || reduced || !num.isConnected || !num.offsetParent) return;
-  // (screen size to layout size: the guest preview draws the app scaled)
-  const k = num.offsetWidth ? endW / num.offsetWidth : 1;
   const c = num._count = { shown: from, raf: 0 };
   // The figures change before the eased width does, both ways (0 to 1,245
   // has four figures a quarter of the way in; counting down, 129 is still
@@ -1432,21 +1441,30 @@ function countTo(num, from, to, format = fmtNum) {
   // comma comes or goes the box is as wide as the wider of the two numbers,
   // and between those moments it glides (a smooth curve through them,
   // monotone cubic) — never narrower than the figures on show, never a step.
-  const keep = num.textContent;
-  num.textContent = '0000000000';
-  const digitW = num.getBoundingClientRect().width / 10;
-  num.textContent = ',,,,,,,,,,';
-  const commaW = num.getBoundingClientRect().width / 10;
-  num.textContent = keep;
-  const drawn = (x) => { const t = format(Math.round(x)); const commas = (t.match(/,/g) || []).length; const figs = (t.match(/\d/g) || []).length; return digitW * figs + commaW * commas; };
-  const extra = endW - drawn(to); // (a "%" after it, say)
+  // (each length of number measured as it's drawn — "10", "1,245", "50%" —
+  // once: worked out from a run of ten figures it came out a shade narrow,
+  // and "10" pushed its box open for a moment, the words after it shifting)
+  const widths = new Map();
+  const drawn = (x) => {
+    const t = format(Math.round(x)).replace(/\d/g, '0');
+    if (!widths.has(t)) {
+      const text = num.textContent, w = num.style.width;
+      num.style.width = '';
+      num.textContent = t;
+      widths.set(t, wOf());
+      num.textContent = text;
+      num.style.width = w;
+    }
+    return widths.get(t);
+  };
+  drawn(from); drawn(to);
   const xAt = (t) => from + (to - from) * rowEase(t);
   const pts = [[0, startW]];
   const N = 240;
   let level = drawn(from);
   for (let i = 1; i < N; i++) {
     const w = drawn(xAt(i / N));
-    if (Math.abs(w - level) > 0.01) { pts.push([i / N, extra + Math.max(w, level)]); level = w; }
+    if (Math.abs(w - level) > 0.01) { pts.push([i / N, Math.max(w, level)]); level = w; }
   }
   // (the last digit can go just before the count lands — 9 to 0 is its
   // last few frames — and its width dropped in two frames, a little snap as
@@ -1474,11 +1492,11 @@ function countTo(num, from, to, format = fmtNum) {
     const e = rowEase(t);
     c.shown = Math.round(from + (to - from) * e);
     num.textContent = format(c.shown);
-    num.style.width = `${Math.max(widthAt(tw), extra + drawn(c.shown)) / k}px`;
+    num.style.width = `${Math.max(widthAt(tw), drawn(c.shown))}px`;
     c.raf = requestAnimationFrame(step);
   };
   num.textContent = format(from);
-  num.style.width = `${startW / k}px`;
+  num.style.width = `${startW}px`;
   c.raf = requestAnimationFrame(step);
 }
 // A count pill ("12 found"): its number counts (countTo) and the word
