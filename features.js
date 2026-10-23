@@ -1005,6 +1005,8 @@
     }
     const signIn = driveSignIn(); // first, while it's still the tap
     driveSync = { changes: 0, unsaved: 0, why: '' };
+    const bar = startDriveBar();
+    let said = null;
     // Logged out meanwhile (or someone else in): it stops at once — what it
     // was bringing in used to land after the log-out, in the next person's
     const sync = driveSync;
@@ -1017,6 +1019,9 @@
     try {
       await signIn;
       storageSet('drive_on', '1');
+      // (the account's address, for its badge — the dashboard's icloud mail)
+      fetchDriveEmail().then(email => { if (email && email !== storageGet('drive_email')) { storageSet('drive_email', email); pushToCloud(); refreshDrive(); } });
+      bar.stage('finding exports', 0.1);
       const firstSync = !storageGet('drive_checked');
       const seen = new Set(driveSeen());
       let fresh = (await findDriveExports()).filter(e => !seen.has(e.id) && Number.isFinite(e.at)).sort((a, b) => b.at - a.at);
@@ -1026,7 +1031,7 @@
       stillHere();
       for (let i = 0; i < fresh.length; i++) {
         const exp = fresh[i];
-        driveStatus(`importing ${i + 1} of ${fresh.length}`);
+        bar.stage(`importing ${i + 1} of ${fresh.length}`, 0.15 + 0.75 * (i / fresh.length));
         const files = await driveExportFiles(exp);
         stillHere();
         let who = exp.who;
@@ -1046,7 +1051,7 @@
       }
       storageSet('drive_checked', String(Date.now()));
       pushToCloud();
-      driveStatus('saving imports');
+      bar.stage('saving imports', 0.92);
       await Promise.allSettled([...savesRunning]);
       const { changes, unsaved, why } = driveSync;
       driveSync = null;
@@ -1056,8 +1061,10 @@
           'retry', () => moveLocalFilesToCloud().then(ok => showToast(ok ? 'files saved' : 'files couldn’t be saved')), { duration: 10000 });
       } else {
         synced = true;
-        showToast(imported ? `${plural(imported, 'export')} from google drive · ${plural(changes, 'change')}` : 'no new exports in google drive',
-          imported && changes ? 'view' : null, () => { showView('changes'); viewNav && viewNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
+        // (what it did, on the button for a few seconds — the dashboard's
+        // "3 pages updated"; the changes, when there are some, with "view")
+        said = imported ? `${plural(imported, 'export')} imported` : 'no new exports';
+        if (imported && changes) showToast(`${plural(changes, 'change')} since your last import`, 'view', () => { showView('changes'); viewNav && viewNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
       }
     } catch (err) {
       driveSync = null;
@@ -1067,6 +1074,7 @@
       showToast('google drive couldn’t be synced', 'retry', syncDrive, { duration: 10000 });
     } finally {
       driveSync = null;
+      bar.stop(said);
       // Back to the account you were on (a sync that failed partway too)
       if (imported && shown && currentUser && currentUser.id === uid && state.selectedAccountUsername !== shown) {
         try { ensureAccountSelected(shown); } catch (e) {}
@@ -1081,66 +1089,128 @@
     if (driveToken && window.google && google.accounts && google.accounts.oauth2) google.accounts.oauth2.revoke(driveToken.value, () => {});
     driveToken = null;
     storageSet('drive_on', '0');
+    storageRemove('drive_email');
     pushToCloud();
     refreshDrive();
   }
-  // The row eases to its new height (the box ease) when its words go from two
-  // lines to one or its buttons widen — measured with the glides and slides
-  // started in `change` at their ends, so it lands where they do. (It
-  // dropped 30px in a frame as "last synced today" came in.)
-  function easeDriveRow(row, change) {
-    const from = row.getBoundingClientRect().height;
-    if (row._rowEase) { row._rowEase.cancel(); row._rowEase = null; }
-    change();
-    const live = row.getAnimations({ subtree: true }).filter(a => Number.isFinite(a.effect && a.effect.getComputedTiming().endTime));
-    const was = live.map(a => a.currentTime || 0);
-    live.forEach(a => { a.currentTime = a.effect.getComputedTiming().endTime; });
-    const to = row.getBoundingClientRect().height;
-    live.forEach((a, i) => { a.currentTime = was[i]; });
-    if (!canAnimate(row) || !row.offsetParent || Math.abs(to - from) < 0.5) return;
-    const an = row.animate([{ height: `${from}px`, overflow: 'hidden' }, { height: `${to}px`, overflow: 'hidden' }], MOTION);
-    row._rowEase = an;
-    an.finished.then(() => { if (row._rowEase === an) row._rowEase = null; }, () => {});
+  // The account's address (drive's own "about": the sign-in's pass reads it).
+  async function fetchDriveEmail() {
+    try {
+      const res = await fetch('https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)', { headers: { Authorization: `Bearer ${driveToken.value}` } });
+      if (!res.ok) return null;
+      const body = await res.json();
+      return (body && body.user && body.user.emailAddress || '').toLowerCase() || null;
+    } catch (e) { return null; }
   }
-  const setDriveDesc = (text) => swapText(document.getElementById('drive-desc'), text);
-  const driveStatus = (text) => { const row = document.getElementById('drive-row'); if (row) easeDriveRow(row, () => setDriveDesc(text)); };
-  function refreshDrive({ done = false } = {}) {
+  // Sync now's progress — the financial dashboard's bar: a tint filling the
+  // button from the left with a line along its foot, eased up by the clock
+  // and by each step reached; its words the step it's on (fading across).
+  // Done: it eases the rest of the way, says what it did for a few seconds,
+  // and fades away.
+  const ARROW_SVG = '<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>';
+  function startDriveBar() {
+    const btn = document.getElementById('drive-sync-btn');
+    const fill = document.getElementById('drive-sync-fill');
+    const label = document.getElementById('drive-sync-label');
+    if (!btn || !fill || !label) return { stage() {}, stop() {} };
+    btn.disabled = true;
+    btn.classList.add('busy');
+    if (btn._said) { clearTimeout(btn._said); btn._said = null; }
+    const t0 = Date.now();
+    let reached = 0, shown = 0, words = 'connecting';
+    const paint = () => {
+      const byClock = Math.min(0.97, (Date.now() - t0) / 60000);
+      shown = Math.max(shown, Math.min(0.99, reached), byClock);
+      fill.style.width = `${(shown * 100).toFixed(1)}%`;
+      swapText(label, words);
+    };
+    fill.getAnimations().forEach(a => a.cancel());
+    fill.style.transition = '';
+    fill.style.opacity = '1';
+    if (canAnimate(fill)) fill.animate([{ opacity: 0 }, { opacity: 1 }], MOTION);
+    paint();
+    const tick = setInterval(paint, 500);
+    return {
+      stage(text, frac) { words = text; reached = Math.max(reached, frac || 0); paint(); },
+      async stop(said = null) {
+        clearInterval(tick);
+        fill.style.transition = `width ${MOTION.duration}ms ${MOTION.easing}`;
+        fill.style.width = '100%';
+        await new Promise(r => setTimeout(r, MOTION.duration));
+        swapText(label, said || 'sync now');
+        if (said) btn._said = setTimeout(() => { btn._said = null; if (label.textContent === said) swapText(label, 'sync now'); }, 3500);
+        btn.classList.remove('busy');
+        refreshDrive();
+        if (canAnimate(fill)) await fill.animate([{ opacity: 1 }, { opacity: 0 }], MOTION).finished.catch(() => {});
+        fill.style.opacity = '0';
+        fill.style.transition = 'none';
+        fill.style.width = '0';
+        fill.getBoundingClientRect();
+        fill.style.transition = '';
+      }
+    };
+  }
+  // The google drive row (the dashboard's icloud mail row): connected, the
+  // account's address as a badge where its state goes (tapped, its window:
+  // "disconnect google drive?"); not, a "connect" button.
+  // Sync now sits above log out, and can be tapped once it's connected.
+  function refreshDrive() {
     const row = document.getElementById('drive-row');
     if (!row) return;
     row.hidden = isNative(); // google's sign-in doesn't open inside the iphone app
-    easeDriveRow(row, () => paintDrive(done));
+    paintDrive();
   }
-  function paintDrive(done = false) {
+  function paintDrive() {
     if (driveReady()) loadGoogle();
-    const btn = document.getElementById('drive-sync-btn');
     const on = driveOn();
-    // One glide for sync, whatever changed at once — its words ("connect" →
-    // "sync") and its spinner coming or going (at work: "sync" stays, the
-    // spinner after it — never "syncing"; a tap meanwhile does nothing) —
-    // from the width it's drawn at to its new one; disconnect slides open /
-    // shut beside it (its slot's width easing as it fades), so sync moves over
-    // with it. (Each eased on its own before — the words' width, the
-    // spinner's room — they fought and the button jumped 10–18px; disconnect
-    // came and went in one frame.)
-    glideWidth(btn, () => {
-      swapText(btn, on || driveSync ? 'sync' : 'connect');
-      workButton(btn, !!driveSync, { glide: true });
-      // (a sync just done: its check comes in within the same glide — added
-      // after, it was squeezed out of sight and the button snapped wider)
-      if (done) doneCheck(btn);
+    const holder = document.getElementById('drive-state');
+    const btn = document.getElementById('drive-sync-btn');
+    if (btn) {
+      btn.hidden = isNative();
+      btn.disabled = !on || !!driveSync || btn.classList.contains('busy'); // (never looking tappable while it runs)
+    }
+    if (!holder) return;
+    const email = storageGet('drive_email') || '';
+    const want = on ? `on:${email}` : 'off';
+    if (holder.dataset.state === want) return;
+    const first = !holder.dataset.state;
+    holder.dataset.state = want;
+    let node;
+    if (on) {
+      node = document.createElement('button');
+      node.type = 'button';
+      node.className = 'drive-badge';
+      node.title = 'google drive';
+      node.innerHTML = `<span class="drive-addr">${esc(email || 'connected')}</span><span class="drive-open">${ARROW_SVG}</span>`;
+      node.addEventListener('click', (e) => { e.stopPropagation(); if (!driveSync) disconnectDrive(); });
+    } else {
+      node = document.createElement('button');
+      node.type = 'button';
+      node.className = 'btn btn-sm btn-primary drive-btn';
+      node.textContent = 'connect';
+      node.addEventListener('click', (e) => { e.stopPropagation(); syncDrive(); });
+    }
+    // (the old one fades out where it was as the new one fades in, the
+    // holder's width easing between them — the app's text swap)
+    glideWidth(holder, () => {
+      const old = holder.firstElementChild;
+      if (old && !first && canAnimate(holder) && holder.offsetParent) {
+        const r = old.getBoundingClientRect(), hr = holder.getBoundingClientRect();
+        Object.assign(old.style, { position: 'absolute', right: `${hr.right - r.right}px`, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' });
+        old.inert = true;
+        holder.appendChild(node);
+        const drop = () => old.remove();
+        old.animate([{ opacity: 1 }, { opacity: 0 }], { ...MOTION, fill: 'forwards' }).finished.then(drop, drop);
+        node.animate([{ opacity: 0 }, { opacity: 1 }], MOTION);
+      } else {
+        holder.replaceChildren(node);
+      }
     });
-    slideSlot(document.getElementById('drive-off-slot'), on && !driveSync);
-    if (driveSync) return;
-    const at = Number(storageGet('drive_checked')) || 0;
-    const when = sameDay(at, Date.now()) ? 'today' : longDate(at);
-    setDriveDesc(on ? (at ? `last synced ${when}` : 'connected') : ''); // (off: just its label and button)
   }
   function setupDrive() {
     const btn = document.getElementById('drive-sync-btn');
-    const off = document.getElementById('drive-disconnect-btn');
-    if (!btn || !off) return;
-    btn.addEventListener('click', (e) => { e.stopPropagation(); syncDrive(); });
-    off.addEventListener('click', (e) => { e.stopPropagation(); disconnectDrive(); });
+    if (!btn) return;
+    btn.addEventListener('click', (e) => { e.stopPropagation(); if (!btn.disabled) syncDrive(); });
     refreshDrive();
     // Once logged in with the cloud data in: connected and not synced
     // today, offer the tap that syncs.

@@ -85,7 +85,7 @@
   <link rel="preload" as="font" type="font/woff2" href="fonts/ledger-serif.woff2?v=5" crossorigin>
   
   <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=455">
+  <link rel="stylesheet" href="style.css?v=456">
 </head>
 <body class="auth-logged-out">
   <script>
@@ -215,11 +215,9 @@
                   <div class="setting-item-row drive-row" id="drive-row">
                     <div class="setting-label-group">
                       <span class="setting-label">google drive</span>
-                      <span class="setting-desc" id="drive-desc"></span>
                     </div>
                     <div class="drive-actions">
-                      <span class="drive-off-slot" id="drive-off-slot" style="width: 0px; opacity: 0" inert><button type="button" class="btn btn-sm btn-danger-soft drive-btn" id="drive-disconnect-btn">disconnect</button></span>
-                      <button type="button" class="btn btn-sm btn-primary drive-btn" id="drive-sync-btn">connect</button>
+                      <span class="drive-state" id="drive-state"></span>
                     </div>
                   </div>
                   <div class="setting-item-row" style="margin-top: 8px;">
@@ -245,6 +243,8 @@
                   </div>
                 </div>
 
+                <!-- Sync now (google drive): the financial dashboard's button, its progress filling it -->
+                <button type="button" class="btn btn-secondary btn-block drive-sync" id="drive-sync-btn" disabled><span class="sync-fill" id="drive-sync-fill" aria-hidden="true"></span><span class="sync-label" id="drive-sync-label">sync now</span></button>
                 <button id="btn-logout" class="btn btn-primary btn-block">log out</button>
                 <div id="app-version" class="app-version"></div>
               </div>
@@ -749,8 +749,8 @@
   </div>
 
   <!-- Main JavaScript File -->
-  <script src="script.js?v=462"></script>
-  <script src="features.js?v=186"></script>
+  <script src="script.js?v=463"></script>
+  <script src="features.js?v=187"></script>
   <script>
     // The opening spinner stays until the app is ready, like the dashboard's
     // boot waiting for its cards: the first sign-in check done (signed in,

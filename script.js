@@ -223,7 +223,7 @@ const appGridLandingHome = elements.appGrid ? elements.appGrid.parentElement : n
 // Settings kept in the cloud with the rest (see pushToCloud).
 // drive_*: the google drive connection (features.js) — on or off, the
 // exports already brought in, and when it was last synced.
-const CLOUD_PREFS = ['theme', 'theme_at', 'list3_sort', 'list3_view', 'stats_sub', 'results_sub', 'mobile_list', 'drive_on', 'drive_seen', 'drive_checked'];
+const CLOUD_PREFS = ['theme', 'theme_at', 'list3_sort', 'list3_view', 'stats_sub', 'results_sub', 'mobile_list', 'drive_on', 'drive_seen', 'drive_checked', 'drive_email'];
 function applyCloudPrefs(prefs) {
   // The light/dark choice: whichever was picked last wins — this device's
   // or the cloud's. The cloud's copy can be behind (a reload right after
