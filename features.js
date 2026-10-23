@@ -1196,7 +1196,7 @@
       node.type = 'button';
       node.className = 'drive-badge';
       node.title = 'google drive';
-      node.innerHTML = `<span class="drive-addr">${esc(email || 'connected')}</span><span class="drive-open">${ARROW_SVG}</span>`;
+      node.innerHTML = `<span class="drive-addr">${esc(email || 'connected')}</span>`; // (the logged in as badge's look: the address alone)
       node.addEventListener('click', (e) => { e.stopPropagation(); if (!driveSync) disconnectDrive(); });
     } else {
       node = document.createElement('button');
