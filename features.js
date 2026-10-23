@@ -3349,7 +3349,14 @@
     const image = exportOverlay.querySelector('.export-image').classList.contains('on');
     const go = exportOverlay.querySelector('[data-exp="go"]');
     go.disabled = lists === 0 && !image;
-    swapText(go, lists > 1 ? `export ${fmtNum(lists)} lists` : 'export', { resize: true });
+    // (between counts only the number counts — the words stay put; they
+    // fade across only when they change: "export" ↔ "export n lists")
+    const n = go.querySelector('.exp-n');
+    if (lists > 1 && n) countTo(n, readNum(n.textContent) || 0, lists);
+    else {
+      swapText(go, lists > 1 ? `export ${fmtNum(lists)} lists` : 'export', { resize: true });
+      if (lists > 1) go.innerHTML = `export <span class="exp-n count-num">${fmtNum(lists)}</span> lists`;
+    }
     exportOverlay.querySelectorAll('.export-option[data-kind]').forEach(o => o.classList.toggle('muted', image));
     exportOverlay.querySelector('.export-image').classList.toggle('muted', lists > 0);
   }
