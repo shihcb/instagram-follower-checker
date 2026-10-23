@@ -167,12 +167,19 @@
       writeExtraLists(state.selectedAccountUsername, lists);
       safe(() => renderExtras(true), 'extra lists');
     }
-    state.following = snap.following;
+    // List 2 is only given back what the action took out of it (an old
+    // pending request unfollowed): put back whole, it undid every edit made
+    // to list 2 since — names added there were lost.
+    const now = new Set(state.following.map(u => u.username));
+    const back = snap.following.filter(u => u.isPendingRequest && !now.has(u.username));
+    if (back.length) {
+      state.following = [...state.following, ...back];
+      elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
+      updateListUI('following');
+    }
     state.unfollowed = snap.unfollowed;
     state.starred = snap.starred;
     if (snap.dismissed == null) storageRemove(dismissedKey()); else storageSet(dismissedKey(), snap.dismissed);
-    elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
-    updateListUI('following');
     saveCurrentAccountData();
     calculateUnfollowers({ animate: true });
     updateUnfollowedUI();
@@ -326,12 +333,16 @@
       const entry = { snap: { acc: accKey(), cleared: kind, list: state[kind].slice(), text: ta.value }, message: `${label} cleared` };
       // After the text has faded out (smoothClearTextarea, ROW_MOTION_MS).
       setTimeout(() => {
+        // (only once it really was cleared: another account picked while it
+        // faded stops the clear, and "list cleared · undo" showed all the same)
+        if (accKey() !== entry.snap.acc || state[kind].length) return;
         undoStack.push(entry);
         if (undoStack.length > 50) undoStack.shift();
         refreshUndo();
         showToast(`${label} cleared`, 'undo', () => {
           const i = undoStack.indexOf(entry);
           if (i < 0) return; // already undone with the undo button
+          if (entry.snap.acc !== accKey()) return; // (another account on: kept for its own undo button)
           undoStack.splice(i, 1);
           refreshUndo();
           afterSubmenusClose(() => restore(entry.snap));

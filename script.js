@@ -986,6 +986,7 @@ function dismissUsername(username) {
   const set = dismissedUsernames();
   set.add(username);
   storageSet(dismissedKey(), JSON.stringify([...set]));
+  pushToCloud(); // (kept only in memory before: every ✕ came back on the next reload)
 }
 
 // { animate: true } when list 1/2 were just edited or cleared by the user,
@@ -2680,6 +2681,10 @@ function sayAccountsBusy() {
   if (window.igFeatures && window.igFeatures.showToast) window.igFeatures.showToast('wait for the import to finish');
 }
 async function processImportFiles(files, isFolderUpload = false, opts = {}) {
+  // Logged out (the guest preview): nothing is imported — a file dropped on
+  // the page or a list header double-clicked made a real account, saved
+  // into the next log-in. (Only the import button was locked.)
+  if (elements.btnAddAccount && elements.btnAddAccount.disabled) return false;
   importsRunning++;
   try { return await processImportFilesNow(files, isFolderUpload, opts); } finally { importsRunning--; }
 }
@@ -2765,9 +2770,11 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
         { value: state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() !== DEMO_ID ? state.selectedAccountUsername : '', placeholder: '@username' });
       // (with the demo on, this was filled in as "__demo__": the real lists
       // went into the demo, and were gone with it)
-      if (fallback && fallback.trim().replace(/^@+/, '') !== '' && fallback.trim().replace(/^@+/, '').toLowerCase() !== DEMO_ID) {
-        extractedUsername = fallback.trim().replace(/^@+/, '').toLowerCase(); // instagram usernames are lowercase
-      }
+      const typed = (fallback || '').trim().replace(/^@+/, '').toLowerCase(); // instagram usernames are lowercase
+      if (typed && typed !== DEMO_ID && /^[a-z0-9._]{1,30}$/.test(typed)) extractedUsername = typed;
+      // Cancelled (or nothing usable typed): nothing is imported. It carried
+      // on before, replacing the lists of whatever account was on screen.
+      if (!extractedUsername) return false;
     }
     if (extractedUsername && isNewAccountOverLimit(extractedUsername)) {
       await showAccountLimitAlert();
@@ -5979,6 +5986,9 @@ function updateInstructionsStepUI() {
       const currentAcc = state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '';
       const confirmed = await showSiteConfirm('reset unfollowed list?', '', 'reset', 'cancel');
       if (confirmed) {
+        // (ones that came from pending requests go back there, as when
+        // taken out one at a time — reset, they were gone from every list)
+        state.unfollowed.filter(u => u.fromPending).forEach(returnToPending);
         state.unfollowed = [];
         storageSet(listResetKey('unfollowed'), String(Date.now()));
         if (currentAcc) {
@@ -6010,6 +6020,7 @@ function updateInstructionsStepUI() {
       const currentAcc = state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '';
       const confirmed = await showSiteConfirm('reset starred list?', '', 'reset', 'cancel');
       if (confirmed) {
+        state.starred.filter(u => u.fromPending).forEach(returnToPending); // (back to pending requests, as when taken out one at a time)
         state.starred = [];
         storageSet(listResetKey('starred'), String(Date.now()));
         if (currentAcc) {
@@ -7553,6 +7564,7 @@ async function pullFromCloud(uploadLocalFirst = false) {
             if (Array.isArray(itemData.imports)) storageSet(`import_log_${key}`, JSON.stringify(itemData.imports));
             if (itemData.extras) writeExtraLists(key, itemData.extras);
             if (itemData.resets) Object.entries(itemData.resets).forEach(([type, at]) => { if (at) storageSet(`list_reset_${type}_${key}`, at); });
+            if (Array.isArray(itemData.hidden)) storageSet(`hidden_users_${key}`, JSON.stringify(itemData.hidden)); // (removed from list 3 with ✕)
           });
         }
 
@@ -7758,7 +7770,8 @@ async function pushToCloudNow() {
       // When unfollowed / starred were last reset (it was lost on reload: "reset due" again)
       const resets = { unfollowed: storageGet(`list_reset_unfollowed_${key}`), starred: storageGet(`list_reset_starred_${key}`) };
 
-      accountDataMap[key] = { following, followers, unfollowed, starred, importDate, history, diff, extras, imports, resets };
+      const hidden = JSON.parse(storageGet(`hidden_users_${key}`) || '[]');
+      accountDataMap[key] = { following, followers, unfollowed, starred, importDate, history, diff, extras, imports, resets, hidden };
 
       unfollowed.forEach(u => {
         const itemAcc = u.account || key;
@@ -7862,7 +7875,7 @@ function updateStorageProgressBar() {
   const percentage = (totalBytes / quotaBytes) * 100;
   
   const percentageText = `${percentage.toFixed(2)}%`;
-  const usedText = totalBytes > 1024 ? `${(totalBytes / 1024).toFixed(1)} kb` : `${totalBytes} bytes`;
+  const usedText = totalBytes > 1024 ? `${(totalBytes / 1024).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kb` : `${fmtNum(totalBytes)} bytes`; // (thousands separated: "1,536.0 kb")
 
   const percentageEl = document.getElementById('storage-percentage');
   const fillEl = document.getElementById('storage-progress-fill');
