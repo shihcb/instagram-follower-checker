@@ -389,7 +389,7 @@
   let importAt = null;
   const dataDateKey = (accountUsername) => `import_at_${accountUsername ? accountUsername.toLowerCase() : '_global_'}`;
   const now = () => importAt || Date.now();
-  let driveSync = null; // a google drive sync running: { changes, unsaved, why }
+  let driveSync = null; // a google drive sync running: { changes: { account: count }, unsaved, why }
   const savesRunning = new Set(); // imports' files on their way to the cloud
   function recordChanges(accountUsername) {
     const key = accountUsername ? accountUsername.toLowerCase() : '_global_';
@@ -417,8 +417,9 @@
       };
       writeJSON(`import_diff_${key}`, diff);
       const total = diff.lostFollowers.length + diff.newFollowers.length + diff.stoppedFollowing.length + diff.startedFollowing.length;
-      // A google drive sync adds them up for its own toast at the end.
-      if (driveSync) driveSync.changes += total;
+      // A google drive sync adds them up, account by account, for its own
+      // toast at the end (one sum for every account read as the shown one's).
+      if (driveSync) driveSync.changes[key] = (driveSync.changes[key] || 0) + total;
       else setTimeout(() => showToast(total ? `${fmtNum(total)} change${total === 1 ? '' : 's'} since your last import` : 'no changes since your last import',
         total ? 'view' : null, () => {
           // (opened on a tab that has something: it opened on "unfollowed
@@ -578,7 +579,11 @@
     if (/row-level security|unauthorized|403/i.test(msg)) return 'not allowed';
     if (/payload too large|exceeded the maximum|413/i.test(msg)) return 'files too big';
     if (/failed to fetch|network|load failed/i.test(msg)) return 'no connection';
-    return ''; // (anything else: just what failed, never the raw error)
+    if (/mime type|not supported/i.test(msg)) return 'zip files aren’t allowed in the imports folder';
+    if (/invalid key/i.test(msg)) return 'its name isn’t allowed';
+    // (anything else: just what failed and its code, never the raw error)
+    const code = err && (err.statusCode || err.status);
+    return code ? `error ${code}` : '';
   }
   const openFilesDb = () => new Promise(resolve => {
     if (!window.indexedDB) { resolve(null); return; }
@@ -1018,7 +1023,7 @@
       return;
     }
     const signIn = driveSignIn(); // first, while it's still the tap
-    driveSync = { changes: 0, unsaved: 0, why: '' };
+    driveSync = { changes: {}, unsaved: 0, why: '' };
     const bar = startDriveBar();
     let said = null;
     // Logged out meanwhile (or someone else in): it stops at once — what it
@@ -1059,7 +1064,10 @@
         const latest = who ? Number(storageGet(dataDateKey(who)) || storageGet(getImportDateKey(who))) || 0 : 0;
         if (files.length && latest < exp.at) {
           importAt = exp.at;
-          try { if (await processImportFiles(files, true, { username: who })) imported++; } finally { importAt = null; }
+          // (a day's export is only what's new: kept for an account that has
+          // its whole lists already; one that doesn't say whose it is waits
+          // for no answer — the account on screen was filled in, another's)
+          try { if (await processImportFiles(files, true, { username: who, needsBase: true, noAsk: true })) imported++; } finally { importAt = null; }
           await new Promise(resolve => setTimeout(resolve, ROW_MOTION_MS));
         }
         // An export with no lists yet is still being put in drive (instagram
@@ -1082,7 +1090,10 @@
         // (what it did, on the button for a few seconds — the dashboard's
         // "3 pages updated"; the changes, when there are some, with "view")
         said = imported ? `${plural(imported, 'export')} imported` : 'no new exports';
-        if (imported && changes) showToast(`${plural(changes, 'change')} since your last import`, 'view', () => { if (phoneLayout.matches) showMobileList('unfollowers'); showView('changes'); viewNav && viewNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
+        // (the changes of the account on screen once it's done — "view" opens its own)
+        const onScreen = shown || state.selectedAccountUsername;
+        const mine = changes[onScreen ? onScreen.toLowerCase() : '_global_'] || 0;
+        if (imported && mine) showToast(`${plural(mine, 'change')} since your last import`, 'view', () => { if (phoneLayout.matches) showMobileList('unfollowers'); showView('changes'); viewNav && viewNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
       }
     } catch (err) {
       driveSync = null;

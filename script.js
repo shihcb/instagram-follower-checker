@@ -1270,12 +1270,7 @@ function updateUnfollowedUI(enteringUsername) {
 
   const resetUnfollowedBtn = document.getElementById('settings-reset-unfollowed-btn');
   if (resetUnfollowedBtn) {
-    if (state.unfollowed.length > 0) {
-      resetUnfollowedBtn.removeAttribute('disabled');
-    } else {
-      resetUnfollowedBtn.setAttribute('disabled', 'true');
-    }
-    updateResetReminderUI();
+    updateResetReminderUI(); // (its disabled state too, see applyResetDue)
   }
 
   // After the label update above, since the occupied-dot indicator it can
@@ -1385,12 +1380,7 @@ function updateStarredUI(enteringUsername) {
 
   const resetStarredBtn = document.getElementById('settings-reset-starred-btn');
   if (resetStarredBtn) {
-    if (state.starred.length > 0) {
-      resetStarredBtn.removeAttribute('disabled');
-    } else {
-      resetStarredBtn.setAttribute('disabled', 'true');
-    }
-    updateResetReminderUI();
+    updateResetReminderUI(); // (its disabled state too, see applyResetDue)
   }
 
   // After the label update above, since the occupied-dot indicator it can
@@ -2762,7 +2752,12 @@ async function processImportFiles(files, isFolderUpload = false, opts = {}) {
   importsRunning++;
   try { return await processImportFilesNow(files, isFolderUpload, opts); } finally { importsRunning--; }
 }
-async function processImportFilesNow(files, isFolderUpload = false, { username = null } = {}) {
+// `needsBase` (google drive): an export of just what's new is only brought
+// in for an account that already has its whole lists (the day's few new
+// followers became the account's whole list 2, list 3 then showing almost
+// everyone); `noAsk`: files that don't say whose they are are left out,
+// not asked about (a sync filled in the account on screen — another's).
+async function processImportFilesNow(files, isFolderUpload = false, { username = null, needsBase = false, noAsk = false } = {}) {
   if (!files || files.length === 0) return false;
   // Logged in, this user's data still on its way down (a reload with a
   // saved log-in): the import waits for it — made now, the download wrote
@@ -2846,6 +2841,7 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
       extractedUsername = await extractUsernameFromFile(item.file);
       if (extractedUsername) break;
     }
+    if (!extractedUsername && noAsk) return false;
     if (!extractedUsername) {
       // Asked again when what's typed can't be a username (it imported
       // nothing without a word); a profile link is read for its username.
@@ -2871,6 +2867,27 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
         note = 'username couldn’t be read — enter it as instagram shows it';
       }
     }
+    // A list that's only what's new (an export covering a date range — see
+    // isPartialList) is added to the one already here instead of
+    // replacing it. Lists 1 and 2 are cleared only when both come whole.
+    const partial = { following: false, followers: false };
+    for (const type of ['following', 'followers']) {
+      const ofType = mainFiles.filter(item => item.type === type);
+      if (!ofType.length) continue;
+      let all = true;
+      for (const item of ofType) {
+        const text = await readFileText(item.file);
+        if (!isPartialList(text, parseInput(text) || [])) { all = false; break; }
+      }
+      partial[type] = all;
+    }
+    if (needsBase && extractedUsername) {
+      const acc = extractedUsername.toLowerCase();
+      const onScreen = (state.selectedAccountUsername || '').toLowerCase() === acc;
+      const has = (type) => (onScreen ? state[type] : JSON.parse(storageGet(`${type}_users_${acc}`) || '[]')).length > 0;
+      if (['following', 'followers'].some(type => partial[type] && !has(type))) return false;
+      if (!mainFiles.length && unfollowedFiles.length && !has('following')) return false;
+    }
     if (extractedUsername && isNewAccountOverLimit(extractedUsername)) {
       await showAccountLimitAlert();
       return false;
@@ -2889,20 +2906,6 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
     // each), so it snapped from one state to the next.
     // Only the extra lists (say, just close_friends.json): lists 1 and 2
     // are left as they are.
-    // A list that's only what's new (an export covering a date range — see
-    // isPartialList) is added to the one already here instead of
-    // replacing it. Lists 1 and 2 are cleared only when both come whole.
-    const partial = { following: false, followers: false };
-    for (const type of ['following', 'followers']) {
-      const ofType = mainFiles.filter(item => item.type === type);
-      if (!ofType.length) continue;
-      let all = true;
-      for (const item of ofType) {
-        const text = await readFileText(item.file);
-        if (!isPartialList(text, parseInput(text) || [])) { all = false; break; }
-      }
-      partial[type] = all;
-    }
     // (a whole export has its recently-unfollowed file too: it's still whole)
     const anyPartial = partial.following || partial.followers || (unfollowedFiles.length > 0 && !mainFiles.length);
     // Just one of the two lists (only following.json, say): the other is left
@@ -8239,6 +8242,7 @@ function applyResetDue(dueAt) {
     const btn = document.getElementById(id);
     if (!btn) return;
     const due = listNeedsReset(type, dueAt);
+    btn.disabled = !(state[type] || []).length;
     btn.classList.toggle('reset-due', due);
     const text = due ? 'reset due' : 'reset';
     swapText(btn, text, { resize: true });
@@ -8252,11 +8256,10 @@ function updateResetReminderUI() {
   const valueEl = document.getElementById('reset-reminder-value');
   const detailEl = document.getElementById('reset-reminder-detail');
   const fillEl = document.getElementById('reset-reminder-progress-fill');
-  if (!box || !valueEl || !detailEl || !fillEl) return;
-
   const importedAtRaw = storageGet(getImportDateKey(state.selectedAccountUsername));
 
   applyResetDue(importedAtRaw ? parseInt(importedAtRaw, 10) + RESET_REMINDER_MS : null);
+  if (!box || !valueEl || !detailEl || !fillEl) return;
 
   if (!importedAtRaw) {
     box.classList.remove('overdue');
