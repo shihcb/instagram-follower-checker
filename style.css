@@ -7811,3 +7811,31 @@ html.is-logged-in #auth-profile-view .account-row {
   flex: none;
 }
 .drive-badge .drive-open svg { width: 10px; height: 10px; }
+/* The landing header's two buttons: the dashboard's small buttons (.btn-sm,
+   its theme button the same) — 24px tall, 9px each side, 8px corners, small
+   words; 8px apart, as its header's actions. On a phone the theme button is
+   just its icon, a 24px square. */
+.landing-header-actions { gap: 8px !important; }
+.landing-theme-btn,
+.landing-cta-btn {
+  height: 24px !important;
+  min-height: 24px !important;
+  line-height: 1.4 !important;
+  padding: 0 9px !important;
+  font-size: var(--fs-sm) !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+}
+.landing-theme-btn { gap: 6px !important; }
+@media (max-width: 480px) {
+  .landing-theme-btn { width: 24px !important; padding: 0 !important; justify-content: center !important; }
+}
+/* The log-in card: its title the dashboard's log-in title (its h1:
+   1.8–2.3rem with the screen), its button the dashboard's 40px .btn-block */
+.auth-brand h2 { font-size: clamp(1.8rem, 5vw, 2.3rem) !important; }
+#btn-auth-submit {
+  height: 40px !important;
+  min-height: 40px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
