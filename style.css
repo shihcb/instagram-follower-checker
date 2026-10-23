@@ -7239,3 +7239,11 @@ html.is-logged-in #auth-profile-view > .app-version {
   opacity: .45;
   cursor: default;
 }
+
+/* The timeline's dates: the day's figures one width as it rolls (rollDate) */
+.timeline-dates .tl-day {
+  font-variant-numeric: tabular-nums;
+}
+.timeline-dates .tl-mon {
+  display: inline-block;
+}

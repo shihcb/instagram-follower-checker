@@ -1989,7 +1989,32 @@
   const MOCK_TIMELINE = [[40, 52], [46, 55], [44, 61], [52, 64], [55, 72], [58, 77]]; // [following, followers]
   const shortDate = (t) => new Date(t).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }).toLowerCase(); // (months in full, as everywhere)
   // Each date keeps its time, so a change can roll it to the new one.
-  const dateSpans = (times) => times.map(t => `<span data-t="${Math.round(t)}">${shortDate(t)}</span>`).join('');
+  // (its month and its day apart: the day counts as a date rolls, the month
+  // fades across only when it changes — rollDate)
+  const monthOf = (t) => new Date(t).toLocaleDateString('en-US', { month: 'long' }).toLowerCase();
+  const dayOf = (t) => String(new Date(t).getDate());
+  const dateSpans = (times) => times.map(t => `<span data-t="${Math.round(t)}"><span class="tl-mon">${monthOf(t)}</span> <span class="tl-day">${dayOf(t)}</span></span>`).join('');
+  // A date rolls from one to another like the numbers count (the list 3
+  // slide): its day ticks through, and its month — only as it changes —
+  // fades across (swapText). Faded whole, the dates flashed; rewritten whole
+  // every frame, each new month snapped in.
+  function rollDate(span, a, z) {
+    const mon = span.querySelector('.tl-mon'), day = span.querySelector('.tl-day');
+    if (!mon || !day || !Number.isFinite(a) || !Number.isFinite(z)) return;
+    const token = (span._roll = {});
+    const show = (t) => { const m = monthOf(t); if (mon.textContent !== m) swapText(mon, m, { resize: true }); day.textContent = dayOf(t); };
+    if (!canAnimate(span) || shortDate(a) === shortDate(z)) { show(z); return; }
+    mon.textContent = monthOf(a);
+    day.textContent = dayOf(a);
+    const t0 = performance.now();
+    const step = (now) => {
+      if (span._roll !== token || !span.isConnected) return;
+      const t = Math.min(1, (now - t0) / ROW_MOTION_MS);
+      show(t >= 1 ? z : a + (z - a) * rowEase(t));
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
   function timelineHtml(key) {
     const hist = readJSON(`import_history_${key}`, [])
       .filter(h => h && Number.isFinite(h.date) && Number.isFinite(h.following) && Number.isFinite(h.followers));
@@ -2081,12 +2106,15 @@
     // (counted exactly like the stat boxes' numbers — countNum — their
     // width easing with them, so the key beside each glides, never jumps)
     tl.querySelectorAll('.timeline-key b').forEach((b, i) => countNum(b, oldNums[i] ?? 0, b.textContent));
-    // Dates: each fades across to its new one where it stands (swapText —
-    // the app's changing text). Rolled through day by day before, the
-    // words were rewritten every frame and each new month snapped in.
+    // Dates: each rolls to its new one where it stands (rollDate).
     const oldDates = tl.querySelector('.timeline-dates'), newDates = fresh.querySelector('.timeline-dates');
     const os = [...oldDates.children], ns = [...newDates.children];
-    if (os.length === ns.length) ns.forEach((n, i) => { os[i].dataset.t = n.dataset.t; swapText(os[i], n.textContent); });
+    if (os.length === ns.length) ns.forEach((n, i) => {
+      const a = +os[i].dataset.t, z = +n.dataset.t;
+      os[i].dataset.t = n.dataset.t;
+      if (!os[i].querySelector('.tl-day')) os[i].innerHTML = n.innerHTML; // (an older page's plain date)
+      rollDate(os[i], a, z);
+    });
     else {
       // One date ↔ two (a first import, or the example): the row crosses —
       // the old dates fade out where they stood as the new fade in.
