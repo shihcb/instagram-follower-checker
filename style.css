@@ -7247,3 +7247,14 @@ html.is-logged-in #auth-profile-view > .app-version {
 .timeline-dates .tl-mon {
   display: inline-block;
 }
+
+/* The app's own pop-up (showSiteConfirm) always over any window it was
+   opened from (the saved imports' "couldn’t be downloaded" showed behind it) */
+#confirm-modal-overlay {
+  z-index: 10001;
+}
+/* Select mode on a phone: the bar at the bottom is the select bar, so a
+   message goes just above it (it covered star / unfollow, and took their taps) */
+body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px) + 56px);
+}

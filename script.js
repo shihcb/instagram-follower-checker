@@ -419,7 +419,16 @@ function showModalOverlay(overlay) {
 // With `field` ({ value, placeholder }), the pop-up also has a text box,
 // and resolves to what's typed in it (null when cancelled) — the app's own
 // version of the browser's prompt().
-function showSiteConfirm(title, message, confirmText = 'confirm', cancelText = 'cancel', field = null) {
+// One at a time: a second asked while one is up waits its turn (it took
+// over the same window, and one tap answered both — "open the next
+// profiles?" also said yes to a "reset starred list?" left open)
+let confirmChain = Promise.resolve();
+function showSiteConfirm(...args) {
+  const run = confirmChain.then(() => showSiteConfirmNow(...args));
+  confirmChain = run.catch(() => {});
+  return run;
+}
+function showSiteConfirmNow(title, message, confirmText = 'confirm', cancelText = 'cancel', field = null) {
   return new Promise((resolve) => {
     const overlay = document.getElementById('confirm-modal-overlay');
     const titleEl = document.getElementById('confirm-modal-title');
@@ -5173,6 +5182,8 @@ function showInstructionStep() {
 }
 
 function openInstructionsModal(step = 1) {
+  // (the button that opened it let go of: Space pressed it again — back to step 1)
+  if (document.activeElement && typeof document.activeElement.blur === 'function') document.activeElement.blur();
   if (!elements.instructionsModalOverlay) return;
   const overlay = elements.instructionsModalOverlay;
   currentInstructionStep = step;

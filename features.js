@@ -766,6 +766,7 @@
   const savedAccounts = () => (state.instagramAccounts || []).filter(a => !isDemoAccount(a))
     .map(a => [a.originalUsername.toLowerCase(), `@${a.username}`]);
   function openSavedImports() {
+    if (document.activeElement && typeof document.activeElement.blur === 'function') document.activeElement.blur(); // (the button that opened it let go of)
     if (!savedOverlay) buildSavedOverlay();
     const tabs = savedAccounts();
     savedKey = tabs.some(([k]) => k === accKey()) ? accKey() : (tabs[0] ? tabs[0][0] : null);
@@ -812,6 +813,8 @@
     // Escape closes just this window (not the settings panel as well).
     document.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape' || !savedOverlay || !savedOverlay.classList.contains('show')) return;
+      const confirmUp = document.getElementById('confirm-modal-overlay');
+      if (confirmUp && !confirmUp.classList.contains('hidden')) return; // (a pop-up opened over it: Escape is that one's)
       e.stopImmediatePropagation();
       e.preventDefault();
       closeSavedImports();
@@ -1457,11 +1460,13 @@
   window.addEventListener('resize', () => { if (selectMode) placeSelectBar(); });
   // Escape cancels select, like the bar's cancel (unless a pop-up is open,
   // which Escape closes instead).
+  // (caught first, before the page's own Escape closes what's open: one
+  // Escape closed settings or a menu and ended select too — the picks lost)
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || !selectMode) return;
-    if (document.querySelector('.modal-overlay:not(.hidden)')) return;
+    if (document.querySelector('.modal-overlay:not(.hidden), #auth-dropdown.show, .dropdown-menu.show')) return;
     setSelectMode(false);
-  });
+  }, true);
   // List 3 re-renders (a search, a row leaving, switching accounts) rebuilt
   // the rows without their selected outline, and the count kept usernames
   // that were no longer there.
@@ -3166,6 +3171,7 @@
 
   let exportOverlay = null;
   function openExport() {
+    if (document.activeElement && typeof document.activeElement.blur === 'function') document.activeElement.blur(); // (the button that opened it let go of)
     if (!exportOverlay) {
       exportOverlay = document.createElement('div');
       exportOverlay.className = 'modal-overlay hidden export-overlay';
