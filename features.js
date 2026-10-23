@@ -1905,9 +1905,27 @@
     let pts;
     let single = false;
     if (real) {
-      pts = hist.map(h => ({ t: h.date, a: h.following, b: h.followers }));
+      // In date order, once per date: the cloud's and this device's
+      // histories are put together end to end (and could both hold the
+      // same import), which drew the line doubling back and off the left
+      // edge.
+      const byDate = new Map();
+      hist.forEach(h => byDate.set(h.date, { t: h.date, a: h.following, b: h.followers }));
+      pts = [...byDate.values()].sort((p, q) => p.t - q.t);
+      // Now, as a point of its own — only with both lists in (one list
+      // cleared, or only one imported, dropped its line to 0 and back).
       const lastH = pts[pts.length - 1];
-      if (!lastH || lastH.a !== nowA || lastH.b !== nowB) pts.push({ t: Date.now(), a: nowA, b: nowB, now: true });
+      if ((!lastH || (nowA > 0 && nowB > 0)) && (!lastH || lastH.a !== nowA || lastH.b !== nowB)) pts.push({ t: Date.now(), a: nowA, b: nowB, now: true });
+      // An import of one list only saved 0 for the other: that side wasn't
+      // imported, it didn't drop to 0 — it keeps the count from the import
+      // before (or after, for the first ones).
+      ['a', 'b'].forEach(k => {
+        if (!pts.some(p => p[k] > 0)) return;
+        let last = null;
+        pts.forEach(p => { if (p[k] > 0) last = p[k]; else if (last !== null) p[k] = last; });
+        let next = null;
+        for (let i = pts.length - 1; i >= 0; i--) { if (pts[i][k] > 0) next = pts[i][k]; else if (next !== null) pts[i][k] = next; }
+      });
       if (pts.length === 1) { single = true; pts = [{ ...pts[0], t: pts[0].t - DAY }, pts[0]]; }
     } else {
       pts = MOCK_TIMELINE.map(([a, b], i) => ({ t: i, a, b }));
@@ -2302,14 +2320,27 @@
     const pct = to.endsWith('%');
     const b = readNum(to) || 0;
     const token = (el._countToken = {});
+    if (el._countWidth) { el._countWidth.cancel(); el._countWidth = null; }
     if (a === b || !canAnimate(el)) { el.textContent = to; return; }
+    el.classList.add('count-num');
     const t0 = performance.now();
     const show = (n) => { el.textContent = `${fmtNum(Math.round(n))}${pct ? '%' : ''}`; };
+    // Its width glides from where it's drawn to the final number's on the
+    // same curve and is held there until the count lands (the financial
+    // dashboard's countTo): a width of its own each step jerked the words
+    // beside it about.
     show(a);
+    const from = el.getBoundingClientRect().width;
+    el.textContent = to;
+    const end = el.getBoundingClientRect().width;
+    show(a);
+    if (el.offsetParent && Math.abs(end - from) > 0.5) {
+      el._countWidth = el.animate([{ width: `${from}px` }, { width: `${end}px` }], { ...MOTION, fill: 'forwards' });
+    }
     const step = (now) => {
       if (el._countToken !== token) return;
       const t = Math.min(1, (now - t0) / ROW_MOTION_MS);
-      if (t >= 1) { el.textContent = to; return; }
+      if (t >= 1) { el.textContent = to; if (el._countWidth) { el._countWidth.cancel(); el._countWidth = null; } return; }
       show(a + (b - a) * rowEase(t));
       requestAnimationFrame(step);
     };

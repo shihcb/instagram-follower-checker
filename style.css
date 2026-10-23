@@ -5490,6 +5490,8 @@ body.select-active #card-followers {
   animation: chip-fade-in 0.45s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 .insights-stat-value {
+  width: fit-content;
+  margin-inline: auto;
   font-family: var(--font-display);
   font-size: var(--fs-xl);
   font-weight: 600;
@@ -5505,7 +5507,7 @@ body.select-active #card-followers {
 .trend-wrap {
   position: relative;
   flex: 1 1 auto;
-  min-height: 60px;
+  min-height: 140px; /* (60px on a phone's short box: bars a sliver, their bottoms cut off — the view scrolls instead) */
   margin-top: 14px;
   display: flex;
   overflow: hidden;
@@ -6221,6 +6223,7 @@ select,
   background: var(--c);
 }
 .timeline-key b {
+  display: inline-block;
   color: var(--text-main);
   font-family: var(--font-display);
   font-weight: 600;
@@ -7073,4 +7076,12 @@ b, strong {
 .btn:not(.btn-sm):not(.drive-btn),
 .card-num {
   line-height: 22px;
+}
+
+/* A number counting (countNum in features.js): figures all one width, so
+   it doesn't jitter as it counts; its width glides to the final number's. */
+.count-num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: center;
 }
