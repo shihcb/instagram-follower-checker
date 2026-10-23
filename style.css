@@ -99,25 +99,26 @@ html, body {
   /* Light Theme variables (Fallback / Active under light mode) */
   /* One roundness for the whole app: the unfollowed / starred buttons'. */
   --radius: 12px;
-  --logo-color: #000000;
-  --bg-color: #ffffff;
+  /* The financial dashboard's palette: a soft grey page, white panels,
+     green-tinted greys for lines and text, flat (no shadow, no glass). */
+  --logo-color: #1b1f1d;
+  --bg-color: #f4f5f3;
   --bg-gradient: none;
-  --card-bg: rgba(255, 255, 255, 0.8);
-  --card-border: rgba(9, 9, 11, 0.08);
-  --card-shadow: 0 10px 30px -10px rgba(9, 9, 11, 0.05), 
-                 0 1px 3px rgba(9, 9, 11, 0.02);
+  --card-bg: #ffffff;
+  --card-border: #e1e5e2;
+  --card-shadow: none;
   --highlight-border: rgba(0, 0, 0, 0.18);
   --highlight-shadow: rgba(0, 0, 0, 0.03);
-  --text-main: #09090b;
-  --text-muted: #71717a;
-  --text-inverse: #ffffff;
-  --input-bg: #ffffff;
-  --input-border: rgba(9, 9, 11, 0.12);
-  --btn-primary-bg: #000000;
-  --btn-primary-text: #ffffff;
-  --btn-secondary-bg: #f3f4f6;
-  --btn-secondary-hover: #e5e7eb;
-  --btn-secondary-border: #d1d5db;
+  --text-main: #1b1f1d;
+  --text-muted: #66706b;
+  --text-inverse: #f4f5f3;
+  --input-bg: #f4f5f3;
+  --input-border: #e1e5e2;
+  --btn-primary-bg: #1b1f1d;
+  --btn-primary-text: #f4f5f3;
+  --btn-secondary-bg: #eef1ef;
+  --btn-secondary-hover: #eef1ef;
+  --btn-secondary-border: #e1e5e2;
   
   --glow-opacity: 0;
   --glass-blur: 16px;
@@ -137,25 +138,24 @@ html, body {
   --grad-1: #ffffff;
   --grad-2: #a1a1aa; /* Light gray */
   --grad-3: #3f3f46; /* Medium gray */
-  --logo-color: #ffffff;
-  --bg-color: #09090b;
+  --logo-color: #e8ece9;
+  --bg-color: #111513;
   --bg-gradient: none;
-  --card-bg: rgba(24, 24, 27, 0.65);
-  --card-border: rgba(255, 255, 255, 0.08);
-  --card-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 
-                 inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --card-bg: #181d1b;
+  --card-border: #29302d;
+  --card-shadow: none;
   --highlight-border: rgba(255, 255, 255, 0.15);
   --highlight-shadow: rgba(0, 0, 0, 0.5);
-  --text-main: #f4f4f5;
-  --text-muted: #a1a1aa;
-  --text-inverse: #09090b;
-  --input-bg: rgba(9, 9, 11, 0.8);
-  --input-border: rgba(255, 255, 255, 0.08);
-  --btn-primary-bg: #ffffff;
-  --btn-primary-text: #000000;
-  --btn-secondary-bg: #18181b;
-  --btn-secondary-hover: #27272a;
-  --btn-secondary-border: #3f3f46;
+  --text-main: #e8ece9;
+  --text-muted: #9aa49f;
+  --text-inverse: #111513;
+  --input-bg: #111513;
+  --input-border: #29302d;
+  --btn-primary-bg: #e8ece9;
+  --btn-primary-text: #111513;
+  --btn-secondary-bg: #1f2522;
+  --btn-secondary-hover: #1f2522;
+  --btn-secondary-border: #29302d;
   --error-color: #f8fafc;
 
   --glow-opacity: 0.18;
@@ -1718,104 +1718,9 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 /* Mac/Desktop Hover States (Starts neutral, colors change only when hovered over) */
-@media (hover: hover) {
-  .action-star,
-  .star-unfollowed-btn,
-  .unstar-btn {
-    color: var(--text-muted) !important;
-  }
-  .action-star svg,
-  .star-unfollowed-btn svg,
-  .unstar-btn svg {
-    color: var(--text-main) !important;
-    stroke: var(--text-main) !important;
-    fill: none !important;
-  }
-  [data-theme="dark"] .action-star svg,
-  [data-theme="dark"] .star-unfollowed-btn svg,
-  [data-theme="dark"] .unstar-btn svg {
-    color: #ffffff !important;
-    stroke: #ffffff !important;
-  }
-  .action-star.starred svg {
-    fill: var(--text-main) !important;
-  }
-  [data-theme="dark"] .action-star.starred svg {
-    fill: #ffffff !important;
-  }
+/* (row icons keep their colour on hover too, never growing — the dashboard's
+   ✕: the hover-only neutral grey and the 1.15 grow are gone) */
 
-  .unfollow-starred-btn,
-  .action-delete,
-  .remove-unfollowed-btn,
-  .action-dismiss {
-    color: var(--text-muted) !important;
-  }
-  .unfollow-starred-btn svg,
-  .action-delete svg,
-  .remove-unfollowed-btn svg,
-  .action-dismiss svg {
-    color: var(--text-main) !important;
-    stroke: var(--text-main) !important;
-  }
-  [data-theme="dark"] .unfollow-starred-btn svg,
-  [data-theme="dark"] .action-delete svg,
-  [data-theme="dark"] .remove-unfollowed-btn svg,
-  [data-theme="dark"] .action-dismiss svg {
-    color: #ffffff !important;
-    stroke: #ffffff !important;
-  }
-
-  .action-arrow {
-    color: var(--text-muted) !important;
-  }
-  .action-arrow svg {
-    color: var(--text-main) !important;
-    stroke: var(--text-main) !important;
-  }
-  [data-theme="dark"] .action-arrow svg {
-    color: #ffffff !important;
-    stroke: #ffffff !important;
-  }
-
-  /* Hover color triggers */
-  .action-star:hover,
-  .star-unfollowed-btn:hover,
-  .unstar-btn:hover {
-    color: #f59e0b !important;
-    transform: scale(1.15) !important;
-  }
-  .action-star:hover svg,
-  .star-unfollowed-btn:hover svg,
-  .unstar-btn:hover svg {
-    color: #f59e0b !important;
-    stroke: #f59e0b !important;
-    fill: #f59e0b !important;
-  }
-
-  .unfollow-starred-btn:hover,
-  .action-delete:hover,
-  .remove-unfollowed-btn:hover,
-  .action-dismiss:hover {
-    color: #ef4444 !important;
-    transform: scale(1.15) !important;
-  }
-  .unfollow-starred-btn:hover svg,
-  .action-delete:hover svg,
-  .remove-unfollowed-btn:hover svg,
-  .action-dismiss:hover svg {
-    color: #ef4444 !important;
-    stroke: #ef4444 !important;
-  }
-
-  .action-arrow:hover {
-    color: #10b981 !important;
-    transform: scale(1.15) !important;
-  }
-  .action-arrow:hover svg {
-    color: #10b981 !important;
-    stroke: #10b981 !important;
-  }
-}
 
 /* -------------------------------------------------------------
  * Instagram Account Management Row & Chips
@@ -7257,4 +7162,352 @@ html.is-logged-in #auth-profile-view > .app-version {
    message goes just above it (it covered star / unfollow, and took their taps) */
 body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
   bottom: calc(24px + env(safe-area-inset-bottom, 0px) + 56px);
+}
+
+
+/* ============================================================
+   The financial dashboard's look, item by item (its index.html):
+   flat panels, its radii, pills, rows, inputs, pop-ups, menus,
+   empty texts, the bottom bar and the phone's spacing.
+   ============================================================ */
+
+/* Panels: solid, a 1px line, 12px corners — no glass, no shadow */
+.glass {
+  background: var(--card-bg) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+.card.glass,
+.auth-dropdown.glass {
+  border-radius: 12px !important;
+}
+
+/* Secondary buttons: see-through with the line; a hover only darkens the line */
+.btn-secondary,
+[data-theme="dark"] .btn-secondary {
+  background-color: transparent !important;
+  border: 1px solid var(--card-border) !important;
+  box-shadow: none !important;
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn-secondary:hover:not(:disabled),
+  [data-theme="dark"] .btn-secondary:hover:not(:disabled) {
+    background-color: transparent !important;
+    border-color: var(--text-muted) !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Count pills ("12 found", "40 loaded"): the dashboard's .pill — the page's
+   colour inside a hairline, muted words, fully round */
+#unfollowers-count,
+.badge.count-badge,
+.badge.result-badge,
+[data-theme="dark"] #unfollowers-count,
+[data-theme="dark"] .count-badge,
+[data-theme="dark"] .result-badge {
+  background: var(--bg-color) !important;
+  color: var(--text-muted) !important;
+  border: 0 !important;
+  box-shadow: inset 0 0 0 1px var(--card-border) !important;
+  border-radius: 999px !important;
+  font-weight: 500 !important;
+  height: calc(var(--fs-sm) * 1.5 + 4px) !important;
+  line-height: 1.5 !important;
+  padding: 0 10px !important;
+}
+/* The number squares: the text's own colours, never pure black / white */
+.card-num,
+[data-theme="dark"] .card-num {
+  background: var(--text-main) !important;
+  color: var(--bg-color) !important;
+  border-color: var(--text-main) !important;
+}
+
+/* Radii as the dashboard's: pills and chips round, fields and rows 10,
+   the search 8, small buttons 8, panels and pop-ups 12 */
+.badge,
+.toolbar-pill,
+.account-chip {
+  border-radius: 999px !important;
+}
+.user-row,
+.instructions-steps-nav,
+.account-modal-actions button,
+.account-modal-input-group input,
+.card-body textarea {
+  border-radius: 10px !important;
+}
+.search-box input {
+  border-radius: 8px !important;
+}
+.btn-sm {
+  border-radius: 8px !important;
+}
+
+/* Tab bars: 4px between tabs, 10px corners */
+.instructions-steps-nav {
+  gap: 4px !important;
+}
+
+/* The phone's switcher spans the column, its tabs sharing it */
+.app-grid > .mobile-list-nav .changes-nav {
+  width: 100% !important;
+  margin: 0 !important;
+}
+.app-grid > .mobile-list-nav .changes-nav .insights-tab {
+  flex: 1 0 auto;
+}
+
+/* Rows: 8px apart, 10px corners, the page's colour inside the panel */
+.user-row,
+[data-theme="dark"] .user-row {
+  margin-bottom: 8px !important;
+  background: var(--bg-color) !important;
+}
+
+/* Hovers and the picked account: colour only — no shadows, no blur */
+@media (hover: hover) {
+  .account-chip:hover,
+  [data-theme="dark"] .account-chip:hover {
+    box-shadow: none !important;
+    border-color: var(--text-muted) !important;
+  }
+}
+.account-chip,
+[data-theme="dark"] .account-chip {
+  box-shadow: none !important;
+}
+.account-chip.active,
+.account-chip.active:hover,
+[data-theme="dark"] .account-chip.active,
+[data-theme="dark"] .account-chip.active:hover {
+  background: rgba(16, 185, 129, 0.1) !important;
+  border-color: #10b981 !important;
+  color: #10b981 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/* Danger buttons: the secondary look with red words (the dashboard's
+   .danger-soft) — hovering never fills them red */
+.btn-danger-soft,
+[data-theme="dark"] .btn-danger-soft,
+#btn-modal-delete,
+[data-theme="dark"] #btn-modal-delete {
+  background: transparent !important;
+  border: 1px solid var(--card-border) !important;
+  color: #ef4444 !important;
+  box-shadow: none !important;
+}
+@media (hover: hover) {
+  .btn-danger-soft:hover:not(:disabled),
+  [data-theme="dark"] .btn-danger-soft:hover:not(:disabled),
+  #btn-modal-delete:hover,
+  [data-theme="dark"] #btn-modal-delete:hover,
+  #btn-confirm-ok:hover,
+  [data-theme="dark"] #btn-confirm-ok:hover {
+    box-shadow: none !important;
+  }
+  .btn-danger-soft:hover:not(:disabled),
+  [data-theme="dark"] .btn-danger-soft:hover:not(:disabled),
+  #btn-modal-delete:hover,
+  [data-theme="dark"] #btn-modal-delete:hover {
+    background: transparent !important;
+    color: #ef4444 !important;
+    border-color: var(--text-muted) !important;
+  }
+}
+/* (a list due its reset keeps its filled red button: it's a state) */
+.btn-danger-soft.reset-due,
+[data-theme="dark"] .btn-danger-soft.reset-due {
+  background: #ef4444 !important;
+  border-color: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+/* The search: the dashboard's — no glass, 7px 10px, the page's colour */
+.search-box input,
+[data-theme="dark"] .search-box input {
+  background: var(--bg-color) !important;
+}
+
+/* No focus ring on fields (the dashboard has none) */
+.search-box input:focus:not(:disabled),
+.card-body textarea:focus,
+.account-modal-input-group input:focus,
+[data-theme="dark"] .search-box input:focus:not(:disabled),
+[data-theme="dark"] .card-body textarea:focus,
+[data-theme="dark"] .account-modal-input-group input:focus {
+  border-color: var(--card-border) !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Pop-ups: the dashboard's head (its title 20px 600 on a 28px line, 10px
+   under it) and its fields and buttons */
+.account-modal-header {
+  align-items: flex-start !important;
+  margin-bottom: 10px !important;
+}
+.account-modal-header h3 {
+  font-size: var(--fs-xl) !important;
+  font-weight: 600 !important;
+  line-height: 28px !important;
+}
+.account-modal-input-group label {
+  margin-bottom: 4px !important;
+}
+.account-modal-input-group input,
+[data-theme="dark"] .account-modal-input-group input {
+  padding: 10px 12px !important;
+  background: var(--bg-color) !important;
+}
+.account-modal-actions button {
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0 16px !important;
+  box-shadow: none !important;
+}
+
+/* Menus: the dashboard's .dd-menu — 4px top and bottom, items full width,
+   10px 12px, a soft fill on hover */
+#add-account-dropdown-menu.dropdown-menu {
+  padding: 4px 0 !important;
+}
+#add-account-dropdown-menu .dropdown-item-btn {
+  padding: 10px 12px !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  transition: background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@media (hover: hover) {
+  #add-account-dropdown-menu .dropdown-item-btn:hover {
+    background: var(--btn-secondary-bg) !important;
+  }
+}
+
+/* Empty lists in list 3's panes: the dashboard's in-panel empty text */
+.results-container .dropdown-empty-message,
+.list3-alt-view .dropdown-empty-message {
+  font-size: var(--fs-base) !important;
+  padding: 24px 18px !important;
+}
+
+/* Things that come and go only ease their height and fade (no shape of
+   their own) */
+.account-mgmt-row.empty-chips,
+.keyboard-hints.hidden-hints {
+  transform: none !important;
+}
+
+/* The bottom bar on a phone, tightened as the dashboard's */
+@media (max-width: 30rem) {
+  .row-select-bar { gap: 2px; }
+  .row-select-bar button { padding: 0 8px; font-size: var(--fs-sm); }
+  .row-select-count { padding: 0 9.5px; font-size: var(--fs-sm); }
+}
+
+/* List 3's box: the panel's own white (its rows, in the page's colour,
+   stand out as the dashboard's rows do on their panel) */
+.results-container,
+[data-theme="dark"] .results-container {
+  background-color: var(--card-bg) !important;
+  border-color: var(--card-border) !important;
+}
+/* The unfollowed / starred / import files buttons: see-through on the
+   line, as the dashboard's block buttons */
+.preview-toggle,
+[data-theme="dark"] .preview-toggle {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: var(--card-border) !important;
+  box-shadow: none !important;
+}
+.preview-toggle.active,
+[data-theme="dark"] .preview-toggle.active {
+  border-color: var(--text-main) !important;
+  background: transparent !important;
+}
+/* The search: no magnifier, 7px 10px (the dashboard's) */
+.search-box .search-icon {
+  display: none !important;
+}
+.search-box input,
+[data-theme="dark"] .search-box input {
+  padding: 7px 10px !important;
+}
+/* The icon buttons beside it: the dashboard's round 32px buttons */
+.search-row > button,
+.search-row > .btn {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  background: var(--bg-color) !important;
+  border: 1px solid var(--card-border) !important;
+  box-shadow: none !important;
+  align-self: center;
+}
+/* (the empty, untappable ones too: no grey fill of their own) */
+.preview-toggle.is-empty,
+.preview-toggle:disabled,
+[data-theme="dark"] .preview-toggle.is-empty,
+[data-theme="dark"] .preview-toggle:disabled {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+/* The header: the app's glyph before its title, as the dashboard's brand
+   (1.05em, 12px from it), the title in the text's own colour */
+.header-logo .brand-glyph {
+  width: 1.05em;
+  height: 1.05em;
+  flex: none;
+  color: var(--text-main);
+  font-size: 2.25rem; /* (the title's size) */
+}
+@media (max-width: 640px) {
+  .header-logo .brand-glyph { font-size: 1.75rem; }
+}
+.header-logo h1,
+[data-theme="dark"] .header-logo h1 {
+  color: var(--text-main) !important;
+}
+/* The round account / settings button: the page's colour on the line */
+.icon-btn,
+#auth-btn,
+[data-theme="dark"] #auth-btn {
+  background: var(--bg-color) !important;
+  border-color: var(--card-border) !important;
+  box-shadow: none !important;
+  transition: background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+/* Pop-ups: 16px from the screen's sides (more past the notch), the window
+   the width that leaves */
+.modal-overlay {
+  padding-left: max(16px, env(safe-area-inset-left, 0px)) !important;
+  padding-right: max(16px, env(safe-area-inset-right, 0px)) !important;
+}
+.confirm-modal-box,
+.account-modal-card {
+  width: 100% !important;
+}
+/* Phones: the dashboard's 16px sides, 24px top, 12px between, and its
+   panels' 16px 18px */
+@media (max-width: 640px) {
+  .app-container {
+    padding-left: max(16px, calc(12px + env(safe-area-inset-left, 0px))) !important;
+    padding-right: max(16px, calc(12px + env(safe-area-inset-right, 0px))) !important;
+    padding-top: calc(24px + env(safe-area-inset-top, 0px)) !important;
+    gap: 12px !important;
+  }
+  .card-header {
+    padding: 16px 18px 4px !important;
+  }
+  .card-body {
+    padding: 12px 18px 16px !important;
+  }
 }
