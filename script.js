@@ -1448,7 +1448,12 @@ function countTo(num, from, to, format = fmtNum) {
     const w = drawn(xAt(i / N));
     if (Math.abs(w - level) > 0.01) { pts.push([i / N, extra + Math.max(w, level)]); level = w; }
   }
-  pts.push([1, endW]);
+  // (the last digit can go just before the count lands — 9 to 0 is its
+  // last few frames — and its width dropped in two frames, a little snap as
+  // it ended: the width takes at least ~200ms more after the last change,
+  // easing to rest, while the number has already landed)
+  const T = Math.max(1, pts[pts.length - 1][0] + 0.45);
+  pts.push([T, endW]);
   // (monotone cubic through the points: Fritsch–Carlson)
   const n = pts.length;
   const dx = [], sl = [], m = new Array(n).fill(0);
@@ -1463,12 +1468,13 @@ function countTo(num, from, to, format = fmtNum) {
   };
   const t0 = performance.now();
   const step = (now) => {
-    const t = Math.min(1, (now - t0) / ROW_MOTION_MS);
-    if (t >= 1 || !num.isConnected) { num._count = null; num.textContent = format(to); num.style.width = ''; return; }
+    const tw = Math.min(T, (now - t0) / ROW_MOTION_MS);
+    if (tw >= T || !num.isConnected) { num._count = null; num.textContent = format(to); num.style.width = ''; return; }
+    const t = Math.min(1, tw);
     const e = rowEase(t);
     c.shown = Math.round(from + (to - from) * e);
     num.textContent = format(c.shown);
-    num.style.width = `${Math.max(widthAt(t), extra + drawn(c.shown)) / k}px`;
+    num.style.width = `${Math.max(widthAt(tw), extra + drawn(c.shown)) / k}px`;
     c.raf = requestAnimationFrame(step);
   };
   num.textContent = format(from);
