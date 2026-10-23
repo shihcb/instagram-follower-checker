@@ -1908,6 +1908,7 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
   }
 
   if (filtered.length > 0) {
+    unpinResultsList(listEl);
     if (!elements.emptyState.classList.contains('hidden')) fadeGhostOut(elements.emptyState.querySelector('.dropdown-empty-message'));
     elements.emptyState.classList.add('hidden');
     elements.listUnfollowers.classList.remove('hidden');
@@ -1933,6 +1934,7 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
         if (!now.length) {
           listEl.innerHTML = '';
           listEl.classList.add('hidden');
+          unpinResultsList(listEl);
           showResultsEmpty(true);
           return;
         }
@@ -1954,10 +1956,15 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
   } else if ((animate && previousRows.size > 0) || keptExits.length > 0) {
     // Emptied out: keep the list visible just long enough for its rows to
     // slide out, then hide it as usual (unless something refilled it).
+    // A search's: the list laid over where it is while its rows pop out,
+    // "no matches" fading in under them at once (the dashboard's).
+    const crossing = rowPop && animate && !listWasHidden;
+    if (crossing) pinResultsList(listEl);
     listEl.innerHTML = '';
     elements.emptyState.classList.add('hidden');
     keptExits.forEach(row => listEl.appendChild(row));
     if (animate) animateResultsExits(listEl, previousRows);
+    if (crossing) showResultsEmpty(true);
     const hideWhenDone = () => {
       // Rows still sliding out (their slides start on the next frame, so
       // they can finish a little after 800ms): check again shortly.
@@ -1969,6 +1976,7 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
       // search that simply matches nothing).
       if (!listEl.querySelector('.user-row:not(.username-exit)')) {
         listEl.classList.add('hidden');
+        unpinResultsList(listEl);
         showResultsEmpty(true);
       }
     };
@@ -1980,10 +1988,37 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
     listEl.querySelectorAll('.user-row').forEach(stopRowMotion);
     listEl.innerHTML = '';
     elements.listUnfollowers.classList.add('hidden');
+    unpinResultsList(listEl);
     // Its last username just left (the list was showing): the text fades
     // in, the way it fades out — it used to snap into place.
     showResultsEmpty(!listWasHidden);
   }
+}
+
+// List 3 laid over its own place (its rows popping out) while the empty
+// text takes that place under it — and back in the flow.
+function pinResultsList(listEl) {
+  if (listEl._pin) return;
+  const was = {};
+  ['position', 'top', 'left', 'width', 'height', 'zIndex'].forEach(k => { was[k] = listEl.style[k]; });
+  // (measured exactly: offsetTop rounds to whole pixels; layout px, the
+  // guest preview being scaled down)
+  const parent = listEl.offsetParent || listEl.parentElement;
+  const r = listEl.getBoundingClientRect(), pr = parent.getBoundingClientRect();
+  const k = (r.height / listEl.offsetHeight) || 1;
+  const cs = getComputedStyle(listEl);
+  const box = {
+    top: (r.top - pr.top) / k - parent.clientTop + parent.scrollTop - (parseFloat(cs.marginTop) || 0),
+    left: (r.left - pr.left) / k - parent.clientLeft + parent.scrollLeft - (parseFloat(cs.marginLeft) || 0),
+    width: listEl.offsetWidth, height: listEl.offsetHeight
+  };
+  listEl._pin = was;
+  Object.assign(listEl.style, { position: 'absolute', top: `${box.top}px`, left: `${box.left}px`, width: `${box.width}px`, height: `${box.height}px`, zIndex: '1' });
+}
+function unpinResultsList(listEl) {
+  if (!listEl._pin) return;
+  Object.assign(listEl.style, listEl._pin);
+  listEl._pin = null;
 }
 
 // How many of list 3's rows to build straight away: enough to fill what
@@ -2201,10 +2236,12 @@ function reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, rename
       return;
     }
     if (!animate || offScreen(top, height)) return;
-    slideRowIn(row, height, DURATION); // its own height (the dashboard's row slide)
+    if (rowPop) popRowIn(row);
+    else slideRowIn(row, height, DURATION); // its own height (the dashboard's row slide)
   });
   leaving.forEach(row => {
-    slideRowOut(row, before.get(row).height, DURATION, () => row.remove());
+    if (rowPop) popRowOut(row, () => row.remove());
+    else slideRowOut(row, before.get(row).height, DURATION, () => row.remove());
   });
   stepRowMotion();
   return cut; // where the rest of the rows start (appendRowTail)
@@ -2240,7 +2277,8 @@ function animateResultsExits(listEl, previousRows) {
     row.style.margin = '0';
     row.style.zIndex = '1';
     listEl.appendChild(row);
-    slideRowOut(row, row.offsetHeight, DURATION, () => row.remove());
+    if (rowPop) popRowOut(row, () => row.remove());
+    else slideRowOut(row, row.offsetHeight, DURATION, () => row.remove());
   });
   stepRowMotion();
 }
@@ -2281,7 +2319,8 @@ function animateResultsReentry(listEl, previousTops, resumeTops = new Map(), { e
       // New to the list: slide down into place from its own height above,
       // emerging from its own slot's top edge from the first frame (the
       // dashboard's row slide; see slideRowIn).
-      slideRowIn(row, row.offsetHeight, DURATION);
+      if (rowPop) popRowIn(row);
+      else slideRowIn(row, row.offsetHeight, DURATION);
       return;
     }
     // Already here: FLIP from where it was to where it is now (skipping
@@ -4313,6 +4352,27 @@ function slideRowIn(rowEl, distance, duration) {
   queueRowMotionFlush();
 }
 
+// A search's rows (the financial dashboard's search): the matches that stay
+// glide to their new places, a row the search brings pops in from 14px down
+// at 95% as it fades in, one it hides pops out the same way. rowPop is on
+// only while a search redraws list 3.
+let rowPop = false;
+function popRowIn(rowEl) {
+  if (!canAnimate(rowEl)) return;
+  rowEl.animate([{ opacity: 0, transform: 'translateY(14px) scale(0.95)' }, { opacity: 1, transform: 'none' }], { ...MOTION, fill: 'backwards' });
+}
+function popRowOut(rowEl, onDone) {
+  let done = false;
+  const finish = () => { if (done) return; done = true; onDone(); };
+  const ty = new DOMMatrixReadOnly(getComputedStyle(rowEl).transform).m42 || 0;
+  stopRowMotion(rowEl);
+  onRowExitStarted(rowEl);
+  if (!canAnimate(rowEl)) { finish(); return; }
+  rowEl.animate([{ opacity: 1, transform: `translateY(${ty}px)` }, { opacity: 0, transform: `translateY(${ty + 14}px) scale(0.95)` }], { ...MOTION, fill: 'forwards' })
+    .finished.then(finish, finish);
+  setTimeout(finish, ROW_MOTION_MS + 1000); // (frames not coming: a hidden tab)
+}
+
 // Drops all motion from el and clears what it wrote.
 function stopRowMotion(el) {
   const m = rowMotion.get(el);
@@ -5454,9 +5514,15 @@ function updateInstructionsStepUI() {
 }
 
   // Realtime search filtering
+  // (the financial dashboard's: a moment after typing stops, the rows glide
+  // and pop — see popRowIn)
+  const searchResults = debounce(() => {
+    rowPop = true;
+    try { updateResultsUI({ animate: true }); } finally { rowPop = false; }
+  }, 140);
   elements.searchUnfollowers.addEventListener('input', () => {
     state.selectedIndex = -1; // Reset keyboard selection on search query change
-    updateResultsUI();
+    searchResults();
   });
 
 
