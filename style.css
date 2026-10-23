@@ -123,7 +123,10 @@ html, body {
   --glow-opacity: 0;
   --glass-blur: 16px;
   
-  --success-color: #10b981;
+  /* The one green: the financial dashboard's accent (its banks bar, its
+     "working"), in light and dark. */
+  --accent: #23634a;
+  --success-color: var(--accent);
   --error-color: #0f172a;
   --warning-color: #f59e0b;
 
@@ -135,6 +138,7 @@ html, body {
 
 [data-theme="dark"] {
   /* Dark Theme variables */
+  --accent: #6cc39b;
   --grad-1: #ffffff;
   --grad-2: #a1a1aa; /* Light gray */
   --grad-3: #3f3f46; /* Medium gray */
@@ -1220,8 +1224,8 @@ button:disabled *,
   display: inline-block !important;
   height: 6px !important;
   border-radius: 50% !important;
-  background-color: #10b981 !important;
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.5) !important;
+  background-color: var(--accent) !important;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 50%, transparent) !important;
   vertical-align: middle !important;
   flex-shrink: 0 !important;
   /* Always in the label; .on (list not empty) grows it in with a small
@@ -1710,11 +1714,11 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 .action-arrow {
-  color: #10b981 !important;
+  color: var(--accent) !important;
 }
 .action-arrow svg {
-  color: #10b981 !important;
-  stroke: #10b981 !important;
+  color: var(--accent) !important;
+  stroke: var(--accent) !important;
 }
 
 /* Mac/Desktop Hover States (Starts neutral, colors change only when hovered over) */
@@ -1837,15 +1841,15 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 .account-chip.active {
-  background: rgba(16, 185, 129, 0.12) !important;
-  border-color: #10b981 !important;
-  color: #10b981 !important;
-  box-shadow: 0 3px 12px -2px rgba(16, 185, 129, 0.25), 0 1px 4px -1px rgba(16, 185, 129, 0.15) !important;
+  background: color-mix(in srgb, var(--accent) 12%, transparent) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+  box-shadow: 0 3px 12px -2px color-mix(in srgb, var(--accent) 25%, transparent), 0 1px 4px -1px color-mix(in srgb, var(--accent) 15%, transparent) !important;
   transition: background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .account-chip.active:hover {
-  border-color: #10b981 !important;
+  border-color: var(--accent) !important;
 }
 
 [data-theme="dark"] .account-chip {
@@ -1853,15 +1857,15 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 [data-theme="dark"] .account-chip.active {
-  background: rgba(16, 185, 129, 0.18) !important;
-  border-color: #34d399 !important;
-  color: #34d399 !important;
-  box-shadow: 0 3px 14px -2px rgba(52, 211, 153, 0.3), 0 1px 5px -1px rgba(52, 211, 153, 0.2) !important;
+  background: color-mix(in srgb, var(--accent) 18%, transparent) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+  box-shadow: 0 3px 14px -2px color-mix(in srgb, var(--accent) 30%, transparent), 0 1px 5px -1px color-mix(in srgb, var(--accent) 20%, transparent) !important;
   transition: background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 [data-theme="dark"] .account-chip.active:hover {
-  border-color: #34d399 !important;
+  border-color: var(--accent) !important;
 }
 
 .account-chip,
@@ -2424,13 +2428,13 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 .export-option-row.active {
-  background-color: rgba(16, 185, 129, 0.12) !important;
+  background-color: color-mix(in srgb, var(--accent) 12%, transparent) !important;
   color: var(--text-main) !important;
   font-weight: 600;
 }
 
 [data-theme="dark"] .export-option-row.active {
-  background-color: rgba(52, 211, 153, 0.18) !important;
+  background-color: color-mix(in srgb, var(--accent) 18%, transparent) !important;
   color: #ffffff !important;
 }
 
@@ -2464,12 +2468,12 @@ body.hide-shortcuts #keyboard-hints {
 }
 
 .option-sub.highlight {
-  color: #059669;
+  color: var(--accent);
   font-weight: 600;
 }
 
 [data-theme="dark"] .option-sub.highlight {
-  color: #34d399;
+  color: var(--accent);
 }
 
 .export-settings-pills {
@@ -2494,11 +2498,11 @@ body.hide-shortcuts #keyboard-hints {
 
 .export-pill strong {
   font-weight: 600;
-  color: #10b981;
+  color: var(--accent);
 }
 
 [data-theme="dark"] .export-pill strong {
-  color: #34d399;
+  color: var(--accent);
 }
 
 .instructions-step-list {
@@ -3329,8 +3333,8 @@ body.is-capacitor.auth-logged-out #theme-toggle {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background-color: #22c55e;
-  box-shadow: 0 2px 4px rgba(34, 197, 94, 0.3);
+  background-color: var(--accent);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--accent) 30%, transparent);
   border: none !important;
   display: flex;
   align-items: center;
@@ -4179,8 +4183,8 @@ body:not(.auth-logged-out) #theme-toggle {
 .auth-success {
   padding: 10px 12px;
   border-radius: 8px;
-  background-color: rgba(16, 185, 129, 0.06);
-  border: 1px solid rgba(16, 185, 129, 0.12);
+  background-color: color-mix(in srgb, var(--accent) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
   color: var(--success-color);
   font-size: var(--fs-sm);
   text-transform: lowercase;
@@ -5023,9 +5027,9 @@ button:focus-visible,
   cursor: not-allowed;
 }
 .toolbar-pill.on {
-  border-color: #10b981;
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.1);
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 .toolbar-pill.pill-hidden {
   display: none;
@@ -5077,9 +5081,9 @@ button:focus-visible,
 }
 #list-unfollowers .user-row.multi-selected,
 .results-extra .user-row.multi-selected {
-  border-color: #10b981 !important;
-  background: rgba(16, 185, 129, 0.08) !important;
-  box-shadow: 0 0 0 1px #10b981 inset;
+  border-color: var(--accent) !important;
+  background: color-mix(in srgb, var(--accent) 8%, transparent) !important;
+  box-shadow: 0 0 0 1px var(--accent) inset;
 }
 /* Bulk bar: the instructions tab switcher's bar and tabs; the count sits
    on the white highlight, star amber, unfollow red. */
@@ -5238,7 +5242,7 @@ body.select-active #card-followers {
   line-height: 1;
   border-radius: calc(var(--radius) - 5px);
   border: none;
-  background: #10b981;
+  background: var(--accent);
   color: #ffffff;
   font-size: var(--fs-md);
   font-weight: 600;
@@ -5438,8 +5442,8 @@ body.select-active #card-followers {
 .trend-bar {
   flex: 1 1 0;
   border-radius: 7px 7px 3px 3px;
-  background: color-mix(in srgb, var(--bar, #2f9e7e) 26%, transparent);
-  border: 1px solid color-mix(in srgb, var(--bar, #2f9e7e) 70%, transparent);
+  background: color-mix(in srgb, var(--bar, var(--accent)) 26%, transparent);
+  border: 1px solid color-mix(in srgb, var(--bar, var(--accent)) 70%, transparent);
   border-bottom: none;
   box-sizing: border-box;
   transform-origin: bottom;
@@ -5577,8 +5581,8 @@ body.select-active #card-followers {
   transition: border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .export-option.on {
-  border-color: #10b981;
-  background: rgba(16, 185, 129, 0.08);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 /* The other side (stats image vs lists) while one is picked: greyed out. */
 .export-option.muted {
@@ -5597,8 +5601,8 @@ body.select-active #card-followers {
   transition: background-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1), transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .export-option.on .export-check {
-  background: #10b981;
-  border-color: #10b981;
+  background: var(--accent);
+  border-color: var(--accent);
   color: #ffffff;
 }
 /* (no press shrink on the tick, as the financial dashboard's) */
@@ -6793,7 +6797,7 @@ b, strong {
   width: 0;
   overflow: hidden;
   vertical-align: -.12em;
-  color: #10b981;
+  color: var(--accent);
   opacity: 0;
   transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), margin 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -6862,7 +6866,7 @@ b, strong {
 .feature-toast-slot > .feature-toast-btn { margin-left: 6px; }
 .feature-toast-btn {
   background: transparent;
-  color: #10b981;
+  color: var(--accent);
   font-size: var(--fs-sm);
   font-weight: 600;
   padding: 0 10px;
@@ -7284,9 +7288,9 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
 .account-chip.active:hover,
 [data-theme="dark"] .account-chip.active,
 [data-theme="dark"] .account-chip.active:hover {
-  background: rgba(16, 185, 129, 0.1) !important;
-  border-color: #10b981 !important;
-  color: #10b981 !important;
+  background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;

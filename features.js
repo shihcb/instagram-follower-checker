@@ -1993,12 +1993,14 @@
   // Stats: six boxes, each with its own color, and a bar per box in the
   // graph below in the same color. No data yet: a greyed-out example graph.
   // A calm, professional palette; a box and its bar share one.
-  const STAT_COLORS = ['#4f7fe8', '#2f9e7e', '#7b6ee6', '#d6588f', '#e0604f', '#dd9a2b'];
+  const STAT_COLORS = ['#4f7fe8', 'var(--accent)', '#7b6ee6', '#d6588f', '#e0604f', '#dd9a2b'];
   let poppedStat = -1; // the box tapped: its bar stays popped out
   const MOCK_HEIGHTS = [60, 85, 70, 40, 55, 30];
   const chartHtml = (heights, mock) => `<div class="trend-chart${mock ? ' trend-mock' : ''}"${mock ? ' aria-hidden="true"' : ''}>${heights.map((h, i) =>
     `<div class="trend-bar" style="height:${h}%;--bar:${STAT_COLORS[i]}"></div>`).join('')}</div>`;
   const asUsers = (names) => names.map(n => ({ username: n, originalUsername: n }));
+  // (a colour as drawn: the accent's own value, light or dark, for the export's picture)
+  const solidColor = (c) => (String(c).startsWith('var(') ? getComputedStyle(document.documentElement).getPropertyValue(c.slice(4, -1)).trim() || '#23634a' : c);
   const stat = (value, label, i) => `<div class="insights-stat" tabindex="0" role="button" style="--stat:${STAT_COLORS[i]}"><div class="insights-stat-value">${typeof value === 'number' ? fmtNum(value) : value}</div><div class="insights-stat-label">${label}</div></div>`;
 
   // ---------- stats: timeline ----------
@@ -3286,10 +3288,10 @@
     values.forEach((v, i) => {
       const x = P + (i % 3) * (bw + gap), y = top + Math.floor(i / 3) * (bh + gap);
       roundRect(ctx, x, y, bw, bh, 26);
-      ctx.fillStyle = hexA(STAT_COLORS[i], dark ? 0.12 : 0.07);
+      ctx.fillStyle = hexA(solidColor(STAT_COLORS[i]), dark ? 0.12 : 0.07);
       ctx.fill();
       ctx.lineWidth = 3;
-      ctx.strokeStyle = hexA(STAT_COLORS[i], 0.7);
+      ctx.strokeStyle = hexA(solidColor(STAT_COLORS[i]), 0.7);
       ctx.stroke();
       ctx.fillStyle = C.text;
       ctx.font = `800 64px ${display}`;
@@ -3306,7 +3308,7 @@
       const bhh = Math.max(10, gh * h / 100), x = P + i * (barW + barGap), y = gBottom - bhh;
       const r = Math.min(18, bhh, barW / 2);
       roundRect(ctx, x, y, barW, bhh, [r, r, 0, 0]);
-      ctx.fillStyle = hexA(STAT_COLORS[i], 0.26);
+      ctx.fillStyle = hexA(solidColor(STAT_COLORS[i]), 0.26);
       ctx.fill();
       // Outlined like the app's bars: the top and sides, open at the bottom.
       ctx.beginPath();
@@ -3315,7 +3317,7 @@
       ctx.lineTo(x + barW - r, y); ctx.quadraticCurveTo(x + barW, y, x + barW, y + r);
       ctx.lineTo(x + barW, gBottom);
       ctx.lineWidth = 3;
-      ctx.strokeStyle = hexA(STAT_COLORS[i], 0.7);
+      ctx.strokeStyle = hexA(solidColor(STAT_COLORS[i]), 0.7);
       ctx.stroke();
     });
 
