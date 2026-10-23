@@ -1429,13 +1429,10 @@ function countWidths(num, from, to) {
   const lo = Math.min(drawnOf(from), drawnOf(to)), hi = Math.max(drawnOf(from), drawnOf(to));
   return (x, e) => extra + Math.min(hi, Math.max(lo, drawnOf(x), smoothW(x) - offFrom * (1 - e) - offTo * e));
 }
-// A count pill ("12 found"): the number counts to its new value while the
-// pill eases to its new width, and the word never moves at all. They're two
-// parts — the number, the only thing rewritten, and the word, written once —
-// pinned to the pill's right edge (in a card's header it's the edge that
-// stays: the pill grows to the left). (Rewritten whole each frame and
-// centred, then pinned by a guess at which edge stayed, "found" slid 0.7px
-// on a phone, 6.7px on a computer, and again as each count ended.)
+// A count pill ("12 found"): the number counts to its new value and its
+// own width eases with it (countWidths: the financial dashboard's count),
+// so the word beside it and the pill's edge glide over as it widens or
+// narrows — never a jump as a digit or a comma comes or goes.
 function setCountBadge(el, n, word) {
   if (!el) return;
   let num = el.querySelector(':scope > .count-num');
@@ -1454,50 +1451,27 @@ function setCountBadge(el, n, word) {
   if (el._countRaf) { cancelAnimationFrame(el._countRaf); el._countRaf = null; }
   // (one appearing counts up from 0, like the dashboard's counts)
   const from = Number.isFinite(el._countNow) ? el._countNow : (readNum(num.textContent) || 0);
-  // From the width it's drawn at (mid-ease too) to the one the new number needs
-  const startWidth = Number.isFinite(el._countWidth) ? el._countWidth : el.getBoundingClientRect().width;
-  el.style.transition = 'none';
+  // From the width it's drawn at (mid-count too) to the one the new number needs
+  const startW = Number.isFinite(el._countWidth) ? el._countWidth : num.getBoundingClientRect().width;
+  num.style.width = '';
   el.style.width = '';
   el.style.clipPath = el.style.webkitClipPath = '';
   num.textContent = fmtNum(n);
-  const endWidth = el.getBoundingClientRect().width;
+  const endW = num.getBoundingClientRect().width;
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const settle = () => {
     el._countNow = undefined;
     el._countWidth = undefined;
     el._countRaf = null;
     num.textContent = fmtNum(n);
-    el.style.transition = '';
-    el.style.width = '';
-    el.style.clipPath = el.style.webkitClipPath = '';
+    num.style.width = '';
   };
-  if (from === n || !startWidth || !endWidth || reduced || !el.isConnected) { settle(); return; }
-  // Screen size to layout size (the guest preview draws the app a hair
-  // smaller: set as measured, the pill snapped 0.7px narrower first)
-  el.style.width = `${endWidth}px`;
-  const k = el.getBoundingClientRect().width / endWidth || 1;
-  // The pill's box doesn't change size while it counts: it's set at the
-  // wider of the two widths at once, and only a rounded clip eases from
-  // the old width to the new. (Resized every frame, the box's left edge
-  // landed on a different part of a pixel each time, and the iPhone drew
-  // the words inside it a shade to one side or the other — "found"
-  // shifted as list 3 counted down on a clear and back up on its undo.)
-  const box = Math.max(startWidth, endWidth) / k;
-  el.style.width = `${box}px`;
-  const clip = (w) => {
-    el._countWidth = w;
-    el.style.clipPath = el.style.webkitClipPath = `inset(0 0 0 ${box - w / k}px round 99px)`;
-  };
-  // The width follows the number, not the clock: the digits come early
-  // (0 to 108 is three digits a third of the way across), so the pill is
-  // as wide as the number on show needs, its digit count taken smoothly
-  // (log10) so it glides — and never waits a frame behind, the number up
-  // against its edge, nor holds the number back.
-  const numEnd = num.getBoundingClientRect().width;
-  const numW = countWidths(num, from, n);
-  const base = endWidth - numEnd;
-  const lo = Math.min(startWidth, endWidth), hi = Math.max(startWidth, endWidth);
-  const widthFor = (x, e) => Math.min(hi, Math.max(lo, base + numW(x, e)));
+  if (from === n || !endW || reduced || !el.isConnected) { settle(); return; }
+  // Screen size to layout size (the guest preview draws the app scaled)
+  const k = num.offsetWidth ? endW / num.offsetWidth : 1;
+  const widthAt = countWidths(num, from, n);
+  // (picked up mid-count: eased from the width it was drawn at)
+  const fix = startW - widthAt(from, 0);
   const t0 = performance.now();
   const step = (now) => {
     const t = Math.min(1, (now - t0) / COUNT_MS);
@@ -1505,13 +1479,14 @@ function setCountBadge(el, n, word) {
     const x = from + (n - from) * e;
     el._countNow = Math.round(x);
     num.textContent = fmtNum(el._countNow);
-    const w = t < 1 ? widthFor(x, e) : endWidth;
-    clip(w);
+    const w = widthAt(x, e) + fix * (1 - e);
+    el._countWidth = w;
+    num.style.width = `${w / k}px`;
     if (t < 1 && el.isConnected) el._countRaf = requestAnimationFrame(step);
     else settle();
   };
   num.textContent = fmtNum(from);
-  clip(startWidth);
+  num.style.width = `${startW / k}px`;
   el._countRaf = requestAnimationFrame(step);
 }
 

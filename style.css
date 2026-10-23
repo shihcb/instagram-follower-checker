@@ -7078,7 +7078,13 @@ b, strong {
 /* A number counting (countNum in features.js): figures all one width, so
    it doesn't jitter as it counts; its width glides to the final number's. */
 .count-num {
+  display: inline-block;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   text-align: center;
+}
+/* (in a count pill the figures keep to the word after them as the
+   number's width eases) */
+.badge .count-num {
+  text-align: right;
 }
