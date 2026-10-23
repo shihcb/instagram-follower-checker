@@ -6,7 +6,7 @@ const CACHE = 'ig-checker-v5';
 // The app's own files are kept from the first visit (they used to be kept
 // only from the second: opened offline after one visit, the installed app
 // was the browser's error page). A file that can't be fetched is skipped.
-const APP_FILES = ['./', './index.html', './style.css', './script.js', './features.js', './manifest.json', './fonts/ledger-serif.woff2?v=3', './vendor/supabase-2.118.0.js'];
+const APP_FILES = ['./', './index.html', './style.css', './script.js', './features.js', './manifest.json', './fonts/ledger-serif.woff2?v=4', './vendor/supabase-2.118.0.js'];
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(caches.open(CACHE).then(cache => Promise.all(APP_FILES.map(url => cache.add(url).catch(() => {})))));

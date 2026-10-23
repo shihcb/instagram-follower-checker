@@ -86,10 +86,10 @@ uses the same glyph.
 The app's font is the financial dashboard's Ledger Serif, `fonts/ledger-serif.woff2`
 ('Ledger Serif', in `--font-sans` / `--font-display`) — Source Serif 4 with
 its letters drawn higher in their line (line heights and baselines
-unchanged): the dashboard's 0.06em, and here 0.025em more (0.085em in
-all) — the words' middle looks centred in every button, pill, tab and
-badge (0.11em put the small letters' middle exactly centred, but their
-tall letters made the words read high on the iPhone).
+unchanged): 0.06em, the dashboard's very file — the words look centred
+in every button, pill, tab and badge. (0.085em and 0.11em centred the
+small letters' middle exactly, but the tall letters — h, l, d, b, @ —
+made the words read high on the iPhone: don't raise it further.)
 Buttons and boxes take an exact line height — 1.4 (the browser's `normal`
 put this serif's extra gap all under the words), 22px for 15px words (21
 rounds them ¾px low); count pills have a set height with the 1.4 line
