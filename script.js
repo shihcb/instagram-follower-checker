@@ -5832,7 +5832,10 @@ function updateInstructionsStepUI() {
   }
 
   // Sync Folder Feature using File System Access API
-  async function scanLocalDirectory() {
+  async function scanLocalDirectory(e) {
+    // (done: a check after the list's title for a moment — the dashboard's
+    // doneCheck — instead of a "folder imported" pop-up)
+    const title = e && e.currentTarget && e.currentTarget.querySelector ? e.currentTarget.querySelector('h2') : null;
     if (typeof window.showDirectoryPicker !== 'function') {
       await showSiteAlert('folder couldn’t be opened', 'this browser can’t pick folders — use chrome, edge or opera on a computer, or upload the zip or its files instead');
       return;
@@ -5850,7 +5853,7 @@ function updateInstructionsStepUI() {
         if (entry.kind === 'file') files.push(await entry.getFile());
       }
       const importedAny = await processImportFiles(files, true);
-      if (importedAny) await showSiteAlert('folder imported', 'the files in your folder were imported');
+      if (importedAny) doneCheck(title);
     } catch (err) {
       if (err.name !== 'AbortError') {
         console.error(err);
@@ -7880,7 +7883,7 @@ function updateResetReminderUI() {
   if (!importedAtRaw) {
     box.classList.remove('overdue');
     swapText(valueEl, 'not started');
-    swapText(detailEl, 'import your files to start the weekly reminder');
+    swapText(detailEl, ''); // (labels and buttons only: "not started" says it)
     fillEl.style.width = '0%';
     return;
   }

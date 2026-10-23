@@ -6900,3 +6900,37 @@ b, strong {
 
 /* ---- select bar: "N selected" — the number counts in a span of its own ---- */
 .row-select-count .count-num { font-variant-numeric: tabular-nums; }
+
+/* Labels and buttons only (the financial dashboard's rule): a status line
+   with nothing to say takes no room */
+.setting-desc:empty { display: none; }
+
+/* The toast is the select bar's own bar (the financial dashboard's undo
+   bar): page background, a thin line, 4px in; its words small and muted,
+   its button plain in the accent colour. It was a dark inverted block. */
+.feature-toast {
+  gap: 6px;
+  padding: 4px;
+  border-radius: var(--radius);
+  background: var(--bg-color);
+  color: var(--text-muted);
+  border: 1px solid var(--input-border);
+  box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.22);
+  font-size: var(--fs-sm);
+  font-weight: 400;
+}
+.feature-toast.no-action { padding: 4px; }
+.feature-toast-text { padding: 0 8px 0 10px; line-height: 32px; }
+.feature-toast-slot { margin-left: -6px; } /* (the bar's 6px gap lives inside the slot) */
+.feature-toast-slot > .feature-toast-btn { margin-left: 6px; }
+.feature-toast-btn {
+  background: transparent;
+  color: #10b981;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  padding: 0 10px;
+}
+.feature-toast.warn { background: var(--bg-color); color: #d97706; }
+[data-theme="dark"] .feature-toast {
+  background: linear-gradient(var(--card-bg), var(--card-bg)), var(--bg-color); /* (solid, like the select bar) */
+}

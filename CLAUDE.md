@@ -54,6 +54,19 @@ never wrapped, never "…". With the
 phone's Reduce Motion on, everything goes straight to where it's headed
 (spinners keep turning). These come from the financial dashboard.
 
+## Labels and buttons only (the financial dashboard's conventions)
+
+No helper or caption text under features — labels and buttons only (a
+status line that changes, like "last synced …", is fine; with nothing to
+say it takes no room). Text sizes are only the `--fs-*` steps (sm 11.5,
+md 13, base 15, lg 17, xl 20; only the big display figures above them),
+weights 400 / 500 titles / 600 labels and buttons. Small buttons are one
+size (24px, `.btn-sm`). Wording is lowercase, no full stops or "!",
+failures as "… couldn’t be …", months in full ("october 20"), numbers with
+thousands separators. Changing text fades across (swapText), counts count;
+a finished action shows a check after its button's words (doneCheck), never
+a pop-up saying it's done. The toast is the select bar's own bar.
+
 ## Text centred in buttons — the app's font
 
 The app's font is `fonts/jakarta-centered.woff2` ('Jakarta Centered', in

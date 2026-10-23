@@ -614,7 +614,7 @@
     const fill = document.getElementById('saved-imports-fill');
     if (!log.length) {
       set('saved-imports-value', 'not started');
-      set('saved-imports-detail', 'import your files to start saving them');
+      set('saved-imports-detail', ''); // (labels and buttons only: "not started" says it)
       set('saved-imports-count', '');
       if (fill) fill.style.width = '0%';
       box.classList.add('empty');
@@ -1082,7 +1082,7 @@
     if (driveSync) return;
     const at = Number(storageGet('drive_checked')) || 0;
     const when = sameDay(at, Date.now()) ? 'today' : longDate(at);
-    setDriveDesc(on ? (at ? `last synced ${when}` : 'connected') : "import instagram's daily exports from your drive");
+    setDriveDesc(on ? (at ? `last synced ${when}` : 'connected') : ''); // (off: just its label and button)
   }
   function setupDrive() {
     const btn = document.getElementById('drive-sync-btn');
@@ -1886,7 +1886,7 @@
   // their stat boxes' colors. Before a second import: a greyed-out example,
   // like the overview's graph.
   const MOCK_TIMELINE = [[40, 52], [46, 55], [44, 61], [52, 64], [55, 72], [58, 77]]; // [following, followers]
-  const shortDate = (t) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).toLowerCase();
+  const shortDate = (t) => new Date(t).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }).toLowerCase(); // (months in full, as everywhere)
   // Each date keeps its time, so a change can roll it to the new one.
   const dateSpans = (times) => times.map(t => `<span data-t="${Math.round(t)}">${shortDate(t)}</span>`).join('');
   function timelineHtml(key) {
@@ -2078,7 +2078,7 @@
       html = userRowsHtml(state.following.filter(u => fset.has(u.username)), 'no mutual accounts yet');
     } else if (currentView === 'fans') {
       const fset = followingSet();
-      html = `<div class="insights-sub">they follow you, but you don't follow them back</div>${userRowsHtml(state.followers.filter(u => !fset.has(u.username)), 'no fan accounts yet')}`;
+      html = `${userRowsHtml(state.followers.filter(u => !fset.has(u.username)), 'no fan accounts yet')}`;
     } else if (currentView === 'compare') {
       let accounts = state.instagramAccounts.filter(a => !isDemoAccount(a));
       // The demo compares itself with a made-up second account.
@@ -2982,7 +2982,6 @@
       exportOverlay.innerHTML = `
         <div class="account-modal-card glass export-card">
           <div class="account-modal-header"><h3>export</h3><button class="modal-close-btn" type="button" aria-label="close" data-exp="cancel"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg></button></div>
-          <div class="insights-sub">choose the lists you want to download as a spreadsheet (csv), and the stats image if you want it</div>
           <div class="export-options"></div>
           <button class="export-option export-image" data-exp="image">
             <span class="export-check"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
