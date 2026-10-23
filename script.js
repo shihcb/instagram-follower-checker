@@ -827,9 +827,10 @@ function parseHTML(text) {
         let username = a.textContent.trim();
         
         if (!username || username.includes(' ') || !isValidUsername(username)) {
-          const parts = href.split('/').filter(Boolean);
-          const possibleUser = parts[parts.length - 1]?.split('?')[0];
-          if (possibleUser && isValidUsername(possibleUser)) {
+          // (read from the link's path: "instagram.com/name/?hl=en" ended
+          // in "?hl=en", and the account was dropped)
+          const possibleUser = usernameFromProfileHref(href);
+          if (possibleUser) {
             username = possibleUser;
           } else {
             return;
@@ -8321,7 +8322,7 @@ clearDemoData();
 if (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === DEMO_ID) state.selectedAccountUsername = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-  if ((window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) || window.matchMedia('(display-mode: standalone)').matches) {
+  if ((window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) || window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
     document.body.classList.add('is-capacitor');
   }
   normalizeInstagramAccounts();
