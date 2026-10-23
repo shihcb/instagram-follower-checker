@@ -72,10 +72,12 @@ a pop-up saying it's done. The toast is the select bar's own bar.
 The app is called **Instagram by S** (written just so: page title, home
 screen name, manifest, the iPhone app, the landing page and log-in card).
 Its icon follows the financial dashboard's icon rules: a 1024px square of
-one flat colour (the app's near-black, #09090b — iOS rounds the corners
-itself), one white line glyph from the app's own icon set (person with a
-check), stroke 2 on the 24-unit grid with round ends, drawn 32x and centred
-— no gradient, shadow or text. `images/app-icon.png` (1024, also the iPhone
+one flat colour (a deep shade of the app's green, #047857 — iOS rounds the
+corners itself), one white line glyph, stroke 2 on the 24-unit grid with
+round ends, drawn 32x and centred — no gradient, shadow or text. The glyph
+is "one-way": an arrow goes out to them, the one coming back stops short,
+a dot where its arrowhead should be (`M3 10.25h16`, `m15.5 6.75 3.5 3.5-3.5
+3.5`, `M21 17.25H11`, `M6.5 17.25h0`). `images/app-icon.png` (1024, also the iPhone
 app's AppIcon) and `images/apple-touch-icon.png` (180); the landing logo
 uses the same glyph.
 
