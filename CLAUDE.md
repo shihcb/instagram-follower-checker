@@ -17,6 +17,9 @@ busts the browser cache and makes the version number go up, so the user can
 tell whether a device has the latest update. Never merge a change to
 `style.css`, `script.js` or `features.js` without bumping its tag.
 
+After a push, tell the owner only the version number settings shows (the
+sum: "version 1,166") — never the separate `?v=` tags or a commit hash.
+
 ## Always push to `main`
 
 When a change is done, commit it and push it straight to `main` (after
