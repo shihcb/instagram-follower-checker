@@ -6306,6 +6306,7 @@ function updateInstructionsStepUI() {
 // Supabase Cloud Authentication & Data Sync (Option B)
 // -------------------------------------------------------------
 let currentUser = null;
+let holdAuthButtonRelease = null; // (lets go of the log-in button's spinner once the app is in: holdAuthButton)
 // Set while the user's own "log out" is in progress — any other report of
 // no session is treated as temporary (see handleAuthChange).
 let userRequestedLogout = false;
@@ -6736,6 +6737,7 @@ function initAuth() {
               }
               showProfileView();
               playAppEntrance();
+              if (holdAuthButtonRelease) holdAuthButtonRelease(); // (the log-in button's spinner, kept till now)
             }, 450);
           } else {
             relocateAppGridForAuthState(true, () => {
@@ -7091,15 +7093,21 @@ function initAuth() {
     if (authBusy) return;
     authBusy = true;
     workButton(elements.authSubmitBtn, true);
+    let loggedIn = false;
 
     if (isSigningUp) {
       // Supabase Sign Up
-      let error = null;
+      let error = null, data = null;
       // (a thrown error — offline — is never shown as it is: just what failed)
-      try { ({ error } = await supabaseClient.auth.signUp({ email, password })); } catch (err) { console.error(err); error = {}; }
+      try { ({ data, error } = await supabaseClient.auth.signUp({ email, password })); } catch (err) { console.error(err); error = {}; }
       
       if (error) {
         showAuthError(error.message || 'account couldn’t be created');
+      } else if (data && data.session) {
+        // Signed in at once (no email to confirm): the same way into the
+        // app as logging in — the button keeps its spinner till the card goes.
+        holdAuthButton();
+        return;
       } else {
         showAuthSuccess('account created — check your email to confirm it');
       }
@@ -7111,6 +7119,7 @@ function initAuth() {
       if (error) {
         showAuthError(error.message || 'couldn’t log in');
       } else {
+        loggedIn = true;
         if (document.activeElement && typeof document.activeElement.blur === 'function') {
           document.activeElement.blur();
         }
@@ -7123,11 +7132,27 @@ function initAuth() {
         }, 1200);
       }
     }
+    if (loggedIn) { holdAuthButton(); return; }
 
     authBusy = false;
     workButton(elements.authSubmitBtn, false);
   });
 
+  // Logged in (the financial dashboard's way): the button keeps its words and
+  // its spinner while this user's lists come down, until the log-in card has
+  // gone and the app comes in (finalizeLogin lets go of it). It stopped as
+  // soon as the password was accepted, the card still up and waiting.
+  function holdAuthButton() {
+    const release = () => {
+      holdAuthButtonRelease = null;
+      clearTimeout(holdAuthButton._timer);
+      if (!authBusy) return;
+      authBusy = false;
+      workButton(elements.authSubmitBtn, false);
+    };
+    holdAuthButtonRelease = () => { holdAuthButtonRelease = null; release(); };
+    holdAuthButton._timer = setTimeout(release, 20000); // (never stuck)
+  }
   // Handle "forgot password?" click
   if (elements.btnForgotPassword) {
     elements.btnForgotPassword.addEventListener('click', async () => {
