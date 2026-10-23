@@ -486,10 +486,14 @@ button:disabled *,
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
-.btn-secondary:hover:not(:disabled) {
-  background-color: #ffffff !important;
-  border-color: var(--text-main);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+/* (only where there's a pointer to hover with: on a phone a tap left the
+   button outlined, as if still pressed) */
+@media (hover: hover) and (pointer: fine) {
+  .btn-secondary:hover:not(:disabled) {
+    background-color: #ffffff !important;
+    border-color: var(--text-main);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  }
 }
 
 .btn-tertiary {
@@ -1571,8 +1575,10 @@ body.hide-shortcuts #keyboard-hints {
   border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
-[data-theme="dark"] .btn-secondary:hover:not(:disabled) {
-  background-color: #27272a !important;
+@media (hover: hover) and (pointer: fine) {
+  [data-theme="dark"] .btn-secondary:hover:not(:disabled) {
+    background-color: #27272a !important;
+  }
 }
 
 [data-theme="dark"] .preview-toggle {
@@ -3078,6 +3084,11 @@ html.hide-shortcuts .account-chip-badge {
   overflow: hidden;
 }
 
+.user-link > .glide-box {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+}
 .user-link {
   font-weight: 500;
   font-size: var(--fs-base);
@@ -3302,8 +3313,9 @@ html.hide-shortcuts .account-chip-badge {
 
   .app-container {
     padding-top: 14px !important;
-    padding-left: 16px !important;
-    padding-right: 16px !important;
+    /* (sideways in safari, past the notch: it ran under it at a flat 16px) */
+    padding-left: max(16px, calc(12px + env(safe-area-inset-left, 0px))) !important;
+    padding-right: max(16px, calc(12px + env(safe-area-inset-right, 0px))) !important;
     padding-bottom: 20px !important;
     gap: 12px !important;
   }
@@ -3312,8 +3324,8 @@ html.hide-shortcuts .account-chip-badge {
 @media (max-width: 640px) {
   .app-container {
     padding-top: 12px !important;
-    padding-left: 14px !important;
-    padding-right: 14px !important;
+    padding-left: max(14px, calc(12px + env(safe-area-inset-left, 0px))) !important;
+    padding-right: max(14px, calc(12px + env(safe-area-inset-right, 0px))) !important;
     padding-bottom: max(48px, calc(24px + env(safe-area-inset-bottom, 0px))) !important;
     gap: 10px !important;
   }
@@ -6794,13 +6806,13 @@ html.booting .app-container {
    It waits, glides, holds at the end, glides back; the edge it runs on past
    fades out instead of cutting a letter in half (the right edge at rest,
    the left at the far end). */
-.user-link > .glide-inner,
+.glide-box > .glide-inner,
 .parsed-username > .glide-inner,
 .user-fullname > .glide-inner {
   display: inline-block;
   white-space: nowrap;
 }
-.user-link.glides > .glide-inner,
+.glide-box.glides > .glide-inner,
 .parsed-username.glides > .glide-inner,
 .user-fullname.glides > .glide-inner {
   animation: dd-glide var(--glide-time, 6s) ease-in-out infinite alternate;
@@ -6812,10 +6824,10 @@ html.booting .app-container {
 /* The fade is there whenever the name doesn't fit (.overflows) — while its
    row's room is still changing and while it eases back too, not only once
    it glides — and eases from one edge to the other on the list 3 slide. */
-.user-link.overflows,
+.glide-box.overflows,
 .parsed-username.overflows,
 .user-fullname.overflows,
-.user-link.glides,
+.glide-box.glides,
 .parsed-username.glides,
 .user-fullname.glides {
   text-overflow: clip;
@@ -6823,7 +6835,7 @@ html.booting .app-container {
   mask-image: linear-gradient(to right, transparent 0, #000 var(--glide-fl), #000 calc(100% - var(--glide-fr)), transparent 100%);
   transition: --glide-fl 0.45s cubic-bezier(0.4, 0, 0.2, 1), --glide-fr 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.user-link.glides,
+.glide-box.glides,
 .parsed-username.glides,
 .user-fullname.glides {
   animation: glide-fade var(--glide-time, 6s) ease-in-out infinite alternate;
@@ -6855,8 +6867,8 @@ html.booting .app-container {
   .boot-spinner { animation-duration: 0.8s !important; animation-iteration-count: infinite !important; }
   /* (a long name stays still, faded at its right edge: run once, the glide
      would have ended at its far end) */
-  .user-link.glides, .parsed-username.glides, .user-fullname.glides,
-  .user-link.glides > .glide-inner, .parsed-username.glides > .glide-inner, .user-fullname.glides > .glide-inner { animation: none !important; }
+  .glide-box.glides, .parsed-username.glides, .user-fullname.glides,
+  .glide-box.glides > .glide-inner, .parsed-username.glides > .glide-inner, .user-fullname.glides > .glide-inner { animation: none !important; }
 }
 
 /* -------------------------------------------------------------

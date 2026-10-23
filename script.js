@@ -251,6 +251,7 @@ function applyCloudPrefs(prefs) {
   if (window.igFeatures && typeof prefs.mobile_list === 'string' && typeof window.igFeatures.showMobileList === 'function') {
     try { window.igFeatures.showMobileList(prefs.mobile_list, false); } catch (e) {}
   }
+  if (window.igFeatures && window.igFeatures.applyPrefs) window.igFeatures.applyPrefs(); // (sort, stats / results tabs)
 }
 
 function initTheme() {
@@ -1510,7 +1511,10 @@ function setCountBadge(el, n, word) {
 // it never wraps and never ends in "…". Only one that doesn't fit moves,
 // measured whenever a row comes in or its room changes (a narrower
 // screen, select mode). Its style is .glides in style.css.
-const GLIDE_NAMES = '.user-link, .parsed-username, .user-fullname'; // (full names too: never "…")
+// (a row's name glides in a box of its own inside its link: the faded edge
+// on the link itself clipped the link's cover over the whole row too, and a
+// tap beside a long name missed it)
+const GLIDE_NAMES = '.user-link > .glide-box, .parsed-username, .user-fullname'; // (full names too: never "…")
 const glideQueue = new Set();
 let glideFrame = 0;
 function measureGlide(box) {
@@ -1608,7 +1612,7 @@ function renderUnfollowerRowHtml(user, index) {
           <div class="user-avatar">${initials}</div>
         </a>
         <div class="user-details">
-          <a href="${profileHref}" target="_blank" rel="noopener" class="user-link"><span class="glide-inner">@${escapeHtml(user.originalUsername)}</span></a>
+          <a href="${profileHref}" target="_blank" rel="noopener" class="user-link"><span class="glide-box"><span class="glide-inner">@${escapeHtml(user.originalUsername)}</span></span></a>
           ${user.fullName ? `<span class="user-fullname"><span class="glide-inner">${escapeHtml(user.fullName)}</span></span>` : ''}
         </div>
       </div>
@@ -3106,12 +3110,17 @@ function createAccountChip(name) {
   chip.addEventListener('animationend', (e) => {
     if (e.animationName === 'chip-fade-in') chip.classList.remove('fade-in', 'after-row');
   });
-  chip.addEventListener('touchend', (e) => handleChipInteraction(e));
+  // A touch handles its own taps; the click and double-click the browser
+  // makes from it afterwards are ignored (they opened the editor a second
+  // time, and selected the chip after it)
+  let lastChipTouch = 0;
+  chip.addEventListener('touchend', (e) => { lastChipTouch = Date.now(); handleChipInteraction(e); });
   chip.addEventListener('click', (e) => {
-    if (Date.now() - lastChipTapTime < 50) return;
+    if (Date.now() - lastChipTouch < 700) { e.stopPropagation(); return; }
     handleChipInteraction(e);
   });
   chip.addEventListener('dblclick', (e) => {
+    if (Date.now() - lastChipTouch < 700) { e.stopPropagation(); e.preventDefault(); return; }
     chip.classList.add('no-active');
     e.stopPropagation();
     e.preventDefault();
@@ -5062,6 +5071,9 @@ function setupEventListeners() {
         showInstructionStep();
       }
     } else if (e.key === 'Enter') {
+      // (a focused button or link does what it says — the ✕ closes, back
+      // goes back, a step's tab goes there: Enter used to go forward on all)
+      if (e.target && e.target.closest && e.target.closest('button, a') && e.target.closest('#instructions-modal-overlay, .instructions-modal-card')) return;
       e.preventDefault();
       if (currentInstructionStep < 5) {
         currentInstructionStep++;
@@ -5519,8 +5531,14 @@ function updateInstructionsStepUI() {
     if (elements.btnAddAccount) elements.btnAddAccount.classList.remove('active');
   });
 
-  // Close dropdowns on outside clicks
+  // Close dropdowns on outside clicks. Caught first (capture): a tap
+  // outside an open menu only closes it — it used to go on to what was
+  // under it too (a row unfollowed, its profile opened). A tap on another
+  // menu's button still opens that menu; a pop-up or the bottom bar works.
   document.addEventListener('click', (e) => {
+    const open = [elements.listUnfollowed, elements.listStarred, elements.addAccountDropdownMenu].some(m => m && m.classList.contains('show'));
+    const passThrough = e.target.closest('#toggle-preview-unfollowed, #list-unfollowed, #toggle-preview-starred, #list-starred, #btn-add-account, #add-account-dropdown-menu, .modal-overlay, .feature-toast, .row-select-bar');
+    if (open && !passThrough) { e.preventDefault(); e.stopPropagation(); }
     if (!e.target.closest('#toggle-preview-unfollowed') && !e.target.closest('#list-unfollowed')) {
       elements.listUnfollowed.classList.remove('show');
       elements.togglePreviewUnfollowed.classList.remove('active');
@@ -5537,7 +5555,7 @@ function updateInstructionsStepUI() {
         elements.btnAddAccount.classList.remove('active');
       }
     }
-  });
+  }, true);
 
   // Handle click on unstar or remove inside starred list
   elements.listStarred.addEventListener('click', (e) => {
@@ -5826,8 +5844,9 @@ function updateInstructionsStepUI() {
       }
     };
 
+    // (taps only: a click never comes from a drag — counting touchstart,
+    // two pulls that began on the logo opened it)
     headerLogo.addEventListener('click', detectDoubleTap);
-    headerLogo.addEventListener('touchstart', detectDoubleTap, { passive: false });
     
     loveCloseBtn.addEventListener('click', hideLoveOverlay);
     loveOverlay.addEventListener('click', (e) => {
@@ -6119,6 +6138,7 @@ function updateInstructionsStepUI() {
     if (!fromAutoOpen && profileOpened && autoOpenToggle && autoOpenToggle.checked) {
       state.pendingAutoOpen = true;
       state.autoOpenCount = 1;
+      state.autoOpenFor = state.selectedAccountUsername; // (only for this account)
     }
 
     if (openProfile) {
@@ -6193,6 +6213,12 @@ function updateInstructionsStepUI() {
   const onReturnToPage = async () => {
     if (document.hidden) return;
     const autoOpenToggle = document.getElementById('auto-open-toggle');
+    // Armed for another account (switched, or logged out and in): disarmed —
+    // it opened that account's first profile with no tap
+    if (state.pendingAutoOpen && (state.autoOpenFor || null) !== (state.selectedAccountUsername || null)) {
+      state.pendingAutoOpen = false;
+      state.autoOpenCount = 0;
+    }
     if (autoOpenToggle && autoOpenToggle.checked && state.pendingAutoOpen) {
       if (Date.now() - lastAutoOpenReturn < 1500) return;
       lastAutoOpenReturn = Date.now();
@@ -6234,6 +6260,13 @@ function updateInstructionsStepUI() {
   // Enable toggling the switch via its text label click
   const autoOpenLabel = document.getElementById('auto-open-label');
   const autoOpenToggle = document.getElementById('auto-open-toggle');
+  // Off: what was armed goes too (turned off and on again later, a return
+  // to the page opened the next profile with no tap)
+  if (autoOpenToggle) {
+    autoOpenToggle.addEventListener('change', () => {
+      if (!autoOpenToggle.checked) { state.pendingAutoOpen = false; state.autoOpenCount = 0; }
+    });
+  }
   if (autoOpenLabel && autoOpenToggle) {
     autoOpenLabel.addEventListener('click', () => {
       autoOpenToggle.checked = !autoOpenToggle.checked;
@@ -6726,6 +6759,8 @@ function initAuth() {
 
         const clearData = () => {
           // Clear all loaded information, Instagram accounts, and input textareas
+          state.pendingAutoOpen = false; // (nothing armed carries over)
+          state.autoOpenCount = 0;
           state.following = [];
           state.followers = [];
           state.unfollowers = [];
@@ -6739,6 +6774,7 @@ function initAuth() {
           // keep it for that user's next login here, which uploads it first
           // (see pullFromCloud). Anyone else logging in clears it first.
           if (!storageGet(CLOUD_DIRTY_KEY)) clearLocalAccountData();
+          if (window.igFeatures && window.igFeatures.applyPrefs) window.igFeatures.applyPrefs(); // (the last person's sort and tabs don't carry over)
           // Their google sign-in, held in memory, goes either way
           if (window.igFeatures && window.igFeatures.resetDrive) window.igFeatures.resetDrive();
 
@@ -6994,15 +7030,18 @@ function initAuth() {
     }
   });
 
-  // Close drop down on clicking outside
+  // Close drop down on clicking outside — caught first, so the tap only
+  // closes it (it went on to the row under it too); a pop-up opened from
+  // settings (a reset's confirm) still gets its tap
   document.addEventListener('click', (e) => {
     if (currentUser && elements.authDropdown.classList.contains('show')) {
       if (!e.target.closest('#auth-dropdown') && !e.target.closest('#auth-btn')) {
         elements.authDropdown.classList.remove('show');
         clearAuthAlerts();
+        if (!e.target.closest('.modal-overlay, .feature-toast')) { e.preventDefault(); e.stopPropagation(); }
       }
     }
-  });
+  }, true);
 
   let authBusy = false;
   let forgotBusy = false;
@@ -7902,7 +7941,11 @@ function updateResetReminderUI() {
   const importedAt = parseInt(importedAtRaw, 10);
   const now = Date.now();
   const remainingMs = (importedAt + RESET_REMINDER_MS) - now;
-  const importedDateText = new Date(importedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }).toLowerCase();
+  // (with its year when it isn't this one's: "imported september 18" for one
+  // over a year old read as this september)
+  const importedDate = new Date(importedAt);
+  const importedDateText = importedDate.toLocaleDateString('en-US', importedDate.getFullYear() === new Date().getFullYear()
+    ? { month: 'long', day: 'numeric' } : { month: 'long', day: 'numeric', year: 'numeric' }).toLowerCase();
   const dayMs = 24 * 60 * 60 * 1000;
 
   if (remainingMs <= 0 && !resetStillDue(importedAt + RESET_REMINDER_MS)) {
@@ -7921,12 +7964,27 @@ function updateResetReminderUI() {
     box.classList.remove('overdue');
     const remainingDays = Math.floor(remainingMs / dayMs);
     const remainingHours = Math.floor((remainingMs % dayMs) / (60 * 60 * 1000));
-    const remainingText = remainingDays > 0 ? plural(remainingDays, 'day') : plural(remainingHours, 'hour');
+    // (its last hour in minutes — it said "0 hours left")
+    const remainingMinutes = Math.max(1, Math.ceil(remainingMs / 60000));
+    const remainingText = remainingDays > 0 ? plural(remainingDays, 'day')
+      : remainingHours > 0 ? plural(remainingHours, 'hour') : plural(remainingMinutes, 'minute');
     swapText(valueEl, `${remainingText} left`);
     swapText(detailEl, `imported ${importedDateText}`);
     fillEl.style.width = `${Math.min(100, Math.max(0, ((now - importedAt) / RESET_REMINDER_MS) * 100))}%`;
   }
 }
+
+// The reminder keeps time while the app stays open (on the home screen it
+// can for days): every few minutes, and when the app comes back to the
+// front — it used to stay at "3 days left", and its "reset due" buttons
+// never came, until something else changed
+const keepReminderTime = () => {
+  if (document.hidden) return;
+  try { updateResetReminderUI(); } catch (e) {}
+  try { if (window.igFeatures && window.igFeatures.refreshToolbar) window.igFeatures.refreshToolbar(); } catch (e) {} // (its "import again" pill)
+};
+setInterval(keepReminderTime, 5 * 60 * 1000);
+document.addEventListener('visibilitychange', keepReminderTime);
 
 // -------------------------------------------------------------
 // App Initialization

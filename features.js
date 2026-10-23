@@ -1818,7 +1818,7 @@
     return `<div class="user-row" data-username="${esc(u.username)}">
           <div class="user-info">
             <a href="${href}" target="_blank" rel="noopener" class="user-avatar-link" title="open instagram profile"><div class="user-avatar">${esc(name.substring(0, 2))}</div></a>
-            <div class="user-details"><a href="${href}" target="_blank" rel="noopener" class="user-link"><span class="glide-inner">@${esc(name)}</span></a>${note ? `<span class="user-fullname"><span class="glide-inner">${esc(note)}</span></span>` : ''}</div>
+            <div class="user-details"><a href="${href}" target="_blank" rel="noopener" class="user-link"><span class="glide-box"><span class="glide-inner">@${esc(name)}</span></span></a>${note ? `<span class="user-fullname"><span class="glide-inner">${esc(note)}</span></span>` : ''}</div>
           </div>
           <div class="user-meta"><div class="user-row-actions">
             ${dismiss === 'pending' ? `<button class="action-star" aria-label="star" title="star">${STAR_ICON}</button><button class="action-delete" aria-label="unfollow" title="unfollow">${TRASH_ICON}</button>` : ''}
@@ -1852,11 +1852,16 @@
       if (!entry) { el.remove(); return; }
       const list = el.parentNode;
       el._loadMore = () => {
-        const shown = list.querySelectorAll(':scope > .user-row:not(.username-exit)').length;
-        const next = entry.users.slice(shown, shown + LIST_PAGE);
+        // From just after the last one shown (counted by how many rows there
+        // are, rows that had left made the next page repeat usernames)
+        const rows = [...list.querySelectorAll(':scope > .user-row')];
+        const shownNames = new Set(rows.map(r => r.dataset.username));
+        let start = 0;
+        entry.users.forEach((u, i) => { if (shownNames.has(u.username)) start = i + 1; });
+        const next = entry.users.slice(start, start + LIST_PAGE).filter(u => !shownNames.has(u.username));
         dropExitSpacers(list);
         list.insertAdjacentHTML('beforeend', next.map(u => boxRowHtml(u, entry.noteOf, entry.dismiss)).join(''));
-        if (shown + next.length < entry.users.length) {
+        if (start + LIST_PAGE < entry.users.length) {
           const sign = makeRowsMore(el._loadMore);
           list.appendChild(sign);
         }
@@ -2086,9 +2091,12 @@
       if (key === DEMO_ID) accounts = [{ username: DEMO_NAME, originalUsername: DEMO_ID }, { username: DEMO_COMPARE_NAME, originalUsername: DEMO_COMPARE_ID }];
       if (accounts.length < 2) html = `<div class="dropdown-empty-message">add a second account to compare</div>`;
       else {
-        const sel = [...altView.querySelectorAll('.compare-select')].map(s => s.value);
+        // (only picks still on offer: after the demo, or an account deleted,
+        // the old picks compared accounts the menus no longer listed)
+        const offered = new Set(accounts.map(x => x.originalUsername.toLowerCase()));
+        const sel = [...altView.querySelectorAll('.compare-select')].map(s => (offered.has(s.value) ? s.value : ''));
         const a = sel[0] || accounts[0].originalUsername.toLowerCase();
-        const b = sel[1] || accounts[1].originalUsername.toLowerCase();
+        const b = sel[1] || (a === accounts[1].originalUsername.toLowerCase() ? accounts[0] : accounts[1]).originalUsername.toLowerCase();
         const opts = (v) => accounts.map(x => `<option value="${esc(x.originalUsername.toLowerCase())}"${x.originalUsername.toLowerCase() === v ? ' selected' : ''}>@${esc(x.username)}</option>`).join('');
         const fol = (k) => readJSON(`followers_users_${k}`, []);
         const fa = fol(a), fb = fol(b);
@@ -3304,6 +3312,21 @@
 
   // For the rest of the app (and tests).
   window.igFeatures = { resetDrive: () => { driveToken = null; if (driveSync) driveSync.cancelled = true; }, driveBusy: () => !!driveSync,
+    // The saved settings, read again once they've come (from the cloud, at
+    // log in) or gone (log out): read only as the page opened, before the
+    // cloud's, list 3's sort and the stats / results tabs were never restored
+    applyPrefs: () => safe(() => {
+      const sort = storageGet('list3_sort') || 'default';
+      if (sort !== sortMode) {
+        sortMode = sort;
+        calculateUnfollowers();
+        const btn = document.querySelector('.toolbar-pill[data-act="sort"]');
+        if (btn) requestAnimationFrame(() => slideSortLabel(btn));
+      }
+      subTab.stats = savedSub('stats_sub', 'stats');
+      const results = savedSub('results_sub', 'results');
+      if (results !== subTab.results) jumpResultsSub(results);
+    }, 'settings'),
     renumberKept: (key, moves) => renumberKept(key, moves).catch(e => console.error('[features] moving kept import files failed:', e)),
     dropUndo: (acc) => { const k = String(acc || '').toLowerCase(); for (let i = undoStack.length - 1; i >= 0; i--) if (undoStack[i].snap.acc === k) undoStack.splice(i, 1); safe(refreshUndo, 'undo'); },
     markSelected: (list) => { if (selectMode && !selectOnPending()) list.querySelectorAll('.user-row').forEach(r => r.classList.toggle('multi-selected', selected.has(r.dataset.username))); }, showView, showMobileList, showToast, setSelectMode, refreshToolbar, centerEmpties: () => safe(centerEmpties, 'empty texts') };
