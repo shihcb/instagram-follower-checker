@@ -2164,8 +2164,11 @@ function reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, rename
   // --- WRITE: remove / pin / reorder / create.
   // A row still sliding out because of an earlier change whose username is
   // back: drop it — a fresh row reverses in from where it was (resumeTops).
+  const resumePop = new Map(); // (a search's row popping out and back: how far out it was)
   listEl.querySelectorAll('.user-row.username-exit').forEach(row => {
     if (row.dataset.renderExit && wanted.has(row.dataset.username)) {
+      const shown = popShown(row);
+      if (shown !== null) resumePop.set(row.dataset.username, shown);
       stopRowMotion(row);
       row.remove();
     }
@@ -2231,6 +2234,13 @@ function reconcileUnfollowerRows(listEl, filtered, { animate, resumeTops, rename
     if (resumeTop !== undefined) {
       // Was mid-slide out and is back: reverse from exactly where it is.
       const dy = (resumeTop - row.getBoundingClientRect().top) / visualScale;
+      if (rowPop || resumePop.has(name)) {
+        // (from where it's drawn: the pop's own drop counted out of the glide)
+        const was = resumePop.has(name) ? resumePop.get(name) : 0;
+        addRowShift(row, dy - 14 * (1 - was), DURATION);
+        popRowIn(row, was);
+        return;
+      }
       if (dy < 0) slideRowIn(row, -dy, DURATION);
       else addRowShift(row, dy, DURATION);
       return;
@@ -2266,18 +2276,21 @@ function animateResultsExits(listEl, previousRows) {
   leaving.forEach(row => {
     const rect = previousRows.get(row);
     if (!rect || rect.bottom <= listRect.top || rect.top >= listRect.bottom) return;
+    // (one mid-pop goes on from how far in it was, from its own spot)
+    const shown = rowPop ? popShown(row) : null;
+    const drop = shown === null ? 0 : 14 * (1 - shown) * visualScale;
     stopRowMotion(row);
     row.classList.remove('selected');
     row.classList.add('username-exit');
     row.dataset.renderExit = '1';
     row.style.position = 'absolute';
-    row.style.top = `${(rect.top - listRect.top) / visualScale + listEl.scrollTop}px`;
+    row.style.top = `${(rect.top - drop - listRect.top) / visualScale + listEl.scrollTop}px`;
     row.style.left = `${(rect.left - listRect.left) / visualScale + listEl.scrollLeft}px`;
     row.style.width = `${rect.width / visualScale}px`;
     row.style.margin = '0';
     row.style.zIndex = '1';
     listEl.appendChild(row);
-    if (rowPop) popRowOut(row, () => row.remove());
+    if (rowPop) popRowOut(row, () => row.remove(), shown);
     else slideRowOut(row, row.offsetHeight, DURATION, () => row.remove());
   });
   stepRowMotion();
@@ -2304,6 +2317,7 @@ function animateResultsReentry(listEl, previousTops, resumeTops = new Map(), { e
     if (previousTop === undefined && resumeTop !== undefined) {
       // Was mid-slide out and is back: reverse from exactly where it is.
       const dy = (resumeTop - row.getBoundingClientRect().top) / visualScale;
+      if (rowPop) { addRowShift(row, dy, DURATION); popRowIn(row); return; }
       if (dy < 0) {
         slideRowIn(row, -dy, DURATION);
       } else if (dy > 0) {
@@ -4218,7 +4232,7 @@ function queueRowMotionFlush() {
 function motionOf(el, kind = 'transform') {
   let m = rowMotion.get(el);
   if (!m) {
-    m = { shifts: [], heightShifts: [], heightTarget: null, heightExtra: 0, slide: null, savedTransition: null };
+    m = { shifts: [], heightShifts: [], heightTarget: null, heightExtra: 0, slide: null, pop: null, savedTransition: null };
     rowMotion.set(el, m);
   }
   if (!m.suppressTransition) {
@@ -4252,6 +4266,7 @@ function stepRowMotion(fromFrame = false) {
       m.shifts.forEach(p => { if (p.start === null) p.start = now; });
       m.heightShifts.forEach(p => { if (p.start === null) p.start = now; });
       if (m.slide && m.slide.start === null) m.slide.start = now;
+      if (m.pop && m.pop.start === null) m.pop.start = now;
     }
     if (m.suppressTransition && m.savedTransition === null) {
       m.savedTransition = el.style.transition;
@@ -4284,7 +4299,27 @@ function stepRowMotion(fromFrame = false) {
       }
     }
 
-    el.style.transform = Math.abs(ty) > 0.01 ? `translateY(${ty}px)` : '';
+    // A search's pop (popRowIn/popRowOut): from 14px down at 95%, fading —
+    // added on top of any glide, so a row popping in still moves with the rest
+    let scale = 1;
+    let popActive = false;
+    if (m.pop) {
+      const raw = motionProgress(m.pop, now);
+      const e = rowEase(raw);
+      const shown = m.pop.dir === 'in' ? m.pop.from + (1 - m.pop.from) * e : m.pop.from * (1 - e);
+      ty += 14 * (1 - shown);
+      scale = 0.95 + 0.05 * shown;
+      el.style.opacity = shown < 0.999 ? String(shown) : '';
+      if (m.pop.dir === 'out') {
+        if (raw >= 1 && m.pop.onDone) { finished.push(m.pop.onDone); m.pop.onDone = null; }
+        popActive = el.isConnected || raw < 1; // (stays gone until removed)
+      } else {
+        popActive = raw < 1;
+        if (!popActive) m.pop = null;
+      }
+    }
+
+    el.style.transform = Math.abs(ty) > 0.01 || scale < 0.9999 ? `translateY(${ty}px)${scale < 0.9999 ? ` scale(${scale})` : ''}` : '';
     const clipValue = clip > 0.01 ? `inset(${clip}px 0px 0px 0px)` : '';
     el.style.clipPath = clipValue;
     el.style.webkitClipPath = clipValue;
@@ -4295,7 +4330,7 @@ function stepRowMotion(fromFrame = false) {
       el.style.height = `${m.heightTarget + dh - m.heightExtra}px`;
     }
 
-    if (!m.shifts.length && !m.heightShifts.length && !slideActive) {
+    if (!m.shifts.length && !m.heightShifts.length && !slideActive && !popActive) {
       if (m.savedTransition !== null) el.style.transition = m.savedTransition;
       rowMotion.delete(el);
     }
@@ -4357,20 +4392,26 @@ function slideRowIn(rowEl, distance, duration) {
 // at 95% as it fades in, one it hides pops out the same way. rowPop is on
 // only while a search redraws list 3.
 let rowPop = false;
-function popRowIn(rowEl) {
-  if (!canAnimate(rowEl)) return;
-  rowEl.animate([{ opacity: 0, transform: 'translateY(14px) scale(0.95)' }, { opacity: 1, transform: 'none' }], { ...MOTION, fill: 'backwards' });
+// (how far in it is now: a row mid-pop carries on from what's drawn)
+function popShown(rowEl) {
+  const m = rowMotion.get(rowEl);
+  if (!m || !m.pop) return null;
+  const e = rowEase(motionProgress(m.pop, performance.now()));
+  return m.pop.dir === 'in' ? m.pop.from + (1 - m.pop.from) * e : m.pop.from * (1 - e);
 }
-function popRowOut(rowEl, onDone) {
-  let done = false;
-  const finish = () => { if (done) return; done = true; onDone(); };
-  const ty = new DOMMatrixReadOnly(getComputedStyle(rowEl).transform).m42 || 0;
-  stopRowMotion(rowEl);
+function popRowIn(rowEl, start = null) {
+  const from = start !== null ? start : popShown(rowEl);
+  motionOf(rowEl).pop = { dir: 'in', from: from === null ? 0 : from, start: null, duration: ROW_MOTION_MS };
+  queueRowMotionFlush();
+}
+function popRowOut(rowEl, onDone, start = null) {
+  const from = start !== null ? start : popShown(rowEl);
   onRowExitStarted(rowEl);
-  if (!canAnimate(rowEl)) { finish(); return; }
-  rowEl.animate([{ opacity: 1, transform: `translateY(${ty}px)` }, { opacity: 0, transform: `translateY(${ty + 14}px) scale(0.95)` }], { ...MOTION, fill: 'forwards' })
-    .finished.then(finish, finish);
-  setTimeout(finish, ROW_MOTION_MS + 1000); // (frames not coming: a hidden tab)
+  const pop = { dir: 'out', from: from === null ? 1 : from, start: null, duration: ROW_MOTION_MS, onDone };
+  motionOf(rowEl).pop = pop;
+  queueRowMotionFlush();
+  // (frames not coming — a hidden tab: it still goes)
+  setTimeout(() => { if (pop.onDone) { const fn = pop.onDone; pop.onDone = null; fn(); } }, ROW_MOTION_MS + 1000);
 }
 
 // Drops all motion from el and clears what it wrote.
@@ -4379,6 +4420,7 @@ function stopRowMotion(el) {
   if (!m) return;
   if (m.savedTransition !== null) el.style.transition = m.savedTransition;
   if (m.slide && m.slide.onDone) m.slide.onDone();
+  if (m.pop) { if (m.pop.onDone) m.pop.onDone(); el.style.opacity = ''; }
   el.style.transform = '';
   el.style.clipPath = '';
   el.style.webkitClipPath = '';
@@ -5519,6 +5561,7 @@ function updateInstructionsStepUI() {
   const searchResults = debounce(() => {
     rowPop = true;
     try { updateResultsUI({ animate: true }); } finally { rowPop = false; }
+    elements.listUnfollowers.scrollTop = 0; // (the dashboard's: the results from the top)
   }, 140);
   elements.searchUnfollowers.addEventListener('input', () => {
     state.selectedIndex = -1; // Reset keyboard selection on search query change

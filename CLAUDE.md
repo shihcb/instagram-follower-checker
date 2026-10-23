@@ -39,7 +39,7 @@ too: pop-ups (and the log-in card, account chips) come in from 14px down at
 nothing is staggered, and what replaces something crosses it (never out,
 then in); presses and hovers only change colour; switching light / dark
 eases every colour (theme-fade); spinners turn every 0.8s; usernames and banners use list 3's row engine
-(slideRowIn/slideRowOut, rows around them shifting); tab switches are the
+(slideRowIn/slideRowOut, rows around them shifting); a search's results are the dashboard's search: a moment after typing stops, matches that stay glide to their places, new ones pop in from 14px down at 95%, hidden ones pop out the same way, all on that same engine (popRowIn/popRowOut — a row coming back mid-pop carries on from where it's drawn), "no matches" fading in under the last ones; tab switches are the
 sideways push (slideSub / TAB_MOTION), the area easing to the new pane's
 height (easeBoxHeight); texts just fade (fadeEmptyIn), and text that changes
 fades across — the old words out where they were, the new in (swapText;
@@ -53,6 +53,13 @@ passing edge fading (the dashboard's marquee: .glides, measureGlide) —
 never wrapped, never "…". With the
 phone's Reduce Motion on, everything goes straight to where it's headed
 (spinners keep turning). These come from the financial dashboard.
+
+## No circles
+
+Nothing is round: icon buttons, avatars, pills, badges, chips, the switch —
+every one a squircle on the small buttons' and search box's 8px corners
+(the dashboard's `--r-sm`; the dashboard is the same). Only spinners and the
+timeline's points stay round.
 
 ## Labels and buttons only (the financial dashboard's conventions)
 
