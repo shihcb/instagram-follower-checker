@@ -1021,9 +1021,8 @@
       if (imported && shown && currentUser && currentUser.id === uid && state.selectedAccountUsername !== shown) {
         try { ensureAccountSelected(shown); } catch (e) {}
       }
-      refreshDrive();
+      refreshDrive({ done: synced });
       updateResetReminderUI();
-      if (synced) doneCheck(document.getElementById('drive-sync-btn'));
     }
   }
   async function disconnectDrive() {
@@ -1055,13 +1054,13 @@
   }
   const setDriveDesc = (text) => swapText(document.getElementById('drive-desc'), text);
   const driveStatus = (text) => { const row = document.getElementById('drive-row'); if (row) easeDriveRow(row, () => setDriveDesc(text)); };
-  function refreshDrive() {
+  function refreshDrive({ done = false } = {}) {
     const row = document.getElementById('drive-row');
     if (!row) return;
     row.hidden = isNative(); // google's sign-in doesn't open inside the iphone app
-    easeDriveRow(row, paintDrive);
+    easeDriveRow(row, () => paintDrive(done));
   }
-  function paintDrive() {
+  function paintDrive(done = false) {
     if (driveReady()) loadGoogle();
     const btn = document.getElementById('drive-sync-btn');
     const on = driveOn();
@@ -1076,6 +1075,9 @@
     glideWidth(btn, () => {
       swapText(btn, on || driveSync ? 'sync' : 'connect');
       workButton(btn, !!driveSync, { glide: true });
+      // (a sync just done: its check comes in within the same glide — added
+      // after, it was squeezed out of sight and the button snapped wider)
+      if (done) doneCheck(btn);
     });
     slideSlot(document.getElementById('drive-off-slot'), on && !driveSync);
     if (driveSync) return;

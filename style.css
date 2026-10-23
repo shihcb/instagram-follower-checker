@@ -6876,6 +6876,12 @@ b, strong {
   height: 1em;
   flex: none;
 }
+/* In a button that spaces its contents (.btn: 8px), the check takes that
+   gap back — hidden, it takes no room at all (it held the gap, and the
+   button snapped 8px narrower as the check went), showing, it sits .35em
+   after the words like anywhere else */
+.btn > .done-check { margin-left: -8px; }
+.btn > .done-check.show { margin-left: calc(.35em - 8px); }
 /* (on a filled button — the toast's green one — the check is its words' colour) */
 .feature-toast-btn .done-check,
 .btn-primary .done-check {

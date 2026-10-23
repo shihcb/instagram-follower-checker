@@ -3933,9 +3933,20 @@ function glideWidth(el, change) {
   const from = el.getBoundingClientRect().width;
   if (el._glide) { el._glide.cancel(); el._glide = null; }
   change();
+  // Measured where everything inside lands (a done check easing in, a word
+  // fading): measured mid-way, the button glided to too narrow a width and
+  // then snapped wider as it ended
+  const inside = el.getAnimations({ subtree: true }).filter(a => a !== el._glide && Number.isFinite(a.effect && a.effect.getComputedTiming().endTime));
+  const was = inside.map(a => a.currentTime || 0);
+  inside.forEach(a => { a.currentTime = a.effect.getComputedTiming().endTime; });
   const to = el.getBoundingClientRect().width;
+  inside.forEach((a, i) => { a.currentTime = was[i]; });
   if (!canAnimate(el) || !el.offsetParent || Math.abs(to - from) < 0.5) return;
-  const k = el.offsetWidth ? to / el.offsetWidth : 1; // (the guest preview draws the app scaled)
+  // (the guest preview draws the app scaled: screen to layout size, from a
+  // box wide enough that rounding its width doesn't show — the button's own
+  // whole-pixel width left the glide 0.4px off, snapping as it ended)
+  const host = el.offsetParent || document.body;
+  const k = host.offsetWidth ? host.getBoundingClientRect().width / host.offsetWidth : 1;
   const at = (w) => ({ width: `${w / k}px`, boxSizing: 'border-box', overflow: 'hidden', whiteSpace: 'nowrap' });
   el._glide = el.animate([at(from), at(to)], MOTION);
   el._glide.finished.then(() => { el._glide = null; }, () => {});
