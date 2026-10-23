@@ -7839,3 +7839,9 @@ html.is-logged-in #auth-profile-view .account-row {
   padding-top: 0 !important;
   padding-bottom: 0 !important;
 }
+/* Saved imports: its accounts as the main view's chips, in a row under the
+   title (wrapping when there are more than fit) */
+.saved-imports-nav .saved-chips {
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}

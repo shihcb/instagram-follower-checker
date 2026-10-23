@@ -774,8 +774,6 @@
     renderSavedImports();
     showModalOverlay(savedOverlay);
     lockPageScroll();
-    const nav = savedOverlay.querySelector('.saved-imports-nav .changes-nav');
-    if (nav) requestAnimationFrame(() => placeSubIndicator(nav));
   }
   function buildSavedOverlay() {
     savedOverlay = document.createElement('div');
@@ -793,8 +791,8 @@
     savedOverlay.addEventListener('click', (e) => {
       e.stopPropagation();
       if (e.target === savedOverlay || e.target.closest('[data-saved="close"]')) { closeSavedImports(); return; }
-      const tab = e.target.closest('.saved-imports-nav [data-sub]');
-      if (tab) { const id = tab.dataset.sub; gated('saved-tabs', () => switchSavedTab(id)); return; }
+      const chip = e.target.closest('.saved-imports-nav .account-chip');
+      if (chip) { const id = chip.dataset.acc; gated('saved-tabs', () => switchSavedTab(id)); return; }
       const row = e.target.closest('[data-import]');
       if (!row) return;
       const pane = row.closest('.saved-pane');
@@ -809,6 +807,11 @@
       // came, the words snapping over and the spinner popping in)
       new Promise(resolve => setTimeout(resolve, canAnimate(row) ? ROW_MOTION_MS : 0)).then(() => downloadSaved(key, entry)).then((saved) => workDone(row, !!saved),
         err => { workButton(row, false); console.error('[features] download failed:', err); showSiteAlert('import couldn’t be downloaded', 'its files aren’t in the cloud yet'); });
+    });
+    // (a chip picked from the keyboard too, as the main view's: Enter)
+    savedOverlay.addEventListener('keydown', (e) => {
+      const chip = e.target.closest && e.target.closest('.saved-imports-nav .account-chip');
+      if (chip && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); chip.click(); }
     });
     // Escape closes just this window (not the settings panel as well).
     document.addEventListener('keydown', (e) => {
@@ -842,8 +845,12 @@
     const navHost = savedOverlay.querySelector('.saved-imports-nav');
     const host = savedOverlay.querySelector('.saved-imports-panes');
     settleSub(host);
-    navHost.innerHTML = tabs.length > 1 ? subNavHtml(tabs, savedKey) : '';
-    navHost.hidden = tabs.length < 2;
+    // The accounts as the main view's own chips (its .account-chip, "@name",
+    // the one showing picked) — not a tab switcher
+    navHost.innerHTML = tabs.length
+      ? `<div class="account-chips-list saved-chips">${tabs.map(([k, label]) => `<div class="account-chip${k === savedKey ? ' active' : ''}" role="button" tabindex="0" data-acc="${esc(k)}"><span class="chip-text">${esc(label)}</span></div>`).join('')}</div>`
+      : '';
+    navHost.hidden = !tabs.length;
     host._subAll = null;
     host.innerHTML = tabs.length
       ? tabs.map(([k]) => `<div class="saved-pane export-options saved-imports-list${k === savedKey ? ' active' : ''}" data-acc="${esc(k)}">${savedRowsHtml(k)}</div>`).join('')
@@ -853,13 +860,12 @@
     if (!id || id === savedKey) return;
     const order = savedAccounts().map(([k]) => k);
     const host = savedOverlay.querySelector('.saved-imports-panes');
-    const nav = savedOverlay.querySelector('.saved-imports-nav .changes-nav');
     const panes = [...host.querySelectorAll(':scope > .saved-pane')];
     const target = panes.find(p => p.dataset.acc === id);
-    if (!target || !nav) return;
+    if (!target) return;
     const dir = order.indexOf(id) > order.indexOf(savedKey) ? 1 : -1;
     savedKey = id;
-    selectSubTab(nav, id);
+    savedOverlay.querySelectorAll('.saved-imports-nav .account-chip').forEach(c => c.classList.toggle('active', c.dataset.acc === id)); // (its highlight fades over, as the main view's)
     slideSub(host, panes, [target], 'active', p => order.indexOf(p.dataset.acc), dir);
   }
   function closeSavedImports() {
