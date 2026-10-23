@@ -3263,11 +3263,11 @@
   async function statsImage() {
     const W = 1080, H = 1350, P = 72;
     const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-    const C = dark
-      ? { bg: '#09090b', text: '#fafafa', muted: '#a1a1aa' }
-      : { bg: '#ffffff', text: '#09090b', muted: '#71717a' };
+    // (the app's own colours, as they are now — light or dark)
+    const css = (name, or) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || or;
+    const C = { bg: css('--bg-color', dark ? '#111513' : '#f4f5f3'), text: css('--text-main', dark ? '#e8ece9' : '#1b1f1d'), muted: css('--text-muted', dark ? '#9aa49f' : '#66706b') };
     const body = getComputedStyle(document.body).fontFamily || 'sans-serif';
-    const display = `'Outfit', ${body}`;
+    const display = body; // (the app's own serif)
     try { if (document.fonts) await Promise.all([document.fonts.load(`800 80px 'Outfit'`), document.fonts.load(`500 30px ${body}`)]); } catch (e) {}
     const following = state.following.length, followers = state.followers.length;
     const fset = followersSet();

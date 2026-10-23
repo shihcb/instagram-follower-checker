@@ -7522,3 +7522,97 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
 .list-toolbar.settling * {
   transition: none !important;
 }
+
+/* ---- after the restyle: the pieces it missed ---- */
+/* A tapped row looks like any other (the page's colour, light and dark) */
+.user-row.selected,
+[data-theme="dark"] .user-row.selected {
+  background-color: var(--bg-color) !important;
+  border-color: var(--text-main) !important;
+  box-shadow: 0 0 0 1px var(--text-main) !important;
+}
+/* Settings and the pop-ups float over the page with the dashboard's
+   shadows (its .dd-menu and .modal-card) — flat, they blended into the
+   cards under them */
+.auth-dropdown.glass,
+html.is-logged-in .auth-dropdown {
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+.account-modal-card.glass,
+.confirm-modal-box {
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.35) !important;
+}
+/* Menus: white panels (the dashboard's --panel), their hover the soft fill */
+.dropdown-menu,
+[data-theme="dark"] .dropdown-menu {
+  background: var(--card-bg) !important;
+  background-color: var(--card-bg) !important;
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+/* The bars at the bottom (select, the message bar): the dashboard's — the
+   page's colour on the line, its small shadow */
+.row-select-bar,
+.feature-toast,
+[data-theme="dark"] .row-select-bar,
+[data-theme="dark"] .feature-toast {
+  background: var(--bg-color) !important;
+  border: 1px solid var(--card-border) !important;
+  box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.22) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/* Every icon button by a search: one style — 32px round, the page's colour */
+.search-row > button,
+.search-row > .btn,
+#card-unfollowers .search-row > .preview-toggle,
+.list-search-row > .export-wrap > button,
+[data-theme="dark"] .search-row > button,
+[data-theme="dark"] .search-row > .btn,
+[data-theme="dark"] #card-unfollowers .search-row > .preview-toggle,
+[data-theme="dark"] .list-search-row > .export-wrap > button {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  background: var(--bg-color) !important;
+  background-color: var(--bg-color) !important;
+  border: 1px solid var(--card-border) !important;
+  box-shadow: none !important;
+  align-self: center;
+}
+.list-search-row > .export-wrap {
+  align-self: center;
+}
+/* Marks on the green: the page's colour, never white (2:1 on dark's mint) */
+.user-badge svg {
+  stroke: var(--card-bg) !important;
+}
+.export-option.on .export-check {
+  color: var(--card-bg) !important;
+}
+/* The confirm's red button: as every danger button now — see-through, red words */
+#btn-confirm-ok:not(.confirm-neutral),
+[data-theme="dark"] #btn-confirm-ok:not(.confirm-neutral) {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 1px solid var(--card-border) !important;
+  color: #ef4444 !important;
+  box-shadow: none !important;
+}
+/* Old dark colours on the new palette */
+[data-theme="dark"] .switch input:not(:checked) + .slider {
+  background-color: var(--input-bg) !important;
+}
+[data-theme="dark"] .preview-toggle.active {
+  border-color: var(--text-main) !important;
+  background: transparent !important;
+}
+/* A list due its reset: its button red in dark too */
+[data-theme="dark"] #settings-reset-unfollowed-btn.reset-due,
+[data-theme="dark"] #settings-reset-starred-btn.reset-due {
+  background: #ef4444 !important;
+  border-color: #ef4444 !important;
+  color: #ffffff !important;
+}
