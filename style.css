@@ -113,7 +113,7 @@ html, body {
   --text-muted: #66706b;
   --text-inverse: #f4f5f3;
   --input-bg: #ffffff;
-  /* (text boxes, search boxes, buttons and tab switchers: all the cards' white) */
+  /* (text boxes, search boxes and buttons: all the cards' white) */
   --field-bg: #ffffff;
   --input-border: #e1e5e2;
   --btn-primary-bg: #1b1f1d;
@@ -2180,9 +2180,9 @@ body.hide-shortcuts #keyboard-hints {
 .instructions-steps-nav {
   display: flex;
   gap: 6px;
-  /* White (black in dark mode) with just an outline marking the bar; the
+  /* The page's colour inside a hairline (the dashboard's .tabs); the
      view it's on is outlined in the text color (the highlight below). */
-  background-color: var(--field-bg);
+  background-color: var(--bg-color);
   border: 1px solid var(--input-border);
   padding: 4px;
   border-radius: 10px;
@@ -7650,7 +7650,7 @@ html.is-logged-in .auth-dropdown {
 /* Fields: the line darkens on focus, no ring */
 .form-group input:focus { box-shadow: none !important; }
 /* The log-in tabs: the app's (and the dashboard's) tab switcher */
-.auth-tabs { background-color: var(--field-bg); border-radius: 10px !important; padding: 4px; gap: 4px; }
+.auth-tabs { background-color: var(--bg-color); border-radius: 10px !important; padding: 4px; gap: 4px; }
 .auth-tab { border-radius: 7px !important; padding: 7px 12px; }
 .auth-tab.active, [data-theme="dark"] .auth-tab.active { color: var(--text-main); }
 .auth-tab-indicator, [data-theme="dark"] .auth-tab-indicator {
