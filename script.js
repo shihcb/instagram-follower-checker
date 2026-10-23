@@ -1720,7 +1720,7 @@ function showAppVersion() {
     const v = tag && /[?&]v=(\d+)/.exec(tag.getAttribute('href') || tag.getAttribute('src'));
     return sum + (v ? +v[1] : 0);
   }, 0);
-  if (total) swapText(el, `version ${total}`);
+  if (total) swapText(el, `version ${fmtNum(total)}`);
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', showAppVersion);
 else showAppVersion();
@@ -3080,6 +3080,8 @@ function slideChipsFromPreviousRects(previousRects) {
 function createAccountChip(name) {
   const chip = document.createElement('div');
   chip.className = 'account-chip';
+  chip.tabIndex = 0; // (reachable from the keyboard: Enter picks it, "e" opens its window)
+  chip.setAttribute('role', 'button');
   chip.setAttribute('data-account-name', name);
   const textSpan = document.createElement('span');
   textSpan.className = 'chip-text';
@@ -4918,6 +4920,25 @@ function returnToPending(userObj) {
 }
 
 function setupEventListeners() {
+  // Account chips and the stat boxes from the keyboard: Enter / space taps
+  // them; on a chip, "e" (or the menu key) opens its window — as a double tap.
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (!t || !t.classList || !(t.classList.contains('account-chip') || t.classList.contains('insights-stat'))) return;
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); t.click(); }
+    else if (t.classList.contains('account-chip') && (e.key === 'e' || e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey))) {
+      e.preventDefault();
+      t.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
+    }
+  });
+  // A closed menu is out of reach (inert): it's only see-through and
+  // untappable, and Tab still walked into its buttons — Enter on the hidden
+  // "try the demo" started the demo.
+  document.querySelectorAll('.dropdown-menu').forEach(menu => {
+    const sync = () => { menu.inert = !menu.classList.contains('show'); };
+    sync();
+    new MutationObserver(sync).observe(menu, { attributes: true, attributeFilter: ['class'] });
+  });
   // Instagram Account Management Event Listeners
   if (elements.btnAddAccount) {
     elements.btnAddAccount.addEventListener('click', (e) => {
@@ -5620,6 +5641,8 @@ function updateInstructionsStepUI() {
           if (resetStarredBtn) resetStarredBtn.removeAttribute('disabled');
         }
         updateUnfollowedUI(username);
+        // (the stats' starred / unfollowed boxes, and any view listing them)
+        if (window.igFeatures && window.igFeatures.refreshView) window.igFeatures.refreshView();
         await pushToCloud();
       }, { shrinkBox: menuEl, finalBoxHeight });
       return;

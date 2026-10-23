@@ -7087,3 +7087,15 @@ b, strong {
   text-align: left;
   font-variant-numeric: tabular-nums;
 }
+
+/* The account chips and stat boxes taken from the keyboard: an outline on
+   the one in focus (the tab only — never on a tap). */
+.account-chip:focus-visible,
+.insights-stat:focus-visible {
+  outline: 2px solid var(--text-main);
+  outline-offset: 2px;
+}
+.account-chip:focus:not(:focus-visible),
+.insights-stat:focus:not(:focus-visible) {
+  outline: none;
+}

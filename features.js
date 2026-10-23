@@ -368,6 +368,15 @@
     safe(refreshUndo, 'undo');
     return result;
   };
+  // The account chips redrawn (an account renamed, deleted or added): compare
+  // lists the accounts, so it's drawn again — it kept offering, and
+  // comparing, an account that had just been deleted or renamed.
+  const baseRenderAccountChips = renderAccountChips;
+  renderAccountChips = function () {
+    const result = baseRenderAccountChips.apply(this, arguments);
+    if (currentView === 'compare') safe(refreshView, 'view');
+    return result;
+  };
   // While a google drive sync runs, the reset reminder and its buttons stay
   // as they are (they flickered as it went from import to import, and from
   // account to account); they're brought up to date once, when it's done.
@@ -411,7 +420,16 @@
       // A google drive sync adds them up for its own toast at the end.
       if (driveSync) driveSync.changes += total;
       else setTimeout(() => showToast(total ? `${fmtNum(total)} change${total === 1 ? '' : 's'} since your last import` : 'no changes since your last import',
-        total ? 'view' : null, () => { showView('changes'); viewNav && viewNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }), 900);
+        total ? 'view' : null, () => {
+          // (opened on a tab that has something: it opened on "unfollowed
+          // you" whatever came, "no one unfollowed you" for new followers)
+          const keys = { lost: 'lostFollowers', new: 'newFollowers', stopped: 'stoppedFollowing', started: 'startedFollowing' };
+          const first = Object.keys(keys).find(k => (diff[keys[k]] || []).length);
+          if (first && currentView === 'changes') showAltSub(first);
+          else if (first) subTab.changes = first;
+          showView('changes');
+          viewNav && viewNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }), 900);
     }
     // Full lists only for the latest import (for the next comparison);
     // counts for the trend.
@@ -1354,7 +1372,10 @@
     // Nothing left to select (the account was deselected, the last row
     // left): select ends, instead of its bar staying up over an empty list.
     if (!state.unfollowers.length) { setSelectMode(false); return; }
-    const here = new Set(state.unfollowers.map(u => u.username));
+    // (only rows on show stay picked: ones the search hides were still
+    // counted, and starred or unfollowed with the rest)
+    const q = searchQuery(elements.searchUnfollowers);
+    const here = new Set(state.unfollowers.filter(u => !q || u.originalUsername.toLowerCase().includes(q) || (u.fullName && u.fullName.toLowerCase().includes(q))).map(u => u.username));
     [...selected].forEach(n => { if (!here.has(n)) selected.delete(n); });
     elements.listUnfollowers.classList.add('select-mode');
     elements.listUnfollowers.querySelectorAll('.user-row').forEach(r => r.classList.toggle('multi-selected', selected.has(r.dataset.username)));
@@ -1868,7 +1889,7 @@
   const chartHtml = (heights, mock) => `<div class="trend-chart${mock ? ' trend-mock' : ''}"${mock ? ' aria-hidden="true"' : ''}>${heights.map((h, i) =>
     `<div class="trend-bar" style="height:${h}%;--bar:${STAT_COLORS[i]}"></div>`).join('')}</div>`;
   const asUsers = (names) => names.map(n => ({ username: n, originalUsername: n }));
-  const stat = (value, label, i) => `<div class="insights-stat" style="--stat:${STAT_COLORS[i]}"><div class="insights-stat-value">${typeof value === 'number' ? fmtNum(value) : value}</div><div class="insights-stat-label">${label}</div></div>`;
+  const stat = (value, label, i) => `<div class="insights-stat" tabindex="0" role="button" style="--stat:${STAT_COLORS[i]}"><div class="insights-stat-value">${typeof value === 'number' ? fmtNum(value) : value}</div><div class="insights-stat-label">${label}</div></div>`;
 
   // ---------- stats: timeline ----------
   // Following and followers at each import (the last 24), as two lines in
@@ -2105,8 +2126,17 @@
         // the old picks compared accounts the menus no longer listed)
         const offered = new Set(accounts.map(x => x.originalUsername.toLowerCase()));
         const sel = [...altView.querySelectorAll('.compare-select')].map(s => (offered.has(s.value) ? s.value : ''));
-        const a = sel[0] || accounts[0].originalUsername.toLowerCase();
-        const b = sel[1] || (a === accounts[1].originalUsername.toLowerCase() ? accounts[0] : accounts[1]).originalUsername.toLowerCase();
+        let a = sel[0] || accounts[0].originalUsername.toLowerCase();
+        let b = sel[1] || (a === accounts[1].originalUsername.toLowerCase() ? accounts[0] : accounts[1]).originalUsername.toLowerCase();
+        // One picked to the account the other shows: they trade places (an
+        // account against itself showed nothing at all)
+        if (a === b) {
+          const [pa, pb] = body._cmp || [];
+          if (pa && pa !== a && offered.has(pa)) b = pa; // (the first was changed: the second takes its old one)
+          else if (pb && pb !== b && offered.has(pb)) a = pb;
+          else b = accounts.map(x => x.originalUsername.toLowerCase()).find(v => v !== a) || b;
+        }
+        if (!dry) body._cmp = [a, b];
         const opts = (v) => accounts.map(x => `<option value="${esc(x.originalUsername.toLowerCase())}"${x.originalUsername.toLowerCase() === v ? ' selected' : ''}>@${esc(x.username)}</option>`).join('');
         const fol = (k) => readJSON(`followers_users_${k}`, []);
         const fa = fol(a), fb = fol(b);
@@ -2120,7 +2150,8 @@
         const section = (title, users) => (users.length ? `<div class="insights-section"><div class="insights-section-title">${title}</div>${userRowsHtml(users, '')}</div>` : '');
         html = `<div class="compare-pickers">${pick(a)}<span>vs</span>${pick(b)}</div>
           ${section(`follow ${nameOf(a)}, not ${nameOf(b)}`, onlyA)}
-          ${section(`follow ${nameOf(b)}, not ${nameOf(a)}`, onlyB)}`;
+          ${section(`follow ${nameOf(b)}, not ${nameOf(a)}`, onlyB)}
+          ${onlyA.length || onlyB.length ? '' : `<div class="dropdown-empty-message">${fa.length || fb.length ? 'same followers' : 'no followers to compare'}</div>`}`;
       }
     }
     if (dry) return html;
@@ -2584,6 +2615,9 @@
   }
   function switchMobileList(id, animate) {
     if (id === mobileList) return;
+    // (select mode is list 3's: going to list 1 or 2 ends it — left on, the
+    // list shown was blurred under the select bar and couldn't be tapped)
+    if (selectMode && id !== 'unfollowers') setSelectMode(false);
     const order = MOBILE_LISTS.map(t => t[0]);
     const dir = order.indexOf(id) > order.indexOf(mobileList) ? 1 : -1;
     mobileList = id;
@@ -3326,6 +3360,7 @@
 
   // For the rest of the app (and tests).
   window.igFeatures = { resetDrive: () => { driveToken = null; if (driveSync) driveSync.cancelled = true; }, driveBusy: () => !!driveSync,
+    refreshView: () => safe(refreshView, 'view'),
     // The saved settings, read again once they've come (from the cloud, at
     // log in) or gone (log out): read only as the page opened, before the
     // cloud's, list 3's sort and the stats / results tabs were never restored
