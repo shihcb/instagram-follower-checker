@@ -5,7 +5,7 @@
    (fonts/ goes into the built site: package.json's build, vercel.json) */
 @font-face {
   font-family: 'Ledger Serif';
-  src: url('fonts/ledger-serif.woff2?v=4') format('woff2');
+  src: url('fonts/ledger-serif.woff2?v=5') format('woff2');
   font-weight: 200 900;
   font-style: normal;
   font-display: block;
@@ -7032,7 +7032,7 @@ b, strong {
 #add-account-dropdown-menu { min-width: 150px; padding: 4px 0; }
 #account-modal-original-caption { font-size: var(--fs-sm); color: var(--text-muted); margin-top: 6px; text-transform: lowercase; }
 
-/* Words centred (with the font's glyphs raised 0.12em): buttons, pills,
+/* Words centred (with the font's glyphs raised .03em): buttons, pills,
    chips and tabs of a set height take the 1.4 line height like every other
    button — at 1 the browser's rounding put 11.5px words ¾px high. (Badges
    keep 1: their height is their line's.) */
@@ -7062,11 +7062,10 @@ b, strong {
   line-height: 1.4;
   box-sizing: border-box;
 }
-/* The number squares: a figure stands as tall as a capital, so with the
-   font's glyphs raised for lowercase words it sat 1px high — taken back
-   down (the dashboard's digits badges do the same), the square's size kept */
+/* The number squares: a figure stands as tall as a capital — with the
+   font's letters raised only .03em it sits in the middle as it is (at .11em
+   it was taken down 2px) */
 .card-num {
-  padding-top: 2px;
   box-sizing: border-box;
 }
 /* 15px words (the full-size buttons, the card numbers): a 22px line —
