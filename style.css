@@ -7516,3 +7516,9 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
     padding: 12px 18px 16px !important;
   }
 }
+
+/* list 3's sort and select while the app opens: no motion (features.js) */
+.list-toolbar.settling,
+.list-toolbar.settling * {
+  transition: none !important;
+}

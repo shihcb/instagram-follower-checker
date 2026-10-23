@@ -1266,6 +1266,15 @@
       </div>
       <button class="toolbar-pill toolbar-reminder" data-act="reminder" title="import again"></button>`;
     wrapper.parentNode.insertBefore(toolbar, wrapper);
+    // Opening the app: sort and select take their state as the data comes
+    // in, with no motion (their colours eased in, the sort's label slid, on
+    // every open) — only once it's all in do they move with your taps.
+    toolbar.classList.add('settling');
+    const settle = setInterval(() => {
+      if ((currentUser && (!cloudReady || cloudPulling)) || pageLoading) return;
+      clearInterval(settle);
+      setTimeout(() => toolbar.classList.remove('settling'), 700);
+    }, 200);
     toolbar.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-act]');
       if (!btn) return;
@@ -1358,10 +1367,10 @@
       stopRowMotion(el);
       ['position', 'top', 'left', 'width', 'margin', 'zIndex'].forEach(k => { el.style[k] = ''; });
     };
-    if (show) swapText(el, text);
+    if (show) { if (toolbar.classList.contains('settling')) el.textContent = text; else swapText(el, text); }
     if (show === shown) return;
     const card = document.getElementById('card-unfollowers');
-    const canMove = toolbar.getClientRects().length && card && typeof card.animate === 'function';
+    const canMove = toolbar.getClientRects().length && card && typeof card.animate === 'function' && !toolbar.classList.contains('settling'); // (opening the app: the reminder just there)
     if (!canMove) {
       if (leaving) restore();
       el.classList.toggle('pill-hidden', !show);
@@ -3515,8 +3524,12 @@
       if (sort !== sortMode) {
         sortMode = sort;
         calculateUnfollowers();
+        // (your saved sort, come with the app opening: shown as it is — it
+        // slid from "sort" to it every time the app opened)
         const btn = document.querySelector('.toolbar-pill[data-act="sort"]');
-        if (btn) requestAnimationFrame(() => slideSortLabel(btn));
+        const text = btn && btn.querySelector('.sort-current');
+        if (text) { text.textContent = SORT_LABELS[sortMode]; btn.querySelector('.sort-window').style.width = ''; }
+        if (btn) btn.classList.toggle('on', sortMode !== 'default');
       }
       subTab.stats = savedSub('stats_sub', 'stats');
       const results = savedSub('results_sub', 'results');
