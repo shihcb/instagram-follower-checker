@@ -7477,8 +7477,13 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
   #list-starred {
     min-width: 360px !important;
   }
+  /* (it opens from under its button, its left edge with the button's, and
+     runs out over list 2 beside it) */
   #add-account-dropdown-menu {
     width: 220px !important;
+    left: 0 !important;
+    right: auto !important;
+    transform-origin: top left !important;
   }
   /* (list 3's menus open over list 2 beside it, not cut off at list 3's
      edge: the card lets them out and sits over its neighbour) */
@@ -7845,4 +7850,23 @@ html.is-logged-in #auth-profile-view .account-row {
 .saved-imports-nav .saved-chips {
   flex-wrap: wrap;
   margin-bottom: 12px;
+}
+/* Shadows: the dashboard's three only — small buttons' (--shadow-btn),
+   anything floating (--shadow-float: menus, the bottom bars), windows
+   (--shadow-modal); cards and what sits inside a window have none, and
+   nothing glows */
+.feature-toast,
+[data-theme="dark"] .feature-toast,
+.row-select-bar,
+[data-theme="dark"] .row-select-bar {
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+body.auth-logged-out #auth-form-view,
+[data-theme] body.auth-logged-out #auth-form-view,
+.occupied-dot,
+.occupied-dot.on,
+.step-image-container,
+[data-theme="dark"] .step-image-container,
+.step-guide-img {
+  box-shadow: none !important;
 }

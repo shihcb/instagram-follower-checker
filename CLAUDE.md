@@ -91,6 +91,11 @@ every one a squircle on the small buttons' and search box's 8px corners
 (the dashboard's `--r-sm`; the dashboard is the same). Only spinners and the
 timeline's points stay round.
 
+Shadows are the dashboard's three only: small buttons' (`--shadow-btn`,
+0 1px 3px), anything floating (`--shadow-float`: menus, the toast and the
+select bar) and windows (`--shadow-modal`). Cards, the log-in card and
+whatever sits inside a window have none, and nothing glows.
+
 ## Labels and buttons only (the financial dashboard's conventions)
 
 No helper or caption text under features — labels and buttons only (a
