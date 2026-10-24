@@ -2781,6 +2781,10 @@ async function processImportFiles(files, isFolderUpload = false, opts = {}) {
   // the page or a list header double-clicked made a real account, saved
   // into the next log-in. (Only the import button was locked.)
   if (elements.btnAddAccount && elements.btnAddAccount.disabled) return false;
+  // One import at a time: a second one switched the selected account under
+  // the first, whose lists then went into the other account. (Google
+  // drive's own imports run one after another, while its sync counts as busy.)
+  if (!opts.fromDrive && accountsBusy()) { sayAccountsBusy(); return false; }
   importsRunning++;
   try { return await processImportFilesNow(files, isFolderUpload, opts); } finally { importsRunning--; }
 }
@@ -3498,6 +3502,7 @@ function saveAccountFromModal() {
 }
 
 function applyAccountFromModal(username, index, key = null) {
+  if (accountsBusy()) { sayAccountsBusy(); return; } // (an import began during the window's fade)
   // (by name again: the row may have changed during the window's fade)
   if (key) index = state.instagramAccounts.findIndex(acc => acc.originalUsername.toLowerCase() === key);
   if (key && index < 0) return;
@@ -5115,6 +5120,8 @@ function seedDemoData() {
 }
 
 function startDemo() {
+  // (not mid-import: the rest of it went into the demo, and was wiped with it)
+  if (accountsBusy()) { sayAccountsBusy(); return; }
   normalizeInstagramAccounts();
   if (!(state.instagramAccounts || []).some(isDemoAccount) && state.instagramAccounts.length >= MAX_ACCOUNTS) {
     showAccountLimitAlert();
@@ -6097,7 +6104,7 @@ function updateInstructionsStepUI() {
       }
     });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !loveOverlay.classList.contains('hidden')) {
+      if (e.key === 'Escape' && loveOverlay.classList.contains('show')) {
         hideLoveOverlay();
       }
     });
@@ -6496,6 +6503,7 @@ function updateInstructionsStepUI() {
         const proceed = await showSiteConfirm(`open the next ${batch} profiles?`, '', 'open', 'stop');
         if (!proceed) {
           autoOpenToggle.checked = false;
+          autoOpenToggle.dispatchEvent(new Event('change')); // (saved, as the other "stop" is)
           state.pendingAutoOpen = false;
           state.autoOpenCount = 0;
           return;

@@ -609,11 +609,12 @@
       req.onsuccess = () => resolve(req.result); req.onerror = () => resolve(null);
     })));
     db.close();
-    await filesDbWrite(store => moves.forEach(([from, to], i) => {
-      if (!recs[i]) return;
-      store.delete(`${key}|${from}`);
-      store.put(recs[i], `${key}|${to}`);
-    }));
+    // (every delete before any put: one move's new number is often the
+    // next one's old number, and deleting that wiped what was just put there)
+    await filesDbWrite(store => {
+      moves.forEach(([from], i) => { if (recs[i]) store.delete(`${key}|${from}`); });
+      moves.forEach(([, to], i) => { if (recs[i]) store.put(recs[i], `${key}|${to}`); });
+    });
   }
   const dropFromDevice = (key, n) => filesDbWrite(store => store.delete(`${key}|${n}`));
   // (kept files being moved to their new numbers: read before that was done,
@@ -641,6 +642,10 @@
       const [key, n] = String(id).split('|');
       const entry = readJSON(logKey(key), []).find(x => String(x.n) === n);
       if (!entry || !rec || !rec.files || !rec.files.length) continue;
+      // An in-between import (not a full save, and no longer the latest)
+      // keeps just its changes, as it would have had its upload worked: put
+      // up now, its zip stayed in the cloud for good
+      if (!isFullSave(entry.n) && readJSON(logKey(key), []).some(x => x.n > entry.n)) { moved.push(id); continue; }
       try {
         await cloudPut(key, entry.n, makeZip(rec.files, entry.date));
         const log = readJSON(logKey(key), []); // (fresh, after the upload)
@@ -740,12 +745,18 @@
   async function downloadSaved(key, entry) {
     const who = key === '_global_' ? 'lists' : key;
     if (entry.files) {
-      let blob = null;
-      try { blob = canCloud() ? await cloudGet(key, entry.n) : null; } catch (err) { console.error('[features] downloading import files failed:', err); }
+      let blob = null, failed = !canCloud();
+      try { blob = canCloud() ? await cloudGet(key, entry.n) : null; } catch (err) {
+        console.error('[features] downloading import files failed:', err);
+        // (only a file that isn't there is "not in the cloud yet": offline or
+        // logged out it is, and it said to open the app on another device)
+        failed = !(/not.?found/i.test(String(err && err.message)) || String(err && err.statusCode) === '404' || (err && err.status) === 404);
+      }
       if (blob) {
         saveFile(`instagram-by-s-${who}-import-${entry.n}-${fileDate(entry.date)}.zip`, blob);
         return true;
       }
+      if (failed) { await showSiteAlert('import couldn’t be downloaded', ''); return false; }
       // Not in the cloud yet (saved by an older version on another device
       // that hasn't been opened since): its changes download instead.
       if (!entry.changes) {
@@ -806,7 +817,7 @@
       // at once — a changes-only import, a quick zip — froze the page as it
       // came, the words snapping over and the spinner popping in)
       new Promise(resolve => setTimeout(resolve, canAnimate(row) ? ROW_MOTION_MS : 0)).then(() => downloadSaved(key, entry)).then((saved) => workDone(row, !!saved),
-        err => { workButton(row, false); console.error('[features] download failed:', err); showSiteAlert('import couldn’t be downloaded', 'its files aren’t in the cloud yet'); });
+        err => { workButton(row, false); console.error('[features] download failed:', err); showSiteAlert('import couldn’t be downloaded', ''); });
     });
     // (a chip picked from the keyboard too, as the main view's: Enter)
     savedOverlay.addEventListener('keydown', (e) => {
@@ -1034,7 +1045,6 @@
     refreshDrive();
     let imported = 0;
     let shown;
-    let synced = false; // (done in full: a check after sync's words)
     try {
       await signIn;
       stillHere(); // (logged out while google's window was up: nothing of it is kept for the next person)
@@ -1087,7 +1097,7 @@
         const latest = who ? Number(storageGet(dataDateKey(who)) || storageGet(getImportDateKey(who))) || 0 : 0;
         if (files.length && (latest < exp.at || (exp.repair && latest <= exp.at))) {
           importAt = exp.at;
-          try { if (await processImportFiles(files, true, { username: who })) imported++; } finally { importAt = null; }
+          try { if (await processImportFiles(files, true, { username: who, fromDrive: true })) imported++; } finally { importAt = null; }
           await new Promise(resolve => setTimeout(resolve, ROW_MOTION_MS));
         }
         // An export with no lists yet is still being put in drive (instagram
@@ -1106,7 +1116,6 @@
         showToast(`${plural(imported, 'export')} from google drive · ${unsaved === 1 ? 'one import’s files' : `${fmtNum(unsaved)} imports’ files`} couldn’t be saved to the cloud${why ? ` (${why})` : ''}`,
           'retry', () => moveLocalFilesToCloud().then(ok => showToast(ok ? 'files saved' : 'files couldn’t be saved')), { duration: 10000 });
       } else {
-        synced = true;
         // (what it did, on the button for a few seconds — the dashboard's
         // "3 pages updated"; the changes, when there are some, with "view")
         said = imported ? `${plural(imported, 'export')} imported` : 'no new exports';
@@ -1125,7 +1134,7 @@
       if (imported && shown && currentUser && currentUser.id === uid && state.selectedAccountUsername !== shown) {
         try { ensureAccountSelected(shown); } catch (e) {}
       }
-      refreshDrive({ done: synced });
+      refreshDrive();
       updateResetReminderUI();
     }
   }
