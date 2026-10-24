@@ -98,8 +98,9 @@ status line that changes, like "last synced …", is fine; with nothing to
 say it takes no room). Text sizes are only the `--fs-*` steps (sm 11.5,
 md 13, base 15, lg 17, xl 20; only the big display figures above them),
 weights 400 / 500 titles / 600 labels and buttons. Small buttons are one
-size (24px, `.btn-sm`) — list 3's menu buttons (unfollowed, starred, import
-files) too; a pick that's a form field (compare's account pickers) is the
+size (24px, `.btn-sm`); list 3's menu buttons (unfollowed, starred, import
+files) are the account chips' size (32px, their 13px words — the owner's,
+Oct 24, 2026); a pick that's a form field (compare's account pickers) is the
 dashboard's field drop-down (`.dd-btn`: the body's size, words left, chevron
 right); arrow buttons are its 30px squares (the instructions' back / next —
 back dimmed on the first step, next on the last). A window's ✕ only closes

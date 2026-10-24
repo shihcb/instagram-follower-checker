@@ -7724,13 +7724,14 @@ html.is-logged-in #auth-profile-view .account-row {
 }
 
 /* ---- one look with the dashboard (Oct 23, 2026) ---- */
-/* List 3's menu buttons (unfollowed, starred, import files): small buttons,
-   the one size (24px), as the dashboard's .btn-sm */
+/* List 3's menu buttons (unfollowed, starred, import files): the account
+   chips' size — 32px tall, their 13px words, 8px corners */
 #toggle-preview-unfollowed,
 #toggle-preview-starred,
 #btn-add-account {
-  height: 24px !important;
-  min-height: 24px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  font-size: var(--fs-md) !important;
   border-radius: 8px !important;
 }
 /* Compare's account pickers: the dashboard's field drop-down (.dd-btn) —
