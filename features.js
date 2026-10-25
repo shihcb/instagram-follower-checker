@@ -321,7 +321,9 @@
     const kind = snap.cleared;
     const ta = kind === 'following' ? elements.inputFollowing : elements.inputFollowers;
     state[kind] = snap.list;
-    ta.value = snap.text;
+    // (from the list, not the box's text then: cleared mid-search, that was
+    // only the matches, and the next edit kept just those)
+    ta.value = snap.list.map(u => `@${u.originalUsername || u.username}`).join('\n');
     updateListUI(kind);
     saveCurrentAccountData();
     calculateUnfollowers({ animate: true });
@@ -332,7 +334,7 @@
     btn.addEventListener('click', () => {
       const ta = kind === 'following' ? elements.inputFollowing : elements.inputFollowers;
       if (!ta || ta.value.trim() === '') return;
-      const entry = { snap: { acc: accKey(), cleared: kind, list: state[kind].slice(), text: ta.value }, message: `${label} cleared` };
+      const entry = { snap: { acc: accKey(), cleared: kind, list: state[kind].slice() }, message: `${label} cleared` };
       // After the text has faded out (smoothClearTextarea, ROW_MOTION_MS).
       setTimeout(() => {
         // (only once it really was cleared: another account picked while it
@@ -3642,7 +3644,7 @@
   else init();
 
   // For the rest of the app (and tests).
-  window.igFeatures = { resetDrive: () => { driveToken = null; tokenGen++; tokenWaiters.splice(0).forEach(w => w.reject(Object.assign(new Error('stopped'), { cancelled: true }))); if (driveSync) driveSync.cancelled = true; }, driveBusy: () => !!driveSync,
+  window.igFeatures = { resetUndo: () => { undoStack.length = 0; safe(refreshUndo, 'undo'); }, resetDrive: () => { driveToken = null; tokenGen++; tokenWaiters.splice(0).forEach(w => w.reject(Object.assign(new Error('stopped'), { cancelled: true }))); if (driveSync) driveSync.cancelled = true; }, driveBusy: () => !!driveSync,
     refreshView: () => safe(refreshView, 'view'),
     // (imports' files still going up — logging out waits for them, so their
     // "files saved" reaches the cloud; at most 15s)

@@ -1177,12 +1177,9 @@ function setToggleOccupied(toggleBtn, occupied) {
 }
 
 function updateUnfollowedUI(enteringUsername) {
-  // Only the no-account view saves from here (to its own key — see
-  // saveCurrentAccountData). This used to overwrite the merged all-accounts
-  // list with just the current account's usernames on every redraw.
-  if (!state.selectedAccountUsername) {
-    storageSet('unfollowed_users__global_', JSON.stringify(state.unfollowed));
-  }
+  // Nothing is saved from here (every change saves with
+  // saveCurrentAccountData): drawn at log-out, or with the demo's left in
+  // state, it wrote those over the no-account list kept for the next log-in.
   const listData = state.unfollowed;
   const listEl = elements.listUnfollowed;
   const toggleBtn = elements.togglePreviewUnfollowed;
@@ -6665,6 +6662,8 @@ function applyGuestPreviewLock(isLoggedIn) {
       clearDemoData();
       state.following = [];
       state.followers = [];
+      state.unfollowed = []; // (the demo's, not this person's)
+      state.starred = [];
       elements.inputFollowing.value = '';
       elements.inputFollowers.value = '';
       updateListUI('following');
@@ -7093,8 +7092,11 @@ function initAuth() {
           // (see pullFromCloud). Anyone else logging in clears it first.
           if (!storageGet(CLOUD_DIRTY_KEY)) clearLocalAccountData();
           if (window.igFeatures && window.igFeatures.applyPrefs) window.igFeatures.applyPrefs(); // (the last person's sort and tabs don't carry over)
-          // Their google sign-in, held in memory, goes either way
+          // Their google sign-in, held in memory, goes either way — and their
+          // undo steps (undone after the next log-in, they put this person's
+          // lists into that one's)
           if (window.igFeatures && window.igFeatures.resetDrive) window.igFeatures.resetDrive();
+          if (window.igFeatures && window.igFeatures.resetUndo) window.igFeatures.resetUndo();
 
           elements.inputFollowing.value = '';
           elements.inputFollowers.value = '';
@@ -8100,6 +8102,31 @@ window.addEventListener('online', retryCloudPush);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') flushCloudPush();
 });
+
+// Back to the front after 5 minutes or more (the financial dashboard's
+// rule): the cloud copy is loaded again first. Left open in the background,
+// the next change here uploaded this device's old copy over what another
+// device had done meanwhile — an import gone, a deleted account back.
+let hiddenSince = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') { hiddenSince = Date.now(); return; }
+  const away = hiddenSince ? Date.now() - hiddenSince : 0;
+  hiddenSince = 0;
+  if (away >= 5 * 60 * 1000) refreshFromCloud();
+});
+async function refreshFromCloud() {
+  // (not while anything of this device's is still on its way up — that
+  // goes first, its own retry — nor mid-import, nor in the demo)
+  const canPull = () => supabaseClient && currentUser && cloudReady && !cloudPulling && !hasPendingCloudPush()
+    && storageGet(CLOUD_DIRTY_KEY) !== currentUser.id && !accountsBusy()
+    && String(state.selectedAccountUsername || '').toLowerCase() !== DEMO_ID;
+  if (!canPull()) return;
+  await cloudPushChain.catch(() => {});
+  if (!canPull()) return;
+  const uid = currentUser.id;
+  try { await pullFromCloud(false); } catch (err) { console.error('Error refreshing cloud data:', err); return; }
+  if (currentUser && currentUser.id === uid) { try { renderAccountChips(false); } catch (e) {} }
+}
 window.addEventListener('pagehide', () => { flushCloudPush(); });
 
 async function pushToCloudNow() {
