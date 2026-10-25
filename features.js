@@ -137,13 +137,15 @@
       slot.style.width = action ? '' : '0px';
       slot.style.opacity = action ? '' : '0';
       void toastEl.offsetWidth;
+      toastEl.inert = false;
       toastEl.classList.add('show');
     }
     toastTimer = setTimeout(hideToast, duration);
   }
   function hideToast() {
     clearTimeout(toastTimer);
-    if (toastEl) toastEl.classList.remove('show');
+    toastAction = null; // (its button, hidden, still ran it from the keyboard)
+    if (toastEl) { toastEl.classList.remove('show'); toastEl.inert = true; }
   }
 
   // ---------- undo ----------
@@ -366,6 +368,9 @@
     const k = accountUsername ? String(accountUsername).toLowerCase() : '_global_';
     for (let i = undoStack.length - 1; i >= 0; i--) if (undoStack[i].snap.acc === k) undoStack.splice(i, 1);
     safe(refreshUndo, 'undo');
+    // (the lists were drawn before this import's changes and date were kept:
+    // an open changes view and "import again" stayed as they were)
+    if (!driveSync) { safe(refreshView, 'view'); safe(refreshToolbar, 'toolbar'); } // (a google drive sync: once, at its end)
     return result;
   };
   // The account chips redrawn (an account renamed, deleted or added): compare
@@ -389,8 +394,20 @@
   let importAt = null;
   const dataDateKey = (accountUsername) => `import_at_${accountUsername ? accountUsername.toLowerCase() : '_global_'}`;
   const now = () => importAt || Date.now();
-  let driveSync = null; // a google drive sync running: { changes, unsaved, why }
+  let driveSync = null; // a google drive sync running: { diffs, unsaved, why }
   const savesRunning = new Set(); // imports' files on their way to the cloud
+  const diffTotal = (d) => d ? d.lostFollowers.length + d.newFollowers.length + d.stoppedFollowing.length + d.startedFollowing.length : 0;
+  function openChanges(diff) {
+    // (opened on a tab that has something: it opened on "unfollowed
+    // you" whatever came, "no one unfollowed you" for new followers)
+    const keys = { lost: 'lostFollowers', new: 'newFollowers', stopped: 'stoppedFollowing', started: 'startedFollowing' };
+    const first = Object.keys(keys).find(k => (diff[keys[k]] || []).length);
+    if (first && currentView === 'changes') showAltSub(first);
+    else if (first) subTab.changes = first;
+    if (phoneLayout.matches) showMobileList('unfollowers'); // (on a phone, list 3 — the changes are there — comes up first)
+    showView('changes');
+    viewNav && viewNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
   function recordChanges(accountUsername) {
     const key = accountUsername ? accountUsername.toLowerCase() : '_global_';
     if (key === DEMO_ID) return;
@@ -416,21 +433,13 @@
         startedFollowing: hadF ? following.filter(n => !pf.has(n)) : []
       };
       writeJSON(`import_diff_${key}`, diff);
-      const total = diff.lostFollowers.length + diff.newFollowers.length + diff.stoppedFollowing.length + diff.startedFollowing.length;
-      // A google drive sync adds them up for its own toast at the end.
-      if (driveSync) driveSync.changes += total;
+      const total = diffTotal(diff);
+      // A google drive sync keeps each account's latest for its own toast at
+      // the end (it added up every import's, while the view shows only the
+      // last one — and only the account on screen's)
+      if (driveSync) driveSync.diffs[key] = diff;
       else setTimeout(() => showToast(total ? `${fmtNum(total)} change${total === 1 ? '' : 's'} since your last import` : 'no changes since your last import',
-        total ? 'view' : null, () => {
-          // (opened on a tab that has something: it opened on "unfollowed
-          // you" whatever came, "no one unfollowed you" for new followers)
-          const keys = { lost: 'lostFollowers', new: 'newFollowers', stopped: 'stoppedFollowing', started: 'startedFollowing' };
-          const first = Object.keys(keys).find(k => (diff[keys[k]] || []).length);
-          if (first && currentView === 'changes') showAltSub(first);
-          else if (first) subTab.changes = first;
-          if (phoneLayout.matches) showMobileList('unfollowers'); // (on a phone, list 3 — the changes are there — comes up first)
-          showView('changes');
-          viewNav && viewNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }), 900);
+        total ? 'view' : null, () => openChanges(diff)), 900);
     }
     // Full lists only for the latest import (for the next comparison);
     // counts for the trend.
@@ -1034,7 +1043,7 @@
       return;
     }
     const signIn = driveSignIn(); // first, while it's still the tap
-    driveSync = { changes: 0, unsaved: 0, why: '' };
+    driveSync = { diffs: {}, unsaved: 0, why: '' };
     const bar = startDriveBar();
     let said = null;
     // Logged out meanwhile (or someone else in): it stops at once — what it
@@ -1109,7 +1118,11 @@
       pushToCloud();
       bar.stage('saving imports', 0.92);
       await Promise.allSettled([...savesRunning]);
-      const { changes, unsaved, why } = driveSync;
+      const { diffs, unsaved, why } = driveSync;
+      // (the account on screen once it's done: the one you were on, put back below)
+      const onScreen = shown || state.selectedAccountUsername;
+      const diff = diffs[onScreen ? onScreen.toLowerCase() : '_global_'];
+      const changes = diffTotal(diff);
       driveSync = null;
       if (unsaved) {
         // Kept on this device; they go up the next time the app opens.
@@ -1119,7 +1132,7 @@
         // (what it did, on the button for a few seconds — the dashboard's
         // "3 pages updated"; the changes, when there are some, with "view")
         said = imported ? `${plural(imported, 'export')} imported` : 'no new exports';
-        if (imported && changes) showToast(`${plural(changes, 'change')} since your last import`, 'view', () => { if (phoneLayout.matches) showMobileList('unfollowers'); showView('changes'); viewNav && viewNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); });
+        if (imported && changes) showToast(`${plural(changes, 'change')} since your last import`, 'view', () => openChanges(diff));
       }
     } catch (err) {
       driveSync = null;
@@ -1136,6 +1149,7 @@
       }
       refreshDrive();
       updateResetReminderUI();
+      if (imported) { safe(refreshView, 'view'); safe(refreshToolbar, 'toolbar'); }
     }
   }
   async function disconnectDrive() {
@@ -1684,6 +1698,12 @@
       e.preventDefault();
       e.stopPropagation();
     }, true);
+    // (and Escape, as the other menus)
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || !altView.querySelector('.compare-menu.show')) return;
+      closeCompareMenus();
+      e.preventDefault();
+    });
     altView.addEventListener('click', (e) => {
       const pickBtn = e.target.closest('.compare-pick-btn');
       if (pickBtn) {
@@ -2042,7 +2062,7 @@
     let more = '';
     if (users.length > LIST_PAGE) {
       const key = `${users.length}|${users[0].username}|${users[users.length - 1].username}|${dismiss || 0}`;
-      if (moreRows.size > 40) moreRows.clear();
+      moreRows.delete(key); if (moreRows.size >= 40) moreRows.delete(moreRows.keys().next().value); // (the oldest only: clearing them all could drop one just drawn, not yet wired)
       moreRows.set(key, { users, noteOf, dismiss });
       more = `<div class="rows-more" data-more-key="${esc(key)}" role="status" aria-label="loading more"><span class="rows-more-spinner" aria-hidden="true"></span></div>`;
     }
@@ -3098,21 +3118,7 @@
       pane.appendChild(fresh);
       return;
     }
-    swapPendingRows(pane, old, fresh, accSwap); return;
-    const scroll = old.scrollTop;
-    old.classList.add('extra-leaving');
-    old.scrollTop = scroll;
-    const oldSub = old.querySelector(':scope > .insights-sub');
-    const keepSub = oldSub && oldSub.textContent === sub;
-    if (keepSub) oldSub.style.visibility = 'hidden';
-    old.querySelectorAll('.dropdown-empty-message').forEach(m => { fadeGhostOut(m); m.style.visibility = 'hidden'; });
-    pane.appendChild(fresh);
-    const drop = () => old.remove();
-    old.animate(MODAL_OUT, LEAVE).finished.then(drop, drop);
-    setTimeout(drop, LEAVE.duration + 400);
-    [...fresh.children].filter(el => !(keepSub && el.matches('.insights-sub')))
-      .forEach(el => (el.matches('.dropdown-empty-message') ? fadeEmptyIn(el)
-        : el.animate(MODAL_IN, { duration: 450, easing: MODAL_EASE, fill: 'backwards' }))); // (crossing, as above)
+    swapPendingRows(pane, old, fresh, accSwap);
   }
   // Pending requests change like list 3's rows (an account picked, files
   // imported): the boxes on screen slide out, the new ones slide in, each
