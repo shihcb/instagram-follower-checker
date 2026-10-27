@@ -3285,10 +3285,6 @@ body.is-capacitor #card-unfollowers {
   height: calc(100svh - max(88px, calc(76px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)))) !important;
 }
 
-body.is-capacitor.auth-logged-out #theme-toggle {
-  top: max(24px, calc(16px + env(safe-area-inset-top, 0px))) !important;
-}
-
 /* -------------------------------------------------------------
  * Desktop Viewport Constraint (No page scroll, only inner lists scroll)
  * ------------------------------------------------------------- */
@@ -3421,43 +3417,6 @@ body.auth-logged-out .app-header {
 /* -------------------------------------------------------------
  * Landing Page Layout & Component Styling (Logged Out State)
  * ------------------------------------------------------------- */
-/* Zero-flicker overrides for authenticated session on initial frame render */
-html.is-logged-in body.auth-logged-out {
-  overflow: auto !important;
-}
-
-html.is-logged-in body.auth-logged-out .app-header {
-  border-bottom: 1px solid var(--card-border) !important;
-  background: var(--nav-bg) !important;
-}
-
-html.is-logged-in body.auth-logged-out .app-header h1 {
-  display: block !important;
-}
-
-html.is-logged-in body.auth-logged-out .auth-dropdown {
-  position: absolute !important;
-  top: 100% !important;
-  right: 0 !important;
-  left: auto !important;
-  bottom: auto !important;
-  width: 320px !important;
-  height: auto !important;
-  max-width: calc(100vw - 32px) !important;
-  z-index: 1000 !important;
-  display: none !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  overflow-y: visible !important;
-  background: var(--card-bg) !important;
-}
-
-html.is-logged-in body.auth-logged-out .auth-dropdown.show {
-  display: flex !important;
-  opacity: 1 !important;
-  pointer-events: auto !important;
-}
-
 html.is-logged-in #landing-page-container,
 html.is-logged-in #landing-preview-section {
   display: none !important;
@@ -7869,4 +7828,34 @@ body.auth-logged-out #auth-form-view,
 [data-theme="dark"] .step-image-container,
 .step-guide-img {
   box-shadow: none !important;
+}
+
+/* The landing page's header clear of the iPhone's status bar and notch
+   (the page is drawn under them: viewport-fit=cover) — its padding as
+   before, plus the insets */
+.landing-header {
+  padding-top: calc(16px + env(safe-area-inset-top, 0px));
+  padding-left: max(32px, env(safe-area-inset-left, 0px));
+  padding-right: max(32px, env(safe-area-inset-right, 0px));
+}
+@media (max-width: 600px) {
+  .landing-header {
+    padding-top: calc(12px + env(safe-area-inset-top, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+}
+@media (max-width: 360px) {
+  .landing-header {
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    padding-right: max(12px, env(safe-area-inset-right, 0px));
+  }
+}
+
+/* Settings open over select mode: the select bar steps aside (it sat over
+   the panel's foot and took its taps — "log out" unfollowed the picks) */
+body:has(#auth-dropdown.show) .row-select-bar {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
