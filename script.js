@@ -3989,6 +3989,7 @@ function swapText(el, text, { resize = false } = {}) {
     // Screen size to layout size (the guest preview draws the app scaled).
     const k = host.offsetWidth ? hr.width / host.offsetWidth : 1;
     const ghost = el.cloneNode(true);
+    ghost.querySelectorAll(':scope > .done-check, :scope > .work-spin').forEach(c => c.remove()); // (they stay on the button itself)
     ghost.removeAttribute('id');
     ghost.setAttribute('aria-hidden', 'true');
     ghost.inert = true;
@@ -4014,7 +4015,10 @@ function swapText(el, text, { resize = false } = {}) {
     setTimeout(drop, ROW_MOTION_MS + 350);
   }
   if (el._swapWidth) { el._swapWidth.cancel(); el._swapWidth = null; }
+  // (a button's spinner or check stays: only its words change)
+  const kept = [...el.children].filter(c => c.matches('.done-check, .work-spin'));
   el.textContent = text;
+  kept.forEach(c => el.append(c));
   if (!(shown > 0.05) || !text.trim()) return;
   crossIn(el);
   if (!fromW) return;
@@ -4028,8 +4032,8 @@ function swapText(el, text, { resize = false } = {}) {
 // The button at work (the dashboard's workButton): its words stay, dimmed a
 // little — never other words ("syncing") — and the button glides wider as a
 // spinner swoops in after them (from 20% size, blurred); done, the spinner
-// swoops away and the button glides back to its size. Set its words first
-// (swapText wipes the spinner), then this.
+// swoops away and the button glides back to its size. (swapText keeps the
+// spinner: only the words change.)
 const SPIN_ROOM = 18;
 const SPIN_SWOOP = [{ opacity: 0, transform: 'scale(0.2)', filter: 'blur(1.5px)' }, { opacity: 1, transform: 'scale(1)', filter: 'blur(0)' }];
 // (`glide`: the button glides as a whole — glideWidth around this — so the
@@ -4115,6 +4119,9 @@ function workDone(btn, ok = true) {
       c.setAttribute('aria-hidden', 'true');
       c.innerHTML = CHECK_SVG;
       c.style.transition = 'none';
+      // (an earlier check still easing away goes: doneCheck timed that one,
+      // and this one stayed for good)
+      btn.querySelectorAll(':scope > .done-check').forEach(old => old.remove());
       sp.replaceWith(c);
       const x1 = prev ? prev.getBoundingClientRect().right : 0;
       const ml = parseFloat(getComputedStyle(c).marginLeft) || 0;
@@ -4593,8 +4600,8 @@ function closeExitSpace(spacer, distance, duration, exitDone = () => {}) {
   if (!atEnd) {
     const r = spacer.getBoundingClientRect();
     const view = scroller ? scroller.getBoundingClientRect() : { top: 0, bottom: window.innerHeight };
-    if (r.top >= view.bottom - 1 || r.bottom <= view.top + 1) { spacer.remove(); return; }
-    const drop = () => spacer.remove();
+    if (r.top >= view.bottom - 1 || r.bottom <= view.top + 1) { spacer.remove(); exitDone(); return; }
+    const drop = () => { spacer.remove(); exitDone(); };
     if (typeof spacer.animate === 'function') {
       spacer.animate([{ height: `${distance}px` }, { height: '0px' }], { duration, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' }).finished.then(drop, drop);
     } else drop();
@@ -4610,6 +4617,17 @@ function closeExitSpace(spacer, distance, duration, exitDone = () => {}) {
     list.insertBefore(top, list.firstChild);
   }
   const topStart = parseFloat(top.style.height) || 0;
+  // Reduce Motion: straight to where it's headed (it slid all the same)
+  if (reducedMotion()) {
+    const keepNow = scroller.scrollTop;
+    top.style.height = `${topStart + distance}px`;
+    spacer.remove();
+    void scroller.offsetHeight;
+    if (Math.abs(scroller.scrollTop - keepNow) > 0.5) scroller.scrollTop = keepNow;
+    exitDone();
+    dropTopSpacer(top, scroller);
+    return;
+  }
   // The scroll position stays put the whole way (the length never changes,
   // so it can). Safari sometimes moves it by itself when the space around
   // the rows changes — scroll anchoring, a row's length off by a line — so
@@ -4878,7 +4896,11 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
     };
     hold();
     requestAnimationFrame(hold);
-    setTimeout(() => dropExitSpacerWhenHidden(spacer), DURATION + 160);
+    setTimeout(() => {
+      // (its listeners go with it: never touched, they piled up on window)
+      ['touchstart', 'wheel'].forEach(type => window.removeEventListener(type, release, { capture: true }));
+      dropExitSpacerWhenHidden(spacer);
+    }, DURATION + 160);
   }
 
   if (shrinkBox) {
@@ -6250,8 +6272,11 @@ function updateInstructionsStepUI() {
         saveCurrentAccountData();
         calculateUnfollowers({ animate: true }); // usernames return to list 3 — slide them in
         updateUnfollowedUI();
+        // ("reset due" eases to "reset" first: a check put in meanwhile
+        // wasn't in its width, which snapped wider at the end)
+        const wasDue = settingsResetUnfollowedBtn.classList.contains('reset-due');
         updateResetReminderUI();
-        doneCheck(settingsResetUnfollowedBtn); // (a check after "reset" for a moment)
+        setTimeout(() => doneCheck(settingsResetUnfollowedBtn), wasDue ? ROW_MOTION_MS : 0); // (a check after "reset" for a moment)
         await pushToCloud();
       }
     });
@@ -6281,8 +6306,11 @@ function updateInstructionsStepUI() {
         saveCurrentAccountData();
         calculateUnfollowers({ animate: true }); // usernames return to list 3 — slide them in
         updateStarredUI();
+        // ("reset due" eases to "reset" first: a check put in meanwhile
+        // wasn't in its width, which snapped wider at the end)
+        const wasDue = settingsResetStarredBtn.classList.contains('reset-due');
         updateResetReminderUI();
-        doneCheck(settingsResetStarredBtn); // (a check after "reset" for a moment)
+        setTimeout(() => doneCheck(settingsResetStarredBtn), wasDue ? ROW_MOTION_MS : 0); // (a check after "reset" for a moment)
         await pushToCloud();
       }
     });
@@ -7216,6 +7244,9 @@ function initAuth() {
 
   function switchTab(signup) {
     if (isSigningUp === signup) return;
+    // (not while it's logging in or signing up: the button's words were set
+    // over its spinner, and the answer showed on the other tab)
+    if (authBusy) return;
     requestedSigningUp = null;
 
     // Switching is list 3's tab push, with the list 3 slide's timing
@@ -7503,13 +7534,16 @@ function initAuth() {
       try { await window.igFeatures.savesSettled(); } catch (err) {}
       workButton(btn, false);
     }
-    btn._leaving = false;
+    // (kept till the sign-out is done: the button, faded out but still
+    // under the finger, took a second tap — two sign-outs, the landing
+    // page fading in twice)
     playAppExit();
     // Upload any batched changes while still signed in — alongside the
     // animation rather than after it.
     const upload = flushCloudPush().catch(err => console.error('Error syncing before sign out:', err));
 
     setTimeout(async () => {
+      try {
       await upload;
       if (supabaseClient) {
         try {
@@ -7524,6 +7558,7 @@ function initAuth() {
           if (elements.authDropdown) elements.authDropdown.classList.remove('show');
         }
       }
+      } finally { btn._leaving = false; }
     }, APP_EXIT_MS);
   });
 
@@ -7880,6 +7915,7 @@ async function pullFromCloudNow(uploadLocalFirst, stillWanted) {
 
     if (error) throw error;
     if (stillWanted && !stillWanted()) return false;
+    if (data) noteCloudBytes(data.starred, data.unfollowed);
 
     if (data) {
       let rawStarred = data.starred || [];
@@ -8244,6 +8280,7 @@ async function pushToCloudNow() {
       });
 
     if (error) throw error;
+    noteCloudBytes(cloudStarred, allUnfollowedArray);
     dropDeviceCopy(); // the cloud has it all now
     if (storageGet(CLOUD_DIRTY_KEY) === currentUser.id && !hasPendingCloudPush() && gen === cloudChangeGen) {
       storageRemove(CLOUD_DIRTY_KEY);
@@ -8259,6 +8296,13 @@ async function pushToCloudNow() {
   }
 }
 
+// What the cloud row really holds (every account's lists, history, imports'
+// changes, extra lists…): measured from what last went up or came down.
+// (only some of the device's lists were counted, the merged ones twice)
+let cloudBytes = null; // { uid, n }
+function noteCloudBytes(starred, unfollowed) {
+  if (currentUser) cloudBytes = { uid: currentUser.id, n: JSON.stringify(starred || []).length + JSON.stringify(unfollowed || []).length };
+}
 function updateStorageProgressBar() {
   const keysToMeasure = [
     'instagram_accounts',
@@ -8285,7 +8329,8 @@ function updateStorageProgressBar() {
   });
 
   let totalBytes = 0;
-  keysToMeasure.forEach(key => {
+  if (cloudBytes && currentUser && cloudBytes.uid === currentUser.id) totalBytes = cloudBytes.n;
+  else keysToMeasure.forEach(key => {
     const val = storageGet(key);
     if (val) {
       totalBytes += key.length + val.length;
@@ -8412,12 +8457,12 @@ function updateResetReminderUI() {
     fillEl.style.width = '100%';
   } else {
     box.classList.remove('overdue');
-    const remainingDays = Math.floor(remainingMs / dayMs);
-    const remainingHours = Math.floor((remainingMs % dayMs) / (60 * 60 * 1000));
-    // (its last hour in minutes — it said "0 hours left")
-    const remainingMinutes = Math.max(1, Math.ceil(remainingMs / 60000));
-    const remainingText = remainingDays > 0 ? plural(remainingDays, 'day')
-      : remainingHours > 0 ? plural(remainingHours, 'hour') : plural(remainingMinutes, 'minute');
+    // Counted up, as a countdown is (just imported, it said "6 days left"
+    // of 7); its last day in hours, its last hour in minutes
+    const hourMs = 60 * 60 * 1000;
+    const remainingText = remainingMs > dayMs ? plural(Math.ceil(remainingMs / dayMs), 'day')
+      : remainingMs > hourMs ? plural(Math.ceil(remainingMs / hourMs), 'hour')
+      : plural(Math.max(1, Math.ceil(remainingMs / 60000)), 'minute');
     swapText(valueEl, `${remainingText} left`);
     swapText(detailEl, `imported ${importedDateText}`);
     fillEl.style.width = `${Math.min(100, Math.max(0, ((now - importedAt) / RESET_REMINDER_MS) * 100))}%`;
