@@ -7852,12 +7852,15 @@ function retryCloudLoadWhenOnline() {
 // handler) — changes of theirs that never made it to the cloud (tab closed
 // or offline before the batched upload) go up first, or the download would
 // overwrite them with the older cloud copy.
-async function pullFromCloud(uploadLocalFirst = false) {
+// `stillWanted` (optional): checked once the cloud copy has come down — when
+// it says no (something changed here meanwhile, someone else logged in),
+// nothing of it is written and this returns false.
+async function pullFromCloud(uploadLocalFirst = false, stillWanted = null) {
   if (!supabaseClient || !currentUser) return;
   cloudPulling = true;
-  try { return await pullFromCloudNow(uploadLocalFirst); } finally { cloudPulling = false; }
+  try { return await pullFromCloudNow(uploadLocalFirst, stillWanted); } finally { cloudPulling = false; }
 }
-async function pullFromCloudNow(uploadLocalFirst) {
+async function pullFromCloudNow(uploadLocalFirst, stillWanted) {
   if (uploadLocalFirst && storageGet(CLOUD_DIRTY_KEY) === currentUser.id) {
     cloudReady = true;
     let sent = false;
@@ -7876,6 +7879,7 @@ async function pullFromCloudNow(uploadLocalFirst) {
       .maybeSingle();
 
     if (error) throw error;
+    if (stillWanted && !stillWanted()) return false;
 
     if (data) {
       let rawStarred = data.starred || [];
@@ -8123,9 +8127,23 @@ async function refreshFromCloud() {
   if (!canPull()) return;
   await cloudPushChain.catch(() => {});
   if (!canPull()) return;
+  flushListInputs(); // (what's being typed in list 1 or 2 counts as a change)
+  if (!canPull()) return;
   const uid = currentUser.id;
-  try { await pullFromCloud(false); } catch (err) { console.error('Error refreshing cloud data:', err); return; }
-  if (currentUser && currentUser.id === uid) { try { renderAccountChips(false); } catch (e) {} }
+  const gen = cloudChangeGen;
+  // Anything done here while it came down (a star, an unfollow, a log-out)
+  // wins: the cloud copy is dropped rather than written over it
+  const stillWanted = () => currentUser && currentUser.id === uid && cloudChangeGen === gen && !hasPendingCloudPush() && !accountsBusy();
+  let loaded;
+  try { loaded = await pullFromCloud(false, stillWanted); } catch (err) { console.error('Error refreshing cloud data:', err); return; }
+  if (loaded === false || !currentUser || currentUser.id !== uid) return;
+  try { renderAccountChips(false); } catch (e) {}
+  const f = window.igFeatures;
+  // (undo steps from before would put this device's old lists back over
+  // what came down; the views drawn from the old imports redrawn)
+  if (f && f.resetUndo) f.resetUndo();
+  if (f && f.refreshView) f.refreshView();
+  if (f && f.refreshToolbar) f.refreshToolbar();
 }
 window.addEventListener('pagehide', () => { flushCloudPush(); });
 

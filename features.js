@@ -1040,6 +1040,8 @@
 
   async function syncDrive() {
     if (driveSync) return;
+    // (not beside an import of your own: its accounts switched under it)
+    if (importsRunning > 0) { showToast('wait for the import to finish'); return; }
     if (!GOOGLE_CLIENT_ID) {
       await showSiteAlert('google drive isn’t set up yet', 'google sign-in isn’t set up for this app');
       return;
@@ -3646,6 +3648,7 @@
   // For the rest of the app (and tests).
   window.igFeatures = { resetUndo: () => { undoStack.length = 0; safe(refreshUndo, 'undo'); }, resetDrive: () => { driveToken = null; tokenGen++; tokenWaiters.splice(0).forEach(w => w.reject(Object.assign(new Error('stopped'), { cancelled: true }))); if (driveSync) driveSync.cancelled = true; }, driveBusy: () => !!driveSync,
     refreshView: () => safe(refreshView, 'view'),
+    refreshToolbar: () => safe(refreshToolbar, 'toolbar'),
     // (imports' files still going up — logging out waits for them, so their
     // "files saved" reaches the cloud; at most 15s)
     savesPending: () => savesRunning.size > 0,
