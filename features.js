@@ -105,7 +105,7 @@
       toastEl.className = 'feature-toast';
       // (its words in a bar of their own, its button in another beside it — a gap between; "undo" as the undo arrow: the
       // dashboard's, Oct 28, 2026)
-      toastEl.innerHTML = '<span class="feature-toast-box"><span class="feature-toast-text"></span></span><span class="feature-toast-slot" style="width: 0px; opacity: 0" inert><span class="feature-toast-box feature-toast-act"><button class="feature-toast-btn"></button></span></span>';
+      toastEl.innerHTML = '<span class="feature-toast-box"><span class="feature-toast-text"><span class="glide-box"><span class="glide-inner"></span></span></span></span><span class="feature-toast-slot" style="width: 0px; opacity: 0" inert><span class="feature-toast-box feature-toast-act"><button class="feature-toast-btn"></button></span></span>';
       toastEl._slot = toastEl.querySelector('.feature-toast-slot');
       toastEl._slot._shown = false;
       toastEl.querySelector('.feature-toast-btn').addEventListener('click', (e) => {
@@ -119,7 +119,8 @@
     }
     clearTimeout(toastTimer);
     const up = toastEl.classList.contains('show');
-    const text = toastEl.querySelector('.feature-toast-text');
+    // (one line, never wrapped nor cut short with "…": words too long for it glide — the dashboard's, Oct 28, 2026)
+    const text = toastEl.querySelector('.feature-toast-text .glide-inner');
     const btn = toastEl.querySelector('.feature-toast-btn');
     toastEl.classList.toggle('warn', tone === 'warn');
     toastEl.classList.toggle('no-action', !action);
@@ -144,6 +145,9 @@
       toastEl.classList.add('show');
     }
     toastTimer = setTimeout(hideToast, duration);
+    const glide = toastEl.querySelector('.feature-toast-text .glide-box');
+    requestAnimationFrame(() => measureGlide(glide));
+    if (up) setTimeout(() => measureGlide(glide), ROW_MOTION_MS + 20); // (once new words have faded across)
   }
   // the undo arrow (list 3's undo button's) in place of the word "undo"
   function toastIcon(btn) {

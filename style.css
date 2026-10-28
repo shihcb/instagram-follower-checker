@@ -7900,3 +7900,7 @@ body:has(#auth-dropdown.show) .row-select-bar {
 .feature-toast-slot .feature-toast-btn { margin-left: 0 !important; }
 .feature-toast-btn.icon { width: 32px; padding: 0 !important; }
 .feature-toast-btn.icon:has(.work-spin, .done-check.show) { width: auto; padding: 0 8px !important; }
+/* (its words one line, never wrapped nor ending in "…": too long, they glide — the dashboard's, Oct 28, 2026) */
+.feature-toast-text { text-overflow: clip !important; display: block; }
+.feature-toast-text > .glide-box { display: block; position: relative; min-width: 0; overflow: hidden; white-space: nowrap; }
+.feature-toast-box { min-width: 0; }
