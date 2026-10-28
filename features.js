@@ -852,8 +852,9 @@
     return log.slice().reverse().map(entry => {
       const c = entry.changes;
       const count = c ? c.lost.length + c.gained.length + c.stopped.length + c.started.length : 0;
-      const kind = entry.files ? 'full folder · zip' : (c ? `${plural(count, 'change')} · csv` : 'no changes saved');
-      return `<button class="export-option saved-import" data-import="${entry.n}" data-row-key="${esc(key)}|${entry.n}"${!entry.files && !c ? ' disabled' : ''}>
+      // (no changes at all: nothing to download — it saved a file of just its heading)
+      const kind = entry.files ? 'full folder · zip' : (c && count ? `${plural(count, 'change')} · csv` : c ? 'no changes' : 'no changes saved');
+      return `<button class="export-option saved-import" data-import="${entry.n}" data-row-key="${esc(key)}|${entry.n}"${!entry.files && !count ? ' disabled' : ''}>
           <span class="export-label">import ${entry.n}<span class="saved-import-date">${esc(longDate(entry.date))}</span></span>
           <span class="export-count">${esc(kind)}</span>
         </button>`;
@@ -2209,7 +2210,9 @@
     const series = [['a', 'following', STAT_COLORS[0]], ['b', 'followers', STAT_COLORS[1]]];
     const path = (k) => pts.map((p, i) => `${i ? 'L' : 'M'}${x(p, i).toFixed(1)} ${y(p[k]).toFixed(1)}`).join(' ');
     const grid = [0.25, 0.5, 0.75].map(g => `<line class="tl-grid" x1="0" x2="${W}" y1="${(H * g).toFixed(1)}" y2="${(H * g).toFixed(1)}"/>`).join('');
-    const dots = series.map(([k, , c]) => pts.map((p, i) => `<span class="tl-dot" style="--c:${c};--x:${fx(p, i).toFixed(3)};left:${(x(p, i) / W * 100).toFixed(2)}%;top:${(y(p[k]) / H * 100).toFixed(2)}%"></span>`).join('')).join('');
+    // (one import: its line starts a day before it to be drawn at all — that
+    // made-up start gets no point)
+    const dots = series.map(([k, , c]) => pts.map((p, i) => single && i === 0 ? '' : `<span class="tl-dot" style="--c:${c};--x:${fx(p, i).toFixed(3)};left:${(x(p, i) / W * 100).toFixed(2)}%;top:${(y(p[k]) / H * 100).toFixed(2)}%"></span>`).join('')).join('');
     const last = pts[pts.length - 1];
     // ("now" by name, not its time: the time changed on every redraw, so
     // the graph re-ran its morph each time, its points fading out and back)
