@@ -103,7 +103,9 @@
     if (!toastEl) {
       toastEl = document.createElement('div');
       toastEl.className = 'feature-toast';
-      toastEl.innerHTML = '<span class="feature-toast-text"></span><span class="feature-toast-slot" style="width: 0px; opacity: 0" inert><button class="feature-toast-btn"></button></span>';
+      // (its words in a bar of their own, its button in another beside it — a gap between; "undo" as the undo arrow: the
+      // dashboard's, Oct 28, 2026)
+      toastEl.innerHTML = '<span class="feature-toast-box"><span class="feature-toast-text"></span></span><span class="feature-toast-slot" style="width: 0px; opacity: 0" inert><span class="feature-toast-box feature-toast-act"><button class="feature-toast-btn"></button></span></span>';
       toastEl._slot = toastEl.querySelector('.feature-toast-slot');
       toastEl._slot._shown = false;
       toastEl.querySelector('.feature-toast-btn').addEventListener('click', (e) => {
@@ -124,11 +126,11 @@
     toastAction = action ? onAction : null;
     if (up) {
       swapText(text, message, { resize: true });
-      if (action) swapText(btn, action, { resize: true });
-      slideSlot(toastEl._slot, !!action);
+      if (action === 'undo') toastIcon(btn); else if (action) { btn.classList.remove('icon'); btn.removeAttribute('aria-label'); swapText(btn, action, { resize: true }); }
+      toastSlot(toastEl._slot, !!action);
     } else {
       text.textContent = message;
-      if (action) btn.textContent = action;
+      if (action === 'undo') toastIcon(btn); else if (action) { btn.classList.remove('icon'); btn.removeAttribute('aria-label'); btn.textContent = action; }
       // (a toast coming up: its button just there, the bar coming in with it)
       const slot = toastEl._slot;
       if (slot._slide) { slot._slide.cancel(); slot._slide = null; }
@@ -136,11 +138,25 @@
       slot.inert = !action;
       slot.style.width = action ? '' : '0px';
       slot.style.opacity = action ? '' : '0';
+      slot.style.overflow = action ? 'visible' : '';
       void toastEl.offsetWidth;
       toastEl.inert = false;
       toastEl.classList.add('show');
     }
     toastTimer = setTimeout(hideToast, duration);
+  }
+  // the undo arrow (list 3's undo button's) in place of the word "undo"
+  function toastIcon(btn) {
+    btn.classList.add('icon');
+    btn.setAttribute('aria-label', 'undo');
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"></path></svg>';
+  }
+  // (its button's bar: cut to its room only while it slides in or out — open, its shadow shown whole)
+  function toastSlot(slot, show) {
+    slot.style.overflow = '';
+    slideSlot(slot, show);
+    clearTimeout(slot._open);
+    if (show) slot._open = setTimeout(() => { if (slot._shown) slot.style.overflow = 'visible'; }, canAnimate(slot) ? ROW_MOTION_MS : 0);
   }
   function hideToast() {
     clearTimeout(toastTimer);

@@ -7867,3 +7867,36 @@ body:has(#auth-dropdown.show) .row-select-bar {
   pointer-events: none !important;
   transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* The toast in two bars (the dashboard's, Oct 28, 2026: "make the undo button appear in a separate bar next to the
+   warning bar so it has a gap divider in between"): its words in a bar of their own and, when it has one, its button —
+   "undo" as the undo arrow — in another beside it, 8px apart; each the bottom bars' look */
+.feature-toast,
+[data-theme="dark"] .feature-toast,
+.feature-toast.warn,
+.feature-toast.no-action {
+  padding: 0 !important;
+  gap: 0 !important;
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  align-items: stretch;
+}
+.feature-toast-box,
+[data-theme="dark"] .feature-toast-box {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 4px;
+  border-radius: var(--radius);
+  background: var(--bg-color);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.feature-toast-slot { box-sizing: border-box; padding: 16px 16px 16px 0; margin: -16px -16px -16px 0 !important; } /* (room for its bar's shadow; the gap is the bar's own margin) */
+.feature-toast-slot > .feature-toast-act { margin-left: 8px; }
+.feature-toast-slot .feature-toast-btn { margin-left: 0 !important; }
+.feature-toast-btn.icon { width: 32px; padding: 0 !important; }
+.feature-toast-btn.icon:has(.work-spin, .done-check.show) { width: auto; padding: 0 8px !important; }
