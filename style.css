@@ -6373,7 +6373,7 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
      them: the dashboard's, Oct 28, 2026: "the bottom half of the loading circle is lower than the text") */
   --spin-size: .76em;
   --spin-mid: .435em;
-  --spin-line: max(1.5px, .12em);
+  --spin-line: 2px; /* (as every spinner's: a fraction of an em was cut down to 1px) */
 }
 .export-option .work-spin { --work-gap: 10px; }
 .work-spin-swoop {
