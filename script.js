@@ -1764,6 +1764,11 @@ async function forceReload() {
       new Promise(resolve => setTimeout(resolve, 3000))
     ]);
   } catch (e) {}
+  // (only when the new copy can be fetched: offline, the reload landed on
+  // the browser's error page and the installed app wouldn't open)
+  let reachable = false;
+  try { reachable = (await fetch('index.html', { cache: 'no-store' })).ok; } catch (e) {}
+  if (!reachable) { window.location.reload(); return; }
   try {
     if ('serviceWorker' in navigator) {
       const regs = await navigator.serviceWorker.getRegistrations();
@@ -6918,6 +6923,14 @@ function initAuth() {
       if (event === 'PASSWORD_RECOVERY') authQueue = authQueue.then(askNewPassword);
     }, 0);
   });
+  // Opened offline with a sign-in kept on this device: in at once, from
+  // this device's copy — Supabase only reports it once its token refresh
+  // has given up (about 25s of a blank app). Its own report, when it comes,
+  // is the same person's: taken as a token refresh.
+  if (navigator.onLine === false) {
+    const stored = storedAuthSession();
+    if (stored) authQueue = authQueue.then(() => handleAuthChange('INITIAL_SESSION', stored));
+  }
   async function askNewPassword() {
     let note = '';
     for (;;) {
@@ -7003,6 +7016,9 @@ function initAuth() {
         // can't be reached (offline), carry on with this device's copy —
         // this used to abort the login, leaving the landing page up.
         try {
+          // (offline: straight to this device's copy — waiting out the
+          // download's retries left the app blank for seconds)
+          if (navigator.onLine === false) throw new Error('offline');
           await pullFromCloud(localIsThisUsers);
           cloudReady = true;
         } catch (err) {

@@ -14,7 +14,10 @@ const CACHE = 'ig-checker-' + VERSION;
 // exact ?v= tags it asks for, so the offline copy is this version's, not
 // whichever was fetched last. A file that can't be fetched is skipped.
 const APP_FILES = ['./', './index.html', './manifest.json', './vendor/supabase-2.118.0.js',
-  './images/app-icon.png', './images/apple-touch-icon.png'];
+  './images/app-icon.png', './images/apple-touch-icon.png',
+  // the instructions' pictures (offline, they were broken until a second visit)
+  './images/step_accounts_center.jpg', './images/step_export_device.jpg',
+  './images/step_customize_info.jpg', './images/step_import_files.jpg'];
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil((async () => {
