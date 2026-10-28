@@ -6344,8 +6344,9 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
   flex: none;
 }
 .rows-more-spinner {
-  width: 18px;
-  height: 18px;
+  box-sizing: border-box;
+  width: 9px; /* (the one spinner size — the dashboard's) */
+  height: 9px;
   border-radius: 50%;
   border: 2px solid var(--card-border);
   border-top-color: var(--text-muted);
@@ -6371,7 +6372,7 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
   vertical-align: -.25em;
   /* (as tall as the words' tall letters — h, k, l — its middle on theirs, so it neither pokes over them nor hangs under
      them: the dashboard's, Oct 28, 2026: "the bottom half of the loading circle is lower than the text") */
-  --spin-size: .76em;
+  --spin-size: 9px; /* (every spinner one size, everywhere — a whole number of pixels, so a true circle; as tall as the small words' tall letters, never taller: the dashboard's, Oct 28, 2026) */
   --spin-mid: .435em;
   --spin-line: 2px; /* (as every spinner's: a fraction of an em was cut down to 1px) */
 }
@@ -6624,10 +6625,11 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
   pointer-events: none;
 }
 .boot-spinner {
-  width: 22px;
-  height: 22px;
+  box-sizing: border-box;
+  width: 9px; /* (the one spinner size — the dashboard's) */
+  height: 9px;
   border-radius: 50%;
-  border: 2.5px solid var(--card-border);
+  border: 2px solid var(--card-border);
   border-top-color: var(--text-main);
   animation: boot-spin 0.8s linear infinite;
 }
