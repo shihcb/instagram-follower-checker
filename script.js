@@ -1042,7 +1042,7 @@ function calculateUnfollowers({ animate = false, matchRenames = false } = {}) {
   // Sync state changes with the cloud automatically
   if (!isSyncingFromCloud) {
     pushToCloud();
-  }
+  } else cloudChangeGen++; // (a change all the same: a cloud reload on its way down is dropped for it)
 }
 
 // Every empty text ("no …") leaves the same way: a copy of it fades out
@@ -4112,6 +4112,10 @@ function workDone(btn, ok = true) {
   sp.firstChild.animate([...SPIN_SWOOP].reverse(), { duration: ROW_MOTION_MS * 0.6, easing: 'cubic-bezier(0.5, 0, 0.9, 0.4)', fill: 'forwards' })
     .finished.then(() => {
       if (!sp._leaving || !sp.isConnected) return;
+      // (an earlier check still easing away goes — first, as what's beside
+      // the new one is measured: doneCheck timed that one, and this one
+      // stayed for good)
+      btn.querySelectorAll(':scope > .done-check').forEach(old => old.remove());
       const prev = sp.previousElementSibling;
       const x0 = prev ? prev.getBoundingClientRect().right : 0;
       const c = document.createElement('span');
@@ -4119,9 +4123,6 @@ function workDone(btn, ok = true) {
       c.setAttribute('aria-hidden', 'true');
       c.innerHTML = CHECK_SVG;
       c.style.transition = 'none';
-      // (an earlier check still easing away goes: doneCheck timed that one,
-      // and this one stayed for good)
-      btn.querySelectorAll(':scope > .done-check').forEach(old => old.remove());
       sp.replaceWith(c);
       const x1 = prev ? prev.getBoundingClientRect().right : 0;
       const ml = parseFloat(getComputedStyle(c).marginLeft) || 0;
@@ -6253,6 +6254,7 @@ function updateInstructionsStepUI() {
       const currentAcc = state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '';
       const confirmed = await showSiteConfirm('reset unfollowed list?', '', 'reset', 'cancel');
       if (confirmed) {
+        const wasDue = settingsResetUnfollowedBtn.classList.contains('reset-due'); // (before the lists empty: their redraw already eases it to "reset")
         // (ones that came from pending requests go back there, as when
         // taken out one at a time — reset, they were gone from every list)
         state.unfollowed.filter(u => u.fromPending).forEach(returnToPending);
@@ -6274,7 +6276,6 @@ function updateInstructionsStepUI() {
         updateUnfollowedUI();
         // ("reset due" eases to "reset" first: a check put in meanwhile
         // wasn't in its width, which snapped wider at the end)
-        const wasDue = settingsResetUnfollowedBtn.classList.contains('reset-due');
         updateResetReminderUI();
         setTimeout(() => doneCheck(settingsResetUnfollowedBtn), wasDue ? ROW_MOTION_MS : 0); // (a check after "reset" for a moment)
         await pushToCloud();
@@ -6290,6 +6291,7 @@ function updateInstructionsStepUI() {
       const currentAcc = state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '';
       const confirmed = await showSiteConfirm('reset starred list?', '', 'reset', 'cancel');
       if (confirmed) {
+        const wasDue = settingsResetStarredBtn.classList.contains('reset-due'); // (before the lists empty: their redraw already eases it to "reset")
         state.starred.filter(u => u.fromPending).forEach(returnToPending); // (back to pending requests, as when taken out one at a time)
         state.starred = [];
         storageSet(listResetKey('starred'), String(Date.now()));
@@ -6308,7 +6310,6 @@ function updateInstructionsStepUI() {
         updateStarredUI();
         // ("reset due" eases to "reset" first: a check put in meanwhile
         // wasn't in its width, which snapped wider at the end)
-        const wasDue = settingsResetStarredBtn.classList.contains('reset-due');
         updateResetReminderUI();
         setTimeout(() => doneCheck(settingsResetStarredBtn), wasDue ? ROW_MOTION_MS : 0); // (a check after "reset" for a moment)
         await pushToCloud();
@@ -8172,7 +8173,12 @@ async function refreshFromCloud() {
   const stillWanted = () => currentUser && currentUser.id === uid && cloudChangeGen === gen && !hasPendingCloudPush() && !accountsBusy();
   let loaded;
   try { loaded = await pullFromCloud(false, stillWanted); } catch (err) { console.error('Error refreshing cloud data:', err); return; }
-  if (loaded === false || !currentUser || currentUser.id !== uid) return;
+  if (loaded === false) {
+    // (dropped for a change made here meanwhile: that change goes up)
+    if (currentUser && currentUser.id === uid && cloudChangeGen !== gen) pushToCloud();
+    return;
+  }
+  if (!currentUser || currentUser.id !== uid) return;
   try { renderAccountChips(false); } catch (e) {}
   const f = window.igFeatures;
   // (undo steps from before would put this device's old lists back over
@@ -8460,8 +8466,9 @@ function updateResetReminderUI() {
     // Counted up, as a countdown is (just imported, it said "6 days left"
     // of 7); its last day in hours, its last hour in minutes
     const hourMs = 60 * 60 * 1000;
-    const remainingText = remainingMs > dayMs ? plural(Math.ceil(remainingMs / dayMs), 'day')
-      : remainingMs > hourMs ? plural(Math.ceil(remainingMs / hourMs), 'hour')
+    // ("1 day" for its last hour of being a day, "1 hour" for its last minute)
+    const remainingText = remainingMs > dayMs - hourMs ? plural(Math.ceil(remainingMs / dayMs), 'day')
+      : remainingMs > hourMs - 60000 ? plural(Math.ceil(remainingMs / hourMs), 'hour')
       : plural(Math.max(1, Math.ceil(remainingMs / 60000)), 'minute');
     swapText(valueEl, `${remainingText} left`);
     swapText(detailEl, `imported ${importedDateText}`);
