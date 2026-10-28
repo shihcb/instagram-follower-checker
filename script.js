@@ -1767,7 +1767,7 @@ async function forceReload() {
   // (only when the new copy can be fetched: offline, the reload landed on
   // the browser's error page and the installed app wouldn't open)
   let reachable = false;
-  try { reachable = (await fetch('index.html', { cache: 'no-store' })).ok; } catch (e) {}
+  try { reachable = (await fetch(`index.html?reach=${Date.now()}`, { cache: 'no-store' })).ok; } catch (e) {}
   if (!reachable) { window.location.reload(); return; }
   try {
     if ('serviceWorker' in navigator) {
@@ -5383,8 +5383,8 @@ function setupEventListeners() {
       if (currentInstructionStep < 5) {
         currentInstructionStep++;
         showInstructionStep();
-      } else {
-        closeInstructionsModal();
+      } else if (!e.repeat) {
+        closeInstructionsModal(); // (not Enter held down from an earlier step)
       }
     }
   });
@@ -6604,6 +6604,32 @@ let holdAuthButtonRelease = null; // (lets go of the log-in button's spinner onc
 // no session is treated as temporary (see handleAuthChange).
 let userRequestedLogout = false;
 
+// Opened offline with a kept sign-in (initAuth): its first log-in skips the
+// download. Either way, a log-in that carried on with this device's copy
+// (`loadedOffline`) loads the cloud's at the next sign of the session.
+let openedOffline = false;
+let loadedOffline = false;
+async function reloadAfterOfflineStart() {
+  const uid = currentUser && currentUser.id;
+  if (!uid || cloudPulling || accountsBusy()) return;
+  try {
+    await pullFromCloud(true);
+    loadedOffline = false;
+  } catch (err) {
+    console.error('Error loading cloud data:', err);
+  } finally {
+    // (this user's own copy either way: changes keep going up)
+    if (currentUser && currentUser.id === uid) cloudReady = true;
+  }
+  if (!loadedOffline && currentUser && currentUser.id === uid) {
+    try { renderAccountChips(false); } catch (e) {}
+    const f = window.igFeatures;
+    if (f && f.resetUndo) f.resetUndo();
+    if (f && f.refreshView) f.refreshView();
+    if (f && f.refreshToolbar) f.refreshToolbar();
+  }
+}
+
 // The sign-in Supabase keeps on the device (persistSession), if any.
 function storedAuthSession() {
   try {
@@ -6929,7 +6955,7 @@ function initAuth() {
   // is the same person's: taken as a token refresh.
   if (navigator.onLine === false) {
     const stored = storedAuthSession();
-    if (stored) authQueue = authQueue.then(() => handleAuthChange('INITIAL_SESSION', stored));
+    if (stored) { openedOffline = true; authQueue = authQueue.then(() => handleAuthChange('INITIAL_SESSION', stored)); }
   }
   async function askNewPassword() {
     let note = '';
@@ -6985,6 +7011,11 @@ function initAuth() {
           // A token refresh after a failed start (see keepSessionThroughOutage):
           // finish loading the cloud data / upload what was saved meanwhile.
           if (!cloudReady && pendingCloudRetry) pendingCloudRetry();
+          // Started on this device's copy (offline, or the download failed):
+          // the cloud's is loaded now — this device's unsent changes going
+          // up first. Only uploading kept this device's old copy, and its
+          // next change went up over what another device had saved.
+          else if (cloudReady && loadedOffline) await reloadAfterOfflineStart();
           else if (cloudReady && storageGet(CLOUD_DIRTY_KEY) === currentUser.id) pushToCloud();
           return;
         }
@@ -7018,9 +7049,10 @@ function initAuth() {
         try {
           // (offline: straight to this device's copy — waiting out the
           // download's retries left the app blank for seconds)
-          if (navigator.onLine === false) throw new Error('offline');
+          if (openedOffline) { openedOffline = false; throw new Error('offline'); }
           await pullFromCloud(localIsThisUsers);
           cloudReady = true;
+          loadedOffline = false;
         } catch (err) {
           console.error('Error loading cloud data:', err);
           // The account last chosen on this device ('' = none on purpose).
@@ -7030,8 +7062,10 @@ function initAuth() {
           try { loadAccountData(exists ? acc : null); } catch (loadErr) { console.error('Error loading account data:', loadErr); }
           if (localIsThisUsers) {
             // This device's copy is this user's latest: keep saving it
-            // (and try its unsent changes again soon)
+            // (and try its unsent changes again soon) — the cloud's loaded
+            // once it can be (the same-user path above)
             cloudReady = true;
+            loadedOffline = true;
             retryCloudPushLater();
           } else {
             // Nothing of this user's here — uploading now would replace

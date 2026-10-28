@@ -42,6 +42,9 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  // The page asking whether the server can be reached (forceReload): the
+  // network's answer only — this worker's offline copy said yes
+  if (new URL(req.url).searchParams.has('reach')) return;
   // Always checked with the server ('no-cache' revalidates): the browser's
   // own cached copy of the page could otherwise still be used, and the
   // phone kept showing an older version after an update.

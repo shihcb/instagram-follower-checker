@@ -1998,8 +1998,8 @@
     const scroll = altView.scrollTop;
     // (another account's: from the top, as list 3 — it opened where the
     // last account's list had been scrolled to)
-    const swapped = altView._accShown !== undefined && altView._accShown !== accKey();
-    altView._accShown = accKey();
+    // (the account its last real draw was for: kept by renderView itself)
+    const swapped = altView._acc !== undefined && altView._acc !== accKey();
     renderView();
     // Its usernames already slid in and out like list 3's rows: done.
     if (altView._rowsSlid) { altView.scrollTop = swapped ? 0 : scroll; return; }
@@ -3364,7 +3364,7 @@
     const lists = extraListsNow();
     const offered = EXPORT_LISTS.filter(([kind]) => !EXTRA_TEXT[kind] || Array.isArray(lists[kind]));
     // (ticked: the first with anyone in it — list 3 empty, a plain tap saved a file of just its header)
-    const firstOn = Math.max(0, offered.findIndex(([kind]) => listFor(kind).length));
+    const firstOn = offered.findIndex(([kind]) => listFor(kind).length); // (none: nothing ticked, "export" dimmed)
     exportOverlay.querySelector('.export-options').innerHTML = offered.map(([kind, label], i) => `
       <button class="export-option${i === firstOn ? ' on' : ''}" data-kind="${kind}">
         <span class="export-check"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
