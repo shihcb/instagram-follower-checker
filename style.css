@@ -134,6 +134,8 @@ html, body {
   /* The dashboard's red and amber */
   --bad: #b3261e;
   --bad-bg: #fbe9e7;
+  /* every ✕ — the dashboard's --dismiss, the one red */
+  --dismiss: #ef4444;
   --warn: #9a6100;
   --soft: #ffffff;
 
@@ -148,6 +150,7 @@ html, body {
   --accent: #6cc39b;
   --bad: #f29a90;
   --bad-bg: #351c1a;
+  --dismiss: #ef4444;
   --warn: #e8b55c;
   --soft: #1f2522;
   --grad-1: #ffffff;
@@ -2112,7 +2115,7 @@ body.hide-shortcuts #keyboard-hints {
   background-color: transparent !important;
   border: none !important;
   line-height: 1;
-  color: #ef4444 !important; /* (every ✕ the one red — the dashboard's) */
+  color: var(--dismiss) !important; /* (every ✕ the one red — the dashboard's --dismiss) */
   cursor: pointer;
   transition: color 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   outline: none !important;
