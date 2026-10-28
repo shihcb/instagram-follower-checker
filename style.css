@@ -6370,11 +6370,12 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
   overflow: hidden;
   vertical-align: middle;
 }
-.export-option .work-spin { --work-gap: 10px; }
+.export-option .work-spin { --work-gap: 10px; --spin-drop: .1em; }
+.btn-sm .work-spin { --spin-drop: .04em; }
 .work-spin-swoop {
   position: absolute;
   right: 0;
-  top: 50%;
+  top: calc(50% + var(--spin-drop, .067em)); /* (its middle on its words' middle — the lowercase letters' — never sitting high: the dashboard's, Oct 28, 2026) */
   width: 12px;
   height: 12px;
   margin-top: -6px;
