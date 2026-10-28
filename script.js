@@ -5311,11 +5311,11 @@ function setupEventListeners() {
   }
   if (elements.btnInstructionsNext) {
     elements.btnInstructionsNext.addEventListener('click', () => {
+      // (next is dimmed on the last step; quick taps, the dimming still on
+      // its way, closed the window)
       if (currentInstructionStep < 5) {
         currentInstructionStep++;
         showInstructionStep();
-      } else {
-        closeInstructionsModal();
       }
     });
   }
@@ -6046,7 +6046,7 @@ function updateInstructionsStepUI() {
   let heartInterval = null;
 
   function spawnFloatHeart() {
-    if (!loveHeartsContainer) return;
+    if (!loveHeartsContainer || !loveOverlay.classList.contains('show')) return; // (the first few, queued, came after it closed)
     const heart = document.createElement('div');
     heart.className = 'love-heart-float';
     heart.innerHTML = `

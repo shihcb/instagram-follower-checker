@@ -1486,8 +1486,10 @@
   // What select works on: list 3, or the pending requests tab.
   const selectOnPending = () => subTab.results === 'pending';
   const selectHosts = () => [elements.listUnfollowers, extraPanes.pending].filter(Boolean);
+  let selectAcc = null; // the account the picks are in
   function setSelectMode(on) {
     selectMode = on;
+    selectAcc = on ? accKey() : null;
     selected.clear();
     selectHosts().forEach(h => {
       h.classList.toggle('select-mode', on && (h === elements.listUnfollowers ? !selectOnPending() : selectOnPending()));
@@ -1540,7 +1542,7 @@
   // Escape closed settings or a menu and ended select too — the picks lost)
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || !selectMode) return;
-    if (document.querySelector('.modal-overlay:not(.hidden), #auth-dropdown.show, .dropdown-menu.show')) return;
+    if (document.querySelector('.modal-overlay:not(.hidden), #auth-dropdown.show, .dropdown-menu.show, .love-overlay.show')) return;
     setSelectMode(false);
   }, true);
   // List 3 re-renders (a search, a row leaving, switching accounts) rebuilt
@@ -1548,6 +1550,9 @@
   // that were no longer there.
   function keepSelection() {
     if (!selectMode) return;
+    // Another account picked: select ends (a username both accounts have
+    // stayed picked, unmarked, and was starred in the other account)
+    if (selectAcc !== accKey()) { setSelectMode(false); return; }
     if (selectOnPending()) {
       // (another account's pending requests: the selection was kept over them)
       const here = new Set((extraListsNow().pending || []).map(u => u.username));
@@ -1794,6 +1799,7 @@
   }
   function switchView(view) {
     if (!viewNav || view === currentView) return;
+    if (!VIEWS.some(v => v[0] === view)) return; // (a name an older version saved: no tab of it)
     clearTimeout(settleTimer); // a switch takes over from the load-time draw
     if (altView) altView.style.opacity = '';
     const ids = VIEWS.map(v => v[0]);
@@ -1990,9 +1996,13 @@
     if (renderView(true) === altView._html) return; // nothing changed
     const oldPane = altView.querySelector('.insights-pane:not(.pane-leaving)');
     const scroll = altView.scrollTop;
+    // (another account's: from the top, as list 3 — it opened where the
+    // last account's list had been scrolled to)
+    const swapped = altView._accShown !== undefined && altView._accShown !== accKey();
+    altView._accShown = accKey();
     renderView();
     // Its usernames already slid in and out like list 3's rows: done.
-    if (altView._rowsSlid) { altView.scrollTop = scroll; return; }
+    if (altView._rowsSlid) { altView.scrollTop = swapped ? 0 : scroll; return; }
     altView.scrollTop = 0;
     if (!oldPane || typeof oldPane.animate !== 'function') return;
     oldPane.classList.add('pane-leaving');
@@ -3302,6 +3312,7 @@
 
   let exportOverlay = null;
   function openExport() {
+    flushListInputs(); // (its counts with what was just typed)
     if (document.activeElement && typeof document.activeElement.blur === 'function') document.activeElement.blur(); // (the button that opened it let go of)
     if (!exportOverlay) {
       exportOverlay = document.createElement('div');
@@ -3329,7 +3340,7 @@
           const image = exportOverlay.querySelector('.export-image').classList.contains('on');
           if (!kinds.length && !image) return;
           if (kinds.length) exportCsv(kinds);
-          if (image) safe(() => { statsImage().then(blob => blob && saveFile('ig-stats.png', blob)).catch(err => console.error('[features] stats image failed:', err)); }, 'stats image');
+          if (image) safe(() => { statsImage().then(blob => blob && saveFile('instagram-by-s-stats.png', blob)).catch(err => console.error('[features] stats image failed:', err)); }, 'stats image');
           closeExport();
           return;
         }
@@ -3351,8 +3362,11 @@
     }
     // The export's other lists only once they've been imported.
     const lists = extraListsNow();
-    exportOverlay.querySelector('.export-options').innerHTML = EXPORT_LISTS.filter(([kind]) => !EXTRA_TEXT[kind] || Array.isArray(lists[kind])).map(([kind, label], i) => `
-      <button class="export-option${i === 0 ? ' on' : ''}" data-kind="${kind}">
+    const offered = EXPORT_LISTS.filter(([kind]) => !EXTRA_TEXT[kind] || Array.isArray(lists[kind]));
+    // (ticked: the first with anyone in it — list 3 empty, a plain tap saved a file of just its header)
+    const firstOn = Math.max(0, offered.findIndex(([kind]) => listFor(kind).length));
+    exportOverlay.querySelector('.export-options').innerHTML = offered.map(([kind, label], i) => `
+      <button class="export-option${i === firstOn ? ' on' : ''}" data-kind="${kind}">
         <span class="export-check"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
         <span class="export-label">${esc(label)}</span>
         <span class="export-count">${fmtNum(listFor(kind).length)}</span>
@@ -3515,6 +3529,7 @@
       row.appendChild(wrap);
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
+        flushListInputs(); // (what was just typed in the box goes in too)
         if (!listFor(kind).length) return;
         exportCsv([kind]);
       });
