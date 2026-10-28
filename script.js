@@ -413,10 +413,32 @@ function showModalOverlay(overlay) {
   // window, its pictures, the blur) used to eat the fade's first frames,
   // so it looked like a snap.
   const token = (overlay._showToken = {});
+  // (taps caught from the start: in the two frames before .show, a second
+  // tap went through to the page and opened another window over it)
+  overlay.style.pointerEvents = 'auto';
   requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (overlay._showToken === token) overlay.style.pointerEvents = '';
     if (overlay._showToken === token && !overlay.classList.contains('hidden')) overlay.classList.add('show');
   }));
 }
+
+// Tab stays inside the window on top (it walked on through the page behind
+// it, and Enter there started select mode under an open window).
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Tab') return;
+  const open = [...document.querySelectorAll('.modal-overlay.show')];
+  if (!open.length) return;
+  const top = open.reduce((a, b) => ((+getComputedStyle(b).zIndex || 0) >= (+getComputedStyle(a).zIndex || 0) ? b : a));
+  const items = [...top.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+    .filter(el => !el.disabled && !el.closest('[inert]') && el.getClientRects().length);
+  if (!items.length) { e.preventDefault(); return; }
+  const first = items[0], last = items[items.length - 1];
+  const inside = top.contains(document.activeElement);
+  if (!inside || (e.shiftKey && document.activeElement === first) || (!e.shiftKey && document.activeElement === last)) {
+    e.preventDefault();
+    (e.shiftKey ? last : first).focus();
+  }
+});
 
 // With `field` ({ value, placeholder }), the pop-up also has a text box,
 // and resolves to what's typed in it (null when cancelled) — the app's own
@@ -598,6 +620,17 @@ function normalizeUsername(username) {
 /**
  * Validates whether a token matches Instagram's username criteria.
  */
+// List 1 or 2's box written with a whole list: its search is emptied first
+// (a query left in it said one thing while the box showed everyone).
+function setListBox(kind, users) {
+  const search = document.getElementById(`search-${kind}`);
+  if (search) search.value = '';
+  const box = kind === 'following' ? elements.inputFollowing : elements.inputFollowers;
+  if (!box) return;
+  box.placeholder = 'enter usernames';
+  box.value = users.map(u => `@${u.originalUsername || u.username}`).join('\n');
+}
+
 function isValidUsername(str) {
   // Instagram usernames: 1-30 chars, letters, numbers, underscores, periods.
   return /^[a-zA-Z0-9._]{1,30}$/.test(str);
@@ -1952,6 +1985,7 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
         }
         const cut = Math.min(now.length, initialRowBudget(listEl));
         listEl.insertAdjacentHTML('afterbegin', now.slice(0, cut).map(renderUnfollowerRowHtml).join(''));
+        if (window.igFeatures && window.igFeatures.markSelected) window.igFeatures.markSelected(listEl); // (picks still marked, as appendRowTail's rows are)
         animateResultsReentry(listEl, new Map(), new Map(), { enter: true });
         appendRowTail(listEl, now, cut, ROW_TAIL_DELAY);
       }, ROW_MOTION_MS + 30);
@@ -2466,9 +2500,7 @@ function readAndProcessFile(file, type, append = false, isPending = false, { ren
       storageSet(listStorageKey(type), JSON.stringify(deduplicated));
       
       // Format clean list of usernames for visual display inside the textarea
-      const usernamesText = deduplicated.map(user => `@${user.originalUsername}`).join('\n');
-      const inputEl = elements[`input${type.charAt(0).toUpperCase() + type.slice(1)}`];
-      inputEl.value = usernamesText;
+      setListBox(type, deduplicated);
       
       updateListUI(type);
       if (!render) {
@@ -2972,7 +3004,7 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
       if (kept.length !== state.following.length) {
         state.following = kept;
         storageSet(listStorageKey('following'), JSON.stringify(kept));
-        if (elements.inputFollowing) elements.inputFollowing.value = kept.map(u => `@${u.originalUsername}`).join('\n');
+        setListBox('following', kept);
         updateListUI('following');
       }
       unfollowedLately = true;
@@ -5048,6 +5080,9 @@ function lockPageScroll() {
 }
 function unlockPageScroll() {
   if (!pageScrollLock) return;
+  // (another window still open: the page stays held for it — the first to
+  // close let the page scroll behind the other)
+  if (document.querySelector('#instructions-modal-overlay.show, .export-overlay.show')) return; // (the windows that hold it)
   const { y, saved, overlay, overlayOverflow } = pageScrollLock;
   pageScrollLock = null;
   Object.assign(document.body.style, saved);

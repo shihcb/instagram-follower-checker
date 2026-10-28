@@ -176,7 +176,7 @@
     const back = snap.following.filter(u => u.isPendingRequest && !now.has(u.username));
     if (back.length) {
       state.following = [...state.following, ...back];
-      elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
+      setListBox('following', state.following);
       updateListUI('following');
     }
     state.unfollowed = snap.unfollowed;
@@ -323,7 +323,7 @@
     state[kind] = snap.list;
     // (from the list, not the box's text then: cleared mid-search, that was
     // only the matches, and the next edit kept just those)
-    ta.value = snap.list.map(u => `@${u.originalUsername || u.username}`).join('\n');
+    setListBox(kind, snap.list);
     updateListUI(kind);
     saveCurrentAccountData();
     calculateUnfollowers({ animate: true });
@@ -2617,7 +2617,12 @@
     const newVals = [...fresh.querySelectorAll('.insights-stat-value')].map(e => e.textContent);
     stats.querySelectorAll('.insights-stat-value').forEach((el, i) => {
       const to = newVals[i];
-      if (to === undefined || el.textContent === to) return;
+      if (to === undefined) return;
+      // (still counting up: to its new number from where it is — compared
+      // with the number on show, another account's 0 matched the count's
+      // first 0, and it ran on to the last account's figure)
+      if (el._count) { countNum(el, 0, to); return; }
+      if (el.textContent === to) return;
       countNum(el, readNum(el.textContent) || 0, to);
     });
   }
