@@ -4081,7 +4081,7 @@ function swapText(el, text, { resize = false } = {}) {
 // spinner swoops in after them (from 20% size, blurred); done, the spinner
 // swoops away and the button glides back to its size. (swapText keeps the
 // spinner: only the words change.)
-const SPIN_ROOM = 18;
+const SPIN_ROOM = (w) => parseFloat(getComputedStyle(w).fontSize) * .76 + 6; // (the spinner — the words' tall letters high — and its gap)
 const SPIN_SWOOP = [{ opacity: 0, transform: 'scale(0.2)', filter: 'blur(1.5px)' }, { opacity: 1, transform: 'scale(1)', filter: 'blur(0)' }];
 // (`glide`: the button glides as a whole — glideWidth around this — so the
 // spinner's room isn't eased on its own: it's there at once and the glide
@@ -4101,7 +4101,7 @@ function workButton(btn, busy, { glide = false } = {}) {
     sp.innerHTML = '<span class="work-spin-swoop"><span class="work-spinner"></span></span>';
     btn.append(sp);
     if (!canAnimate(btn)) return;
-    if (!glide) sp.animate([{ width: '0px' }, { width: `${SPIN_ROOM}px` }], MOTION);
+    if (!glide) sp.animate([{ width: '0px' }, { width: `${SPIN_ROOM(sp)}px` }], MOTION);
     sp.firstChild.animate(SPIN_SWOOP, MOTION);
     return;
   }
@@ -4111,14 +4111,14 @@ function workButton(btn, busy, { glide = false } = {}) {
   if (glide) {
     sp.getAnimations().forEach(a => a.cancel());
     Object.assign(sp.style, { width: '0px', overflow: 'visible' });
-    Object.assign(sp.firstChild.style, { right: 'auto', left: `${SPIN_ROOM - 12}px` });
+    Object.assign(sp.firstChild.style, { right: 'auto', left: '6px' });
     const out = sp.firstChild.animate([...SPIN_SWOOP].reverse(), { duration: ROW_MOTION_MS * 0.6, easing: 'cubic-bezier(0.5, 0, 0.9, 0.4)', fill: 'forwards' });
     out.finished.then(() => { if (sp._leaving) sp.remove(); }, () => {});
     return;
   }
   // (it goes a little quicker than it came, its room shutting just after)
   sp.firstChild.animate([...SPIN_SWOOP].reverse(), { duration: ROW_MOTION_MS * 0.6, easing: 'cubic-bezier(0.5, 0, 0.9, 0.4)', fill: 'forwards' });
-  sp.animate([{ width: `${SPIN_ROOM}px` }, { width: '0px' }], { ...MOTION, delay: ROW_MOTION_MS * 0.35, fill: 'forwards' })
+  sp.animate([{ width: `${SPIN_ROOM(sp)}px` }, { width: '0px' }], { ...MOTION, delay: ROW_MOTION_MS * 0.35, fill: 'forwards' })
     .finished.then(() => { if (sp._leaving) sp.remove(); }, () => {});
 }
 // A button done (the dashboard's doneCheck): a check after its words for a
