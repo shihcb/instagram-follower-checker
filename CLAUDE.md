@@ -72,8 +72,8 @@ fades across — the old words out where they were, the new in (swapText;
 `{ resize: true }` for buttons and pills, so their width eases too). When the
 page gets shorter it glides up on the curve (setupPageGlide). A button waiting on
 something (log in, a saved import coming down) keeps its words, dimmed a
-little, and fills like google drive's sync bar — a tint growing across from
-the left with the accent line along its bottom, quickly at first then slower,
+little, and fills like google drive's sync bar — the tint alone growing across from
+the left (no line under it, its box never resized), quickly at first then slower,
 to the end the moment it's done, then fading (fillStart / fillDone, the
 dashboard's, Oct 29, 2026: "instead of spinner make the boxes be the loading
 bar like the sync now button") — never "syncing"; done with a check, the fill
