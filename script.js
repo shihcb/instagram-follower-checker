@@ -4081,7 +4081,7 @@ function swapText(el, text, { resize = false } = {}) {
 // spinner swoops in after them (from 20% size, blurred); done, the spinner
 // swoops away and the button glides back to its size. (swapText keeps the
 // spinner: only the words change.)
-const SPIN_ROOM = (sp) => { const v = sp && getComputedStyle(sp).getPropertyValue('--spin-size').trim(); return (!v || v.endsWith('px') ? parseFloat(v) || 9 : Math.round(parseFloat(getComputedStyle(sp).fontSize) * .75)) + 6; }; // (the spinner — as tall as its words, the dashboard's — and its gap)
+const SPIN_ROOM = (sp) => { const v = sp && getComputedStyle(sp).getPropertyValue('--spin-size').trim(); return (!v || v.endsWith('px') ? parseFloat(v) || 12 : Math.round(parseFloat(getComputedStyle(sp).fontSize))) + 6; }; // (the spinner — the size of its words, the dashboard's — and its gap)
 const SPIN_SWOOP = [{ opacity: 0, transform: 'scale(0.2)', filter: 'blur(1.5px)' }, { opacity: 1, transform: 'scale(1)', filter: 'blur(0)' }];
 // (`glide`: the button glides as a whole — glideWidth around this — so the
 // spinner's room isn't eased on its own: it's there at once and the glide
