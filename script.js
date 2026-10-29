@@ -4048,7 +4048,7 @@ function swapText(el, text, { resize = false } = {}) {
       whiteSpace: cs.display === 'inline' || r.height / k < parseFloat(cs.lineHeight || '0') * 1.5 ? 'nowrap' : cs.whiteSpace,
       pointerEvents: 'none', zIndex: '3',
       // (the copy sits outside where the text was: it keeps the text's own look)
-      font: cs.font, letterSpacing: cs.letterSpacing, lineHeight: cs.lineHeight, color: cs.color, textTransform: cs.textTransform, textAlign: cs.textAlign
+      fontFamily: cs.fontFamily, fontSize: cs.fontSize, fontWeight: cs.fontWeight, fontStyle: cs.fontStyle, fontVariantNumeric: cs.fontVariantNumeric, fontFeatureSettings: cs.fontFeatureSettings, letterSpacing: cs.letterSpacing, lineHeight: cs.lineHeight, color: cs.color, textTransform: cs.textTransform, textAlign: cs.textAlign
     });
     host.appendChild(ghost);
     // (its words exactly where they were: the copy is a pixel wider than
