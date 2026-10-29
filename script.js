@@ -4036,7 +4036,7 @@ function swapText(el, text, { resize = false } = {}) {
     // Screen size to layout size (the guest preview draws the app scaled).
     const k = host.offsetWidth ? hr.width / host.offsetWidth : 1;
     const ghost = el.cloneNode(true);
-    ghost.querySelectorAll(':scope > .done-check, :scope > .work-spin').forEach(c => c.remove()); // (they stay on the button itself)
+    ghost.querySelectorAll(':scope > .done-check, :scope > .work-spin, :scope > .work-fill').forEach(c => c.remove()); // (they stay on the button itself)
     ghost.removeAttribute('id');
     ghost.setAttribute('aria-hidden', 'true');
     ghost.inert = true;
@@ -4063,7 +4063,7 @@ function swapText(el, text, { resize = false } = {}) {
   }
   if (el._swapWidth) { el._swapWidth.cancel(); el._swapWidth = null; }
   // (a button's spinner or check stays: only its words change)
-  const kept = [...el.children].filter(c => c.matches('.done-check, .work-spin'));
+  const kept = [...el.children].filter(c => c.matches('.done-check, .work-spin, .work-fill'));
   el.textContent = text;
   kept.forEach(c => el.append(c));
   if (!(shown > 0.05) || !text.trim()) return;
@@ -4087,39 +4087,52 @@ const SPIN_SWOOP = [{ opacity: 0, transform: 'scale(0.2)', filter: 'blur(1.5px)'
 // spinner's room isn't eased on its own: it's there at once and the glide
 // opens it; leaving, it's out of the way at once, the spinner swooping out
 // where it was as the glide shuts its room)
-function workButton(btn, busy, { glide = false } = {}) {
+// The fill (the dashboard's, Oct 29, 2026: "instead of spinner make the boxes be the loading bar like the sync now
+// button"): a button at work fills from the left — quickly at first, then slower, never reaching the end on its own —
+// and goes to the end the moment it's done, then fades; failed: faded from where it is
+const fills = new WeakMap();
+function fillStart(host, { expect = 1400, top = false } = {}) {
+  if (!host) return null;
+  let f = fills.get(host);
+  if (f && !f.ending) return f;
+  if (f) { cancelAnimationFrame(f.raf); f.bar.remove(); }
+  host.classList.add('filling');
+  const bar = document.createElement('span');
+  bar.className = `work-fill${top ? ' top' : ''}`;
+  bar.setAttribute('aria-hidden', 'true');
+  host.prepend(bar);
+  f = { bar, t0: performance.now(), shown: 0, expect, ending: false, full: null };
+  fills.set(host, f);
+  if (canAnimate(bar)) bar.animate([{ opacity: 0 }, { opacity: 1 }], { duration: ROW_MOTION_MS / 2, easing: 'ease-out' });
+  const tick = () => {
+    if (fills.get(host) !== f || f.ending) return;
+    f.shown = Math.max(f.shown, 0.9 * (1 - Math.exp(-(performance.now() - f.t0) / f.expect)));
+    bar.style.width = `${(f.shown * 100).toFixed(2)}%`;
+    f.raf = requestAnimationFrame(tick);
+  };
+  tick();
+  return f;
+}
+function fillDone(host, { ok = true } = {}) {
+  const f = host && fills.get(host);
+  if (!f) return Promise.resolve();
+  if (f.ending) return f.full || Promise.resolve();
+  f.ending = true;
+  cancelAnimationFrame(f.raf);
+  const bar = f.bar;
+  const gone = () => { if (fills.get(host) === f) { fills.delete(host); host.classList.remove('filling'); } bar.remove(); };
+  if (!canAnimate(bar)) { gone(); return (f.full = Promise.resolve()); }
+  const fade = () => bar.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ROW_MOTION_MS * 0.6, easing: 'ease-out', fill: 'forwards' }).finished.then(gone, gone);
+  if (!ok) { fade(); return (f.full = Promise.resolve()); }
+  const from = bar.getBoundingClientRect().width, to = host.getBoundingClientRect().width;
+  const grow = bar.animate([{ width: `${from}px` }, { width: `${to}px` }], { duration: ROW_MOTION_MS * 0.55, easing: 'cubic-bezier(0.3, 0, 0.2, 1)', fill: 'forwards' });
+  f.full = grow.finished.then(() => { fade(); }, () => { gone(); });
+  return f.full;
+}
+function workButton(btn, busy) {
   if (!btn) return;
   btn.classList.toggle('at-work', busy);
-  let sp = btn.querySelector(':scope > .work-spin');
-  if (busy) {
-    if (sp && !sp._leaving) return;
-    if (sp) sp.remove();
-    sp = document.createElement('span');
-    sp.className = 'work-spin';
-    sp.setAttribute('aria-hidden', 'true');
-    // (the swoop on its own wrapper: the spinner's turning is a transform too)
-    sp.innerHTML = '<span class="work-spin-swoop"><span class="work-spinner"></span></span>';
-    btn.append(sp);
-    if (!canAnimate(btn)) return;
-    if (!glide) sp.animate([{ width: '0px' }, { width: `${SPIN_ROOM(sp)}px` }], MOTION);
-    sp.firstChild.animate(SPIN_SWOOP, MOTION);
-    return;
-  }
-  if (!sp || sp._leaving) return;
-  sp._leaving = true;
-  if (!canAnimate(btn)) { sp.remove(); return; }
-  if (glide) {
-    sp.getAnimations().forEach(a => a.cancel());
-    Object.assign(sp.style, { width: '0px', overflow: 'visible' });
-    Object.assign(sp.firstChild.style, { right: 'auto', left: '6px' });
-    const out = sp.firstChild.animate([...SPIN_SWOOP].reverse(), { duration: ROW_MOTION_MS * 0.6, easing: 'cubic-bezier(0.5, 0, 0.9, 0.4)', fill: 'forwards' });
-    out.finished.then(() => { if (sp._leaving) sp.remove(); }, () => {});
-    return;
-  }
-  // (it goes a little quicker than it came, its room shutting just after)
-  sp.firstChild.animate([...SPIN_SWOOP].reverse(), { duration: ROW_MOTION_MS * 0.6, easing: 'cubic-bezier(0.5, 0, 0.9, 0.4)', fill: 'forwards' });
-  sp.animate([{ width: `${SPIN_ROOM(sp)}px` }, { width: '0px' }], { ...MOTION, delay: ROW_MOTION_MS * 0.35, fill: 'forwards' })
-    .finished.then(() => { if (sp._leaving) sp.remove(); }, () => {});
+  if (busy) fillStart(btn); else fillDone(btn);
 }
 // A button done (the dashboard's doneCheck): a check after its words for a
 // moment — its words never change — easing in, then away.
@@ -4151,34 +4164,9 @@ function doneCheck(btn, ms = 1600) {
 // different, what's beside it glides there instead of stepping.
 function workDone(btn, ok = true) {
   if (!btn) return;
-  const sp = btn.querySelector(':scope > .work-spin');
-  if (!ok || !sp || sp._leaving || !canAnimate(btn) || !btn.isConnected) { workButton(btn, false); if (ok) doneCheck(btn); return; }
-  sp._leaving = true;
   btn.classList.remove('at-work');
-  sp.getAnimations().forEach(a => a.finish());
-  sp.firstChild.animate([...SPIN_SWOOP].reverse(), { duration: ROW_MOTION_MS * 0.6, easing: 'cubic-bezier(0.5, 0, 0.9, 0.4)', fill: 'forwards' })
-    .finished.then(() => {
-      if (!sp._leaving || !sp.isConnected) return;
-      // (an earlier check still easing away goes — first, as what's beside
-      // the new one is measured: doneCheck timed that one, and this one
-      // stayed for good)
-      btn.querySelectorAll(':scope > .done-check').forEach(old => old.remove());
-      const prev = sp.previousElementSibling;
-      const x0 = prev ? prev.getBoundingClientRect().right : 0;
-      const c = document.createElement('span');
-      c.className = 'done-check show';
-      c.setAttribute('aria-hidden', 'true');
-      c.innerHTML = CHECK_SVG;
-      c.style.transition = 'none';
-      sp.replaceWith(c);
-      const x1 = prev ? prev.getBoundingClientRect().right : 0;
-      const ml = parseFloat(getComputedStyle(c).marginLeft) || 0;
-      void c.offsetWidth;
-      c.style.transition = '';
-      c.animate([{ opacity: 0 }, { opacity: 1 }], MOTION);
-      if (Math.abs(x1 - x0) > 0.05) c.animate([{ marginLeft: `${ml + (x1 - x0)}px` }, { marginLeft: `${ml}px` }], MOTION);
-      doneCheck(btn); // (its moment, then it eases away as any check)
-    }, () => {});
+  // (its fill to the end, then its check — the dashboard's)
+  fillDone(btn, { ok }).then(() => { if (ok) doneCheck(btn); });
 }
 // One switch at a time (the dashboard's gated): a tap while a switch is
 // still well under way waits until it's about 70% done, then goes; only the

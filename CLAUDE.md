@@ -72,11 +72,12 @@ fades across — the old words out where they were, the new in (swapText;
 `{ resize: true }` for buttons and pills, so their width eases too). When the
 page gets shorter it glides up on the curve (setupPageGlide). A button waiting on
 something (log in, a saved import coming down) keeps its words, dimmed a
-little, and glides wider as a spinner swoops in after them (the size of its
-words — 1em, in whole pixels — from the bottom of their g's and p's to the
-top of their h's and l's: the dashboard's, Oct 29, 2026), then back once
-done (workButton) — never "syncing"; done with a check, the spinner swoops
-away first and the check comes into its room (workDone). Google drive's
+little, and fills like google drive's sync bar — a tint growing across from
+the left with the accent line along its bottom, quickly at first then slower,
+to the end the moment it's done, then fading (fillStart / fillDone, the
+dashboard's, Oct 29, 2026: "instead of spinner make the boxes be the loading
+bar like the sync now button") — never "syncing"; done with a check, the fill
+reaches the end first, then the check (workDone). Google drive's
 "sync now" is the dashboard's sync button: its fill grows and its words say
 the stage it's at ("finding exports", "importing 1 of 2", "saving imports"),
 crossing over (swapText), then what it did ("2 exports imported"). A username too long

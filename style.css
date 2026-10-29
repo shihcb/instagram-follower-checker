@@ -6361,6 +6361,14 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
    after them; the spinner sits at its right end. */
 .at-work { pointer-events: none; }
 .btn.at-work, .btn.at-work:disabled, .export-option.at-work { opacity: 0.8; cursor: default; }
+/* The fill (the dashboard's, Oct 29, 2026: "instead of spinner make the boxes be the loading bar like the sync now
+   button"): a tint growing across from the left, the accent line along its bottom — google drive's sync bar's look */
+.filling { position: relative; isolation: isolate; overflow: hidden; }
+.work-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; z-index: -1; pointer-events: none; background: color-mix(in srgb, var(--success-color) 14%, transparent); }
+.work-fill::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--success-color); }
+.btn-sm > .work-fill::after { height: 2px; }
+.work-fill.top { bottom: auto; height: 3px; background: var(--success-color); z-index: 5; }
+.work-fill.top::after { display: none; }
 .work-spin {
   position: relative;
   display: inline-block;
