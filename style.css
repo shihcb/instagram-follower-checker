@@ -6370,17 +6370,19 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
   margin-left: calc(-1 * var(--work-gap, 8px));
   overflow: hidden;
   vertical-align: -.25em;
-  /* (as tall as the words' tall letters — h, k, l — its middle on theirs, so it neither pokes over them nor hangs under
-     them: the dashboard's, Oct 28, 2026: "the bottom half of the loading circle is lower than the text") */
-  --spin-size: 9px; /* (every spinner one size, everywhere — a whole number of pixels, so a true circle; as tall as the small words' tall letters, never taller: the dashboard's, Oct 28, 2026) */
-  --spin-mid: .435em;
+  /* (as tall as the words beside it — their tall letters, h, k, l: .75em, in whole pixels so a true circle — and standing
+     where they stand, its bottom on their baseline (.03em over the line, as the font draws them), so it neither pokes
+     over them nor hangs under them: the dashboard's, Oct 28 and 29, 2026) */
+  --spin-size: 9px;
+  --spin-base: .03em;
   --spin-line: 2px; /* (as every spinner's: a fraction of an em was cut down to 1px) */
 }
 .export-option .work-spin { --work-gap: 10px; }
+@supports (width: round(1.5px, 1px)) { .work-spin { --spin-size: round(.75em, 1px); } }
 .work-spin-swoop {
   position: absolute;
   right: 0;
-  bottom: calc(.25em + var(--spin-mid) - var(--spin-size) / 2);
+  bottom: calc(.25em + var(--spin-base));
   width: var(--spin-size);
   height: var(--spin-size);
 }

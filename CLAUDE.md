@@ -72,7 +72,9 @@ fades across — the old words out where they were, the new in (swapText;
 `{ resize: true }` for buttons and pills, so their width eases too). When the
 page gets shorter it glides up on the curve (setupPageGlide). A button waiting on
 something (log in, a saved import coming down) keeps its words, dimmed a
-little, and glides wider as a spinner swoops in after them, then back once
+little, and glides wider as a spinner swoops in after them (as tall as the
+words' tall letters, in whole pixels, its bottom on their baseline — the
+dashboard's, Oct 29, 2026), then back once
 done (workButton) — never "syncing"; done with a check, the spinner swoops
 away first and the check comes into its room (workDone). Google drive's
 "sync now" is the dashboard's sync button: its fill grows and its words say
