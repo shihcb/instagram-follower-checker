@@ -6363,8 +6363,7 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
 .btn.at-work, .btn.at-work:disabled, .export-option.at-work { opacity: 0.8; cursor: default; }
 /* The fill (the dashboard's, Oct 29, 2026: "instead of spinner make the boxes be the loading bar like the sync now
    button"): the tint alone growing across from the left — no line under it, its box never resized */
-.filling { position: relative; isolation: isolate; overflow: hidden; }
-.work-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; z-index: -1; pointer-events: none; background: color-mix(in srgb, var(--success-color) 14%, transparent); }
+.filling { background-image: linear-gradient(var(--fill-tint), var(--fill-tint)) !important; background-size: var(--fill-w, 0%) 100% !important; background-repeat: no-repeat !important; --fill-tint: color-mix(in srgb, var(--success-color) calc(14% * var(--fill-o, 1)), transparent); }
 
 .work-spin {
   position: relative;

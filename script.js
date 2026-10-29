@@ -4091,23 +4091,26 @@ const SPIN_SWOOP = [{ opacity: 0, transform: 'scale(0.2)', filter: 'blur(1.5px)'
 // button"): a button at work fills from the left — quickly at first, then slower, never reaching the end on its own —
 // and goes to the end the moment it's done, then fades; failed: faded from where it is
 const fills = new WeakMap();
-function fillStart(host, { expect = 1400, top = false } = {}) {
+const setFill = (host, w, o) => { if (w != null) host.style.setProperty('--fill-w', `${(w * 100).toFixed(2)}%`); if (o != null) host.style.setProperty('--fill-o', String(o)); };
+const tweenFill = (host, f, key, from, to, ms, ease) => new Promise((done) => {
+  const t0 = performance.now();
+  const step = (now) => { if (fills.get(host) !== f) return done(); const k = Math.min(1, (now - t0) / ms); const v = from + (to - from) * ease(k); setFill(host, key === 'w' ? v : null, key === 'o' ? v : null); if (k < 1) f.raf = requestAnimationFrame(step); else done(); };
+  f.raf = requestAnimationFrame(step);
+});
+// (painted as the box's own background — nothing put inside it, so its contents and size never move: the dashboard's)
+function fillStart(host, { expect = 1400 } = {}) {
   if (!host) return null;
   let f = fills.get(host);
   if (f && !f.ending) return f;
-  if (f) { cancelAnimationFrame(f.raf); f.bar.remove(); }
-  host.classList.add('filling');
-  const bar = document.createElement('span');
-  bar.className = `work-fill${top ? ' top' : ''}`;
-  bar.setAttribute('aria-hidden', 'true');
-  host.prepend(bar);
-  f = { bar, t0: performance.now(), shown: 0, expect, ending: false, full: null };
+  if (f) cancelAnimationFrame(f.raf);
+  f = { t0: performance.now(), shown: 0, expect, ending: false, full: null, raf: 0 };
   fills.set(host, f);
-  if (canAnimate(bar)) bar.animate([{ opacity: 0 }, { opacity: 1 }], { duration: ROW_MOTION_MS / 2, easing: 'ease-out' });
+  setFill(host, 0, 1);
+  host.classList.add('filling');
   const tick = () => {
     if (fills.get(host) !== f || f.ending) return;
     f.shown = Math.max(f.shown, 0.9 * (1 - Math.exp(-(performance.now() - f.t0) / f.expect)));
-    bar.style.width = `${(f.shown * 100).toFixed(2)}%`;
+    setFill(host, f.shown, null);
     f.raf = requestAnimationFrame(tick);
   };
   tick();
@@ -4119,14 +4122,11 @@ function fillDone(host, { ok = true } = {}) {
   if (f.ending) return f.full || Promise.resolve();
   f.ending = true;
   cancelAnimationFrame(f.raf);
-  const bar = f.bar;
-  const gone = () => { if (fills.get(host) === f) { fills.delete(host); host.classList.remove('filling'); } bar.remove(); };
-  if (!canAnimate(bar)) { gone(); return (f.full = Promise.resolve()); }
-  const fade = () => bar.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ROW_MOTION_MS * 0.6, easing: 'ease-out', fill: 'forwards' }).finished.then(gone, gone);
+  const gone = () => { if (fills.get(host) === f) { fills.delete(host); host.classList.remove('filling'); host.style.removeProperty('--fill-w'); host.style.removeProperty('--fill-o'); } };
+  if (!canAnimate(host)) { gone(); return (f.full = Promise.resolve()); }
+  const fade = () => tweenFill(host, f, 'o', 1, 0, ROW_MOTION_MS * 0.6, (k) => 1 - (1 - k) * (1 - k)).then(gone);
   if (!ok) { fade(); return (f.full = Promise.resolve()); }
-  const from = bar.getBoundingClientRect().width, to = host.getBoundingClientRect().width;
-  const grow = bar.animate([{ width: `${from}px` }, { width: `${to}px` }], { duration: ROW_MOTION_MS * 0.55, easing: 'cubic-bezier(0.3, 0, 0.2, 1)', fill: 'forwards' });
-  f.full = grow.finished.then(() => { fade(); }, () => { gone(); });
+  f.full = tweenFill(host, f, 'w', f.shown, 1, ROW_MOTION_MS * 0.55, (k) => 1 - Math.pow(1 - k, 3)).then(() => { fade(); });
   return f.full;
 }
 function workButton(btn, busy) {
