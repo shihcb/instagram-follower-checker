@@ -349,6 +349,9 @@ function cancelOverlayHide(overlay) {
 // even ease, so the slide itself is what you see. (Fading them out
 // and in, on a fast-start curve, read as the new page snapping in.) Only a
 // light dim on the way out and back up on the way in.
+// (mid-push the two panes keep a gap between them, never touching: the dashboard's, twice its 12px spacing)
+const PANE_GAP = 24;
+window.PANE_GAP = PANE_GAP;
 const TAB_MOTION = {
   in: { duration: 450, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }
 };
@@ -5483,6 +5486,7 @@ window.closeInstructionsModal = closeInstructionsModal;
 // Shared with the insights window (features.js): same tab highlight/scroll.
 window.moveInstructionsIndicator = moveInstructionsIndicator;
 window.scrollInstructionsNav = scrollInstructionsNav;
+window.indicatorBetween = (...a) => indicatorBetween(...a); // (the swipe in features.js: the highlight following the finger)
 
 // Slides the highlight to `tab` like the log in / sign up switch does:
 // same duration and easing, transform only (FLIP: it takes its new size at
@@ -5523,19 +5527,51 @@ function scrollInstructionsNav(nav, target) {
     { duration: IND_MS, easing: IND_EASE }));
 }
 
-// The highlight: one outlined piece (the financial dashboard's — never a
-// seam where pieces meet), its place and width easing together.
+// The highlight (the financial dashboard's): three pieces moved by transform
+// alone — never a width, so it glides and resizes on the screen's own pixels,
+// smooth at any speed (a width laid out again each frame stepped and
+// shimmered on a slow swipe). The two rounded ends slide; the straight middle
+// between them stretches sideways only (its lines keep their weight). Their
+// edges meet on whole screen pixels: no seam.
 const IND_MS = 450;
 const IND_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
+const IND_CAP = 10, IND_BASE = 100;
 function indicatorPill(indicator) {
-  if (indicator._pill) return indicator._pill;
+  if (indicator._parts) return indicator._parts;
   indicator.classList.add('ind-split');
-  indicator.innerHTML = '<span class="ind-m"></span>';
-  indicator._pill = indicator.firstChild;
-  return indicator._pill;
+  indicator.innerHTML = '<span class="ind-l"></span><span class="ind-m"></span><span class="ind-r"></span>';
+  const [l, m, r] = indicator.children;
+  indicator._parts = { l, m, r };
+  return indicator._parts;
 }
+const snapPx = (v) => { const r = window.devicePixelRatio || 1; return Math.round(v * r) / r; };
 function indicatorFrames(x, w) {
-  return { transform: `translateX(${x}px)`, width: `${w}px` };
+  const left = snapPx(x), right = Math.max(left + 2 * IND_CAP, snapPx(x + w));
+  return {
+    l: { transform: `translateX(${left}px)` },
+    m: { transform: `translateX(${left + IND_CAP}px) scaleX(${(right - left - 2 * IND_CAP) / IND_BASE})` },
+    r: { transform: `translateX(${right - IND_CAP}px)` },
+  };
+}
+function putIndicator(indicator, fr) {
+  const parts = indicatorPill(indicator);
+  for (const k in parts) parts[k].style.transform = fr[k].transform;
+  indicator.classList.add('placed');
+}
+// (where it's drawn right now — mid-glide too: its ends')
+function indicatorDrawn(indicator) {
+  const parts = indicatorPill(indicator);
+  const lx = new DOMMatrixReadOnly(getComputedStyle(parts.l).transform).m41, rx = new DOMMatrixReadOnly(getComputedStyle(parts.r).transform).m41;
+  return { x: lx, w: rx + IND_CAP - lx };
+}
+function stopIndicator(indicator) { (indicator._anims || []).forEach(a => a.cancel()); indicator._anims = null; }
+// held part of the way from one tab to another (a swipe under way: it follows
+// the finger; moveInstructionsIndicator carries on from it)
+function indicatorBetween(indicator, a, b, f) {
+  stopIndicator(indicator);
+  const x = a.offsetLeft + (b.offsetLeft - a.offsetLeft) * f, w = a.offsetWidth + (b.offsetWidth - a.offsetWidth) * f;
+  putIndicator(indicator, indicatorFrames(x, w));
+  indicator._pos = { x, w };
 }
 function moveInstructionsIndicator(indicator, tab) {
   const x = tab.offsetLeft;
@@ -5543,21 +5579,18 @@ function moveInstructionsIndicator(indicator, tab) {
   // A tab with no size yet (not laid out, fonts still loading): drawing the
   // outline from it left only its left end. Whoever placed it retries.
   if (!w) return;
-  const pill = indicatorPill(indicator);
+  const parts = indicatorPill(indicator);
   let from = indicator._pos || null;
   // Mid-slide: start from where it is right now.
-  if (indicator._anim && indicator._anim.playState === 'running' && from) {
-    const cs = getComputedStyle(pill);
-    from = { x: new DOMMatrixReadOnly(cs.transform).m41, w: parseFloat(cs.width) };
-  }
-  if (indicator._anim) indicator._anim.cancel();
-  indicator._anim = null;
+  if ((indicator._anims || []).some(a => a.playState === 'running') && from) from = indicatorDrawn(indicator);
+  stopIndicator(indicator);
   const to = indicatorFrames(x, w);
-  Object.assign(pill.style, to);
+  putIndicator(indicator, to);
   indicator._pos = { x, w };
   const moved = from && (Math.abs(from.x - x) > 0.5 || Math.abs(from.w - w) > 0.5);
-  if (!moved || indicator.classList.contains('no-transition') || typeof pill.animate !== 'function') return;
-  indicator._anim = pill.animate([indicatorFrames(from.x, from.w), to], { duration: IND_MS, easing: IND_EASE });
+  if (!moved || indicator.classList.contains('no-transition') || typeof parts.m.animate !== 'function') return;
+  const fr = indicatorFrames(from.x, from.w);
+  indicator._anims = Object.keys(parts).map(k => parts[k].animate([fr[k], to[k]], { duration: IND_MS, easing: IND_EASE }));
 }
 
 function settleStepOut(pane) {
@@ -5617,7 +5650,7 @@ function updateInstructionsStepUI() {
   if (prevActive && newPane && prevActive !== newPane && !instructionsInstant && typeof newPane.animate === 'function') {
     const oldStep = parseInt(prevActive.id.replace('instructions-step-', ''), 10);
     const dir = currentInstructionStep > oldStep ? 1 : -1;
-    const w = newPane.parentElement.clientWidth;
+    const w = newPane.parentElement.clientWidth + PANE_GAP; // (mid-push a gap between the two — the dashboard's)
     const D = TAB_MOTION.in.duration;
     const timing = () => ({ duration: D, easing: TAB_MOTION.in.easing }); // every trip, an interrupted one too, takes the full 450ms (the dashboard's push)
     let longest = 0;

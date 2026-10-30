@@ -5807,17 +5807,24 @@ select,
   transform: none; /* not !important: the tab bar's scroll glide moves it */
   overflow: visible;
 }
-.instructions-nav-indicator.ind-split > .ind-m {
+.instructions-nav-indicator.ind-split > span {
   position: absolute;
   top: 0;
   left: 0;
-  width: 0;
   height: 100%;
   box-sizing: border-box;
   border: 1.5px solid var(--text-main);
-  border-radius: calc(var(--radius) - 5px);
-  will-change: transform, width;
+  will-change: transform;
+  transform-origin: left center;
+  backface-visibility: hidden;
 }
+/* (three pieces moved by transform alone — the dashboard's: the ends slide, the
+   middle stretches sideways only; not on a tab yet, nothing drawn) */
+.instructions-nav-indicator.ind-split:not(.placed) > span { visibility: hidden; }
+.instructions-nav-indicator.ind-split > .ind-l, .instructions-nav-indicator.ind-split > .ind-r { width: 10px; }
+.instructions-nav-indicator.ind-split > .ind-l { border-right: 0; border-radius: calc(var(--radius) - 5px) 0 0 calc(var(--radius) - 5px); }
+.instructions-nav-indicator.ind-split > .ind-r { border-left: 0; border-radius: 0 calc(var(--radius) - 5px) calc(var(--radius) - 5px) 0; }
+.instructions-nav-indicator.ind-split > .ind-m { width: 100px; border-left: 0; border-right: 0; border-radius: 0; }
 
 /* A view's old content while it fades away over the new. */
 .list3-alt-view > .insights-pane.pane-leaving {

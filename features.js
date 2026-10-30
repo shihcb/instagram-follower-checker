@@ -1769,7 +1769,7 @@
       const active = viewNav.querySelector('.insights-tab.active');
       if (!active || !active.offsetWidth) return;
       const indicator = viewNav.querySelector('.list3-views-indicator');
-      const running = indicator._anim && indicator._anim.playState === 'running';
+      const running = (indicator._anims || []).some(a => a.playState === 'running');
       const pos = indicator._pos;
       if (running || (pos && Math.abs(pos.x - active.offsetLeft) < 0.5 && Math.abs(pos.w - active.offsetWidth) < 0.5)) return;
       indicator._pos = null;
@@ -1838,7 +1838,7 @@
     storageSet('list3_view', view); pushToCloud();
     currentView = view;
     const box = altView.parentNode;
-    const w = boxWidth();
+    const w = boxWidth() + PANE_GAP; // (mid-push a gap between the two — the dashboard's)
     const listEls = resultsEls;
     const panes = () => [...altView.querySelectorAll(':scope > .insights-pane')];
     // Tapping again mid-slide: everything carries on from where it's drawn
@@ -2781,7 +2781,7 @@
       nav._sizeWatch = new ResizeObserver(() => {
         const cur = nav.querySelector('.insights-tab.active');
         if (!cur || !cur.offsetWidth || !nav.isConnected) return;
-        const running = indicator._anim && indicator._anim.playState === 'running';
+        const running = (indicator._anims || []).some(a => a.playState === 'running');
         const pos = indicator._pos;
         if (running || (pos && Math.abs(pos.x - cur.offsetLeft) < 0.5 && Math.abs(pos.w - cur.offsetWidth) < 0.5)) return;
         indicator._pos = null;
@@ -2867,7 +2867,7 @@
     // The area eases from the height it's drawn at to the new pane's (the
     // dashboard's tab push); a box that keeps one size doesn't move.
     easeBoxHeight(host, startH);
-    const w = host.clientWidth || 320;
+    const w = (host.clientWidth || 320) + PANE_GAP; // (mid-push the two keep a gap, never touching — the dashboard's)
     const D = TAB_MOTION.in.duration;
     const timing = () => ({ duration: D, easing: TAB_MOTION.in.easing }); // every trip, an interrupted one too, takes the full 450ms (the dashboard's push)
     let longest = 0;
@@ -2948,6 +2948,141 @@
     slideSub(elements.appGrid, cards, [target], 'mobile-on', c => cards.indexOf(c), dir);
     centerSoon();
   }
+
+  // ---------- phones: a sideways swipe anywhere drags the lists (the dashboard's) ----------
+  // The list under the finger is dragged along, the next one (right to left)
+  // or the one before (left to right) coming in beside it, a gap between
+  // them, the switcher's highlight following; let go past a third of the way,
+  // or flicked, it goes there on the list 3 slide (its start at the finger's
+  // speed), else it springs back — past the first or last it only gives a
+  // little. A new swipe waits until a switch is 70% done, as a tap does.
+  // Never over a window, a menu, the log-in page, a box being typed in, or
+  // something that still scrolls sideways that way (a switcher, a long row).
+  (function setupListSwipe() {
+    const blocked = () => !phoneLayout.matches || !mobileNav || document.body.classList.contains('auth-logged-out')
+      || !!document.querySelector('.modal-overlay.show, .modal-overlay:not(.hidden), #auth-dropdown.show, .dropdown-menu.show, .love-overlay.show, .export-overlay.show');
+    const own = (t, dx) => {
+      for (let n = t instanceof Element ? t : null; n && n !== document.body; n = n.parentElement) {
+        if (n.matches('.row-select-bar') || (n === document.activeElement && n.matches('input, textarea, select, [contenteditable="true"]'))) return true; // (a box being typed in — one only passed over swipes as any)
+        if (n.scrollWidth > n.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(n).overflowX)
+          && (dx < 0 ? n.scrollLeft < n.scrollWidth - n.clientWidth - 1 : n.scrollLeft > 0)) return true;
+      }
+      return false;
+    };
+    const host = () => elements.appGrid;
+    const order = () => MOBILE_LISTS.map(t => t[0]);
+    const cardOf = (id) => document.getElementById(`card-${id}`);
+    const tabOf = (id) => mobileNav.querySelector(`[data-sub="${id}"]`);
+    const switching = () => mobileCards().some(c => c.getAnimations().some(a => a.playState === 'running' && (a.currentTime || 0) < TAB_MOTION.in.duration * SLIDE_WAIT));
+    const style = (el, x, o) => { el.style.transform = `translateX(${x}px)`; el.style.opacity = String(o); };
+    const unstyle = (el) => { el.style.transform = el.style.opacity = ''; };
+    let sw = null, swipedAt = 0;
+    function dragTo(dx) {
+      const cur = cardOf(mobileList), w = sw.w, step = w + PANE_GAP;
+      const next = order()[order().indexOf(mobileList) + (dx < 0 ? 1 : -1)];
+      const nb = next ? cardOf(next) : null;
+      if (sw.nb && sw.nb !== nb) { sw.nb.classList.remove('pane-out'); clearPin(sw.nb); unstyle(sw.nb); }
+      if (nb && sw.nb !== nb) { // (shown beside it, out of the flow, as a list sliding in is)
+        nb.classList.add('pane-out');
+        Object.assign(nb.style, { position: 'absolute', top: `${sw.top}px`, left: `${sw.left}px`, width: `${cur.offsetWidth}px`, height: `${cur.offsetHeight}px` });
+      }
+      sw.nb = nb; sw.next = next;
+      const x = nb ? Math.max(-w, Math.min(w, dx)) : dx / 3;
+      sw.x = x;
+      const f = Math.min(1, Math.abs(x) / w);
+      style(cur, x, 1 - 0.65 * f);
+      if (nb) style(nb, x + (dx < 0 ? step : -step), 0.35 + 0.65 * f);
+      const here = tabOf(mobileList), there = next ? tabOf(next) : here;
+      if (here && there) indicatorBetween(mobileNav.querySelector('.changes-indicator'), here, there, f);
+    }
+    function dragEnd(cancelled) {
+      if (sw.frame) { cancelAnimationFrame(sw.frame); sw.frame = 0; if (sw.want != null) dragTo(sw.want); }
+      const d = sw; sw = null;
+      const cur = cardOf(mobileList), nb = d.nb, w = d.w, step = w + PANE_GAP;
+      const v = !cancelled && performance.now() - d.last[1] < 100 ? d.v || 0 : 0;
+      const flick = Math.abs(v) > 0.3 ? Math.sign(v) : 0;
+      const go = nb && !cancelled && (flick ? flick === Math.sign(d.x) && Math.abs(d.x) > 20 : Math.abs(d.x) > w / 3);
+      // (the list 3 slide — cubic-bezier(0.4, 0, 0.2, 1), 450ms — its start raised to the finger's speed)
+      const glide = (dist, towards) => {
+        const speed = Math.sign(v) === towards ? Math.abs(v) : 0;
+        const y1 = Math.min(1, 0.4 * speed * TAB_MOTION.in.duration / Math.max(1, Math.abs(dist)));
+        return { duration: TAB_MOTION.in.duration, easing: `cubic-bezier(0.4, ${y1.toFixed(3)}, 0.2, 1)` };
+      };
+      const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (go) {
+        const id = d.next, dir = d.x < 0 ? 1 : -1, nbX = d.x + dir * step;
+        const t = glide(nbX, -Math.sign(nbX));
+        if (selectMode && id !== 'unfollowers') setSelectMode(false);
+        mobileList = id;
+        storageSet('mobile_list', id);
+        pushToCloud();
+        selectSubTab(mobileNav, id); // (its highlight carries on from where the finger left it)
+        const g = host();
+        clearTimeout(g._subTimer);
+        unstyle(cur); pinAll(g, [cur]); cur.classList.add('pane-out');
+        nb.classList.remove('pane-out'); clearPin(nb); nb.classList.add('mobile-on'); unstyle(nb);
+        g._subAll = mobileCards(); g._subTargets = [nb]; g._subOn = 'mobile-on';
+        if (reduce || typeof nb.animate !== 'function') { settleSub(g); centerSoon(); return; }
+        cur.animate([{ transform: `translateX(${d.x}px)`, opacity: 1 - 0.65 * Math.min(1, Math.abs(d.x) / w) }, { transform: `translateX(${-dir * step}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
+        nb.animate([{ transform: `translateX(${nbX}px)`, opacity: 0.35 + 0.65 * Math.min(1, Math.abs(d.x) / w) }, { transform: 'translateX(0)', opacity: 1 }], t);
+        g._subTimer = setTimeout(() => settleSub(g), t.duration + 30);
+        viewGate.until = Math.max(viewGate.until || 0, performance.now() + t.duration * SLIDE_WAIT);
+        clearTimeout(viewGate.timer); viewGate.next = null; // (a tap still waiting its turn: the swipe is the last word)
+        centerSoon();
+        return;
+      }
+      // short of it: back where it was
+      const t = glide(d.x, -Math.sign(d.x));
+      const ind = mobileNav.querySelector('.changes-indicator'), here = tabOf(mobileList);
+      if (ind && here) moveInstructionsIndicator(ind, here);
+      const from = { transform: cur.style.transform, opacity: cur.style.opacity };
+      unstyle(cur);
+      if (!reduce && typeof cur.animate === 'function') cur.animate([from, { transform: 'translateX(0)', opacity: 1 }], t);
+      if (nb) {
+        const nf = { transform: nb.style.transform, opacity: nb.style.opacity };
+        unstyle(nb);
+        const done = () => { if (nb !== cardOf(mobileList) && !(sw && sw.nb === nb)) { nb.classList.remove('pane-out'); clearPin(nb); } };
+        if (!reduce && typeof nb.animate === 'function') nb.animate([nf, { transform: `translateX(${d.x < 0 ? step : -step}px)`, opacity: 0.35 }], t).finished.then(done, () => {});
+        else done();
+      }
+    }
+    document.addEventListener('touchstart', (e) => {
+      if (sw && sw.on) { if (e.touches.length > 1) return; dragEnd(true); }
+      sw = null;
+      if (e.touches.length !== 1 || blocked()) return;
+      const t = e.touches[0];
+      sw = { x0: t.clientX, y0: t.clientY, target: e.target, on: false, last: [t.clientX, performance.now()], v: 0 };
+    }, { passive: true });
+    document.addEventListener('touchmove', (e) => {
+      if (!sw) return;
+      if (e.touches.length !== 1) { if (sw.on) dragEnd(true); sw = null; return; }
+      const t = e.touches[0], dx = t.clientX - sw.x0, dy = t.clientY - sw.y0;
+      if (!sw.on && switching()) { sw.x0 = t.clientX; sw.y0 = t.clientY; return; } // (a switch under way: its turn first)
+      if (!sw.on) {
+        if (Math.hypot(dx, dy) < 6) return; // (not told yet: left to the page — a scroll that begins with a wobble still scrolls)
+        if (Math.abs(dx) < Math.abs(dy) * 1.2 || own(sw.target, dx) || blocked()) { sw = null; return; }
+        const g = host(), cur = cardOf(mobileList);
+        if (!cur) { sw = null; return; }
+        // (what's left of a switch: taken up where it's drawn)
+        const drawn = new DOMMatrixReadOnly(getComputedStyle(cur).transform).m41 || 0;
+        settleSub(g);
+        mobileCards().forEach(c => { c.getAnimations().forEach(a => a.cancel()); if (c !== cur) { c.classList.remove('mobile-on', 'pane-out'); clearPin(c); unstyle(c); } });
+        sw.on = true; sw.w = cur.offsetWidth || 320; sw.base = drawn; sw.x0 = t.clientX;
+        sw.top = cur.offsetTop; sw.left = cur.offsetLeft;
+        clearTimeout(viewGate.timer); viewGate.next = null;
+      }
+      if (e.cancelable) e.preventDefault(); // (the page doesn't scroll while a list is dragged)
+      const now = performance.now(), [lx, lt] = sw.last;
+      if (now > lt) sw.v = 0.7 * ((t.clientX - lx) / (now - lt)) + 0.3 * sw.v;
+      sw.last = [t.clientX, now];
+      sw.want = t.clientX - sw.x0 + sw.base;
+      if (!sw.frame) sw.frame = requestAnimationFrame(() => { if (sw && sw.on) { sw.frame = 0; dragTo(sw.want); } });
+    }, { passive: false });
+    const up = (cancelled) => { if (!sw) return; if (sw.on) { swipedAt = Date.now(); dragEnd(cancelled); } sw = null; };
+    document.addEventListener('touchend', () => up(false), { passive: true });
+    document.addEventListener('touchcancel', () => up(true), { passive: true });
+    document.addEventListener('click', (e) => { if (Date.now() - swipedAt < 250) { e.stopPropagation(); e.preventDefault(); } }, true); // (the tap a swipe ends on opens nothing)
+  })();
 
   // The switchers inside the changes and stats views.
   function showAltSub(id) {
