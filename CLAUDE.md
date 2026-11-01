@@ -77,7 +77,10 @@ the left (no line under it, its box never resized), quickly at first then slower
 to the end the moment it's done, then fading (fillStart / fillDone, the
 dashboard's, Oct 29, 2026: "instead of spinner make the boxes be the loading
 bar like the sync now button") — never "syncing"; done with a check, the fill
-reaches the end first, then the check (workDone). Google drive's
+reaches the end first, then the check (workDone). A window's buttons and every black one (log in, log
+out — `.btn-primary`, anything in a `.modal-overlay`) take a spinner after their
+words instead, never the fill's tint — it doesn't sit on their black (spinIn /
+spinOut in workButton, the dashboard's, Nov 1, 2026). Google drive's
 "sync now" is the dashboard's sync button: its fill grows and its words say
 the stage it's at ("finding exports", "importing 1 of 2", "saving imports"),
 crossing over (swapText), then what it did ("2 exports imported"). A username too long

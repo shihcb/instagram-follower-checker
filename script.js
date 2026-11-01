@@ -4132,9 +4132,37 @@ function fillDone(host, { ok = true } = {}) {
   f.full = tweenFill(host, f, 'w', f.shown, 1, ROW_MOTION_MS * 0.55, (k) => 1 - Math.pow(1 - k, 3)).then(() => { fade(); });
   return f.full;
 }
+// (a window's buttons and every black one: a spinner after its words, never the
+// fill's tint — it doesn't sit on their black: the dashboard's, Nov 1, 2026)
+const spinsAtWork = (btn) => btn.matches('.btn-primary') || !!btn.closest('.modal-overlay');
+function spinIn(btn) {
+  let sp = btn.querySelector(':scope > .work-spin');
+  if (sp && !sp._leaving) return;
+  if (sp) sp.remove();
+  sp = document.createElement('span');
+  sp.className = 'work-spin';
+  sp.setAttribute('aria-hidden', 'true');
+  sp.innerHTML = '<span class="work-spin-swoop"><span class="work-spinner"></span></span>';
+  btn.append(sp);
+  const room = sp.getBoundingClientRect().width;
+  if (sp.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    sp.animate([{ width: '0px' }, { width: `${room}px` }], MOTION);
+    sp.firstChild.animate([{ opacity: 0, transform: 'scale(0.2)' }, { opacity: 1, transform: 'scale(1)' }], MOTION);
+  }
+}
+function spinOut(btn) {
+  const sp = btn.querySelector(':scope > .work-spin');
+  if (!sp || sp._leaving) return;
+  sp._leaving = true;
+  if (!sp.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) { sp.remove(); return; }
+  const room = sp.getBoundingClientRect().width;
+  sp.firstChild.animate([{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(0.2)' }], { duration: MOTION.duration * 0.6, easing: MOTION.easing, fill: 'forwards' });
+  sp.animate([{ width: `${room}px` }, { width: '0px' }], { ...MOTION, delay: MOTION.duration * 0.35, fill: 'forwards' }).finished.then(() => { if (sp._leaving) sp.remove(); }, () => {});
+}
 function workButton(btn, busy) {
   if (!btn) return;
   btn.classList.toggle('at-work', busy);
+  if (spinsAtWork(btn)) { if (busy) spinIn(btn); else spinOut(btn); return; }
   if (busy) fillStart(btn); else fillDone(btn);
 }
 // A button done (the dashboard's doneCheck): a check after its words for a
