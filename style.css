@@ -7306,6 +7306,10 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
   font-weight: 600 !important;
   line-height: 28px !important;
 }
+/* (the ✕ on the middle of the title's lowercase letters, not of its line box —
+   the title's x-height sits .1em below the box's middle: the dashboard's
+   .modal-head > .modal-x, so every window's ✕ sits in the same place in both apps) */
+.account-modal-header > .modal-close-btn { margin-top: calc(var(--fs-xl) * .1); }
 /* The account picked shows in its menu in the accent, like a list's tab */
 .compare-menu .dropdown-item-btn.on { color: var(--accent); font-weight: 600; }
 .account-modal-input-group label {
@@ -7774,10 +7778,11 @@ html.is-logged-in #auth-profile-view .account-row {
   opacity: 0.35;
   cursor: default;
 }
-/* The love note's ✕: a window's, in its top right corner */
+/* The love note's ✕: a window's, in its top right corner — where every window's
+   ✕ sits, its glyph 32px down and 24px in from the card's edge (the dashboard's) */
 .love-card > .love-x {
   position: absolute;
-  top: 18px;
+  top: 26px;
   right: 18px;
   margin: 0;
   z-index: 2;
