@@ -704,7 +704,7 @@
     if (!box) return;
     const key = accKey();
     const log = key === DEMO_ID ? [] : readJSON(logKey(key), []);
-    const set = (id, text) => swapText(document.getElementById(id), text);
+    const set = (id, text) => swapPhrase(document.getElementById(id), text); // (a count in it counts, its "s" sliding)
     const fill = document.getElementById('saved-imports-fill');
     if (!log.length) {
       set('saved-imports-value', 'not started');
@@ -1455,7 +1455,7 @@
       stopRowMotion(el);
       ['position', 'top', 'left', 'width', 'margin', 'zIndex'].forEach(k => { el.style[k] = ''; });
     };
-    if (show) { if (toolbar.classList.contains('settling')) el.textContent = text; else swapText(el, text); }
+    if (show) { if (toolbar.classList.contains('settling')) { el._phrase = el._said = null; el.textContent = text; } else swapPhrase(el, text); } // ("imported 3 days ago": its number counts, its "s" slides)
     if (show === shown) return;
     const card = document.getElementById('card-unfollowers');
     const canMove = toolbar.getClientRects().length && card && typeof card.animate === 'function' && !toolbar.classList.contains('settling'); // (opening the app: the reminder just there)

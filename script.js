@@ -1624,39 +1624,76 @@ function setCountBadge(el, n, word) {
   countTo(num, readNum(num.textContent) || 0, n);
 }
 
-// A count and its word (the dashboard's swapEnding with countTo): the number
-// counts, and a word that only gains or loses its ending — "account" ↔
-// "accounts" — slides just that "s" in and out, its width easing open or
-// shut as it fades, the word before it never moving; another word fades
-// across (swapText). Built from the words on show the first time.
-function swapCount(el, n, word) {
+// Words with a count in them (the dashboard's swapEnding with countTo, one
+// helper for every count's words): "3 days left" → "1 day left", "12
+// unfollowed accounts" → "1 unfollowed account" — the number counts, the
+// word after it gains or loses just its "s", sliding in and out (its width
+// easing open or shut as it fades), the words around it never moving. Any
+// other change fades across whole (swapText).
+function parsePhrase(t) {
+  const m = String(t).match(/^([^\d]*)(\d[\d,]*)([\s\S]*)$/);
+  return m ? { pre: m[1], n: readNum(m[2]), rest: m[3] } : null;
+}
+// (where the "s" sits: the rests the same but for one "s")
+function sSplit(a, b) {
+  if (a === b) return null;
+  const long = a.length > b.length ? a : b, short = long === a ? b : a;
+  if (long.length !== short.length + 1) return null;
+  let i = 0;
+  while (i < short.length && short[i] === long[i]) i++;
+  if (long[i] !== 's' || long.slice(i + 1) !== short.slice(i)) return null;
+  return { mid: short.slice(0, i), post: short.slice(i) };
+}
+function phraseOf(el) { return el._phrase || null; }
+function swapPhrase(el, text) {
   if (!el) return;
-  let num = el.querySelector(':scope > .count-num'), stem = el.querySelector(':scope > .end-stem'), tail = el.querySelector(':scope > .end-tail');
-  if (!num || !stem || !tail) {
-    const text = el.textContent.trim().replace(/\s+/g, ' ');
-    const m = text.match(/^([\d,]+)\s+(.*)$/);
-    const shownN = m ? readNum(m[1]) : n;
-    const shownWord = m ? m[2] : `${word}${n === 1 ? '' : 's'}`;
-    const many = shownWord === `${word}s`;
-    num = document.createElement('span');
-    num.className = 'count-num';
-    num.textContent = fmtNum(Number.isFinite(shownN) ? shownN : n);
-    stem = document.createElement('span');
-    stem.className = 'end-stem';
-    stem.textContent = many ? word : shownWord;
-    tail = document.createElement('span');
-    tail.className = 'end-tail';
-    tail.textContent = 's';
-    tail._shown = many;
-    tail.inert = !many;
-    tail.setAttribute('aria-hidden', String(!many));
-    if (!many) { tail.style.width = '0px'; tail.style.opacity = '0'; }
-    el.replaceChildren(num, document.createTextNode(' '), stem, tail);
+  // (its words as said — the "s" slid away left out — while what it built is
+  // still there; set some other way since, read as shown)
+  if (el._phrase && !(el.querySelector(':scope > .count-num') && el.querySelector(':scope > .end-tail'))) { el._phrase = null; el._said = null; }
+  const said = el._said != null ? el._said : el.textContent;
+  if (said === text) return;
+  const a = parsePhrase(said), b = parsePhrase(text);
+  const p = phraseOf(el);
+  let mid = null, post = '', showNow = false, showNext = false;
+  if (a && b && a.pre === b.pre) {
+    if (a.rest === b.rest) {
+      // (only the number: the words kept as they're built, ending and all)
+      if (p && p.pre === a.pre && (p.mid + 's' + p.post === a.rest || p.mid + p.post === a.rest)) { mid = p.mid; post = p.post; showNow = showNext = p.mid + 's' + p.post === a.rest; }
+      else { mid = a.rest; post = ''; }
+    } else {
+      const sp = sSplit(a.rest, b.rest);
+      if (sp) { mid = sp.mid; post = sp.post; showNow = a.rest.length > b.rest.length; showNext = !showNow; }
+    }
   }
-  if (stem.textContent !== word) swapText(stem, word);
-  countTo(num, readNum(num.textContent) || 0, n);
-  tail.setAttribute('aria-hidden', String(n === 1));
-  slideSlot(tail, n !== 1);
+  const visible = el.isConnected && el.getClientRects().length && canAnimate(el);
+  if (mid === null || !visible) {
+    // (another change altogether, or not on screen: faded across / set)
+    el._phrase = null; el._said = null;
+    const num = el.querySelector(':scope > .count-num');
+    if (num && num._count) { cancelAnimationFrame(num._count.raf); num._count = null; }
+    swapText(el, text);
+    return;
+  }
+  let num = el.querySelector(':scope > .count-num'), tail = el.querySelector(':scope > .end-tail');
+  const same = p && p.pre === a.pre && p.mid === mid && p.post === post && num && tail;
+  if (!same) {
+    // (built from the words on show — nothing moves yet)
+    if (!num) { num = document.createElement('span'); num.className = 'count-num'; num.textContent = fmtNum(a.n); }
+    if (!tail) { tail = document.createElement('span'); tail.className = 'end-tail'; tail.textContent = 's'; }
+    if (tail._slide) { tail._slide.cancel(); tail._slide = null; }
+    tail._shown = showNow; tail.inert = !showNow;
+    tail.style.width = showNow ? '' : '0px'; tail.style.opacity = showNow ? '' : '0';
+    el.replaceChildren(document.createTextNode(a.pre), num, document.createTextNode(mid), tail, document.createTextNode(post));
+    el._phrase = { pre: a.pre, mid, post };
+  }
+  el._said = text;
+  tail.setAttribute('aria-hidden', String(!showNext));
+  countTo(num, readNum(num.textContent) || 0, b.n);
+  slideSlot(tail, showNext);
+}
+// A count and its word: "12 unfollowed accounts" (swapPhrase)
+function swapCount(el, n, word) {
+  swapPhrase(el, `${fmtNum(n)} ${word}${n === 1 ? '' : 's'}`);
 }
 
 // A username longer than its row glides sideways to show the rest, then
@@ -8756,13 +8793,13 @@ function updateResetReminderUI() {
   if (remainingMs <= 0 && !resetStillDue(importedAt + RESET_REMINDER_MS)) {
     // Both lists have been reset since it came due: done until the next import.
     box.classList.remove('overdue');
-    swapText(valueEl, 'lists reset');
+    swapPhrase(valueEl, 'lists reset');
     swapText(detailEl, `imported ${importedDateText}`);
     fillEl.style.width = '100%';
   } else if (remainingMs <= 0) {
     const overdueDays = Math.floor(-remainingMs / dayMs);
     box.classList.add('overdue');
-    swapText(valueEl, overdueDays > 0 ? `overdue by ${plural(overdueDays, 'day')}` : 'overdue');
+    swapPhrase(valueEl, overdueDays > 0 ? `overdue by ${plural(overdueDays, 'day')}` : 'overdue');
     swapText(detailEl, `imported ${importedDateText}`);
     fillEl.style.width = '100%';
   } else {
@@ -8774,7 +8811,7 @@ function updateResetReminderUI() {
     const remainingText = remainingMs > dayMs - hourMs ? plural(Math.ceil(remainingMs / dayMs), 'day')
       : remainingMs > hourMs - 60000 ? plural(Math.ceil(remainingMs / hourMs), 'hour')
       : plural(Math.max(1, Math.ceil(remainingMs / 60000)), 'minute');
-    swapText(valueEl, `${remainingText} left`);
+    swapPhrase(valueEl, `${remainingText} left`);
     swapText(detailEl, `imported ${importedDateText}`);
     fillEl.style.width = `${Math.min(100, Math.max(0, ((now - importedAt) / RESET_REMINDER_MS) * 100))}%`;
   }
