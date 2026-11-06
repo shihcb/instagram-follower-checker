@@ -2977,7 +2977,8 @@
     const cardOf = (id) => document.getElementById(`card-${id}`);
     const tabOf = (id) => mobileNav.querySelector(`[data-sub="${id}"]`);
     const switching = () => mobileCards().some(c => c.getAnimations().some(a => a.playState === 'running' && (a.currentTime || 0) < TAB_MOTION.in.duration * SLIDE_WAIT));
-    const style = (el, x, o) => { el.style.transform = `translateX(${x}px)`; el.style.opacity = String(o); };
+    // (moved on the graphics chip — an iPhone's own layer — its opacity set only when it changes: the dashboard's, Oct 30, 2026)
+    const style = (el, x, o) => { el.style.transform = `translate3d(${x}px, 0, 0)`; const v = String(Math.round(o * 1000) / 1000); if (el.style.opacity !== v) el.style.opacity = v; };
     const unstyle = (el) => { el.style.transform = el.style.opacity = ''; };
     let sw = null, swipedAt = 0;
     function dragTo(dx) {
@@ -2996,10 +2997,17 @@
       style(cur, x, 1 - 0.65 * f);
       if (nb) style(nb, x + (dx < 0 ? step : -step), 0.35 + 0.65 * f);
       const here = tabOf(mobileList), there = next ? tabOf(next) : here;
-      if (here && there) indicatorBetween(mobileNav.querySelector('.changes-indicator'), here, there, f);
+      // (the two tabs measured once a drag, for the tab it's headed to — never
+      // read again each frame right after the lists were moved: that laid the
+      // page out again every frame, and an iPhone stuttered — the dashboard's)
+      if (here && there) {
+        if (sw.metaFor !== there) { sw.meta = { ax: here.offsetLeft, aw: here.offsetWidth, bx: there.offsetLeft, bw: there.offsetWidth, ind: mobileNav.querySelector('.changes-indicator') }; sw.metaFor = there; }
+        const m = sw.meta;
+        if (m.ind) window.indicatorAt(m.ind, m.ax + (m.bx - m.ax) * f, m.aw + (m.bw - m.aw) * f);
+      }
     }
     function dragEnd(cancelled) {
-      if (sw.frame) { cancelAnimationFrame(sw.frame); sw.frame = 0; if (sw.want != null) dragTo(sw.want); }
+      if (sw.frame) { cancelAnimationFrame(sw.frame); sw.frame = 0; if (sw.stale && sw.want != null) dragTo(sw.want); sw.stale = false; }
       const d = sw; sw = null;
       const cur = cardOf(mobileList), nb = d.nb, w = d.w, step = w + PANE_GAP;
       const v = !cancelled && performance.now() - d.last[1] < 100 ? d.v || 0 : 0;
@@ -3079,7 +3087,15 @@
       if (now > lt) sw.v = 0.7 * ((t.clientX - lx) / (now - lt)) + 0.3 * sw.v;
       sw.last = [t.clientX, now];
       sw.want = t.clientX - sw.x0 + sw.base;
-      if (!sw.frame) sw.frame = requestAnimationFrame(() => { if (sw && sw.on) { sw.frame = 0; dragTo(sw.want); } });
+      // (drawn the moment the finger moves — an iPhone hands each move over
+      // just before its frame: waiting for the next frame drew it one late,
+      // unevenly, and the list trailed the finger in steps — and at most once
+      // a frame: more moves before the next one are drawn with it — the dashboard's)
+      if (!sw.frame) {
+        dragTo(sw.want);
+        const d = sw;
+        d.frame = requestAnimationFrame(() => { d.frame = 0; if (d.stale && sw === d && d.on) { d.stale = false; dragTo(d.want); } });
+      } else sw.stale = true;
     }, { passive: false });
     const up = (cancelled) => { if (!sw) return; if (sw.on) { swipedAt = Date.now(); dragEnd(cancelled); } sw = null; };
     document.addEventListener('touchend', () => up(false), { passive: true });

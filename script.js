@@ -4163,7 +4163,11 @@ function swapText(el, text, { resize = false } = {}) {
       whiteSpace: cs.display === 'inline' || r.height / k < parseFloat(cs.lineHeight || '0') * 1.5 ? 'nowrap' : cs.whiteSpace,
       pointerEvents: 'none', zIndex: '3',
       // (the copy sits outside where the text was: it keeps the text's own look)
-      fontFamily: cs.fontFamily, fontSize: cs.fontSize, fontWeight: cs.fontWeight, fontStyle: cs.fontStyle, fontVariantNumeric: cs.fontVariantNumeric, fontFeatureSettings: cs.fontFeatureSettings, letterSpacing: cs.letterSpacing, lineHeight: cs.lineHeight, color: cs.color, textTransform: cs.textTransform, textAlign: cs.textAlign
+      fontFamily: cs.fontFamily, fontSize: cs.fontSize, fontWeight: cs.fontWeight, fontStyle: cs.fontStyle, fontVariantNumeric: cs.fontVariantNumeric, fontFeatureSettings: cs.fontFeatureSettings, letterSpacing: cs.letterSpacing, lineHeight: cs.lineHeight, color: cs.color, textTransform: cs.textTransform, textAlign: cs.textAlign,
+      // (how its words sit inside it too — set by its id, which the copy
+      // doesn't have: words in a centred pill dropped to its top as they
+      // faded, a few pixels up — the dashboard's, Oct 30, 2026)
+      alignItems: cs.alignItems, justifyContent: cs.justifyContent, paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom, paddingLeft: cs.paddingLeft, paddingRight: cs.paddingRight
     });
     host.appendChild(ghost);
     // (its words exactly where they were: the copy is a pixel wider than
@@ -5712,6 +5716,7 @@ window.closeInstructionsModal = closeInstructionsModal;
 window.moveInstructionsIndicator = moveInstructionsIndicator;
 window.scrollInstructionsNav = scrollInstructionsNav;
 window.indicatorBetween = (...a) => indicatorBetween(...a); // (the swipe in features.js: the highlight following the finger)
+window.indicatorAt = (...a) => indicatorAt(...a); // (the same, put where the drag measured it)
 
 // Slides the highlight to `tab` like the log in / sign up switch does:
 // same duration and easing, transform only (FLIP: it takes its new size at
@@ -5793,8 +5798,12 @@ function stopIndicator(indicator) { (indicator._anims || []).forEach(a => a.canc
 // held part of the way from one tab to another (a swipe under way: it follows
 // the finger; moveInstructionsIndicator carries on from it)
 function indicatorBetween(indicator, a, b, f) {
-  stopIndicator(indicator);
-  const x = a.offsetLeft + (b.offsetLeft - a.offsetLeft) * f, w = a.offsetWidth + (b.offsetWidth - a.offsetWidth) * f;
+  indicatorAt(indicator, a.offsetLeft + (b.offsetLeft - a.offsetLeft) * f, a.offsetWidth + (b.offsetWidth - a.offsetWidth) * f);
+}
+// (put where it's told — a drag measures its two tabs once, never each
+// frame: the dashboard's, Oct 30, 2026)
+function indicatorAt(indicator, x, w) {
+  if (indicator._anims && indicator._anims.length) stopIndicator(indicator);
   putIndicator(indicator, indicatorFrames(x, w));
   indicator._pos = { x, w };
 }
