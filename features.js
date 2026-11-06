@@ -99,7 +99,8 @@
   // ones (swapText — the bar easing to their width) and its button slides
   // in or out beside them (slideSlot), instead of the bar being rewritten.
   let toastAction = null;
-  function showToast(message, action, onAction, { tone = '', duration = 6000 } = {}) {
+  let toastWork = false; // (its action works where it is: spins, then a check or the X)
+  function showToast(message, action, onAction, { tone = '', duration = 6000, work = false } = {}) {
     if (!toastEl) {
       toastEl = document.createElement('div');
       toastEl.className = 'feature-toast';
@@ -111,6 +112,24 @@
       toastEl.querySelector('.feature-toast-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         const run = toastAction;
+        // (a retry that works where it is — the dashboard's bar: its button
+        // spins after its words, then a check and the bar goes, or the X and
+        // the bar stays to try again — never another bar saying it's done)
+        if (run && toastWork) {
+          const b = e.currentTarget;
+          if (b.classList.contains('at-work')) return;
+          clearTimeout(toastTimer);
+          b.classList.add('at-work'); spinIn(b);
+          Promise.resolve().then(run).then(ok => ok !== false, () => false).then(ok => {
+            b.classList.remove('at-work'); spinOut(b);
+            setTimeout(() => {
+              doneMark(b, ok ? 'ok' : 'x', ok ? 1200 : 2600);
+              clearTimeout(toastTimer);
+              toastTimer = setTimeout(hideToast, ok ? 1600 + ROW_MOTION_MS : 10000);
+            }, canAnimate(b) ? ROW_MOTION_MS : 0);
+          });
+          return;
+        }
         toastAction = null;
         hideToast();
         if (run) run();
@@ -125,6 +144,7 @@
     toastEl.classList.toggle('warn', tone === 'warn');
     toastEl.classList.toggle('no-action', !action);
     toastAction = action ? onAction : null;
+    toastWork = !!(action && work);
     if (up) {
       swapText(text, message, { resize: true });
       if (action === 'undo') toastIcon(btn); else if (action) { btn.classList.remove('icon'); btn.removeAttribute('aria-label'); swapText(btn, action, { resize: true }); }
@@ -165,6 +185,7 @@
   function hideToast() {
     clearTimeout(toastTimer);
     toastAction = null; // (its button, hidden, still ran it from the keyboard)
+    toastWork = false;
     if (toastEl) { toastEl.classList.remove('show'); toastEl.inert = true; }
   }
 
@@ -575,8 +596,8 @@
       showToast(`import’s files couldn’t be saved to the cloud${why ? ` (${why})` : ''}`, 'retry',
         () => {
           const mine = readJSON(logKey(key), []).find(x => x.date === date);
-          if (cloudLoaded() && mine && !mine.files) uploadImport(key, mine.n, stored, date);
-        }, { duration: 10000 });
+          return cloudLoaded() && mine && !mine.files ? uploadImport(key, mine.n, stored, date) : !!(mine && mine.files);
+        }, { duration: 10000, work: true });
       return false;
     }
     await dropFromDevice(key, n).catch(() => {});
@@ -1152,7 +1173,7 @@
       if (unsaved) {
         // Kept on this device; they go up the next time the app opens.
         showToast(`${plural(imported, 'export')} from google drive · ${unsaved === 1 ? 'one import’s files' : `${fmtNum(unsaved)} imports’ files`} couldn’t be saved to the cloud${why ? ` (${why})` : ''}`,
-          'retry', () => moveLocalFilesToCloud().then(ok => showToast(ok ? 'files saved' : 'files couldn’t be saved')), { duration: 10000 });
+          'retry', () => moveLocalFilesToCloud(), { duration: 10000, work: true }); // (a check after "retry", or the X — never "files saved")
       } else {
         // (what it did, on the button for a few seconds — the dashboard's
         // "3 pages updated"; the changes, when there are some, with "view")
