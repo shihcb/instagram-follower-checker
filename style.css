@@ -5020,7 +5020,7 @@ button:focus-visible,
   flex: 1 1 100%;
   justify-content: center;
   border-color: var(--warn);
-  color: #d97706;
+  color: var(--warn); /* (the warning colour, light and dark — never one of its own) */
   background: color-mix(in srgb, var(--warn) 8%, transparent);
 }
 
@@ -5160,7 +5160,7 @@ body.select-active #card-followers {
   cursor: not-allowed;
 }
 .row-select-bar button[data-bulk="star"] {
-  color: #d97706;
+  color: var(--warn); /* (the palette's amber, light and dark) */
 }
 .row-select-bar button[data-bulk="unfollow"] {
   color: var(--bad);
@@ -6837,7 +6837,7 @@ b, strong {
   font-weight: 400;
 }
 .feature-toast.no-action { padding: 4px; }
-.feature-toast-text { padding: 0 8px 0 10px; line-height: 32px; }
+.feature-toast-text { padding: 0 8px; line-height: 32px; } /* (the dashboard's .undo-text: 8px each side) */
 .feature-toast-slot { margin-left: -6px; } /* (the bar's 6px gap lives inside the slot) */
 .feature-toast-slot > .feature-toast-btn { margin-left: 6px; }
 .feature-toast-btn {
@@ -6847,7 +6847,9 @@ b, strong {
   font-weight: 600;
   padding: 0 10px;
 }
-.feature-toast.warn { background: var(--bg-color); color: #d97706; }
+.feature-toast.warn { background: var(--bg-color); color: var(--warn); }
+/* (what went wrong: its words in the warning colour, as the dashboard's #undo-bar.warn .undo-text) */
+.feature-toast.warn .feature-toast-text { color: var(--warn); }
 [data-theme="dark"] .feature-toast {
   background: linear-gradient(var(--card-bg), var(--card-bg)), var(--bg-color); /* (solid, like the select bar) */
 }
