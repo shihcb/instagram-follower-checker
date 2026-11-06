@@ -1130,7 +1130,7 @@
       stillHere();
       for (let i = 0; i < fresh.length; i++) {
         const exp = fresh[i];
-        bar.stage(`importing ${i + 1} of ${fresh.length}`, 0.15 + 0.75 * (i / fresh.length));
+        bar.stage(`importing ${fmtNum(i + 1)} of ${fmtNum(fresh.length)}`, 0.15 + 0.75 * (i / fresh.length));
         const files = await driveExportFiles(exp);
         stillHere();
         // Instagram makes an export's folder first and puts its files in one

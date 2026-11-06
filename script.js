@@ -6854,7 +6854,7 @@ function updateInstructionsStepUI() {
       // Check if we've already automatically opened 5 profiles
       const batch = 5;
       if (state.autoOpenCount >= batch) {
-        const proceed = await showSiteConfirm(`open the next ${batch} profiles?`, '', 'open', 'stop');
+        const proceed = await showSiteConfirm(`open the next ${fmtNum(batch)} profiles?`, '', 'open', 'stop');
         if (!proceed) {
           autoOpenToggle.checked = false;
           autoOpenToggle.dispatchEvent(new Event('change')); // (saved, as the other "stop" is)
