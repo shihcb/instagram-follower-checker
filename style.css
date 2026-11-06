@@ -7964,3 +7964,34 @@ body:has(#auth-dropdown.show) .row-select-bar {
   vertical-align: top;
 }
 
+
+/* A window's red button — confirm's "remove" / "reset", the account
+   window's "delete": the dashboard's .btn-block.danger-soft (Nov 1, 2026,
+   "igr's red"): a light tint of red, its border a little more red, filled
+   red on hover; the field corners in both themes; no shadow, nothing glows.
+   (Small red buttons keep the dashboard's .btn-sm.danger: --bad-bg.) */
+#btn-confirm-ok:not(.confirm-neutral),
+[data-theme="dark"] #btn-confirm-ok:not(.confirm-neutral),
+#btn-modal-delete,
+[data-theme="dark"] #btn-modal-delete,
+.btn-danger-soft:not(.btn-sm):not(.reset-due),
+[data-theme="dark"] .btn-danger-soft:not(.btn-sm):not(.reset-due) {
+  background: color-mix(in srgb, var(--bad) 12%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--bad) 30%, transparent) !important;
+  color: var(--bad) !important;
+  border-radius: var(--r-md) !important;
+  box-shadow: none !important;
+}
+@media (hover: hover) {
+  #btn-confirm-ok:not(.confirm-neutral):hover,
+  [data-theme="dark"] #btn-confirm-ok:not(.confirm-neutral):hover,
+  #btn-modal-delete:hover,
+  [data-theme="dark"] #btn-modal-delete:hover,
+  .btn-danger-soft:not(.btn-sm):not(.reset-due):hover:not(:disabled),
+  [data-theme="dark"] .btn-danger-soft:not(.btn-sm):not(.reset-due):hover:not(:disabled) {
+    background: var(--bad) !important;
+    border-color: var(--bad) !important;
+    color: var(--card-bg) !important;
+    box-shadow: none !important;
+  }
+}
