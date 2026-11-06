@@ -394,6 +394,36 @@ function readNum(text) {
 // look (about a second later). Adding and removing an empty fixed box makes
 // it look again: once the backdrop is visible enough to count, and when
 // each fade ends.
+// The phone's top bar (theme-color: the page's own colour) dimmed with the
+// page while a window on its backdrop is on screen, and back the moment it
+// closes — never a bright strip over a dimmed page, never left grey after
+// (the dashboard's paintTopBar, Nov 2, 2026).
+function paintTopBar() {
+  const meta = document.getElementById('theme-color-meta');
+  if (!meta) return;
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const dim = [...document.querySelectorAll('.modal-overlay.show, .love-overlay.show')].some(o => !o.classList.contains('hidden'));
+  const color = dim ? (dark ? '#090b0a' : '#7a7a79') : (dark ? '#111513' : '#f4f5f3'); // (the backdrop: 50% black over the page)
+  if (meta.getAttribute('content') !== color) meta.setAttribute('content', color);
+}
+(function watchTopBar() {
+  if (typeof MutationObserver !== 'function') return;
+  const watched = new WeakSet();
+  const onClass = new MutationObserver(paintTopBar);
+  const watch = () => document.querySelectorAll('.modal-overlay, .love-overlay').forEach(o => {
+    if (watched.has(o)) return;
+    watched.add(o);
+    onClass.observe(o, { attributes: true, attributeFilter: ['class'] });
+  });
+  const start = () => {
+    watch();
+    // (windows made later — saved imports, export — are added to the page's body)
+    new MutationObserver(() => { watch(); paintTopBar(); }).observe(document.body, { childList: true });
+    new MutationObserver(paintTopBar).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    paintTopBar();
+  };
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+})();
 function resampleTopEdge() {
   const probe = document.createElement('div');
   probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;pointer-events:none';
@@ -1592,6 +1622,41 @@ function setCountBadge(el, n, word) {
   const words = `\u00a0${word}`;
   if (label.textContent !== words) label.textContent = words;
   countTo(num, readNum(num.textContent) || 0, n);
+}
+
+// A count and its word (the dashboard's swapEnding with countTo): the number
+// counts, and a word that only gains or loses its ending — "account" ↔
+// "accounts" — slides just that "s" in and out, its width easing open or
+// shut as it fades, the word before it never moving; another word fades
+// across (swapText). Built from the words on show the first time.
+function swapCount(el, n, word) {
+  if (!el) return;
+  let num = el.querySelector(':scope > .count-num'), stem = el.querySelector(':scope > .end-stem'), tail = el.querySelector(':scope > .end-tail');
+  if (!num || !stem || !tail) {
+    const text = el.textContent.trim().replace(/\s+/g, ' ');
+    const m = text.match(/^([\d,]+)\s+(.*)$/);
+    const shownN = m ? readNum(m[1]) : n;
+    const shownWord = m ? m[2] : `${word}${n === 1 ? '' : 's'}`;
+    const many = shownWord === `${word}s`;
+    num = document.createElement('span');
+    num.className = 'count-num';
+    num.textContent = fmtNum(Number.isFinite(shownN) ? shownN : n);
+    stem = document.createElement('span');
+    stem.className = 'end-stem';
+    stem.textContent = many ? word : shownWord;
+    tail = document.createElement('span');
+    tail.className = 'end-tail';
+    tail.textContent = 's';
+    tail._shown = many;
+    tail.inert = !many;
+    tail.setAttribute('aria-hidden', String(!many));
+    if (!many) { tail.style.width = '0px'; tail.style.opacity = '0'; }
+    el.replaceChildren(num, document.createTextNode(' '), stem, tail);
+  }
+  if (stem.textContent !== word) swapText(stem, word);
+  countTo(num, readNum(num.textContent) || 0, n);
+  tail.setAttribute('aria-hidden', String(n === 1));
+  slideSlot(tail, n !== 1);
 }
 
 // A username longer than its row glides sideways to show the rest, then
@@ -4328,6 +4393,27 @@ function slideSlot(slot, show) {
   slot._slide = slot.animate([{ width: `${from}px`, opacity: fromO }, { width: `${to}px`, opacity: show ? 1 : 0 }], MOTION);
   slot._slide.finished.then(() => { slot._slide = null; }, () => {});
 }
+// A list scrolled to a place on the app's curve — a search's results back at
+// the top: gliding there, never a jump; a finger or wheel on it meanwhile
+// takes over (the dashboard's scrollGlide, Oct 31, 2026).
+function scrollGlide(box, target) {
+  if (!box) return;
+  const start = box.scrollTop, end = Math.max(0, Math.min(box.scrollHeight - box.clientHeight, target));
+  const token = (box._glideToken = {});
+  if (Math.abs(end - start) < 1) return;
+  if (!canAnimate(box)) { box.scrollTop = end; return; }
+  const stopIt = () => { if (box._glideToken === token) box._glideToken = null; };
+  box.addEventListener('touchstart', stopIt, { once: true, passive: true });
+  box.addEventListener('wheel', stopIt, { once: true, passive: true });
+  const t0 = performance.now();
+  const step = (now) => {
+    if (box._glideToken !== token) return;
+    const k = Math.max(0, Math.min(1, (now - t0) / ROW_MOTION_MS));
+    box.scrollTop = start + (end - start) * rowEase(k);
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 // The glide to top: when the page gets shorter, it keeps the room it needs
 // to stay put (a floor under the page, never shorter than the bottom of
 // what you're looking at, so nothing jumps), then glides up on the curve
@@ -5788,7 +5874,7 @@ function updateInstructionsStepUI() {
   const searchResults = debounce(() => {
     rowPop = true;
     try { updateResultsUI({ animate: true }); } finally { rowPop = false; }
-    elements.listUnfollowers.scrollTop = 0; // (the dashboard's: the results from the top)
+    scrollGlide(elements.listUnfollowers, 0); // (the dashboard's: the results from the top, gliding there — never a jump)
   }, 140);
   elements.searchUnfollowers.addEventListener('input', () => {
     state.selectedIndex = -1; // Reset keyboard selection on search query change
@@ -6032,7 +6118,7 @@ function updateInstructionsStepUI() {
           updateStarredUI();
         } else {
           if (headerBar) {
-            swapText(headerBar, `${fmtNum(state.starred.length)} ${state.starred.length === 1 ? 'starred account' : 'starred accounts'}`);
+            swapCount(headerBar, state.starred.length, 'starred account'); // (the number counts, only its "s" slides)
           }
           if (resetStarredBtn) resetStarredBtn.removeAttribute('disabled');
         }
@@ -6085,7 +6171,7 @@ function updateInstructionsStepUI() {
           updateStarredUI();
         } else {
           if (headerBar) {
-            swapText(headerBar, `${fmtNum(state.starred.length)} ${state.starred.length === 1 ? 'starred account' : 'starred accounts'}`);
+            swapCount(headerBar, state.starred.length, 'starred account'); // (the number counts, only its "s" slides)
           }
           if (resetStarredBtn) {
             resetStarredBtn.removeAttribute('disabled');
@@ -6145,7 +6231,7 @@ function updateInstructionsStepUI() {
             updateUnfollowedUI();
           } else {
             if (headerBar) {
-              swapText(headerBar, `${fmtNum(state.unfollowed.length)} ${state.unfollowed.length === 1 ? 'unfollowed account' : 'unfollowed accounts'}`);
+              swapCount(headerBar, state.unfollowed.length, 'unfollowed account'); // (the number counts, only its "s" slides)
             }
             if (resetUnfollowedBtn) {
               resetUnfollowedBtn.removeAttribute('disabled');
@@ -6199,7 +6285,7 @@ function updateInstructionsStepUI() {
           updateUnfollowedUI();
         } else {
           if (headerBar) {
-            swapText(headerBar, `${fmtNum(state.unfollowed.length)} ${state.unfollowed.length === 1 ? 'unfollowed account' : 'unfollowed accounts'}`);
+            swapCount(headerBar, state.unfollowed.length, 'unfollowed account'); // (the number counts, only its "s" slides)
           }
           if (resetUnfollowedBtn) {
             resetUnfollowedBtn.removeAttribute('disabled');

@@ -4334,7 +4334,7 @@ body:not(.auth-logged-out) #theme-toggle {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.45);
+  background-color: var(--backdrop); /* (every window's dimmed page: the one token, the dashboard's) */
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   display: flex;
@@ -7945,3 +7945,14 @@ body:has(#auth-dropdown.show) .row-select-bar {
 .feature-toast-text { text-overflow: clip !important; display: block; }
 .feature-toast-text > .glide-box { display: block; position: relative; min-width: 0; overflow: hidden; white-space: nowrap; }
 .feature-toast-box { min-width: 0; }
+
+/* A count's ending (swapCount, the dashboard's swapEnding): only the "s"
+   slides in and out, its width easing open or shut as it fades; held on the
+   line's top so its clipped box never moves the words (as .tl-mon) */
+.end-tail {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
