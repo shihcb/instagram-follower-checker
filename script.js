@@ -1650,7 +1650,9 @@ function swapPhrase(el, text) {
   // (its words as said — the "s" slid away left out — while what it built is
   // still there; set some other way since, read as shown)
   if (el._phrase && !(el.querySelector(':scope > .count-num') && el.querySelector(':scope > .end-tail'))) { el._phrase = null; el._said = null; }
-  const said = el._said != null ? el._said : el.textContent;
+  // (read as words: the spaces and line breaks of the markup around them left out)
+  const said = (el._said != null ? el._said : el.textContent).replace(/\s+/g, ' ').trim();
+  text = String(text).replace(/\s+/g, ' ').trim();
   if (said === text) return;
   const a = parsePhrase(said), b = parsePhrase(text);
   const p = phraseOf(el);
@@ -4211,9 +4213,9 @@ function swapText(el, text, { resize = false } = {}) {
   if (!(shown > 0.05) || !text.trim()) return;
   crossIn(el);
   if (block) {
-    const h1 = el.getBoundingClientRect().height;
+    const [h1, laid] = atEnds(el, () => [el.getBoundingClientRect().height, el.offsetHeight]);
     if (Math.abs(h1 - h0) > 0.5) {
-      const kh = el.offsetHeight ? h1 / el.offsetHeight : 1;
+      const kh = laid ? h1 / laid : 1;
       const an = el.animate([{ height: `${h0 / kh}px`, overflow: 'hidden' }, { height: `${h1 / kh}px`, overflow: 'hidden' }], MOTION);
       el._swapHeight = an;
       an.finished.then(() => { if (el._swapHeight === an) el._swapHeight = null; }, () => {});
@@ -4391,6 +4393,31 @@ function gated(name, run) {
   const wait = g.at + SWITCH_SETTLE - performance.now();
   if (wait > 0 && !reducedMotion()) g.timer = setTimeout(go, wait); else go();
 }
+// `measure` run with everything easing inside `box` (and the box itself) put
+// at its end for that moment, then drawn as it was again — the dashboard's
+// atEnds: a box easing to a new size measures where what's moving inside it
+// lands (a word fading to two lines, a check easing in, rows sliding open),
+// never the size they're drawn at this frame — measured mid-way, it eased
+// short and then jumped the rest as they landed.
+function atEnds(box, measure) {
+  if (!box) return measure();
+  const anims = typeof box.getAnimations === 'function'
+    ? box.getAnimations({ subtree: true }).filter(a => a.effect && Number.isFinite(a.effect.getComputedTiming().endTime))
+    : [];
+  const was = anims.map(a => a.currentTime || 0);
+  anims.forEach(a => { a.currentTime = a.effect.getComputedTiming().endTime; });
+  // (the row engine's heights too — driven frame by frame, not by the browser)
+  const held = [];
+  rowMotion.forEach((m, el) => {
+    if (m.heightTarget === null || !(el === box || box.contains(el))) return;
+    held.push([el, el.style.height]);
+    el.style.height = `${Math.max(0, m.heightTarget - m.heightExtra)}px`;
+  });
+  try { return measure(); } finally {
+    held.forEach(([el, h]) => { el.style.height = h; });
+    anims.forEach((a, i) => { a.currentTime = was[i]; });
+  }
+}
 // A button's width glides from where it's drawn to where it's headed after
 // `change` (its words, a spinner): one motion for all of it, so pieces easing
 // on their own never fight. Mid-glide it turns around from where it's drawn.
@@ -4402,11 +4429,7 @@ function glideWidth(el, change) {
   // Measured where everything inside lands (a done check easing in, a word
   // fading): measured mid-way, the button glided to too narrow a width and
   // then snapped wider as it ended
-  const inside = el.getAnimations({ subtree: true }).filter(a => a !== el._glide && Number.isFinite(a.effect && a.effect.getComputedTiming().endTime));
-  const was = inside.map(a => a.currentTime || 0);
-  inside.forEach(a => { a.currentTime = a.effect.getComputedTiming().endTime; });
-  const to = el.getBoundingClientRect().width;
-  inside.forEach((a, i) => { a.currentTime = was[i]; });
+  const to = atEnds(el, () => el.getBoundingClientRect().width);
   if (!canAnimate(el) || !el.offsetParent || Math.abs(to - from) < 0.5) return;
   // (the guest preview draws the app scaled: screen to layout size, from a
   // box wide enough that rounding its width doesn't show — the button's own
@@ -4522,9 +4545,9 @@ else setupPageGlide();
 function easeBoxHeight(box, from) {
   if (!box || !Number.isFinite(from)) return;
   if (box._boxEase) { box._boxEase.cancel(); box._boxEase = null; }
-  const to = box.getBoundingClientRect().height;
+  const [to, laid] = atEnds(box, () => [box.getBoundingClientRect().height, box.offsetHeight]); // (where what's easing inside lands)
   if (!canAnimate(box) || Math.abs(to - from) < 0.5 || rowMotion.has(box)) return;
-  const k = box.offsetHeight ? to / box.offsetHeight : 1;
+  const k = laid ? to / laid : 1;
   const an = box.animate([{ height: `${from / k}px`, overflow: 'hidden' }, { height: `${to / k}px`, overflow: 'hidden' }], MOTION);
   box._boxEase = an;
   an.finished.then(() => { if (box._boxEase === an) box._boxEase = null; }, () => {});
@@ -8052,7 +8075,7 @@ function setAuthAlert(el, text, { instant = false } = {}) {
     swapText(el, text); // the old message fades out where it was, the new one in
     if (!canMove) return;
     below.forEach((n, i) => addRowShift(n, topsBefore[i] - n.offsetTop, ROW_MOTION_MS));
-    const heightAfter = card.offsetHeight;
+    const heightAfter = atEnds(card, () => card.offsetHeight); // (where what's easing in it lands)
     if (Math.abs(heightAfter - heightBefore) > 0.5) {
       const an = card.animate([{ height: `${heightBefore}px`, overflow: 'hidden' }, { height: `${heightAfter}px`, overflow: 'hidden' }],
         { duration: ROW_MOTION_MS, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' });
@@ -8090,7 +8113,7 @@ function setAuthAlert(el, text, { instant = false } = {}) {
     el._alertLeaving = true;
     Object.assign(el.style, { position: 'absolute', top: `${top}px`, left: `${left}px`, width: `${width}px`, margin: '0', zIndex: '1' });
   }
-  const heightAfter = card.offsetHeight;
+  const heightAfter = atEnds(card, () => card.offsetHeight); // (where what's easing in it lands)
   // One row pitch: how far everything under it moves.
   const pitch = below.length ? Math.abs(below[0].offsetTop - topsBefore[0]) : el.offsetHeight;
   below.forEach((n, i) => addRowShift(n, topsBefore[i] - n.offsetTop, ROW_MOTION_MS));

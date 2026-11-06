@@ -1480,7 +1480,7 @@
       el._pillLeaving = true;
       Object.assign(el.style, { position: 'absolute', top: `${top}px`, left: `${left}px`, width: `${width}px`, margin: '0', zIndex: '1' });
     }
-    const heightAfter = card.offsetHeight;
+    const heightAfter = window.atEnds ? window.atEnds(card, () => card.offsetHeight) : card.offsetHeight; // (where what's easing in it lands)
     // One row pitch: how far everything under it moves.
     const pitch = below.length ? Math.abs(below[0].offsetTop - topsBefore[0]) : el.offsetHeight;
     below.forEach((n, i) => addRowShift(n, topsBefore[i] - n.offsetTop, ROW_MOTION_MS));
