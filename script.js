@@ -3731,33 +3731,33 @@ function animateChipExit(chip) {
   ], { duration: CHIP_EXIT_MS, easing: ease, fill: 'forwards' });
 }
 
-// Delete asks first, in its own words: the first tap turns "delete" into
-// "delete?" (the words fade across, the button easing to their width); a
-// second tap within 4 seconds deletes, otherwise it goes back to "delete".
-const DELETE_ARM_MS = 4000;
-function disarmModalDelete(animate) {
+// Delete asks first, in a window of its own over the account window —
+// "delete @name?", its ✕, "cancel" and the red "delete" — as "remove google
+// drive?" does; never the button's words turning to "delete?" (the
+// dashboard's, Nov 1, 2026: everything that removes or deletes asks first in
+// a window of its own). ✕, a tap outside or Escape is "cancel", closing only it.
+function disarmModalDelete() {
   const btn = elements.btnModalDelete;
   if (!btn) return;
-  clearTimeout(btn._armTimer);
-  btn._armed = false;
+  btn._asking = false;
   btn.classList.remove('armed');
-  if (animate) swapText(btn, 'delete', { resize: true });
-  else btn.textContent = 'delete';
+  if (btn.textContent !== 'delete') btn.textContent = 'delete';
 }
-function tapModalDelete() {
+async function tapModalDelete() {
   const btn = elements.btnModalDelete;
-  if (!btn) return;
-  if (btn._armed) {
-    clearTimeout(btn._armTimer);
-    btn._armed = false;
-    deleteAccountFromModal();
-    return;
+  if (!btn || btn._asking) return;
+  const index = editingAccountNow();
+  const acc = index !== null && index >= 0 ? (state.instagramAccounts || [])[index] : null;
+  if (!acc) return;
+  btn._asking = true;
+  let ok = false;
+  try {
+    ok = await showSiteConfirm(`delete @${(acc.username || acc.originalUsername || '').toLowerCase()}?`, '', 'delete', 'cancel');
+  } finally {
+    btn._asking = false;
   }
-  btn._armed = true;
-  btn.classList.add('armed');
-  swapText(btn, 'delete?', { resize: true });
-  clearTimeout(btn._armTimer);
-  btn._armTimer = setTimeout(() => disarmModalDelete(true), DELETE_ARM_MS);
+  // (still the account the window is open for: one renamed or gone meanwhile is left as it is)
+  if (ok && editingAccountNow() === index && (state.instagramAccounts || [])[index] === acc) deleteAccountFromModal();
 }
 
 function deleteAccountFromModal() {
