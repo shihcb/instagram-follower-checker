@@ -136,6 +136,8 @@ html, body {
   --bad-bg: #fbe9e7;
   /* every ✕ — the dashboard's --dismiss, the one red */
   --dismiss: #ef4444;
+  /* a window's dimmed page behind it (the dashboard's --backdrop) */
+  --backdrop: rgba(0, 0, 0, 0.5);
   --warn: #9a6100;
   --soft: #ffffff;
 
@@ -945,6 +947,9 @@ button:disabled *,
   color: #000000 !important;
   stroke: #000000 !important;
   transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  /* (kept on a layer of its own: an iPhone drew it on one only while it
+     turned, then snapped it a fraction of a pixel as it ended — the dashboard's) */
+  will-change: transform;
 }
 
 [data-theme="dark"] .preview-toggle .chevron-icon {
@@ -2005,7 +2010,7 @@ body.hide-shortcuts #keyboard-hints {
   /* Centered between the notch and the home bar, not under them. */
   padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
   box-sizing: border-box;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--backdrop);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex;
@@ -6367,7 +6372,10 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
    little, and a spinner's room (18px, the row's own gap taken back) eases open
    after them; the spinner sits at its right end. */
 .at-work { pointer-events: none; }
-.btn.at-work, .btn.at-work:disabled, .export-option.at-work { opacity: 0.8; cursor: default; }
+/* (dimmed by colour — dimAtWork — never by opacity, and never faded as disabled
+   while it works: Safari snapped what fades by opacity up and down a hair on a
+   tap — the dashboard's, Nov 3, 2026) */
+.btn.at-work, .btn.at-work:disabled, .export-option.at-work { opacity: 1 !important; cursor: default; }
 /* The fill (the dashboard's, Oct 29, 2026: "instead of spinner make the boxes be the loading bar like the sync now
    button"): the tint alone growing across from the left — no line under it, its box never resized */
 .filling { background-image: linear-gradient(var(--fill-tint), var(--fill-tint)) !important; background-size: var(--fill-w, 0%) 100% !important; background-repeat: no-repeat !important; --fill-tint: color-mix(in srgb, var(--success-color) calc(14% * var(--fill-o, 1)), transparent); }
@@ -6636,6 +6644,14 @@ html.is-logged-in body:not(.auth-logged-out) .auth-dropdown {
   justify-content: center;
   pointer-events: none;
 }
+/* (the app starting: a thin line filling along the top of the screen, never a
+   spinner in the middle — the dashboard's, Nov 2, 2026) */
+.boot.filling {
+  background-size: var(--fill-w, 0%) 3px !important;
+  background-position: 0 env(safe-area-inset-top, 0px) !important;
+  --fill-tint: color-mix(in srgb, var(--accent) calc(70% * var(--fill-o, 1)), transparent);
+}
+.boot .boot-spinner { display: none; }
 .boot-spinner {
   box-sizing: border-box;
   width: 9px; /* (the one spinner size — the dashboard's) */
@@ -6753,6 +6769,12 @@ b, strong {
   width: 1em;
   height: 1em;
   flex: none;
+}
+/* (nothing found, or it failed: the close buttons' X, their colour — the dashboard's) */
+.done-check.x,
+.feature-toast-btn .done-check.x,
+.btn-primary .done-check.x {
+  color: var(--dismiss);
 }
 /* In a button that spaces its contents (.btn: 8px), the check takes that
    gap back — hidden, it takes no room at all (it held the gap, and the

@@ -848,7 +848,7 @@
       // at once — a changes-only import, a quick zip — froze the page as it
       // came, the words snapping over and the spinner popping in)
       new Promise(resolve => setTimeout(resolve, canAnimate(row) ? ROW_MOTION_MS : 0)).then(() => downloadSaved(key, entry)).then((saved) => workDone(row, !!saved),
-        err => { workButton(row, false); console.error('[features] download failed:', err); showSiteAlert('import couldn’t be downloaded', ''); });
+        err => { workDone(row, false); console.error('[features] download failed:', err); showSiteAlert('import couldn’t be downloaded', ''); });
     });
     // (a chip picked from the keyboard too, as the main view's: Enter)
     savedOverlay.addEventListener('keydown', (e) => {

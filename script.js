@@ -4027,7 +4027,17 @@ function crossIn(node) {
 // anything as wide as its words): the word slide too — its width eases from
 // the old words' to the new ones', so what's beside it slides over.
 function swapText(el, text, { resize = false } = {}) {
-  if (!el || el.textContent === text) return;
+  if (!el) return;
+  // (asked while it's out of the page for a moment — a list putting its rows
+  // back as it redraws: the fade done once it's back, a frame on — never the
+  // words just swapped with nothing seen: the dashboard's, Oct 31, 2026)
+  if (!el.isConnected && el._swapWait === undefined && canAnimate(el) && el.textContent.trim()) {
+    el._swapWait = { text, resize };
+    requestAnimationFrame(() => { const w = el._swapWait; el._swapWait = undefined; if (w) swapText(el, w.text, { resize: w.resize }); });
+    return;
+  }
+  if (el._swapWait !== undefined) { el._swapWait = { text, resize }; return; } // (the newest words, once it's back)
+  if (el.textContent === text) return;
   const shown = el.isConnected && el.getClientRects().length && el.textContent.trim() && canAnimate(el) ? +getComputedStyle(el).opacity : 0;
   // (only for something as wide as its words: a button stretched across a
   // row keeps its width)
@@ -4063,14 +4073,46 @@ function swapText(el, text, { resize = false } = {}) {
     const drop = () => ghost.remove();
     crossOut(ghost, shown).finished.then(drop, drop);
     setTimeout(drop, ROW_MOTION_MS + 350);
+    // (the old words go where their line goes as they fade — a heading sliding
+    // up as the box above it shuts takes them with it, never left standing
+    // where it was; words on one line in a left-aligned line follow where they
+    // start, what's before them sliding open or shut: the dashboard's, Oct 31, 2026)
+    const oneLine = /^inline/.test(cs.display) && r.height < (parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.3) * 1.5 && el.parentElement && /^(start|left)$/.test(getComputedStyle(el.parentElement).textAlign);
+    const line = oneLine ? el : el.parentElement, at = line && line.getBoundingClientRect();
+    const left0 = parseFloat(ghost.style.left), top0 = parseFloat(ghost.style.top);
+    // (measured against its host, which the copy sits in: a page scrolled
+    // meanwhile moves both alike)
+    const follow = () => {
+      if (!ghost.isConnected || !line.isConnected) return;
+      const n = line.getBoundingClientRect(), h = host.getBoundingClientRect();
+      ghost.style.transform = `translate(${(n.left - h.left - (at.left - hr.left)) / k}px, ${(n.top - h.top - (at.top - hr.top)) / k}px)`;
+      requestAnimationFrame(follow);
+    };
+    if (at && Number.isFinite(left0) && Number.isFinite(top0)) requestAnimationFrame(follow);
   }
   if (el._swapWidth) { el._swapWidth.cancel(); el._swapWidth = null; }
+  // (its height eased too when the new words take another number of lines:
+  // the box grows or shrinks with them and everything under it glides —
+  // never the words running over what's below and the page snapping after:
+  // the dashboard's, Oct 31, 2026)
+  const block = shown > 0.05 && !/^inline/.test(getComputedStyle(el).display);
+  if (block && el._swapHeight) { el._swapHeight.cancel(); el._swapHeight = null; }
+  const h0 = block ? el.getBoundingClientRect().height : 0;
   // (a button's spinner or check stays: only its words change)
   const kept = [...el.children].filter(c => c.matches('.done-check, .work-spin, .work-fill'));
   el.textContent = text;
   kept.forEach(c => el.append(c));
   if (!(shown > 0.05) || !text.trim()) return;
   crossIn(el);
+  if (block) {
+    const h1 = el.getBoundingClientRect().height;
+    if (Math.abs(h1 - h0) > 0.5) {
+      const kh = el.offsetHeight ? h1 / el.offsetHeight : 1;
+      const an = el.animate([{ height: `${h0 / kh}px`, overflow: 'hidden' }, { height: `${h1 / kh}px`, overflow: 'hidden' }], MOTION);
+      el._swapHeight = an;
+      an.finished.then(() => { if (el._swapHeight === an) el._swapHeight = null; }, () => {});
+    }
+  }
   if (!fromW) return;
   const toW = el.getBoundingClientRect().width;
   if (Math.abs(toW - fromW) < 0.5) return;
@@ -4097,7 +4139,7 @@ const fills = new WeakMap();
 const setFill = (host, w, o) => { if (w != null) host.style.setProperty('--fill-w', `${(w * 100).toFixed(2)}%`); if (o != null) host.style.setProperty('--fill-o', String(o)); };
 const tweenFill = (host, f, key, from, to, ms, ease) => new Promise((done) => {
   const t0 = performance.now();
-  const step = (now) => { if (fills.get(host) !== f) return done(); const k = Math.min(1, (now - t0) / ms); const v = from + (to - from) * ease(k); setFill(host, key === 'w' ? v : null, key === 'o' ? v : null); if (k < 1) f.raf = requestAnimationFrame(step); else done(); };
+  const step = (now) => { if (fills.get(host) !== f) return done(); const k = Math.max(0, Math.min(1, (now - t0) / ms)); /* (a frame's time can be a moment before the tween began: never drawn below its start) */ const v = from + (to - from) * ease(k); setFill(host, key === 'w' ? v : null, key === 'o' ? v : null); if (k < 1) f.raf = requestAnimationFrame(step); else done(); };
   f.raf = requestAnimationFrame(step);
 });
 // (painted as the box's own background — nothing put inside it, so its contents and size never move: the dashboard's)
@@ -4159,36 +4201,65 @@ function spinOut(btn) {
   sp.firstChild.animate([{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(0.2)' }], { duration: MOTION.duration * 0.6, easing: MOTION.easing, fill: 'forwards' });
   sp.animate([{ width: `${room}px` }, { width: '0px' }], { ...MOTION, delay: MOTION.duration * 0.35, fill: 'forwards' }).finished.then(() => { if (sp._leaving) sp.remove(); }, () => {});
 }
+// (its words dimmed by colour, never by opacity — and the button itself never
+// faded while it works: Safari lifts whatever fades by opacity onto a layer of
+// its own, snapped to whole pixels, so the button and its words jumped up a
+// hair as the tap began and back down as it ended — the dashboard's, Nov 3, 2026)
+function dimAtWork(btn, busy) {
+  if (busy) {
+    if (btn._workDim) return;
+    btn._workDim = { was: btn.style.color };
+    btn.style.color = `color-mix(in srgb, ${getComputedStyle(btn).color} 80%, transparent)`;
+  } else if (btn._workDim) {
+    btn.style.color = btn._workDim.was;
+    btn._workDim = null;
+  }
+}
 function workButton(btn, busy) {
   if (!btn) return;
   btn.classList.toggle('at-work', busy);
+  dimAtWork(btn, busy);
   if (spinsAtWork(btn)) { if (busy) spinIn(btn); else spinOut(btn); return; }
   if (busy) fillStart(btn); else fillDone(btn);
 }
 // A button done (the dashboard's doneCheck): a check after its words for a
 // moment — its words never change — easing in, then away.
 const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-function doneCheck(btn, ms = 1600) {
+// A button's mark after its words (the dashboard's doneMark, Nov 3, 2026): a
+// check — done — or an X, the close buttons' own — nothing found, or it
+// failed. Its words never change ("failed" never shown); the mark widens the
+// button as it comes and narrows it as it goes.
+const X_MARK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>';
+function doneMark(btn, kind = 'ok', ms = 1600) {
   if (!btn || !btn.isConnected) return;
   let c = btn.querySelector(':scope > .done-check');
   if (!c) {
     c = document.createElement('span');
     c.className = 'done-check';
     c.setAttribute('aria-hidden', 'true');
-    c.innerHTML = CHECK_SVG;
     btn.append(c);
   }
-  void c.offsetWidth;
-  c.classList.add('show');
-  clearTimeout(c._t);
+  const swap = () => { c.innerHTML = kind === 'x' ? X_MARK_SVG : CHECK_SVG; c.classList.toggle('x', kind === 'x'); c._kind = kind; };
+  clearTimeout(c._t); clearTimeout(c._swap);
+  // (the other mark showing: it goes first, then this one comes — never one
+  // icon swapped for the other in place)
+  if (c.classList.contains('show') && c._kind && c._kind !== kind) {
+    c.classList.remove('show');
+    c._swap = setTimeout(() => { swap(); void c.offsetWidth; c.classList.add('show'); }, ROW_MOTION_MS);
+  } else {
+    if (c._kind !== kind) swap();
+    void c.offsetWidth;
+    c.classList.add('show');
+  }
   if (ms) {
     c._t = setTimeout(() => {
       c.classList.remove('show');
       // (gone once it has eased away)
       setTimeout(() => { if (!c.classList.contains('show')) c.remove(); }, ROW_MOTION_MS + 50);
-    }, ms);
+    }, ms + (c._swap ? ROW_MOTION_MS : 0));
   }
 }
+function doneCheck(btn, ms = 1600) { doneMark(btn, 'ok', ms); }
 // A button's work done with a check (the dashboard's): the spinner swoops
 // away first, its room kept, then the check comes into that same room —
 // never the two in the line at once; were the check's room a shade
@@ -4196,8 +4267,11 @@ function doneCheck(btn, ms = 1600) {
 function workDone(btn, ok = true) {
   if (!btn) return;
   btn.classList.remove('at-work');
-  // (its fill to the end, then its check — the dashboard's)
-  fillDone(btn, { ok }).then(() => { if (ok) doneCheck(btn); });
+  dimAtWork(btn, false);
+  // (its fill to the end, then its check; failed, its fill fades from where it
+  // is and an X comes after its words — the dashboard's)
+  if (spinsAtWork(btn)) { spinOut(btn); setTimeout(() => doneMark(btn, ok ? 'ok' : 'x', ok ? 1600 : 2600), canAnimate(btn) ? ROW_MOTION_MS : 0); return; }
+  fillDone(btn, { ok }).then(() => doneMark(btn, ok ? 'ok' : 'x', ok ? 1600 : 2600));
 }
 // One switch at a time (the dashboard's gated): a tap while a switch is
 // still well under way waits until it's about 70% done, then goes; only the
