@@ -99,6 +99,14 @@ html, body {
   /* Light Theme variables (Fallback / Active under light mode) */
   /* One roundness for the whole app: the unfollowed / starred buttons'. */
   --radius: 12px;
+  /* (the dashboard's corners and its three shadows, by the same names:
+     small controls, fields and rows; a small button's, anything floating,
+     a window's) */
+  --r-sm: 8px;
+  --r-md: 10px;
+  --shadow-btn: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-float: 0 16px 40px -10px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0 24px 48px -12px rgba(0, 0, 0, 0.35);
   /* The financial dashboard's palette: a soft grey page, white panels,
      green-tinted greys for lines and text, flat (no shadow, no glass). */
   --logo-color: #1b1f1d;
@@ -597,7 +605,7 @@ button:disabled *,
   font-weight: 600;
   width: 24px;
   height: 24px;
-  border-radius: 6px;
+  border-radius: var(--r-sm); /* (the small buttons' squircle — no corners of its own) */
   background-color: var(--btn-secondary-bg);
   border: 1px solid var(--card-border);
   display: flex;
@@ -1245,7 +1253,7 @@ button:disabled *,
   height: 6px !important;
   border-radius: 50% !important;
   background-color: var(--accent) !important;
-  box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 50%, transparent) !important;
+  box-shadow: none !important; /* (a little dot — round, as the dashboard's dots — and nothing glows) */
   vertical-align: middle !important;
   flex-shrink: 0 !important;
   /* Always in the label; .on (list not empty) grows it in with a small
@@ -4358,7 +4366,7 @@ body:not(.auth-logged-out) #theme-toggle {
 .love-card {
   background: rgba(255, 255, 255, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--bad) 25%, transparent), 0 0 40px color-mix(in srgb, var(--bad) 10%, transparent);
+  box-shadow: var(--shadow-modal); /* (a window's shadow — nothing glows) */
   border-radius: 24px;
   padding: 40px;
   text-align: center;
@@ -4380,7 +4388,7 @@ body:not(.auth-logged-out) #theme-toggle {
 [data-theme="dark"] .love-card {
   background: rgba(24, 24, 27, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--bad) 40%, transparent), 0 0 45px color-mix(in srgb, var(--bad) 15%, transparent);
+  box-shadow: var(--shadow-modal);
 }
 
 .love-overlay.show .love-card {
@@ -7658,7 +7666,7 @@ html.is-logged-in .auth-dropdown {
 .auth-tab-indicator, [data-theme="dark"] .auth-tab-indicator {
   top: 4px; bottom: 4px; left: 4px; width: calc((100% - 12px) / 2);
   background: transparent !important; box-shadow: none !important;
-  border: 1.5px solid var(--text-main); border-radius: 7px; box-sizing: border-box;
+  border: 1.5px solid var(--text-main); border-radius: 7px !important; box-sizing: border-box; /* (every tab highlight's 7px — the dashboard's) */
 }
 /* Settings' title */
 .dropdown-header h3 { font-size: var(--fs-xl); font-weight: 600; letter-spacing: -0.02em; }
@@ -7867,7 +7875,7 @@ html.is-logged-in #auth-profile-view .account-row {
 [data-theme="dark"] .feature-toast,
 .row-select-bar,
 [data-theme="dark"] .row-select-bar {
-  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  box-shadow: var(--shadow-float) !important;
 }
 body.auth-logged-out #auth-form-view,
 [data-theme] body.auth-logged-out #auth-form-view,
