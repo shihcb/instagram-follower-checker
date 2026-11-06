@@ -2162,22 +2162,25 @@
   const dayOf = (t) => String(new Date(t).getDate());
   const dateSpans = (times) => times.map(t => `<span data-t="${Math.round(t)}"><span class="tl-mon">${monthOf(t)}</span> <span class="tl-day">${dayOf(t)}</span></span>`).join('');
   // A date rolls from one to another like the numbers count (the list 3
-  // slide): its day ticks through, and its month — only as it changes —
-  // fades across (swapText). Faded whole, the dates flashed; rewritten whole
-  // every frame, each new month snapped in.
+  // slide): its month, if it changes, fades across once — straight to the
+  // new one — as its day counts from the old figure to the new. (Walking the
+  // calendar between them faded the month at every month it passed —
+  // october, september, august … — dozens of crossings stacked: glitchy.)
   function rollDate(span, a, z) {
     const mon = span.querySelector('.tl-mon'), day = span.querySelector('.tl-day');
     if (!mon || !day || !Number.isFinite(a) || !Number.isFinite(z)) return;
     const token = (span._roll = {});
-    const show = (t) => { const m = monthOf(t); if (mon.textContent !== m) swapText(mon, m, { resize: true }); day.textContent = dayOf(t); };
-    if (!canAnimate(span) || shortDate(a) === shortDate(z)) { show(z); return; }
+    const m = monthOf(z), d0 = new Date(a).getDate(), d1 = new Date(z).getDate();
+    if (!canAnimate(span) || shortDate(a) === shortDate(z)) { mon.textContent = m; day.textContent = String(d1); return; }
     mon.textContent = monthOf(a);
-    day.textContent = dayOf(a);
+    day.textContent = String(d0);
+    swapText(mon, m, { resize: true });
+    if (d0 === d1) return;
     const t0 = performance.now();
     const step = (now) => {
       if (span._roll !== token || !span.isConnected) return;
       const t = Math.min(1, (now - t0) / ROW_MOTION_MS);
-      show(t >= 1 ? z : a + (z - a) * rowEase(t));
+      day.textContent = String(t >= 1 ? d1 : Math.round(d0 + (d1 - d0) * rowEase(t)));
       if (t < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
