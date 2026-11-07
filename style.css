@@ -7997,3 +7997,12 @@ body:has(#auth-dropdown.show) .row-select-bar {
     box-shadow: none !important;
   }
 }
+
+/* The re-import reminder at the very bottom of list 3's card, under the
+   views (features.js): its own height, never stretched by the card's
+   column — over the views it pushed them and the stats graph up and down
+   as accounts were switched (the owner's, Nov 7, 2026) */
+.card-body > .toolbar-reminder {
+  flex: none;
+  width: 100%;
+}

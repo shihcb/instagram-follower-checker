@@ -1355,13 +1355,16 @@
 
   // ---------- list 3 toolbar: sort, select, today's count, reminder ----------
   let toolbar = null;
+  let reminderEl = null; // ("imported N days ago · import again": the last thing in list 3's card, under the views)
   function buildToolbar() {
     const wrapper = document.querySelector('#card-unfollowers .results-layout-wrapper');
     if (!wrapper || toolbar) return;
     toolbar = document.createElement('div');
     toolbar.className = 'list-toolbar';
-    // Sort and select share one row; the re-import reminder, when it
-    // shows, sits on its own line under them.
+    // Sort and select share one row. The re-import reminder, when it shows,
+    // sits at the very bottom of the card, under the views — over them, its
+    // row coming and going (one account due, the next not) pushed the views
+    // and the stats graph up and down on every switch (the owner's, Nov 7, 2026).
     toolbar.innerHTML = `
       <div class="toolbar-row">
       <button class="toolbar-pill" data-act="sort" title="sort list 3">
@@ -1372,9 +1375,18 @@
         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         <span class="toolbar-pill-text">select</span>
       </button>
-      </div>
-      <button class="toolbar-pill toolbar-reminder" data-act="reminder" title="import again"></button>`;
+      </div>`;
     wrapper.parentNode.insertBefore(toolbar, wrapper);
+    reminderEl = document.createElement('button');
+    reminderEl.className = 'toolbar-pill toolbar-reminder pill-hidden';
+    reminderEl.type = 'button';
+    reminderEl.dataset.act = 'reminder';
+    reminderEl.title = 'import again';
+    wrapper.parentNode.insertBefore(reminderEl, wrapper.nextSibling);
+    reminderEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (elements.btnAddAccount && !elements.btnAddAccount.disabled) elements.btnAddAccount.click();
+    });
     // Opening the app: sort and select take their state as the data comes
     // in, with no motion (their colours eased in, the sort's label slid, on
     // every open) — only once it's all in do they move with your taps.
@@ -1398,8 +1410,6 @@
         requestAnimationFrame(() => slideSortLabel(btn));
       } else if (act === 'select') {
         setSelectMode(!selectMode);
-      } else if (act === 'reminder') {
-        if (elements.btnAddAccount && !elements.btnAddAccount.disabled) elements.btnAddAccount.click();
       }
     });
     refreshToolbar();
@@ -1461,7 +1471,7 @@
 
     const importedAt = +(storageGet(`import_date_${accKey()}`) || 0);
     const due = importedAt && Date.now() - importedAt > 7 * DAY && accKey() !== DEMO_ID;
-    setPill(toolbar.querySelector('[data-act="reminder"]'), !!due, due ? `imported ${plural(Math.floor((Date.now() - importedAt) / DAY), 'day')} ago · import again` : '');
+    setPill(reminderEl, !!due, due ? `imported ${plural(Math.floor((Date.now() - importedAt) / DAY), 'day')} ago · import again` : '');
   }
   // The reminder banner comes and goes like a list 3 username box (list 3's
   // row engine, the list 3 slide): it slides down out of its own top edge
@@ -1479,7 +1489,7 @@
     if (show) { if (toolbar.classList.contains('settling')) { el._phrase = el._said = null; el.textContent = text; } else swapPhrase(el, text); } // ("imported 3 days ago": its number counts, its "s" slides)
     if (show === shown) return;
     const card = document.getElementById('card-unfollowers');
-    const canMove = toolbar.getClientRects().length && card && typeof card.animate === 'function' && !toolbar.classList.contains('settling'); // (opening the app: the reminder just there)
+    const canMove = el.parentElement && el.parentElement.getClientRects().length && card && typeof card.animate === 'function' && !toolbar.classList.contains('settling'); // (opening the app: the reminder just there)
     if (!canMove) {
       if (leaving) restore();
       el.classList.toggle('pill-hidden', !show);
@@ -1488,7 +1498,7 @@
     // What's under it, and where it all is now (layout positions: anything
     // already moving keeps moving, and this change is added on top).
     const below = [];
-    for (let n = toolbar.nextElementSibling; n; n = n.nextElementSibling) if (n.getClientRects().length) below.push(n);
+    for (let n = el.nextElementSibling; n; n = n.nextElementSibling) if (n.getClientRects().length) below.push(n); // (nothing, at the card's bottom: only the card grows)
     const topsBefore = below.map(n => n.offsetTop);
     const heightBefore = card.offsetHeight; // mid-resize if one is playing
     card.getAnimations().filter(an => an._pillResize).forEach(an => an.cancel());
