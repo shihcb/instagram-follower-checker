@@ -2854,7 +2854,21 @@
   // push as list 3's views). Tapping again mid-slide carries on from where
   // each list is drawn. `on` is the class that shows a list; a list on its
   // way out is pinned where it was (out of the flow) until it has gone.
-  const clearPin = (el) => { el.style.position = el.style.top = el.style.left = el.style.width = el.style.height = ''; };
+  const clearPin = (el) => { el.style.position = el.style.top = el.style.left = el.style.width = el.style.height = el.style.clipPath = ''; };
+  // A pane changing size mid-push (a graph drawn into it, words rewrapping,
+  // rows coming in) is followed: the height measured at the tap went stale
+  // and the area snapped to the real one as the push ended (the dashboard's
+  // followPane).
+  function followSub(host, pane) {
+    if (!window.ResizeObserver || !pane) return;
+    if (!host._paneRO) host._paneRO = new ResizeObserver(() => {
+      if (!host._boxEase || host._boxEase.playState !== 'running') return;
+      easeBoxHeight(host, host.getBoundingClientRect().height); // (on from where it's drawn to the size it is now)
+    });
+    if (host._paneWatched && host._paneWatched !== pane) host._paneRO.unobserve(host._paneWatched);
+    host._paneWatched = pane;
+    host._paneRO.observe(pane);
+  }
   function pinAll(host, els) {
     const hr = host.getBoundingClientRect();
     // Screen size to layout size (the guest preview draws the app scaled).
@@ -2901,6 +2915,7 @@
     // The area eases from the height it's drawn at to the new pane's (the
     // dashboard's tab push); a box that keeps one size doesn't move.
     easeBoxHeight(host, startH);
+    followSub(host, targets[0]);
     const w = (host.clientWidth || 320) + PANE_GAP; // (mid-push the two keep a gap, never touching — the dashboard's)
     const D = TAB_MOTION.in.duration;
     const timing = () => ({ duration: D, easing: TAB_MOTION.in.easing }); // every trip, an interrupted one too, takes the full 450ms (the dashboard's push)
@@ -3019,7 +3034,7 @@
       if (sw.nb && sw.nb !== nb) { sw.nb.classList.remove('pane-out'); clearPin(sw.nb); unstyle(sw.nb); }
       if (nb && sw.nb !== nb) { // (shown beside it, out of the flow, as a list sliding in is)
         nb.classList.add('pane-out');
-        Object.assign(nb.style, { position: 'absolute', top: `${sw.top}px`, left: `${sw.left}px`, width: `${cur.offsetWidth}px`, height: `${cur.offsetHeight}px` });
+        Object.assign(nb.style, { position: 'absolute', top: `${sw.top + (sw.off || 0)}px`, left: `${sw.left}px`, width: `${cur.offsetWidth}px` }); // (its own height, as the dashboard's)
       }
       sw.nb = nb; sw.next = next;
       const x = nb ? Math.max(-w, Math.min(w, dx)) : dx / 3;
@@ -3061,8 +3076,21 @@
         selectSubTab(mobileNav, id); // (its highlight carries on from where the finger left it)
         const g = host();
         clearTimeout(g._subTimer);
+        const startH = g.getBoundingClientRect().height;
         unstyle(cur); pinAll(g, [cur]); cur.classList.add('pane-out');
         nb.classList.remove('pane-out'); clearPin(nb); nb.classList.add('mobile-on'); unstyle(nb);
+        const off = d.off || 0;
+        if (off) {
+          // (the new list into the flow at its top: the page up as far, so
+          // nothing moves on screen; the one leaving never over what's above)
+          cur.style.top = `${parseFloat(cur.style.top) - off}px`;
+          window.scrollTo(0, window.scrollY - off);
+          cur.style.clipPath = `inset(${off}px 0 0 0)`;
+        }
+        // (the area eases to the new list's height, as a tap's push does —
+        // the dashboard's; it snapped there as the swipe landed)
+        easeBoxHeight(g, startH);
+        followSub(g, nb);
         g._subAll = mobileCards(); g._subTargets = [nb]; g._subOn = 'mobile-on';
         if (reduce || typeof nb.animate !== 'function') { settleSub(g); centerSoon(); return; }
         cur.animate([{ transform: `translateX(${d.x}px)`, opacity: 1 - 0.65 * Math.min(1, Math.abs(d.x) / w) }, { transform: `translateX(${-dir * step}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
@@ -3111,6 +3139,9 @@
         mobileCards().forEach(c => { c.getAnimations().forEach(a => a.cancel()); if (c !== cur) { c.classList.remove('mobile-on', 'pane-out'); clearPin(c); unstyle(c); } });
         sw.on = true; sw.w = cur.offsetWidth || 320; sw.base = drawn; sw.x0 = t.clientX;
         sw.top = cur.offsetTop; sw.left = cur.offsetLeft;
+        // (scrolled past the list's top: the one coming in shown from its
+        // top, 12px down the view — never its middle — the dashboard's)
+        sw.off = Math.max(0, 12 - cur.getBoundingClientRect().top);
         clearTimeout(viewGate.timer); viewGate.next = null;
       }
       if (e.cancelable) e.preventDefault(); // (the page doesn't scroll while a list is dragged)
