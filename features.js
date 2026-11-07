@@ -1962,6 +1962,13 @@
     if (typeof altView.animate !== 'function') { finishSwitch(); return; }
     const D = TAB_MOTION.in.duration;
     const timing = () => ({ duration: D, easing: TAB_MOTION.in.easing }); // every trip, an interrupted one too, takes the full 450ms (the dashboard's push)
+    // (a page that wasn't on screen — drawn just now: put at its start for a
+    // frame first, what's leaving held where it is — drawThenSlide)
+    const hold = incoming.some(el => !at.has(el))
+      ? [...incoming.map(el => { const f = at.get(el) || { x: dir * w, o: 0.35 }; return [el, f.x, f.o]; }),
+         ...leaving.map(el => { const f = at.get(el) || { x: 0, o: 1 }; return [el, f.x, f.o]; })]
+      : [];
+    drawThenSlide(box, hold, () => {
     let longest = 0;
     incoming.forEach(el => {
       const from = at.has(el) ? at.get(el) : { x: dir * w, o: 0.35 };
@@ -1988,6 +1995,7 @@
     const token = ++viewToken;
     switchTimer = setTimeout(() => { if (token === viewToken) finishSwitch(); }, longest + 30);
     viewGate.until = performance.now() + longest * SLIDE_WAIT;
+    });
   }
   let switchTimer = null;
   // Once a switch has played out: what slid away is put away.
@@ -2882,6 +2890,8 @@
   }
   function settleSub(host) {
     clearTimeout(host._subTimer);
+    host._slideTok = null; // (a start still waiting to be drawn: called off)
+    if (!host._dragging) host.classList.remove('switching', 'dragging');
     (host._subAll || []).forEach(p => {
       if (!p.classList.contains('pane-out')) return;
       p.getAnimations().forEach(an => an.cancel());
@@ -2919,6 +2929,14 @@
     const w = (host.clientWidth || 320) + PANE_GAP; // (mid-push the two keep a gap, never touching — the dashboard's)
     const D = TAB_MOTION.in.duration;
     const timing = () => ({ duration: D, easing: TAB_MOTION.in.easing }); // every trip, an interrupted one too, takes the full 450ms (the dashboard's push)
+    host.classList.add('switching'); // (the panes' own transitions off while they're moved: .card's glide lagged every frame)
+    const leavingNow = shown.filter(p => !targets.includes(p));
+    // (a tab that wasn't on screen: drawn at its start first — drawThenSlide)
+    const hold = targets.some(t => !at.has(t))
+      ? [...targets.filter(t => t.getClientRects().length).map(t => { const f = at.get(t) || { x: dir * w, o: 0.35 }; return [t, f.x, f.o]; }),
+         ...leavingNow.map(p => { const f = at.get(p) || { x: 0, o: 1 }; return [p, f.x, f.o]; })]
+      : [];
+    drawThenSlide(host, hold, () => {
     let longest = 0;
     targets.filter(t => t.getClientRects().length).forEach(t => {
       const from = at.get(t) || { x: dir * w, o: 0.35 };
@@ -2936,6 +2954,7 @@
     });
     host._subTimer = setTimeout(() => settleSub(host), longest + 30);
     viewGate.until = Math.max(viewGate.until || 0, performance.now() + longest * SLIDE_WAIT);
+    });
   }
 
   // ---------- phones: lists 3, 2 and 1 behind one switcher ----------
@@ -3055,6 +3074,7 @@
     function dragEnd(cancelled) {
       if (sw.frame) { cancelAnimationFrame(sw.frame); sw.frame = 0; if (sw.stale && sw.want != null) dragTo(sw.want); sw.stale = false; }
       const d = sw; sw = null;
+      const g0 = host(); g0._dragging = false; // (its .dragging goes once the landing or spring-back has played)
       const cur = cardOf(mobileList), nb = d.nb, w = d.w, step = w + PANE_GAP;
       const v = !cancelled && performance.now() - d.last[1] < 100 ? d.v || 0 : 0;
       const flick = Math.abs(v) > 0.3 ? Math.sign(v) : 0;
@@ -3103,6 +3123,8 @@
       }
       // short of it: back where it was
       const t = glide(d.x, -Math.sign(d.x));
+      clearTimeout(g0._dragOff);
+      g0._dragOff = setTimeout(() => { if (!g0._dragging) g0.classList.remove('dragging'); }, t.duration + 30);
       const ind = mobileNav.querySelector('.changes-indicator'), here = tabOf(mobileList);
       if (ind && here) moveInstructionsIndicator(ind, here);
       const from = { transform: cur.style.transform, opacity: cur.style.opacity };
@@ -3138,6 +3160,11 @@
         settleSub(g);
         mobileCards().forEach(c => { c.getAnimations().forEach(a => a.cancel()); if (c !== cur) { c.classList.remove('mobile-on', 'pane-out'); clearPin(c); unstyle(c); } });
         sw.on = true; sw.w = cur.offsetWidth || 320; sw.base = drawn; sw.x0 = t.clientX;
+        // (the cards' own glide off while they follow the finger and land —
+        // the dashboard's .dragging: with it on, every move restarted a
+        // 450ms glide, the lists trailed the finger, the next one jumped in
+        // and a drag back and forth fought itself)
+        g._dragging = true; g._slideTok = null; g.classList.add('dragging');
         sw.top = cur.offsetTop; sw.left = cur.offsetLeft;
         // (scrolled past the list's top: the one coming in shown from its
         // top, 12px down the view — never its middle — the dashboard's)

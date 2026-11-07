@@ -8006,3 +8006,23 @@ body:has(#auth-dropdown.show) .row-select-bar {
   flex: none;
   width: 100%;
 }
+
+/* A list switch on the phone — tapped or dragged: the cards' own glide
+   (.card's transition on transform and opacity) off while they're moved, as
+   the dashboard's .dragging panes (features.js). With it on, every finger
+   move restarted a 450ms glide: the lists trailed the finger, the next one
+   jumped into view, and a drag back and forth fought itself. The two moving
+   drawn on their own layers. */
+.app-grid.dragging > .card,
+.app-grid.switching > .card,
+.app-grid.dragging > #card-following,
+.app-grid.dragging > #card-followers,
+.app-grid.switching > #card-following,
+.app-grid.switching > #card-followers {
+  transition: filter 0.45s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important; /* (lists 1 and 2 keep their select-mode blur) */
+}
+.app-grid.dragging > .card.mobile-on,
+.app-grid > .card.pane-out {
+  will-change: transform, opacity;
+}
+
