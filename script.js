@@ -4381,31 +4381,6 @@ function workDone(btn, ok = true) {
   if (spinsAtWork(btn)) { spinOut(btn); setTimeout(() => doneMark(btn, ok ? 'ok' : 'x', ok ? 1600 : 2600), canAnimate(btn) ? ROW_MOTION_MS : 0); return; }
   fillDone(btn, { ok }).then(() => doneMark(btn, ok ? 'ok' : 'x', ok ? 1600 : 2600));
 }
-// Draw first, then slide: a tab coming in that wasn't on screen is put at
-// its starting spot (and what's leaving held where it is) for a frame, so
-// it's laid out and painted before its 450ms begin. Safari starts an
-// animation's clock before the frame that draws it: a list of hundreds of
-// rows took the first part of the slide just to lay out, and the tab was
-// already half across when it showed — the switch felt too fast (the
-// owner's, Nov 7, 2026; the same as a window: drawn, then faded in).
-// `hold`: [el, x, opacity] for each; `run` starts the slides; `owner`
-// carries the token, so a newer switch cancels a start still waiting.
-function drawThenSlide(owner, hold, run) {
-  const tok = (owner._slideTok = {});
-  if (!hold.length || reducedMotion()) { run(); return; }
-  hold.forEach(([el, x, o]) => {
-    el._heldBy = tok;
-    el.style.transform = `translateX(${x}px)`;
-    el.style.opacity = String(o);
-  });
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    // (let go — only what this switch is still holding: a newer one that held
-    // it meanwhile lets go of it itself)
-    hold.forEach(([el]) => { if (el._heldBy === tok) { el._heldBy = null; el.style.transform = ''; el.style.opacity = ''; } });
-    if (owner._slideTok !== tok) return; // (another switch took over: it started from what was drawn)
-    run();
-  }));
-}
 // One switch at a time (the dashboard's gated): a tap while a switch is
 // still well under way waits until it's about 70% done, then goes; only the
 // last tap counts (several quick taps never pile up into half-slides).

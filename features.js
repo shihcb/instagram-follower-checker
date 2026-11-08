@@ -1835,13 +1835,12 @@
   // from there. Waiting for the very end felt laggy; not waiting at all cut
   // slides short and looked broken.
   const SLIDE_WAIT = 0.7; // the dashboard's: a tap waits until a switch is about 70% done
-  function queueSwitch(gate, run) {
-    const left = (gate.until || 0) - performance.now();
-    if (left <= 0 && !gate.next) { run(); return; }
-    gate.next = run;
-    clearTimeout(gate.timer);
-    gate.timer = setTimeout(() => { const next = gate.next; gate.next = null; if (next) next(); }, Math.max(0, left) + 20);
-  }
+  // Taps in succession: the dashboard's gated, as it is — a tap while a
+  // switch is still well under way waits until it's about 70% done, then
+  // goes; only the last tap counts. One gate for every switcher here (list
+  // 3's views, the tabs inside them, the phone's lists), as the dashboard's
+  // one for its tabs (the owner's, Nov 8, 2026: "imported directly from finances").
+  function queueSwitch(gate, run) { gated('view', run); }
   // Shared by every switcher (list 3's views and the tabs inside them): a
   // view tapped right after a tab inside it waits too, or the bar slid away
   // while its own tabs were still gliding back across it.
@@ -1962,13 +1961,7 @@
     if (typeof altView.animate !== 'function') { finishSwitch(); return; }
     const D = TAB_MOTION.in.duration;
     const timing = () => ({ duration: D, easing: TAB_MOTION.in.easing }); // every trip, an interrupted one too, takes the full 450ms (the dashboard's push)
-    // (a page that wasn't on screen — drawn just now: put at its start for a
-    // frame first, what's leaving held where it is — drawThenSlide)
-    const hold = incoming.some(el => !at.has(el))
-      ? [...incoming.map(el => { const f = at.get(el) || { x: dir * w, o: 0.35 }; return [el, f.x, f.o]; }),
-         ...leaving.map(el => { const f = at.get(el) || { x: 0, o: 1 }; return [el, f.x, f.o]; })]
-      : [];
-    drawThenSlide(box, hold, () => {
+    {
     let longest = 0;
     incoming.forEach(el => {
       const from = at.has(el) ? at.get(el) : { x: dir * w, o: 0.35 };
@@ -1994,8 +1987,7 @@
     });
     const token = ++viewToken;
     switchTimer = setTimeout(() => { if (token === viewToken) finishSwitch(); }, longest + 30);
-    viewGate.until = performance.now() + longest * SLIDE_WAIT;
-    });
+    }
   }
   let switchTimer = null;
   // Once a switch has played out: what slid away is put away.
@@ -2890,7 +2882,6 @@
   }
   function settleSub(host) {
     clearTimeout(host._subTimer);
-    host._slideTok = null; // (a start still waiting to be drawn: called off)
     if (!host._dragging) host.classList.remove('switching', 'dragging');
     (host._subAll || []).forEach(p => {
       if (!p.classList.contains('pane-out')) return;
@@ -2930,13 +2921,7 @@
     const D = TAB_MOTION.in.duration;
     const timing = () => ({ duration: D, easing: TAB_MOTION.in.easing }); // every trip, an interrupted one too, takes the full 450ms (the dashboard's push)
     host.classList.add('switching'); // (the panes' own transitions off while they're moved: .card's glide lagged every frame)
-    const leavingNow = shown.filter(p => !targets.includes(p));
-    // (a tab that wasn't on screen: drawn at its start first — drawThenSlide)
-    const hold = targets.some(t => !at.has(t))
-      ? [...targets.filter(t => t.getClientRects().length).map(t => { const f = at.get(t) || { x: dir * w, o: 0.35 }; return [t, f.x, f.o]; }),
-         ...leavingNow.map(p => { const f = at.get(p) || { x: 0, o: 1 }; return [p, f.x, f.o]; })]
-      : [];
-    drawThenSlide(host, hold, () => {
+    {
     let longest = 0;
     targets.filter(t => t.getClientRects().length).forEach(t => {
       const from = at.get(t) || { x: dir * w, o: 0.35 };
@@ -2953,8 +2938,7 @@
       p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
     });
     host._subTimer = setTimeout(() => settleSub(host), longest + 30);
-    viewGate.until = Math.max(viewGate.until || 0, performance.now() + longest * SLIDE_WAIT);
-    });
+    }
   }
 
   // ---------- phones: lists 3, 2 and 1 behind one switcher ----------
@@ -3116,8 +3100,7 @@
         cur.animate([{ transform: `translateX(${d.x}px)`, opacity: 1 - 0.65 * Math.min(1, Math.abs(d.x) / w) }, { transform: `translateX(${-dir * step}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
         nb.animate([{ transform: `translateX(${nbX}px)`, opacity: 0.35 + 0.65 * Math.min(1, Math.abs(d.x) / w) }, { transform: 'translateX(0)', opacity: 1 }], t);
         g._subTimer = setTimeout(() => settleSub(g), t.duration + 30);
-        viewGate.until = Math.max(viewGate.until || 0, performance.now() + t.duration * SLIDE_WAIT);
-        clearTimeout(viewGate.timer); viewGate.next = null; // (a tap still waiting its turn: the swipe is the last word)
+        { const gv = switchGates.view || (switchGates.view = { at: -Infinity, timer: 0 }); clearTimeout(gv.timer); gv.at = performance.now(); } // (the dashboard's swipeGo: a tap still waiting its turn — the swipe is the last word)
         centerSoon();
         return;
       }
@@ -3164,12 +3147,12 @@
         // the dashboard's .dragging: with it on, every move restarted a
         // 450ms glide, the lists trailed the finger, the next one jumped in
         // and a drag back and forth fought itself)
-        g._dragging = true; g._slideTok = null; g.classList.add('dragging');
+        g._dragging = true; g.classList.add('dragging');
         sw.top = cur.offsetTop; sw.left = cur.offsetLeft;
         // (scrolled past the list's top: the one coming in shown from its
         // top, 12px down the view — never its middle — the dashboard's)
         sw.off = Math.max(0, 12 - cur.getBoundingClientRect().top);
-        clearTimeout(viewGate.timer); viewGate.next = null;
+        if (switchGates.view) clearTimeout(switchGates.view.timer); // (a tap still waiting its turn: the swipe is the last word)
       }
       if (e.cancelable) e.preventDefault(); // (the page doesn't scroll while a list is dragged)
       const now = performance.now(), [lx, lt] = sw.last;
