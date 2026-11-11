@@ -957,7 +957,8 @@ function parseRawText(text) {
     .filter(line => line.length > 0)
     .flatMap(line => {
       const link = /^(https?:\/\/)?([a-z0-9-]+\.)*instagram\.com\/([a-z0-9._]{1,30})\/?(\?.*)?$/i.exec(line);
-      if (link && !EXCLUDE_KEYWORDS.has(link[3].toLowerCase())) return [link[3]];
+      // (a page that isn't a profile — instagram.com/explore — is no one)
+      if (link) return EXCLUDE_KEYWORDS.has(link[3].toLowerCase()) || NON_PROFILE_PATHS.has(link[3].toLowerCase()) ? [] : [link[3]];
       // (commas always; spaces only between names written with "@" — a
       // lowercase full name, "dan smith", is never two accounts)
       const bySpace = /^@\S+(\s+@\S+)+$/.test(line);
