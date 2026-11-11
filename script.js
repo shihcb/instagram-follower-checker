@@ -6936,15 +6936,24 @@ let loadedOffline = false;
 async function reloadAfterOfflineStart() {
   const uid = currentUser && currentUser.id;
   if (!uid || cloudPulling || accountsBusy()) return;
+  // Anything done here while it comes down (a star, an unfollow, a log-out)
+  // wins: the cloud copy is dropped rather than written over it — it put
+  // the old lists back, or a logged-out user's data in after the clear
+  const gen = cloudChangeGen;
+  const stillWanted = () => currentUser && currentUser.id === uid && cloudChangeGen === gen && !hasPendingCloudPush();
+  let loaded;
   try {
-    await pullFromCloud(true);
-    loadedOffline = false;
+    loaded = await pullFromCloud(true, stillWanted);
+    if (loaded !== false) loadedOffline = false;
   } catch (err) {
     console.error('Error loading cloud data:', err);
   } finally {
     // (this user's own copy either way: changes keep going up)
     if (currentUser && currentUser.id === uid) cloudReady = true;
   }
+  // (dropped for a change made here meanwhile: that change goes up; the
+  // cloud's copy comes down at the next sign of the session)
+  if (loaded === false) { if (currentUser && currentUser.id === uid) pushToCloud(); return; }
   if (!loadedOffline && currentUser && currentUser.id === uid) {
     try { renderAccountChips(false); } catch (e) {}
     const f = window.igFeatures;
@@ -8201,6 +8210,10 @@ function mergeOfflineWork(entries) {
     } else if (/^(unfollowed|starred)_users/.test(key) && cloud !== null) {
       // Both: the ones from here first (they're the newest)
       storageSet(key, JSON.stringify(byName([...parse(value, []), ...parse(cloud, [])], u => u && u.username)));
+    } else if (/^hidden_users_/.test(key) && cloud !== null) {
+      // (both: the ✕s made on either side stay off — this device's alone
+      // brought the cloud's back on every device)
+      storageSet(key, JSON.stringify([...new Set([...parse(value, []), ...parse(cloud, [])])]));
     } else if (/^import_history_/.test(key) && cloud !== null) {
       storageSet(key, JSON.stringify([...parse(cloud, []), ...parse(value, [])].sort((a, b) => (a.date || 0) - (b.date || 0))));
     } else if (/^import_log_/.test(key) && cloud !== null) {
@@ -8234,7 +8247,12 @@ function retryCloudLoadWhenOnline() {
     if (!currentUser || cloudReady) return cleanup();
     try {
       const work = offlineWork ? captureOfflineWork() : null;
-      await pullFromCloud(false);
+      // (a change made while it comes down wasn't in `work`: the download is
+      // dropped and tried again with it; a log-out drops it for good)
+      const uid = currentUser.id, gen = cloudChangeGen;
+      const loaded = await pullFromCloud(false, () => currentUser && currentUser.id === uid && cloudChangeGen === gen);
+      if (loaded === false) { if (currentUser && currentUser.id === uid) setTimeout(retry, 500); return; }
+      if (!currentUser || currentUser.id !== uid) return cleanup();
       if (work) mergeOfflineWork(work);
       cloudReady = true;
       offlineWork = false;
@@ -8450,7 +8468,8 @@ let cloudPulling = false;
 function pushToCloud() {
   // (logged in offline, the cloud data not loaded yet: what's done meanwhile
   // is kept for when it is — see retryCloudLoadWhenOnline)
-  if (supabaseClient && currentUser && !cloudReady && pendingCloudRetry) offlineWork = true;
+  // (a change all the same: a download on its way is dropped for it)
+  if (supabaseClient && currentUser && !cloudReady) { cloudChangeGen++; if (pendingCloudRetry) offlineWork = true; }
   if (!supabaseClient || !currentUser || !cloudReady) return Promise.resolve();
   storageSet(CLOUD_DIRTY_KEY, currentUser.id);
   cloudChangeGen++;

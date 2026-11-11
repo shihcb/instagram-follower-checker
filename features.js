@@ -445,10 +445,12 @@
     // you" whatever came, "no one unfollowed you" for new followers)
     const keys = { lost: 'lostFollowers', new: 'newFollowers', stopped: 'stoppedFollowing', started: 'startedFollowing' };
     const first = Object.keys(keys).find(k => (diff[keys[k]] || []).length);
+    // (on a phone, list 3 — the changes are there — comes up first; straight
+    // away, not through the switchers' gate: there only the last waiting
+    // switch counts, and the list's or the tab's was dropped for the view's)
+    if (phoneLayout.matches) showMobileListNow('unfollowers');
     if (first && currentView === 'changes') showAltSub(first);
-    else if (first) subTab.changes = first;
-    if (phoneLayout.matches) showMobileList('unfollowers'); // (on a phone, list 3 — the changes are there — comes up first)
-    showView('changes');
+    else { if (first) subTab.changes = first; showView('changes'); }
     viewNav && viewNav.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
   function recordChanges(accountUsername) {
@@ -1024,6 +1026,8 @@
     });
   }
   async function driveGet(path, params, asBlob = false) {
+    // (logged out mid-sync: the token is gone — stopped, never "couldn't be synced")
+    if (!driveToken) throw Object.assign(new Error('stopped'), { cancelled: true });
     const res = await fetch(`${DRIVE_API}${path}?${new URLSearchParams(params)}`, { headers: { Authorization: `Bearer ${driveToken.value}` } });
     if (res.status === 401) { driveToken = null; throw new Error('the google sign-in ran out, sync again'); }
     if (!res.ok) throw new Error(`google drive said ${res.status}`);
@@ -1182,7 +1186,7 @@
       }
     } catch (err) {
       driveSync = null;
-      if (err && err.cancelled) return; // (logged out: nothing more, nothing said)
+      if ((err && err.cancelled) || !currentUser || currentUser.id !== uid) return; // (logged out: nothing more, nothing said)
       console.error('[features] google drive sync failed:', err);
       if (imported) pushToCloud();
       showToast('google drive couldn’t be synced', 'retry', syncDrive, { duration: 10000 });
@@ -2699,7 +2703,7 @@
     // behind the switcher there).
     // On a phone it's the switcher's own slide, nothing more (scrolling to
     // the card and flashing it as it slid in jerked the page about).
-    if (phoneLayout.matches) showMobileList(i === 0 ? 'following' : i === 1 ? 'followers' : 'unfollowers');
+    if (phoneLayout.matches) showMobileListNow(i === 0 ? 'following' : i === 1 ? 'followers' : 'unfollowers');
     if ((i === 0 || i === 1) && phoneLayout.matches) return;
     if (i === 0 || i === 1) {
       const card = document.getElementById(i === 0 ? 'card-following' : 'card-followers');
@@ -2978,6 +2982,12 @@
     if (!mobileNav || !MOBILE_LISTS.some(t => t[0] === id)) return;
     if (!animate || !phoneLayout.matches) { switchMobileList(id, false); return; }
     queueSwitch(viewGate, () => switchMobileList(id, true));
+  }
+  // The same, never waiting at the gate: for a switch that goes with a
+  // view's in the same tap (the gate keeps only the last one waiting)
+  function showMobileListNow(id) {
+    if (!mobileNav || !MOBILE_LISTS.some(t => t[0] === id)) return;
+    switchMobileList(id, phoneLayout.matches);
   }
   function switchMobileList(id, animate) {
     if (id === mobileList) return;
