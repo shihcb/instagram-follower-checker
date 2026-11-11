@@ -369,6 +369,43 @@ function tabSlideIn(el, dx) {
     { transform: 'translateX(0)', opacity: 1 }
   ], TAB_MOTION.in);
 }
+// A tab push taking over from one still under way starts at the speed
+// things were already moving at, when they keep going the same way — begun
+// from a standstill each time, the lists stopped dead at every tap and set
+// off again (a hitch going through tabs one after the other; the owner's,
+// Nov 11, 2026: "it feels laggy when swiping thru tabs or clicking thru
+// tabs"). As a swipe's landing: the list 3 slide, its start raised to that
+// speed — still 450ms, still cubic-bezier(0.4, …, 0.2, 1).
+// slideSpeed: how fast el's own push is moving it right now (px a ms,
+// signed) — read before its animations are cancelled.
+function slideSpeed(el) {
+  let v = 0;
+  if (!el || typeof el.getAnimations !== 'function') return v;
+  el.getAnimations().forEach(a => {
+    try {
+      if (a.playState !== 'running' || !a.effect || !a.effect.getKeyframes) return;
+      const kf = a.effect.getKeyframes();
+      if (kf.length !== 2 || !kf[0].transform || kf[0].transform === 'none') return;
+      const px = (t) => { const m = /translate(?:X|3d)?\(\s*(-?[\d.]+)px/.exec(t || ''); return m ? +m[1] : 0; };
+      const timing = a.effect.getTiming(), D = +timing.duration || 0, at = (+a.currentTime || 0) / D;
+      const m = /cubic-bezier\(([^)]+)\)/.exec(timing.easing || '');
+      if (!D || !(at > 0 && at < 1) || !m) return;
+      const [x1, y1, x2, y2] = m[1].split(',').map(Number);
+      const ease = cubicBezierEasing(x1, y1, x2, y2), lo = Math.max(0, at - 0.01), hi = Math.min(1, at + 0.01);
+      v = (px(kf[1].transform) - px(kf[0].transform)) * (ease(hi) - ease(lo)) / (hi - lo) / D;
+    } catch (e) {}
+  });
+  return v;
+}
+// slideTiming: the push's timing for a trip of `dist` px begun at `v` px a ms.
+function slideTiming(dist, v = 0) {
+  const D = TAB_MOTION.in.duration;
+  if (!v || !dist || Math.sign(v) !== Math.sign(dist)) return { duration: D, easing: TAB_MOTION.in.easing };
+  const y1 = Math.min(1, 0.4 * Math.abs(v) * D / Math.abs(dist));
+  return { duration: D, easing: `cubic-bezier(0.4, ${y1.toFixed(3)}, 0.2, 1)` };
+}
+window.slideSpeed = slideSpeed;
+window.slideTiming = slideTiming;
 window.TAB_MOTION = TAB_MOTION;
 window.tabSlideOut = tabSlideOut;
 window.tabSlideIn = tabSlideIn;
@@ -4382,10 +4419,16 @@ function workDone(btn, ok = true) {
   if (spinsAtWork(btn)) { spinOut(btn); setTimeout(() => doneMark(btn, ok ? 'ok' : 'x', ok ? 1600 : 2600), canAnimate(btn) ? ROW_MOTION_MS : 0); return; }
   fillDone(btn, { ok }).then(() => doneMark(btn, ok ? 'ok' : 'x', ok ? 1600 : 2600));
 }
-// One switch at a time (the dashboard's gated): a tap while a switch is
-// still well under way waits until it's about 70% done, then goes; only the
-// last tap counts (several quick taps never pile up into half-slides).
-const SWITCH_SETTLE = Math.round(ROW_MOTION_MS * 0.7);
+// One switch at a time (the dashboard's gated): a tap while a switch has
+// only just begun waits until it's 40% through its time — well over half
+// way across on the curve — then goes, carrying on from where things are
+// drawn; only the last tap counts (several quick taps never pile up into
+// half-slides). It was the dashboard's 70% (315ms): going through tabs one
+// after the other, each tap sat that long with nothing moving — "it feels
+// laggy when swiping thru tabs or clicking thru tabs" (the owner's, Nov 11,
+// 2026). At 180ms, taps a person makes one after the other hardly ever wait.
+const SWITCH_WAIT = 0.4;
+const SWITCH_SETTLE = Math.round(ROW_MOTION_MS * SWITCH_WAIT);
 const switchGates = {};
 function gated(name, run) {
   const g = switchGates[name] || (switchGates[name] = { at: -Infinity, timer: 0 });
@@ -5901,7 +5944,7 @@ function updateInstructionsStepUI() {
   const newPane = [...panes].find(p => parseInt(p.id.replace('instructions-step-', ''), 10) === currentInstructionStep);
   const shown = [...panes].filter(p => p.classList.contains('active') || p.classList.contains('pane-out'));
   const prevActive = [...panes].find(p => p.classList.contains('active'));
-  const at = new Map(shown.map(p => { const cs = getComputedStyle(p); return [p, { x: new DOMMatrixReadOnly(cs.transform).m41 || 0, o: +cs.opacity }]; }));
+  const at = new Map(shown.map(p => { const cs = getComputedStyle(p); return [p, { x: new DOMMatrixReadOnly(cs.transform).m41 || 0, o: +cs.opacity, v: slideSpeed(p) }]; }));
   shown.forEach(p => p.getAnimations().forEach(an => an.cancel()));
   clearTimeout(updateInstructionsStepUI._timer);
   panes.forEach(p => { p.classList.toggle('active', p === newPane); p.classList.toggle('pane-out', p !== newPane && shown.includes(p)); });
@@ -5910,16 +5953,16 @@ function updateInstructionsStepUI() {
     const dir = currentInstructionStep > oldStep ? 1 : -1;
     const w = newPane.parentElement.clientWidth + PANE_GAP; // (mid-push a gap between the two — the dashboard's)
     const D = TAB_MOTION.in.duration;
-    const timing = () => ({ duration: D, easing: TAB_MOTION.in.easing }); // every trip, an interrupted one too, takes the full 450ms (the dashboard's push)
+    const timing = slideTiming; // every trip, an interrupted one too, takes the full 450ms (the dashboard's push) — begun at the speed it had
     let longest = 0;
     const from = at.get(newPane) || { x: dir * w, o: 0.35 };
-    const tIn = timing(from.x); longest = tIn.duration;
+    const tIn = timing(-from.x, from.v); longest = tIn.duration;
     newPane.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: 'translateX(0)', opacity: 1 }], tIn);
     const stepOf = (p) => parseInt(p.id.replace('instructions-step-', ''), 10);
     shown.filter(p => p !== newPane).forEach(p => {
       const f = at.get(p) || { x: 0, o: 1 };
       const to = stepOf(p) < currentInstructionStep ? -w : w; // carousel order
-      const t = timing(to - f.x); longest = Math.max(longest, t.duration);
+      const t = timing(to - f.x, f.v); longest = Math.max(longest, t.duration);
       p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
     });
     updateInstructionsStepUI._timer = setTimeout(() => panes.forEach(p => { if (p !== [...panes].find(q => q.classList.contains('active'))) settleStepOut(p); }), longest + 30);

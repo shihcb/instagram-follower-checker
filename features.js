@@ -1834,16 +1834,11 @@
     ? [elements.listUnfollowers, document.getElementById('unfollowers-empty-state')].filter(el => el && !el.classList.contains('hidden'))
     : [altView];
   // One tab switch at a time: a tap early in a slide waits until the slide
-  // is mostly done (SLIDE_WAIT of it: most of the way across on its eased
-  // curve), then goes (only the latest such tap) and carries on smoothly
-  // from there. Waiting for the very end felt laggy; not waiting at all cut
-  // slides short and looked broken.
-  const SLIDE_WAIT = 0.7; // the dashboard's: a tap waits until a switch is about 70% done
-  // Taps in succession: the dashboard's gated, as it is — a tap while a
-  // switch is still well under way waits until it's about 70% done, then
-  // goes; only the last tap counts. One gate for every switcher here (list
-  // 3's views, the tabs inside them, the phone's lists), as the dashboard's
-  // one for its tabs (the owner's, Nov 8, 2026: "imported directly from finances").
+  // is well on its way (script.js's SWITCH_WAIT of its time), then goes (only
+  // the latest such tap) and carries on smoothly from there. Waiting longer
+  // felt laggy going through tabs; not waiting at all cut slides short and
+  // looked broken. One gate for every switcher here (list 3's views, the
+  // tabs inside them, the phone's lists).
   function queueSwitch(gate, run) { gated('view', run); }
   // Shared by every switcher (list 3's views and the tabs inside them): a
   // view tapped right after a tab inside it waits too, or the bar slid away
@@ -1881,7 +1876,7 @@
     const track = (el) => {
       if (!el || at.has(el) || !el.getClientRects().length) return;
       const cs = getComputedStyle(el);
-      at.set(el, { x: new DOMMatrixReadOnly(cs.transform).m41 || 0, o: +cs.opacity });
+      at.set(el, { x: new DOMMatrixReadOnly(cs.transform).m41 || 0, o: +cs.opacity, v: slideSpeed(el) });
     };
     [...listEls(), altView, ...panes()].forEach(track);
     at.forEach((_, el) => el.getAnimations().forEach(an => an.cancel()));
@@ -1964,12 +1959,12 @@
     centerSoon();
     if (typeof altView.animate !== 'function') { finishSwitch(); return; }
     const D = TAB_MOTION.in.duration;
-    const timing = () => ({ duration: D, easing: TAB_MOTION.in.easing }); // every trip, an interrupted one too, takes the full 450ms (the dashboard's push)
+    const timing = slideTiming; // every trip, an interrupted one too, takes the full 450ms (the dashboard's push) — begun at the speed it had
     {
     let longest = 0;
     incoming.forEach(el => {
       const from = at.has(el) ? at.get(el) : { x: dir * w, o: 0.35 };
-      const t = timing(from.x);
+      const t = timing(-from.x, from.v);
       longest = Math.max(longest, t.duration);
       el.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: 'translateX(0)', opacity: 1 }], t);
     });
@@ -1985,7 +1980,7 @@
       const from = at.has(el) ? at.get(el) : { x: 0, o: 1 };
       const o = order(viewOf(el));
       const to = (o >= 0 ? o < targetOrder : dir > 0) ? -w : w;
-      const t = timing(to - from.x);
+      const t = timing(to - from.x, from.v);
       longest = Math.max(longest, t.duration);
       el.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
     });
@@ -2898,7 +2893,7 @@
   function slideSub(host, all, targets, on, orderOf, dir) {
     const startH = host.getBoundingClientRect().height; // drawn now, mid-ease too
     const shown = all.filter(p => (p.classList.contains(on) || p.classList.contains('pane-out')) && p.getClientRects().length);
-    const at = new Map(shown.map(p => { const cs = getComputedStyle(p); return [p, { x: new DOMMatrixReadOnly(cs.transform).m41 || 0, o: +cs.opacity }]; }));
+    const at = new Map(shown.map(p => { const cs = getComputedStyle(p); return [p, { x: new DOMMatrixReadOnly(cs.transform).m41 || 0, o: +cs.opacity, v: slideSpeed(p) }]; }));
     shown.forEach(p => p.getAnimations().forEach(an => an.cancel()));
     clearTimeout(host._subTimer);
     host._subAll = all;
@@ -2923,13 +2918,13 @@
     followSub(host, targets[0]);
     const w = (host.clientWidth || 320) + PANE_GAP; // (mid-push the two keep a gap, never touching — the dashboard's)
     const D = TAB_MOTION.in.duration;
-    const timing = () => ({ duration: D, easing: TAB_MOTION.in.easing }); // every trip, an interrupted one too, takes the full 450ms (the dashboard's push)
+    const timing = slideTiming; // every trip, an interrupted one too, takes the full 450ms (the dashboard's push) — begun at the speed it had
     host.classList.add('switching'); // (the panes' own transitions off while they're moved: .card's glide lagged every frame)
     {
     let longest = 0;
     targets.filter(t => t.getClientRects().length).forEach(t => {
       const from = at.get(t) || { x: dir * w, o: 0.35 };
-      const tIn = timing(from.x);
+      const tIn = timing(-from.x, from.v);
       longest = Math.max(longest, tIn.duration);
       t.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: 'translateX(0)', opacity: 1 }], tIn);
     });
@@ -2937,7 +2932,7 @@
     shown.filter(p => !targets.includes(p)).forEach(p => {
       const f = at.get(p) || { x: 0, o: 1 };
       const to = orderOf(p) < targetOrder ? -w : w; // carousel order
-      const t = timing(to - f.x);
+      const t = timing(to - f.x, f.v);
       longest = Math.max(longest, t.duration);
       p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
     });
@@ -3017,7 +3012,10 @@
   // them, the switcher's highlight following; let go past a third of the way,
   // or flicked, it goes there on the list 3 slide (its start at the finger's
   // speed), else it springs back — past the first or last it only gives a
-  // little. A new swipe waits until a switch is 70% done, as a tap does.
+  // little. A new swipe never waits for a switch under way: the lists are
+  // taken up where they're drawn and follow the finger at once (held back
+  // until the switch was 70% done, the next swipe did nothing for a third
+  // of a second — laggy going through the lists, the owner's, Nov 11, 2026).
   // Never over a window, a menu, the log-in page, a box being typed in, or
   // something that still scrolls sideways that way (a switcher, a long row).
   (function setupListSwipe() {
@@ -3035,7 +3033,6 @@
     const order = () => MOBILE_LISTS.map(t => t[0]);
     const cardOf = (id) => document.getElementById(`card-${id}`);
     const tabOf = (id) => mobileNav.querySelector(`[data-sub="${id}"]`);
-    const switching = () => mobileCards().some(c => c.getAnimations().some(a => a.playState === 'running' && (a.currentTime || 0) < TAB_MOTION.in.duration * SLIDE_WAIT));
     // (moved on the graphics chip — an iPhone's own layer — its opacity set only when it changes: the dashboard's, Oct 30, 2026)
     const style = (el, x, o) => { el.style.transform = `translate3d(${x}px, 0, 0)`; const v = String(Math.round(o * 1000) / 1000); if (el.style.opacity !== v) el.style.opacity = v; };
     const unstyle = (el) => { el.style.transform = el.style.opacity = ''; };
@@ -3142,7 +3139,6 @@
       if (!sw) return;
       if (e.touches.length !== 1) { if (sw.on) dragEnd(true); sw = null; return; }
       const t = e.touches[0], dx = t.clientX - sw.x0, dy = t.clientY - sw.y0;
-      if (!sw.on && switching()) { sw.x0 = t.clientX; sw.y0 = t.clientY; return; } // (a switch under way: its turn first)
       if (!sw.on) {
         if (Math.hypot(dx, dy) < 6) return; // (not told yet: left to the page — a scroll that begins with a wobble still scrolls)
         if (Math.abs(dx) < Math.abs(dy) * 1.2 || own(sw.target, dx) || blocked()) { sw = null; return; }

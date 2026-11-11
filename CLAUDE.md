@@ -46,7 +46,10 @@ motion, wording style. Never leave one updated and the other behind.
   it stays different until they say otherwise — but say so when it comes up,
   and ask whether the dashboard should take it too. Today: fields, search
   boxes, buttons, username rows and count pills are white in light mode
-  (the dashboard's are the page grey). Nothing else differs.
+  (the dashboard's are the page grey); and going through tabs one after the
+  other waits less here (see the motion notes: 40% and no wait for a swipe,
+  the dashboard's 70%) — the dashboard should take it if the owner says so.
+  Nothing else differs.
 - These notes are kept in step with the dashboard's own CLAUDE.md.
 
 ## "The list 3 slide" — the app's standard motion
@@ -67,7 +70,11 @@ then in); presses and hovers only change colour; switching light / dark
 eases every colour (theme-fade); spinners turn every 0.8s; usernames and banners use list 3's row engine
 (slideRowIn/slideRowOut, rows around them shifting); a search's results are the dashboard's search: a moment after typing stops, matches that stay glide to their places, new ones pop in from 14px down at 95%, hidden ones pop out the same way, all on that same engine (popRowIn/popRowOut — a row coming back mid-pop carries on from where it's drawn), "no matches" fading in under the last ones; tab switches are the
 sideways push (slideSub / TAB_MOTION), the area easing to the new pane's
-height (easeBoxHeight); texts just fade (fadeEmptyIn), and text that changes
+height (easeBoxHeight) — a tap during a push waits only until it's 40% through
+(gated, SWITCH_WAIT; the dashboard's is 70%), a swipe never waits (the lists
+are taken up where they're drawn), and a push taking over starts at the speed
+things already had (slideSpeed / slideTiming) — the owner's, Nov 11, 2026:
+"it feels laggy when swiping thru tabs or clicking thru tabs"; texts just fade (fadeEmptyIn), and text that changes
 fades across — the old words out where they were, the new in (swapText;
 `{ resize: true }` for buttons and pills, so their width eases too). When the
 page gets shorter it glides up on the curve (setupPageGlide). A button waiting on
