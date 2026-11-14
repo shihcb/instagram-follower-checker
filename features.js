@@ -2838,12 +2838,12 @@
   }
   // The highlight glides to the tab; a tab near an edge scrolls into view,
   // peeking at the next one (the instructions bar's rule).
-  function selectSubTab(nav, id) {
+  function selectSubTab(nav, id, timing) {
     const tabs = [...nav.querySelectorAll('[data-sub]')];
     const active = tabs.find(t => t.dataset.sub === id);
     if (!active) return;
     tabs.forEach(t => t.classList.toggle('active', t === active));
-    moveInstructionsIndicator(nav.querySelector('.changes-indicator'), active);
+    moveInstructionsIndicator(nav.querySelector('.changes-indicator'), active, timing);
     const left = active.offsetLeft - 12, right = active.offsetLeft + active.offsetWidth + (active.nextElementSibling ? 38 : 12);
     if (left < nav.scrollLeft) scrollInstructionsNav(nav, Math.max(0, left));
     else if (right > nav.scrollLeft + nav.clientWidth) scrollInstructionsNav(nav, right - nav.clientWidth);
@@ -3084,7 +3084,7 @@
         mobileList = id;
         storageSet('mobile_list', id);
         pushToCloud();
-        selectSubTab(mobileNav, id); // (its highlight carries on from where the finger left it)
+        selectSubTab(mobileNav, id, t); // (its highlight carries on from where the finger left it, landing with the lists)
         const g = host();
         clearTimeout(g._subTimer);
         const startH = g.getBoundingClientRect().height;
@@ -3116,7 +3116,7 @@
       clearTimeout(g0._dragOff);
       g0._dragOff = setTimeout(() => { if (!g0._dragging) g0.classList.remove('dragging'); }, t.duration + 30);
       const ind = mobileNav.querySelector('.changes-indicator'), here = tabOf(mobileList);
-      if (ind && here) moveInstructionsIndicator(ind, here);
+      if (ind && here) moveInstructionsIndicator(ind, here, t);
       const from = { transform: cur.style.transform, opacity: cur.style.opacity };
       unstyle(cur);
       if (!reduce && typeof cur.animate === 'function') cur.animate([from, { transform: 'translateX(0)', opacity: 1 }], t);

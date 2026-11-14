@@ -5874,7 +5874,12 @@ function indicatorAt(indicator, x, w) {
   putIndicator(indicator, indicatorFrames(x, w));
   indicator._pos = { x, w };
 }
-function moveInstructionsIndicator(indicator, tab) {
+// `timing`: a swipe's landing hands over its lists' own (the finger's speed),
+// so the highlight lands with them. Otherwise, taken over mid-glide, it
+// carries on at the speed it already had (slideTiming, as the lists' push
+// does) — started from a standstill at every tap it stopped dead and set off
+// again, out of step with the lists still moving: choppy going through tabs.
+function moveInstructionsIndicator(indicator, tab, timing) {
   const x = tab.offsetLeft;
   const w = tab.offsetWidth;
   // A tab with no size yet (not laid out, fonts still loading): drawing the
@@ -5882,8 +5887,12 @@ function moveInstructionsIndicator(indicator, tab) {
   if (!w) return;
   const parts = indicatorPill(indicator);
   let from = indicator._pos || null;
-  // Mid-slide: start from where it is right now.
-  if ((indicator._anims || []).some(a => a.playState === 'running') && from) from = indicatorDrawn(indicator);
+  // Mid-slide: start from where it is right now, at the speed it's going.
+  let v = 0;
+  if ((indicator._anims || []).some(a => a.playState === 'running') && from) {
+    from = indicatorDrawn(indicator);
+    v = (slideSpeed(parts.l) + slideSpeed(parts.r)) / 2; // (its middle's)
+  }
   stopIndicator(indicator);
   const to = indicatorFrames(x, w);
   putIndicator(indicator, to);
@@ -5891,7 +5900,8 @@ function moveInstructionsIndicator(indicator, tab) {
   const moved = from && (Math.abs(from.x - x) > 0.5 || Math.abs(from.w - w) > 0.5);
   if (!moved || indicator.classList.contains('no-transition') || typeof parts.m.animate !== 'function') return;
   const fr = indicatorFrames(from.x, from.w);
-  indicator._anims = Object.keys(parts).map(k => parts[k].animate([fr[k], to[k]], { duration: IND_MS, easing: IND_EASE }));
+  const t = timing || slideTiming((x + w / 2) - (from.x + from.w / 2), v);
+  indicator._anims = Object.keys(parts).map(k => parts[k].animate([fr[k], to[k]], { duration: t.duration || IND_MS, easing: t.easing || IND_EASE }));
 }
 
 function settleStepOut(pane) {
