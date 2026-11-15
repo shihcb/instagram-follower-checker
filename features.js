@@ -985,14 +985,25 @@
 
   // Google's sign-in script, loaded ahead: the popup has to open straight
   // from the tap, with nothing to wait for first.
-  function loadGoogle() {
+  // (once the page has settled: fetched straight away, it took the network
+  // and the main thread from the app's own start, for a tap that may never come)
+  let googleQueued = false;
+  function loadGoogle(now = false) {
     if (window.google && google.accounts && google.accounts.oauth2) return;
     if (document.getElementById('google-gsi')) return;
+    if (!now) {
+      if (googleQueued) return;
+      googleQueued = true;
+      const go = () => loadGoogle(true);
+      const idle = () => (typeof requestIdleCallback === 'function' ? requestIdleCallback(go, { timeout: 3000 }) : setTimeout(go, 1000));
+      if (document.readyState === 'complete') idle(); else window.addEventListener('load', idle, { once: true });
+      return;
+    }
     const s = document.createElement('script');
     s.id = 'google-gsi';
     s.src = 'https://accounts.google.com/gsi/client';
     s.async = true;
-    s.onerror = () => s.remove(); // tried again next time settings refresh
+    s.onerror = () => { s.remove(); googleQueued = false; }; // tried again next time settings refresh
     document.head.appendChild(s);
   }
   function getTokenClient() {
@@ -1018,7 +1029,7 @@
   function driveSignIn() {
     if (driveToken && Date.now() < driveToken.until) return Promise.resolve(driveToken.value);
     const client = getTokenClient();
-    if (!client) { loadGoogle(); return Promise.reject(new Error("google's sign-in is still loading, try again")); }
+    if (!client) { loadGoogle(true); return Promise.reject(new Error("google's sign-in is still loading, try again")); }
     return new Promise((resolve, reject) => {
       tokenWaiters.push({ resolve, reject });
       askedGen = tokenGen;
@@ -3513,7 +3524,7 @@
     lists.pending = [...(lists.pending || []), ...moved.filter(u => !have.has(u.username))];
     writeExtraLists(acc, lists);
     storageSet(listStorageKey('following'), JSON.stringify(state.following));
-    elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
+    elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername || u.username}`).join('\n');
     return true;
   }
 

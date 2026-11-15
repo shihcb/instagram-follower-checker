@@ -416,8 +416,11 @@ function plural(n, word) {
 }
 // Numbers as the dashboard writes them: thousands separated ("1,234"), and
 // read back the same way.
+// (one formatter, made once: toLocaleString built a new one every call, and
+// counters call this every frame)
+const numFormat = new Intl.NumberFormat('en-US');
 function fmtNum(n) {
-  return Number(n).toLocaleString('en-US');
+  return numFormat.format(Number(n));
 }
 function readNum(text) {
   return parseInt(String(text == null ? '' : text).replace(/,/g, ''), 10);
@@ -759,7 +762,7 @@ function parseJSON(text) {
       if (!obj || typeof obj !== 'object') return;
       
       // Look for entries containing values like href and value
-      if (obj.value && obj.href && (obj.href.includes('instagram.com') || obj.href.startsWith('/'))) {
+      if (obj.value && typeof obj.href === 'string' && obj.href && (obj.href.includes('instagram.com') || obj.href.startsWith('/'))) {
         // Not a profile (a hashtag's page, say): not an account.
         const username = isProfileHref(obj.href) ? cleanUsername(obj.value) : null;
         if (!username) return;
@@ -783,13 +786,13 @@ function parseJSON(text) {
           if (item && typeof item.href === 'string' && item.href && !isProfileHref(item.href)) return; // a hashtag's page, say
           const username = cleanUsername(item && item.value) || cleanUsername(obj.title) || usernameFromProfileHref(item && item.href);
           if (username) {
-            const timestamp = item.timestamp ? new Date(item.timestamp * 1000) : null;
+            const timestamp = item && item.timestamp ? new Date(item.timestamp * 1000) : null;
             results.push({
               username: normalizeUsername(username),
               originalUsername: username,
               fullName: '',
               timestamp: timestamp,
-              profileUrl: item.href || `https://www.instagram.com/${username}/`
+              profileUrl: (item && item.href) || `https://www.instagram.com/${username}/`
             });
           }
         });
@@ -2120,7 +2123,7 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
         listEl.scrollTop = 0;
         setCountBadge(elements.unfollowersCount, state.unfollowers.length, 'found');
         const q = searchQuery(elements.searchUnfollowers);
-        const now = state.unfollowers.filter(user => user.originalUsername.toLowerCase().includes(q) || (user.fullName && user.fullName.toLowerCase().includes(q)));
+        const now = state.unfollowers.filter(user => (user.originalUsername || user.username || "").toLowerCase().includes(q) || (user.fullName && user.fullName.toLowerCase().includes(q)));
         if (!now.length) {
           listEl.innerHTML = '';
           listEl.classList.add('hidden');
@@ -3113,7 +3116,7 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
       let all = true;
       for (const item of ofType) {
         const text = await readFileText(item.file);
-        if (!isPartialList(text, parseInput(text) || [])) { all = false; break; }
+        if (exportRangeStart(text) === null || !isPartialList(text, parseInput(text) || [])) { all = false; break; } // (a whole export isn't parsed here: it was, twice over)
       }
       partial[type] = all;
     }
@@ -3287,10 +3290,10 @@ function loadAccountData(username, animate = false, animateResults = false, { re
 
     // Restore List 1 and List 2 input textareas for this active account
     if (elements.inputFollowing) {
-      elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
+      elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername || u.username}`).join('\n');
     }
     if (elements.inputFollowers) {
-      elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername}`).join('\n');
+      elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername || u.username}`).join('\n');
     }
   } else {
     // Lists 1/2 as last left with no account selected (they used to be
@@ -3313,8 +3316,8 @@ function loadAccountData(username, animate = false, animateResults = false, { re
     state.unfollowed = mainUnfollowed.filter(u => !u.account || u.account === '_global_');
     state.starred = mainStarred.filter(u => !u.account || u.account === '_global_');
 
-    if (elements.inputFollowing) elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
-    if (elements.inputFollowers) elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername}`).join('\n');
+    if (elements.inputFollowing) elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername || u.username}`).join('\n');
+    if (elements.inputFollowers) elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername || u.username}`).join('\n');
   }
 
   updateListUI('following');
@@ -3460,7 +3463,18 @@ function createAccountChip(name) {
   // makes from it afterwards are ignored (they opened the editor a second
   // time, and selected the chip after it)
   let lastChipTouch = 0;
-  chip.addEventListener('touchend', (e) => { lastChipTouch = Date.now(); handleChipInteraction(e); });
+  // (a finger that scrolled or swiped from a chip isn't a tap on it: it
+  // picked that account, swapping the lists out from under you)
+  let chipTouchAt = null;
+  chip.addEventListener('touchstart', (e) => { const t = e.touches[0]; chipTouchAt = t ? [t.clientX, t.clientY] : null; }, { passive: true });
+  chip.addEventListener('touchend', (e) => {
+    lastChipTouch = Date.now();
+    const t = e.changedTouches && e.changedTouches[0];
+    const moved = chipTouchAt && t && Math.hypot(t.clientX - chipTouchAt[0], t.clientY - chipTouchAt[1]) > 10;
+    chipTouchAt = null;
+    if (moved) return;
+    handleChipInteraction(e);
+  });
   chip.addEventListener('click', (e) => {
     if (Date.now() - lastChipTouch < 700) { e.stopPropagation(); return; }
     handleChipInteraction(e);
@@ -4175,7 +4189,13 @@ function swapText(el, text, { resize = false } = {}) {
   // words just swapped with nothing seen: the dashboard's, Oct 31, 2026)
   if (!el.isConnected && el._swapWait === undefined && canAnimate(el) && el.textContent.trim()) {
     el._swapWait = { text, resize };
-    requestAnimationFrame(() => { const w = el._swapWait; el._swapWait = undefined; if (w) swapText(el, w.text, { resize: w.resize }); });
+    // (still out of the page a frame on — a row that was redrawn away: its
+    // words are just set; asking again here went on every frame for good)
+    requestAnimationFrame(() => {
+      const w = el._swapWait; el._swapWait = undefined;
+      if (!w) return;
+      if (el.isConnected) swapText(el, w.text, { resize: w.resize }); else el.textContent = w.text;
+    });
     return;
   }
   if (el._swapWait !== undefined) { el._swapWait = { text, resize }; return; } // (the newest words, once it's back)
@@ -4386,12 +4406,12 @@ function doneMark(btn, kind = 'ok', ms = 1600) {
     btn.append(c);
   }
   const swap = () => { c.innerHTML = kind === 'x' ? X_MARK_SVG : CHECK_SVG; c.classList.toggle('x', kind === 'x'); c._kind = kind; };
-  clearTimeout(c._t); clearTimeout(c._swap);
+  clearTimeout(c._t); clearTimeout(c._swap); c._swap = null; // (a later mark held 450ms longer for an old swap)
   // (the other mark showing: it goes first, then this one comes — never one
   // icon swapped for the other in place)
   if (c.classList.contains('show') && c._kind && c._kind !== kind) {
     c.classList.remove('show');
-    c._swap = setTimeout(() => { swap(); void c.offsetWidth; c.classList.add('show'); }, ROW_MOTION_MS);
+    c._swap = setTimeout(() => { c._swap = null; swap(); void c.offsetWidth; c.classList.add('show'); }, ROW_MOTION_MS);
   } else {
     if (c._kind !== kind) swap();
     void c.offsetWidth;
@@ -4510,15 +4530,24 @@ function scrollGlide(box, target) {
   const token = (box._glideToken = {});
   if (Math.abs(end - start) < 1) return;
   if (!canAnimate(box)) { box.scrollTop = end; return; }
-  const stopIt = () => { if (box._glideToken === token) box._glideToken = null; };
-  box.addEventListener('touchstart', stopIt, { once: true, passive: true });
-  box.addEventListener('wheel', stopIt, { once: true, passive: true });
+  // (one pair of listeners at a time, taken off when the glide ends: each
+  // search used to leave two more behind)
+  if (box._glideStop) box._glideStop();
+  const onTouch = () => { if (box._glideToken === token) box._glideToken = null; unhook(); };
+  const unhook = () => {
+    box.removeEventListener('touchstart', onTouch);
+    box.removeEventListener('wheel', onTouch);
+    if (box._glideStop === unhook) box._glideStop = null;
+  };
+  box._glideStop = unhook;
+  box.addEventListener('touchstart', onTouch, { passive: true });
+  box.addEventListener('wheel', onTouch, { passive: true });
   const t0 = performance.now();
   const step = (now) => {
-    if (box._glideToken !== token) return;
+    if (box._glideToken !== token) { unhook(); return; }
     const k = Math.max(0, Math.min(1, (now - t0) / ROW_MOTION_MS));
     box.scrollTop = start + (end - start) * rowEase(k);
-    if (k < 1) requestAnimationFrame(step);
+    if (k < 1) requestAnimationFrame(step); else unhook();
   };
   requestAnimationFrame(step);
 }
@@ -6014,7 +6043,7 @@ function updateInstructionsStepUI() {
     const acc = state.selectedAccountUsername;
     smoothClearTextarea(elements.inputFollowing, () => {
       if (state.selectedAccountUsername !== acc) { // (its words back: the fade emptied the box)
-        elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
+        elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername || u.username}`).join('\n');
         return;
       }
       state.following = [];
@@ -6033,7 +6062,7 @@ function updateInstructionsStepUI() {
     const acc = state.selectedAccountUsername;
     smoothClearTextarea(elements.inputFollowers, () => {
       if (state.selectedAccountUsername !== acc) { // (its words back: the fade emptied the box)
-        elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername}`).join('\n');
+        elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername || u.username}`).join('\n');
         return;
       }
       state.followers = [];
@@ -6706,7 +6735,7 @@ function updateInstructionsStepUI() {
       const searchTerm = searchQuery(searchFollowingInput);
       if (!searchTerm) {
         elements.inputFollowing.placeholder = 'enter usernames';
-        elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
+        elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername || u.username}`).join('\n');
       } else {
         const filtered = state.following.filter(u => 
           u.originalUsername.toLowerCase().includes(searchTerm) ||
@@ -6717,7 +6746,7 @@ function updateInstructionsStepUI() {
           elements.inputFollowing.placeholder = state.following.length > 0 ? 'no matches' : 'enter usernames';
         } else {
           elements.inputFollowing.placeholder = 'enter usernames';
-          elements.inputFollowing.value = filtered.map(u => `@${u.originalUsername}`).join('\n');
+          elements.inputFollowing.value = filtered.map(u => `@${u.originalUsername || u.username}`).join('\n');
         }
       }
     });
@@ -6730,7 +6759,7 @@ function updateInstructionsStepUI() {
       const searchTerm = searchQuery(searchFollowersInput);
       if (!searchTerm) {
         elements.inputFollowers.placeholder = 'enter usernames';
-        elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername}`).join('\n');
+        elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername || u.username}`).join('\n');
       } else {
         const filtered = state.followers.filter(u => 
           u.originalUsername.toLowerCase().includes(searchTerm) ||
@@ -6741,7 +6770,7 @@ function updateInstructionsStepUI() {
           elements.inputFollowers.placeholder = state.followers.length > 0 ? 'no matches' : 'enter usernames';
         } else {
           elements.inputFollowers.placeholder = 'enter usernames';
-          elements.inputFollowers.value = filtered.map(u => `@${u.originalUsername}`).join('\n');
+          elements.inputFollowers.value = filtered.map(u => `@${u.originalUsername || u.username}`).join('\n');
         }
       }
     });
@@ -6753,7 +6782,7 @@ function updateInstructionsStepUI() {
       if (searchFollowingInput && searchFollowingInput.value) {
         searchFollowingInput.value = '';
         elements.inputFollowing.placeholder = 'enter usernames';
-        elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
+        elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername || u.username}`).join('\n');
       }
     });
 
@@ -6776,7 +6805,7 @@ function updateInstructionsStepUI() {
       if (searchFollowersInput && searchFollowersInput.value) {
         searchFollowersInput.value = '';
         elements.inputFollowers.placeholder = 'enter usernames';
-        elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername}`).join('\n');
+        elements.inputFollowers.value = state.followers.map(u => `@${u.originalUsername || u.username}`).join('\n');
       }
     });
 
@@ -6829,7 +6858,7 @@ function updateInstructionsStepUI() {
     const currentAcc = (state.selectedAccountUsername || '_global_').toLowerCase();
     if (userObj.isPendingRequest) {
       state.following = state.following.filter(u => u.username !== username);
-      elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername}`).join('\n');
+      elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername || u.username}`).join('\n');
       updateListUI('following');
     } else if (!state.unfollowed.some(u => u.username === username)) {
       state.unfollowed.unshift({ ...userObj, account: currentAcc });
@@ -8753,9 +8782,28 @@ async function pushToCloudNow() {
 // (only some of the device's lists were counted, the merged ones twice)
 let cloudBytes = null; // { uid, n }
 function noteCloudBytes(starred, unfollowed) {
-  if (currentUser) cloudBytes = { uid: currentUser.id, n: JSON.stringify(starred || []).length + JSON.stringify(unfollowed || []).length };
+  // (measured when it's shown, not here: writing out every list again took
+  // ~60ms right after each upload of a big account)
+  if (currentUser) cloudBytes = { uid: currentUser.id, starred, unfollowed, n: null };
 }
+function cloudBytesNow() {
+  if (cloudBytes.n === null) {
+    cloudBytes.n = JSON.stringify(cloudBytes.starred || []).length + JSON.stringify(cloudBytes.unfollowed || []).length;
+    cloudBytes.starred = cloudBytes.unfollowed = null;
+  }
+  return cloudBytes.n;
+}
+// Updated once the page is idle (several calls in a row are one update):
+// it measures every list, and ran in the middle of each upload and import.
+let storageBarQueued = false;
 function updateStorageProgressBar() {
+  if (storageBarQueued) return;
+  storageBarQueued = true;
+  const run = () => { storageBarQueued = false; updateStorageProgressBarNow(); };
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(run, { timeout: 1500 });
+  else setTimeout(run, 200);
+}
+function updateStorageProgressBarNow() {
   const keysToMeasure = [
     'instagram_accounts',
     'selected_instagram_account',
@@ -8781,7 +8829,7 @@ function updateStorageProgressBar() {
   });
 
   let totalBytes = 0;
-  if (cloudBytes && currentUser && cloudBytes.uid === currentUser.id) totalBytes = cloudBytes.n;
+  if (cloudBytes && currentUser && cloudBytes.uid === currentUser.id) totalBytes = cloudBytesNow();
   else keysToMeasure.forEach(key => {
     const val = storageGet(key);
     if (val) {
