@@ -47,9 +47,11 @@ motion, wording style. Never leave one updated and the other behind.
   and ask whether the dashboard should take it too. Today: fields, search
   boxes, buttons, username rows and count pills are white in light mode
   (the dashboard's are the page grey); and going through tabs one after the
-  other waits less here (see the motion notes: 40% and no wait for a swipe,
-  the dashboard's 70%) — the dashboard should take it if the owner says so.
-  Nothing else differs.
+  other waits less here (see the motion notes: 40%, the dashboard's 70%) —
+  the dashboard should take it if the owner says so; and the phone's lists
+  have no sideways swipe here — the owner took it out, Nov 15, 2026 ("i think
+  its making tapping on tab views in the switcher laggy and slow"): tabs are
+  tapped only. Nothing else differs.
 - These notes are kept in step with the dashboard's own CLAUDE.md.
 
 ## "The list 3 slide" — the app's standard motion
@@ -71,8 +73,8 @@ eases every colour (theme-fade); spinners turn every 0.8s; usernames and banners
 (slideRowIn/slideRowOut, rows around them shifting); a search's results are the dashboard's search: a moment after typing stops, matches that stay glide to their places, new ones pop in from 14px down at 95%, hidden ones pop out the same way, all on that same engine (popRowIn/popRowOut — a row coming back mid-pop carries on from where it's drawn), "no matches" fading in under the last ones; tab switches are the
 sideways push (slideSub / TAB_MOTION), the area easing to the new pane's
 height (easeBoxHeight) — a tap during a push waits only until it's 40% through
-(gated, SWITCH_WAIT; the dashboard's is 70%), a swipe never waits (the lists
-are taken up where they're drawn), and a push taking over starts at the speed
+(gated, SWITCH_WAIT; the dashboard's is 70%) — no swipe between the phone's
+lists (taken out, Nov 15, 2026) — and a push taking over starts at the speed
 things already had (slideSpeed / slideTiming) — the owner's, Nov 11, 2026:
 "it feels laggy when swiping thru tabs or clicking thru tabs"; texts just fade (fadeEmptyIn), and text that changes
 fades across — the old words out where they were, the new in (swapText;
