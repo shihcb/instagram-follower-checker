@@ -4842,8 +4842,10 @@ function stopRowMotion(el) {
   const m = rowMotion.get(el);
   if (!m) return;
   if (m.savedTransition !== null) el.style.transition = m.savedTransition;
-  if (m.slide && m.slide.onDone) m.slide.onDone();
-  if (m.pop) { if (m.pop.onDone) m.pop.onDone(); el.style.opacity = ''; }
+  // (taken off before it runs: the fallback timers ran it again later, which
+  // hid a banner or pill shown again in the meantime)
+  if (m.slide && m.slide.onDone) { const fn = m.slide.onDone; m.slide.onDone = null; fn(); }
+  if (m.pop) { if (m.pop.onDone) { const fn = m.pop.onDone; m.pop.onDone = null; fn(); } el.style.opacity = ''; }
   el.style.transform = '';
   el.style.clipPath = '';
   el.style.webkitClipPath = '';
@@ -8079,13 +8081,19 @@ function initAuth() {
   async function getFilesFromEntry(entry) {
     let files = [];
     if (entry.isFile) {
-      const file = await new Promise((resolve) => entry.file(resolve));
-      files.push(file);
+      // (an unreadable file is skipped: with no error callback the import hung)
+      const file = await new Promise((resolve) => entry.file(resolve, () => resolve(null)));
+      if (file) files.push(file);
     } else if (entry.isDirectory) {
       const dirReader = entry.createReader();
-      const entries = await new Promise((resolve) => {
-        dirReader.readEntries(resolve);
-      });
+      // (read until it gives nothing more: it hands them over 100 at a time,
+      // and a folder's files after its first 100 were lost)
+      const entries = [];
+      for (;;) {
+        const batch = await new Promise((resolve) => dirReader.readEntries(resolve, () => resolve([])));
+        if (!batch.length) break;
+        entries.push(...batch);
+      }
       for (const subEntry of entries) {
         const subFiles = await getFilesFromEntry(subEntry);
         files = files.concat(subFiles);
@@ -8101,11 +8109,12 @@ function initAuth() {
   document.addEventListener('drop', async (e) => {
     e.preventDefault();
     if (e.dataTransfer && e.dataTransfer.items && e.dataTransfer.items.length > 0) {
-      const items = Array.from(e.dataTransfer.items);
+      // (every entry taken before the first wait: the browser empties the
+      // drop's data then, and only the first of several files was imported)
+      const entries = Array.from(e.dataTransfer.items).map(item => item.webkitGetAsEntry && item.webkitGetAsEntry()).filter(Boolean);
       let files = [];
-      for (const item of items) {
-        const entry = item.webkitGetAsEntry();
-        if (entry) {
+      for (const entry of entries) {
+        {
           const entryFiles = await getFilesFromEntry(entry);
           files = files.concat(entryFiles);
         }
@@ -8284,7 +8293,11 @@ function mergeOfflineWork(entries) {
   const parse = (v, fallback) => { try { const x = JSON.parse(v); return x == null ? fallback : x; } catch (e) { return fallback; } };
   const byName = (list, keyOf) => { const seen = new Set(); return list.filter(item => { const k = keyOf(item); if (!k || seen.has(k)) return false; seen.add(k); return true; }); };
   entries.forEach(([key, value]) => {
-    const cloud = storageGet(key);
+    // (the download only writes what the cloud has: a key it left alone is
+    // still this device's own value — merged with itself, an account added
+    // offline had its imports and timeline doubled)
+    const stored = storageGet(key);
+    const cloud = stored === value ? null : stored;
     if (key === 'instagram_accounts') {
       // Both sets of chips: the cloud's, then any added here
       const merged = byName([...parse(cloud, []), ...parse(value, [])], acc => String((acc && (acc.originalUsername || acc)) || '').toLowerCase());
@@ -8436,8 +8449,10 @@ async function pullFromCloudNow(uploadLocalFirst, stillWanted) {
             if (itemData.starred) storageSet(`starred_users_${key}`, JSON.stringify(itemData.starred));
             // Restore the weekly reset reminder's anchor date so it reflects real elapsed time on login.
             if (itemData.importDate) storageSet(`import_date_${key}`, itemData.importDate);
+            else if (itemData.importDate === null) storageRemove(`import_date_${key}`); // (cleared on another device: an old one here came back)
             if (itemData.history) storageSet(`import_history_${key}`, JSON.stringify(itemData.history));
             if (itemData.diff) storageSet(`import_diff_${key}`, JSON.stringify(itemData.diff));
+            else if (itemData.diff === null) storageRemove(`import_diff_${key}`);
             // The saved imports list (features.js). Only the list and each
             // import's changes travel; the uploaded files stay on the device
             // that imported them.

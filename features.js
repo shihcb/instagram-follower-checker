@@ -67,8 +67,9 @@
     let list = state.unfollowers;
     if (sortMode !== 'default') {
       const dir = sortMode === 'oldest' ? 1 : -1;
-      list = list.map((u, i) => [u, i]).sort((a, b) => {
-        const ta = timeOf(a[0]), tb = timeOf(b[0]);
+      // (each row's time worked out once, not twice per comparison)
+      list = list.map((u, i) => [u, i, timeOf(u)]).sort((a, b) => {
+        const ta = a[2], tb = b[2];
         if (ta === null && tb === null) return a[1] - b[1];
         if (ta === null) return 1;
         if (tb === null) return -1;
@@ -341,7 +342,9 @@
         const row = btn.closest('.user-row, .parsed-item') || btn.closest('[data-username]');
         if (row && row.classList.contains('username-exit')) return;
         const name = row ? row.querySelector('.user-link, .parsed-username') : null;
-        offerUndo(snapshot(), `${name ? name.textContent.trim() : 'account'} ${verb}`);
+        // (the pending list too: taken out of starred / unfollowed, a former
+        // pending request goes back to it — undone, it was in both)
+        offerUndo({ ...snapshot(), pending: (readExtraLists(state.selectedAccountUsername).pending || []).slice() }, `${name ? name.textContent.trim() : 'account'} ${verb}`);
         return;
       }
     }
@@ -2377,7 +2380,11 @@
       tl._shape = line; // a change mid-way carries on from here
       [1, 2].forEach((k, s) => {
         if (paths[s]) paths[s].setAttribute('d', line.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[k].toFixed(1)}`).join(' '));
-        to.forEach((p, i) => { const d = dots[s * to.length + i]; if (d) d.style.top = `${(at(p[0], k) / TL_H * 100).toFixed(2)}%`; });
+        // (a one-import timeline draws no dot for its made-up first point: the
+        // dots are fewer than the points, and the followers dot took the
+        // following line's height)
+        const per = dots.length / 2, skip = to.length - per;
+        to.forEach((p, i) => { const d = i < skip ? null : dots[s * per + i - skip]; if (d) d.style.top = `${(at(p[0], k) / TL_H * 100).toFixed(2)}%`; });
       });
       oldDots.forEach(({ d, x, k }) => { d.style.top = `${(at(x, k) / TL_H * 100).toFixed(2)}%`; });
     };
@@ -2409,6 +2416,7 @@
   // enter: the view has just come on screen (switched to) — its graph grows,
   // its lines draw in and its numbers count up from 0, rather than carrying
   // on from the copy that was put away.
+  const compareCache = new Map(); // account -> { raw, list } (read only)
   function renderView(dry = false, enter = false) {
     const body = altView;
     const key = accKey();
@@ -2472,7 +2480,18 @@
         // (the app's own drop-down — the import files menu's — not the
         // phone's picker)
         const opts = (v) => accounts.map(x => `<button type="button" class="dropdown-item-btn${x.originalUsername.toLowerCase() === v ? ' on' : ''}" data-v="${esc(x.originalUsername.toLowerCase())}"><span>@${esc(x.username)}</span></button>`).join('');
-        const fol = (k) => readJSON(`followers_users_${k}`, []);
+        // (read once per stored text: the view is drawn twice per update — to
+        // see if anything changed, then for real — and each read parsed both
+        // accounts' whole follower lists again)
+        const fol = (k) => {
+          const raw = storageGet(`followers_users_${k}`);
+          const hit = compareCache.get(k);
+          if (hit && hit.raw === raw) return hit.list;
+          let list = [];
+          try { const v = JSON.parse(raw || '[]'); if (Array.isArray(v)) list = v; } catch (e) {}
+          compareCache.set(k, { raw, list });
+          return list;
+        };
         const fa = fol(a), fb = fol(b);
         const sa = new Set(fa.map(u => u.username)), sb = new Set(fb.map(u => u.username));
         const nameOf = (v) => `@${esc((accounts.find(x => x.originalUsername.toLowerCase() === v) || {}).username || v)}`;
