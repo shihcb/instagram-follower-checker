@@ -2964,7 +2964,7 @@
   }
   function settleSub(host) {
     clearTimeout(host._subTimer);
-    if (!host._dragging) host.classList.remove('switching', 'dragging');
+    host.classList.remove('switching');
     (host._subAll || []).forEach(p => {
       if (!p.classList.contains('pane-out')) return;
       p.getAnimations().forEach(an => an.cancel());

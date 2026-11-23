@@ -2610,6 +2610,12 @@ const handleFollowingInput = debounce(function() {
   calculateUnfollowers({ animate: true, matchRenames: true });
 }, 250);
 
+// Text typed into list 1 or 2 still waiting out its 250ms counts now: a
+// cloud copy landing in that wait wrote over it (checked before one does)
+function flushListInputs() {
+  try { handleFollowingInput.flush(); handleFollowersInput.flush(); } catch (e) {}
+}
+
 const handleFollowersInput = debounce(function() {
   const searchFollowersInput = document.getElementById('search-followers');
   if (searchFollowersInput && searchFollowersInput.value.trim() !== '') {
@@ -5833,7 +5839,6 @@ window.closeInstructionsModal = closeInstructionsModal;
 window.moveInstructionsIndicator = moveInstructionsIndicator;
 window.scrollInstructionsNav = scrollInstructionsNav;
 window.indicatorBetween = (...a) => indicatorBetween(...a); // (the swipe in features.js: the highlight following the finger)
-window.indicatorAt = (...a) => indicatorAt(...a); // (the same, put where the drag measured it)
 
 // Slides the highlight to `tab` like the log in / sign up switch does:
 // same duration and easing, transform only (FLIP: it takes its new size at
@@ -7043,7 +7048,7 @@ async function reloadAfterOfflineStart() {
   // wins: the cloud copy is dropped rather than written over it — it put
   // the old lists back, or a logged-out user's data in after the clear
   const gen = cloudChangeGen;
-  const stillWanted = () => currentUser && currentUser.id === uid && cloudChangeGen === gen && !hasPendingCloudPush();
+  const stillWanted = () => { flushListInputs(); return currentUser && currentUser.id === uid && cloudChangeGen === gen && !hasPendingCloudPush(); };
   let loaded;
   try {
     loaded = await pullFromCloud(true, stillWanted);
@@ -8364,7 +8369,7 @@ function retryCloudLoadWhenOnline() {
       // (a change made while it comes down wasn't in `work`: the download is
       // dropped and tried again with it; a log-out drops it for good)
       const uid = currentUser.id, gen = cloudChangeGen;
-      const loaded = await pullFromCloud(false, () => currentUser && currentUser.id === uid && cloudChangeGen === gen);
+      const loaded = await pullFromCloud(false, () => { flushListInputs(); return currentUser && currentUser.id === uid && cloudChangeGen === gen; });
       // (dropped for a change made meanwhile — typed into list 1 or 2, say,
       // which doesn't go through pushToCloud while it comes down: that change
       // is kept and merged in, not written over by the next try)
@@ -8682,7 +8687,7 @@ async function refreshFromCloud() {
   const gen = cloudChangeGen;
   // Anything done here while it came down (a star, an unfollow, a log-out)
   // wins: the cloud copy is dropped rather than written over it
-  const stillWanted = () => currentUser && currentUser.id === uid && cloudChangeGen === gen && !hasPendingCloudPush() && !accountsBusy();
+  const stillWanted = () => { flushListInputs(); return currentUser && currentUser.id === uid && cloudChangeGen === gen && !hasPendingCloudPush() && !accountsBusy(); };
   let loaded;
   try { loaded = await pullFromCloud(false, stillWanted); } catch (err) { console.error('Error refreshing cloud data:', err); return; }
   if (loaded === false) {
