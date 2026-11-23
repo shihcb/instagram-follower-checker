@@ -1505,12 +1505,14 @@
       ['position', 'top', 'left', 'width', 'margin', 'zIndex'].forEach(k => { el.style[k] = ''; });
     };
     if (show) { if (toolbar.classList.contains('settling')) { el._phrase = el._said = null; el.textContent = text; } else swapPhrase(el, text); } // ("imported 3 days ago": its number counts, its "s" slides)
-    if (show === shown) return;
     const card = document.getElementById('card-unfollowers');
+    const wrapper = card && card.querySelector('.results-layout-wrapper');
+    if (show === shown) { if (!leaving && wrapper && !wrapper.getAnimations().some(an => an._bannerTop)) setBannerShift(wrapper, el, show); return; }
     const canMove = el.parentElement && el.parentElement.getClientRects().length && card && typeof card.animate === 'function' && !toolbar.classList.contains('settling'); // (opening the app: the reminder just there)
     if (!canMove) {
       if (leaving) restore();
       el.classList.toggle('pill-hidden', !show);
+      if (wrapper) { wrapper.getAnimations().filter(an => an._bannerTop).forEach(an => an.cancel()); setBannerShift(wrapper, el, show); }
       return;
     }
     // What's under it, and where it all is now (layout positions: anything
@@ -1532,7 +1534,25 @@
     const heightAfter = window.atEnds ? window.atEnds(card, () => card.offsetHeight) : card.offsetHeight; // (where what's easing in it lands)
     // One row pitch: how far everything under it moves.
     const pitch = below.length ? Math.abs(below[0].offsetTop - topsBefore[0]) : el.offsetHeight;
-    below.forEach((n, i) => addRowShift(n, topsBefore[i] - n.offsetTop, ROW_MOTION_MS));
+    // The box under it (the card's height staying put): its top edge glides
+    // down to make room, or back up, its bottom where it is, and the texts
+    // in it (no unfollowers, …) stay just where they are — they're moved up
+    // by as much as the box's middle moves down (--banner-shift).
+    const fixed = Math.abs(heightAfter - heightBefore) <= 0.5;
+    below.forEach((n, i) => {
+      if (n !== wrapper || !fixed || typeof n.animate !== 'function') { addRowShift(n, topsBefore[i] - n.offsetTop, ROW_MOTION_MS); return; }
+      const cs = getComputedStyle(n);
+      const marginNow = parseFloat(cs.marginTop) || 0; // (one still playing: carried on from where it is)
+      const shiftNow = parseFloat(cs.getPropertyValue('--banner-shift')) || 0;
+      const moved = topsBefore[i] - n.offsetTop; // (both with the old margin in)
+      n.getAnimations().filter(an => an._bannerTop).forEach(an => an.cancel());
+      const shiftTo = show ? Math.abs(moved) / 2 : 0;
+      const from = marginNow + moved; // (where its top is drawn now, the old margin gone)
+      n.style.setProperty('--banner-shift', `${shiftTo}px`);
+      const an = n.animate([{ marginTop: `${from}px`, '--banner-shift': `${shiftNow}px` }, { marginTop: '0px', '--banner-shift': `${shiftTo}px` }],
+        { duration: ROW_MOTION_MS, easing: EASE });
+      an._bannerTop = true;
+    });
     if (show) slideRowIn(el, pitch || el.offsetHeight, ROW_MOTION_MS);
     else {
       slideRowOut(el, pitch || el.offsetHeight, ROW_MOTION_MS, () => {
@@ -1547,6 +1567,19 @@
       an._pillResize = true;
     }
     stepRowMotion();
+  }
+
+  // How far list 3's empty texts are moved up while the reminder shows: half
+  // the room it takes (the box under it gives that much off its top), so
+  // they sit where they were without it.
+  function setBannerShift(wrapper, el, show) {
+    let px = 0;
+    if (show) {
+      if (!el.getClientRects().length) return; // (not on screen: kept until it can be measured)
+      const gap = parseFloat(getComputedStyle(el.parentElement).rowGap) || 0;
+      px = (el.offsetHeight + gap) / 2;
+    }
+    wrapper.style.setProperty('--banner-shift', `${px}px`);
   }
 
   // ---------- select several rows ----------

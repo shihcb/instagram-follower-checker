@@ -6209,12 +6209,19 @@ select,
   margin: 0;
   pointer-events: none;
 }
+/* (and up by --banner-shift while the import-again reminder takes room off
+   the box's top: the texts stay where they were, features.js setPill) */
+@property --banner-shift {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
 .results-extra .extra-body > .dropdown-empty-message,
 #unfollowers-empty-state > .dropdown-empty-message {
-  transform: translateY(var(--extra-shift, 0px));
+  transform: translateY(calc(var(--extra-shift, 0px) - var(--banner-shift, 0px)));
 }
 .list3-alt-view .changes-pane > .dropdown-empty-message {
-  transform: translateY(var(--pane-shift, 0px));
+  transform: translateY(calc(var(--pane-shift, 0px) - var(--banner-shift, 0px)));
 }
 .list3-alt-view .changes-pane,
 #unfollowers-empty-state {
