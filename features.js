@@ -206,8 +206,16 @@
     if (snap.acc !== accKey()) return;
     if (snap.cleared) { restoreClearedList(snap); return; }
     if (snap.pending) {
+      // Only what the action changed: a request it took out comes back, one
+      // it put back (starred / unfollowed again) goes — put back whole, it
+      // undid requests taken off since (✕) too
       const lists = readExtraLists(state.selectedAccountUsername);
-      lists.pending = snap.pending;
+      const moved = new Set([...snap.starred, ...snap.unfollowed].map(u => u.username)); // (starred / unfollowed again by the undo)
+      const movedNow = new Set([...state.starred, ...state.unfollowed].map(u => u.username)); // (where the action put them)
+      const kept = (lists.pending || []).filter(u => !moved.has(u.username));
+      const have = new Set(kept.map(u => u.username));
+      const back = snap.pending.filter(u => !have.has(u.username) && !moved.has(u.username) && movedNow.has(u.username));
+      lists.pending = [...kept, ...back];
       writeExtraLists(state.selectedAccountUsername, lists);
       safe(() => renderExtras(true), 'extra lists');
     }
@@ -410,6 +418,14 @@
     }, true);
   });
 
+  // An account's undo steps gone (new lists imported: they'd put back the
+  // ones from before — pending requests too, from an import of just those)
+  function dropUndo(accountUsername) {
+    const k = accountUsername ? String(accountUsername).toLowerCase() : '_global_';
+    for (let i = undoStack.length - 1; i >= 0; i--) if (undoStack[i].snap.acc === k) undoStack.splice(i, 1);
+    safe(refreshUndo, 'undo');
+  }
+
   // ---------- import history & changes ----------
   // At the end of every import (recordImportDate), compare the new lists
   // with the previous import's and keep the result.
@@ -422,9 +438,7 @@
     safe(() => recordChanges(accountUsername), 'import history');
     // New lists in: the account's undo steps would put back lists from
     // before them (the old following beside the new followers), so they go.
-    const k = accountUsername ? String(accountUsername).toLowerCase() : '_global_';
-    for (let i = undoStack.length - 1; i >= 0; i--) if (undoStack[i].snap.acc === k) undoStack.splice(i, 1);
-    safe(refreshUndo, 'undo');
+    dropUndo(accountUsername);
     // (the lists were drawn before this import's changes and date were kept:
     // an open changes view and "import again" stayed as they were)
     if (!driveSync) { safe(refreshView, 'view'); safe(refreshToolbar, 'toolbar'); } // (a google drive sync: once, at its end)
@@ -454,7 +468,14 @@
   let driveSync = null; // a google drive sync running: { diffs, unsaved, why }
   const savesRunning = new Set(); // imports' files on their way to the cloud
   const diffTotal = (d) => d ? d.lostFollowers.length + d.newFollowers.length + d.stoppedFollowing.length + d.startedFollowing.length : 0;
-  function openChanges(diff) {
+  function openChanges(diff, key) {
+    // (the account the changes are of: another picked since the toast came
+    // up, "view" opened that one's changes on this one's tab)
+    if (key && key !== accKey()) {
+      const acc = state.instagramAccounts.find(a => a.originalUsername.toLowerCase() === key);
+      if (!acc) return;
+      ensureAccountSelected(acc.originalUsername);
+    }
     // (opened on a tab that has something: it opened on "unfollowed
     // you" whatever came, "no one unfollowed you" for new followers)
     const keys = { lost: 'lostFollowers', new: 'newFollowers', stopped: 'stoppedFollowing', started: 'startedFollowing' };
@@ -498,7 +519,7 @@
       // last one — and only the account on screen's)
       if (driveSync) driveSync.diffs[key] = diff;
       else setTimeout(() => showToast(total ? `${fmtNum(total)} change${total === 1 ? '' : 's'} since your last import` : 'no changes since your last import',
-        total ? 'view' : null, () => openChanges(diff)), 900);
+        total ? 'view' : null, () => openChanges(diff, key)), 900);
     }
     // Full lists only for the latest import (for the next comparison);
     // counts for the trend.
@@ -1216,7 +1237,7 @@
         // (what it did, on the button for a few seconds — the dashboard's
         // "3 pages updated"; the changes, when there are some, with "view")
         said = imported ? `${plural(imported, 'export')} imported` : 'no new exports';
-        if (imported && changes) showToast(`${plural(changes, 'change')} since your last import`, 'view', () => openChanges(diff));
+        if (imported && changes) showToast(`${plural(changes, 'change')} since your last import`, 'view', () => openChanges(diff, onScreen ? onScreen.toLowerCase() : '_global_'));
       }
     } catch (err) {
       driveSync = null;
@@ -2193,7 +2214,12 @@
     if (!users.length) return empty ? `<div class="dropdown-empty-message">${empty}</div>` : '';
     let more = '';
     if (users.length > LIST_PAGE) {
-      const key = `${users.length}|${users[0].username}|${users[users.length - 1].username}|${dismiss || 0}`;
+      // (every username and note in it: the first and last alone, a list
+      // that changed in its middle drew the same — never redrawn, its later
+      // pages the old list's)
+      let h = 2166136261;
+      for (const u of users) { const t = `${u.username}\u0001${noteOf ? noteOf(u) || '' : ''}\u0002`; for (let i = 0; i < t.length; i++) h = Math.imul(h ^ t.charCodeAt(i), 16777619); }
+      const key = `${users.length}|${(h >>> 0).toString(36)}|${dismiss || 0}`;
       moreRows.delete(key); if (moreRows.size >= 40) moreRows.delete(moreRows.keys().next().value); // (the oldest only: clearing them all could drop one just drawn, not yet wired)
       moreRows.set(key, { users, noteOf, dismiss });
       more = `<div class="rows-more" data-more-key="${esc(key)}" role="status" aria-label="loading more"><span class="rows-more-spinner" aria-hidden="true"></span></div>`;
@@ -2224,6 +2250,24 @@
         }
       };
       watchRowsMore(el);
+    });
+  }
+  // A list drawn again keeps as many rows as it had loaded: drawn with its
+  // first page only, every row past it slid out as if gone (and the list
+  // shrank back to a loading sign).
+  const shownCounts = (root) => [...root.querySelectorAll('.pending-list')].map(l => l.querySelectorAll(':scope > .user-row:not(.username-exit)').length);
+  function fillTo(root, counts) {
+    [...root.querySelectorAll('.pending-list')].forEach((list, i) => {
+      const want = counts[i] || 0;
+      for (let guard = 0; guard < 500 && list.querySelectorAll(':scope > .user-row').length < want; guard++) {
+        const sign = list.querySelector(':scope > .rows-more');
+        if (!sign) break;
+        if (!sign._loadMore) wireRowsMore(list);
+        const load = sign._loadMore;
+        sign.remove();
+        if (!load) break;
+        load();
+      }
     });
   }
   let wireQueued = false;
@@ -2586,7 +2630,10 @@
     // account's have all slid out (compare doesn't depend on the account).
     const accSwap = body._acc !== undefined && body._acc !== key && currentView !== 'compare';
     body._acc = key;
+    const oldPane = body.querySelector(':scope > .insights-pane');
+    const shown = !accSwap && oldPane && oldPane.dataset.view === currentView ? shownCounts(oldPane) : [];
     body.innerHTML = `<div class="insights-pane" data-view="${currentView}">${html}</div>`;
+    fillTo(body, shown);
     body._rowsSlid = !!safe(() => slideViewRows(body, rowsBefore, accSwap), 'view rows');
     placeChangesIndicator();
     const newStats = body.querySelector('.insights-stats');
@@ -3316,6 +3363,7 @@
       before.tops.set(r.dataset.username, rect.top);
       before.rows.set(r, { top: rect.top, bottom: rect.bottom, left: rect.left, width: rect.width, pitch: r.offsetHeight + (parseFloat(getComputedStyle(r).marginBottom) || 0) });
     });
+    if (!accSwap) fillTo(fresh, shownCounts(old));
     const oldHadText = !!old.querySelector('.dropdown-empty-message');
     const ghosts = [...old.querySelectorAll('.dropdown-empty-message')].map(m => captureGhost(m)).filter(Boolean);
     old.replaceWith(fresh);
@@ -3829,7 +3877,7 @@
   else init();
 
   // For the rest of the app (and tests).
-  window.igFeatures = { resetUndo: () => { undoStack.length = 0; safe(refreshUndo, 'undo'); }, resetDrive: () => { driveToken = null; tokenGen++; tokenWaiters.splice(0).forEach(w => w.reject(Object.assign(new Error('stopped'), { cancelled: true }))); if (driveSync) driveSync.cancelled = true; }, driveBusy: () => !!driveSync,
+  window.igFeatures = { dropUndo, resetUndo: () => { undoStack.length = 0; safe(refreshUndo, 'undo'); }, resetDrive: () => { driveToken = null; tokenGen++; tokenWaiters.splice(0).forEach(w => w.reject(Object.assign(new Error('stopped'), { cancelled: true }))); if (driveSync) driveSync.cancelled = true; }, driveBusy: () => !!driveSync,
     refreshView: () => safe(refreshView, 'view'),
     refreshToolbar: () => safe(refreshToolbar, 'toolbar'),
     // (imports' files still going up — logging out waits for them, so their

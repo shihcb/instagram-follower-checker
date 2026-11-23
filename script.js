@@ -1896,7 +1896,7 @@ function renderUnfollowerRowHtml(user, index) {
 // rows have slid out.
 function showResultsEmpty(fade) {
   const el = elements.emptyState;
-  const text = elements.searchUnfollowers.value.trim() ? 'no matches' : 'no unfollowers';
+  const text = searchQuery(elements.searchUnfollowers) ? 'no matches' : 'no unfollowers';
   if (el.textContent.trim() !== text) el.innerHTML = `<div class="dropdown-empty-message">${text}</div>`;
   const was = !el.classList.contains('hidden');
   el.classList.remove('hidden');
@@ -2037,7 +2037,7 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
   // chunk of each update with a few hundred rows.
   // true/false when it's cheap to tell; null (so: measure) with a search
   // filter active, where it depends on what matches.
-  const willEmpty = elements.searchUnfollowers.value.trim()
+  const willEmpty = searchQuery(elements.searchUnfollowers)
     ? null
     : state.unfollowers.every(u => pendingRemoval.has(u.username));
   if (flip && !listWasHidden) {
@@ -3214,7 +3214,10 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
       if (switchedAccount) calculateUnfollowers({ animate: true });
       pushToCloud();
     }
-    if (extrasChanged) extraListsChanged();
+    if (extrasChanged) {
+      if (!listsChanged && window.igFeatures && window.igFeatures.dropUndo) window.igFeatures.dropUndo(state.selectedAccountUsername); // (with the lists: recordImportDate)
+      extraListsChanged();
+    }
   }
 
   // Also when a whole folder had nothing usable (that used to fail silently).
@@ -5344,8 +5347,16 @@ function exitListRow(rowEl, onComplete, { shrinkBox, finalBoxHeight } = {}) {
 const panelResizeTimers = new WeakMap();
 function animatePanelHeightChange(listEl, startedShown, startHeight) {
   if (!startedShown || startHeight === null) return;
+  // One still playing: its locked height off first — measured with it on,
+  // this one eased to the last one's size, then snapped to its own.
+  if (panelResizeTimers.has(listEl)) {
+    clearTimeout(panelResizeTimers.get(listEl));
+    panelResizeTimers.delete(listEl);
+    listEl.style.transition = 'none';
+    listEl.style.height = '';
+  }
   const endHeight = listEl.offsetHeight;
-  if (endHeight === startHeight) return;
+  if (endHeight === startHeight) { listEl.style.transition = ''; return; }
 
   const DURATION = 450;
   listEl.style.height = `${startHeight}px`;
@@ -6064,6 +6075,7 @@ function updateInstructionsStepUI() {
   elements.clearFollowing.addEventListener('click', () => {
     const searchFollowingInput = document.getElementById('search-following');
     if (searchFollowingInput) searchFollowingInput.value = '';
+    elements.inputFollowing.placeholder = 'enter usernames'; // (a search with no matches left "no matches" on the empty list)
     // The account it was cleared on: another chip picked during the fade
     // had its own list emptied instead
     const acc = state.selectedAccountUsername;
@@ -6083,6 +6095,7 @@ function updateInstructionsStepUI() {
   elements.clearFollowers.addEventListener('click', () => {
     const searchFollowersInput = document.getElementById('search-followers');
     if (searchFollowersInput) searchFollowersInput.value = '';
+    elements.inputFollowers.placeholder = 'enter usernames'; // (a search with no matches left "no matches" on the empty list)
     // The account it was cleared on: another chip picked during the fade
     // had its own list emptied instead
     const acc = state.selectedAccountUsername;
@@ -6884,7 +6897,7 @@ function updateInstructionsStepUI() {
     const currentAcc = (state.selectedAccountUsername || '_global_').toLowerCase();
     if (userObj.isPendingRequest) {
       state.following = state.following.filter(u => u.username !== username);
-      elements.inputFollowing.value = state.following.map(u => `@${u.originalUsername || u.username}`).join('\n');
+      setListBox('following', state.following); // (its search cleared with it: a search's matches showed the whole list under it)
       updateListUI('following');
     } else if (!state.unfollowed.some(u => u.username === username)) {
       state.unfollowed.unshift({ ...userObj, account: currentAcc });
@@ -7928,6 +7941,10 @@ function initAuth() {
         // app as logging in — the button keeps its spinner till the card goes.
         holdAuthButton();
         return;
+      } else if (data && data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+        // (an email that already has an account: supabase answers as if it
+        // worked, with no one behind it — "check your email" for one never sent)
+        showAuthError('account couldn’t be created — that email already has an account');
       } else {
         showAuthSuccess('account created — check your email to confirm it');
       }
