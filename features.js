@@ -242,8 +242,11 @@
     setUndoReady(list.length > 0);
     if (undoBtn && list.length) undoBtn.title = `undo ${list[list.length - 1].message}${list.length > 1 ? ` · ${list.length} steps` : ''}`;
   }
+  let offersPending = 0; // (steps not on the stack yet: an undo waits for them)
   function offerUndo(snap, message) {
+    offersPending++;
     setTimeout(() => {
+      offersPending--;
       undoStack.push({ snap, message });
       if (undoStack.length > 50) undoStack.shift();
       refreshUndo();
@@ -300,11 +303,14 @@
       e.stopPropagation();
       // A row still sliding out: the undo waits for it (its slide finishing
       // took it out of the restored list 3), then runs — the tap is kept
-      if (typeof rowExitsInFlight !== 'undefined' && rowExitsInFlight > 0) {
+      // (and a step just taken, not on the stack yet — a select bar's rows
+      // don't count as sliding out: the step before it was undone instead)
+      const busy = () => offersPending > 0 || (typeof rowExitsInFlight !== 'undefined' && rowExitsInFlight > 0);
+      if (busy()) {
         if (!undoBtn._waiting) {
           undoBtn._waiting = true;
           const wait = () => {
-            if (rowExitsInFlight > 0) { setTimeout(wait, 50); return; }
+            if (busy()) { setTimeout(wait, 50); return; }
             undoBtn._waiting = false;
             undoBtn.click();
           };
@@ -335,6 +341,11 @@
   ];
   document.addEventListener('click', (e) => {
     if (selectMode || e.target.closest('.row-select-bar')) return;
+    // A tap that only closes an open menu does nothing to the row under it
+    // (script.js stops it): no step either. (Its listener runs first and has
+    // closed the menu already: it marks the tap.)
+    const MENUS = '#list-unfollowed, #list-starred, #add-account-dropdown-menu';
+    if (e.menuCloseOnly || (document.querySelector(`:is(${MENUS}).show`) && !e.target.closest(MENUS))) return;
     for (const [sel, verb] of ACTIONS) {
       const btn = e.target.closest(sel);
       if (btn) {
@@ -592,7 +603,8 @@
       await cloudPut(key, n, makeZip(stored, date), uid);
     } catch (err) {
       console.error('[features] saving the import files to the cloud failed:', err);
-      await keepOnDevice(key, n, stored).catch(e => console.error('[features] keeping the import files failed:', e));
+      await keepOnDevice(key, n, stored, uid).catch(e => console.error('[features] keeping the import files failed:', e));
+      if (!currentUser || currentUser.id !== uid) return false; // (logged out meanwhile: kept for them, no "retry" on the logged-out screen)
       const why = cloudReason(err);
       // A google drive sync says it once, at the end.
       if (driveSync) { driveSync.unsaved++; driveSync.why = why; return false; }
@@ -655,7 +667,10 @@
     });
     db.close();
   }
-  const keepOnDevice = (key, n, files) => filesDbWrite(store => store.put({ files }, `${key}|${n}`));
+  // (with whose they are: logged out, another person logging in here with
+  // an account of the same name had them put up into their own imports;
+  // made before logging in, they're the next one's)
+  const keepOnDevice = (key, n, files, uid = currentUser ? currentUser.id : null) => filesDbWrite(store => store.put({ files, uid }, `${key}|${n}`));
   // An import made offline numbered again after the cloud's (see
   // mergeOfflineWork): its files kept here move to its new number with it
   async function renumberKept(key, moves) {
@@ -699,6 +714,7 @@
       const [key, n] = String(id).split('|');
       const entry = readJSON(logKey(key), []).find(x => String(x.n) === n);
       if (!entry || !rec || !rec.files || !rec.files.length) continue;
+      if (rec.uid && (!currentUser || rec.uid !== currentUser.id)) continue; // (another person's, logged in here before)
       // An in-between import (not a full save, and no longer the latest)
       // keeps just its changes, as it would have had its upload worked: put
       // up now, its zip stayed in the cloud for good
@@ -1159,20 +1175,24 @@
         const sides = (type) => files.some(f => (type === 'following' ? /^following\.(html|json)$/i : /^followers(_\d+)?\.(html|json)$/i).test(f.name));
         const whole = exp.zip || (sides('following') && sides('followers'));
         if (!whole && Date.now() - exp.at < 24 * 3600 * 1000) continue;
-        if (exp.repair) {
-          if (!whole) continue;
-          writeJSON('drive_repaired', [...readJSON('drive_repaired', []), exp.id].slice(-50));
-        }
+        if (exp.repair && !whole) continue;
+        const markRepaired = () => writeJSON('drive_repaired', [...readJSON('drive_repaired', []), exp.id].slice(-50));
         let who = exp.who;
         if (exp.zip && !who) who = (await peekExport(files[0])).who;
         stillHere();
         // Lists already newer than this export (an import since) stay.
         const latest = who ? Number(storageGet(dataDateKey(who)) || storageGet(getImportDateKey(who))) || 0 : 0;
-        if (files.length && (latest < exp.at || (exp.repair && latest <= exp.at))) {
+        // (a repair — that export brought in with its followers missing: the
+        // date it was imported on is later than the export's, and it was
+        // never repaired; only an export newer than it, imported since, wins)
+        const newerSince = who ? Number(storageGet(dataDateKey(who))) || 0 : 0;
+        if (files.length && (exp.repair ? newerSince <= exp.at : latest < exp.at)) {
           importAt = exp.at;
-          try { if (await processImportFiles(files, true, { username: who, fromDrive: true })) imported++; } finally { importAt = null; }
+          let ok = false;
+          try { ok = await processImportFiles(files, true, { username: who, fromDrive: true }); if (ok) imported++; } finally { importAt = null; }
+          if (exp.repair && ok) markRepaired();
           await new Promise(resolve => setTimeout(resolve, ROW_MOTION_MS));
-        }
+        } else if (exp.repair) markRepaired(); // (newer lists in since: nothing to repair)
         // An export with no lists yet is still being put in drive (instagram
         // makes its folder first): it's looked at again next time, for a
         // few hours — it was marked done, and that day's lists never came in
