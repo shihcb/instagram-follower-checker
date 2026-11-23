@@ -1373,16 +1373,16 @@
 
   // ---------- list 3 toolbar: sort, select, today's count, reminder ----------
   let toolbar = null;
-  let reminderEl = null; // ("imported N days ago · import again": the last thing in list 3's card, under the views)
+  let reminderEl = null; // ("imported N days ago · import again": under the account chips, over sort and select)
   function buildToolbar() {
     const wrapper = document.querySelector('#card-unfollowers .results-layout-wrapper');
     if (!wrapper || toolbar) return;
     toolbar = document.createElement('div');
     toolbar.className = 'list-toolbar';
     // Sort and select share one row. The re-import reminder, when it shows,
-    // sits at the very bottom of the card, under the views — over them, its
-    // row coming and going (one account due, the next not) pushed the views
-    // and the stats graph up and down on every switch (the owner's, Nov 7, 2026).
+    // sits right under the account chips, sliding in and gliding everything
+    // under it down (the owner's, Nov 23, 2026: "the imported banner should
+    // slide and glide under the chip buttons").
     toolbar.innerHTML = `
       <div class="toolbar-row">
       <button class="toolbar-pill" data-act="sort" title="sort list 3">
@@ -1400,7 +1400,7 @@
     reminderEl.type = 'button';
     reminderEl.dataset.act = 'reminder';
     reminderEl.title = 'import again';
-    wrapper.parentNode.insertBefore(reminderEl, wrapper.nextSibling);
+    wrapper.parentNode.insertBefore(reminderEl, toolbar);
     reminderEl.addEventListener('click', (e) => {
       e.stopPropagation();
       if (elements.btnAddAccount && !elements.btnAddAccount.disabled) elements.btnAddAccount.click();
