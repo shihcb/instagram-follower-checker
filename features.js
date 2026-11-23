@@ -1011,7 +1011,9 @@
   const DRIVE_API = 'https://www.googleapis.com/drive/v3/files';
   const DRIVE_FIRST_MAX = 30; // the first sync goes back this many exports at most
   // Zips that are Instagram's: by their own name or their folder's.
-  const EXPORT_NAME = /instagram|meta|facebook|information|takeout/i;
+  // (not "takeout", "facebook" or "information": a google takeout archive,
+  // gigabytes, was downloaded whole and gone through for lists it hasn't)
+  const EXPORT_NAME = /instagram|meta/i;
   let driveToken = null; // { value, until }
   let tokenGen = 0, askedGen = 0; // (a log-out bumps tokenGen: google's answer to an earlier ask is dropped)
   let tokenClient = null;
@@ -1196,8 +1198,8 @@
         const sides = (type) => files.some(f => (type === 'following' ? /^following\.(html|json)$/i : /^followers(_\d+)?\.(html|json)$/i).test(f.name));
         const whole = exp.zip || (sides('following') && sides('followers'));
         if (!whole && Date.now() - exp.at < 24 * 3600 * 1000) continue;
-        if (exp.repair && !whole) continue;
         const markRepaired = () => writeJSON('drive_repaired', [...readJSON('drive_repaired', []), exp.id].slice(-50));
+        if (exp.repair && !whole) { markRepaired(); continue; } // (a day old and still without both lists: it won't get them — downloaded on every sync otherwise)
         let who = exp.who;
         if (exp.zip && !who) who = (await peekExport(files[0])).who;
         stillHere();
@@ -1223,12 +1225,13 @@
       pushToCloud();
       bar.stage('saving imports', 0.92);
       await Promise.allSettled([...savesRunning]);
-      const { diffs, unsaved, why } = driveSync;
+      stillHere(); // (logged out while they went up: no toast on the logged-out page)
+      const { diffs, unsaved, why } = sync;
       // (the account on screen once it's done: the one you were on, put back below)
       const onScreen = shown || state.selectedAccountUsername;
       const diff = diffs[onScreen ? onScreen.toLowerCase() : '_global_'];
       const changes = diffTotal(diff);
-      driveSync = null;
+      if (driveSync === sync) driveSync = null;
       if (unsaved) {
         // Kept on this device; they go up the next time the app opens.
         showToast(`${plural(imported, 'export')} from google drive · ${unsaved === 1 ? 'one import’s files' : `${fmtNum(unsaved)} imports’ files`} couldn’t be saved to the cloud${why ? ` (${why})` : ''}`,
@@ -1240,13 +1243,13 @@
         if (imported && changes) showToast(`${plural(changes, 'change')} since your last import`, 'view', () => openChanges(diff, onScreen ? onScreen.toLowerCase() : '_global_'));
       }
     } catch (err) {
-      driveSync = null;
+      if (driveSync === sync) driveSync = null;
       if ((err && err.cancelled) || !currentUser || currentUser.id !== uid) return; // (logged out: nothing more, nothing said)
       console.error('[features] google drive sync failed:', err);
       if (imported) pushToCloud();
       showToast('google drive couldn’t be synced', 'retry', syncDrive, { duration: 10000 });
     } finally {
-      driveSync = null;
+      if (driveSync === sync) driveSync = null; // (logged out: already let go, and maybe the next person's own since)
       bar.stop(said);
       // Back to the account you were on (a sync that failed partway too)
       if (imported && shown && currentUser && currentUser.id === uid && state.selectedAccountUsername !== shown) {
@@ -1264,6 +1267,7 @@
     driveToken = null;
     storageSet('drive_on', '0');
     storageRemove('drive_email');
+    storageRemove('drive_checked'); // (another drive connected next: its first sync goes back only so far, as any first one)
     pushToCloud();
     refreshDrive();
   }
@@ -3877,7 +3881,7 @@
   else init();
 
   // For the rest of the app (and tests).
-  window.igFeatures = { dropUndo, resetUndo: () => { undoStack.length = 0; safe(refreshUndo, 'undo'); }, resetDrive: () => { driveToken = null; tokenGen++; tokenWaiters.splice(0).forEach(w => w.reject(Object.assign(new Error('stopped'), { cancelled: true }))); if (driveSync) driveSync.cancelled = true; }, driveBusy: () => !!driveSync,
+  window.igFeatures = { dropUndo, resetUndo: () => { undoStack.length = 0; safe(refreshUndo, 'undo'); }, resetDrive: () => { driveToken = null; tokenGen++; tokenWaiters.splice(0).forEach(w => w.reject(Object.assign(new Error('stopped'), { cancelled: true }))); if (driveSync) { driveSync.cancelled = true; driveSync = null; } }, driveBusy: () => !!driveSync,
     refreshView: () => safe(refreshView, 'view'),
     refreshToolbar: () => safe(refreshToolbar, 'toolbar'),
     // (imports' files still going up — logging out waits for them, so their
