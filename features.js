@@ -3104,7 +3104,12 @@
     requestAnimationFrame(() => placeSubIndicator(mobileNav));
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placeSubIndicator(mobileNav));
     // Turned to a phone's width (or back): the highlight finds its tab.
-    const onChange = () => requestAnimationFrame(() => placeSubIndicator(mobileNav));
+    // (selecting, it goes to list 3: lists 1 and 2 are blurred then, and one
+    // of them alone on the phone's screen couldn't be tapped)
+    const onChange = () => {
+      if (phoneLayout.matches && selectMode && mobileList !== 'unfollowers') switchMobileList('unfollowers', false);
+      requestAnimationFrame(() => placeSubIndicator(mobileNav));
+    };
     if (phoneLayout.addEventListener) phoneLayout.addEventListener('change', onChange);
   }
   function showMobileList(id, animate = true) {

@@ -63,6 +63,11 @@ function storageKeys() {
 const SUPABASE_URL = 'https://umwgulwrmdlleqzkfumm.supabase.co'; 
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtd2d1bHdybWRsbGVxemtmdW1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0OTI2ODYsImV4cCI6MjEwMjA2ODY4Nn0.qVROwKLelVOW2-Si_nXl0UAK5Fd1x2HHC9W0QKeogJQ'; 
 
+// Opened from a password reset email (read before supabase takes it out of
+// the address): only this copy of the app asks for the new password — every
+// other one open got the same report from supabase, and asked too
+const OPENED_FOR_RESET = /(^|[#&])type=recovery(&|$)/.test(location.hash || '');
+
 let supabaseClient = null;
 if (SUPABASE_URL && SUPABASE_ANON_KEY) {
   try {
@@ -7400,7 +7405,7 @@ function initAuth() {
       // Opened from a password reset email: logged in, then asked for the
       // new password (the link only ever logged in — the password was never
       // changed, and still unknown)
-      if (event === 'PASSWORD_RECOVERY') authQueue = authQueue.then(askNewPassword);
+      if (event === 'PASSWORD_RECOVERY' && OPENED_FOR_RESET) authQueue = authQueue.then(askNewPassword);
     }, 0);
   });
   // Opened offline with a sign-in kept on this device: in at once, from
@@ -7438,10 +7443,13 @@ function initAuth() {
   async function handleAuthChange(event, session) {
     const firstCheck = isInitialAuthCheck;
     try {
-      if (document.activeElement && typeof document.activeElement.blur === 'function') {
+      const isSameUser = session && currentUser && session.user.id === currentUser.id;
+      // (only when who's in changes: supabase reports the same person again
+      // every time the app comes back to the front, and every hour — the
+      // box being typed in lost its cursor, the phone's keyboard dropped)
+      if (!isSameUser && document.activeElement && typeof document.activeElement.blur === 'function') {
         document.activeElement.blur();
       }
-      const isSameUser = session && currentUser && session.user.id === currentUser.id;
 
       if (session) {
         currentUser = session.user;
@@ -8593,6 +8601,9 @@ function clearLocalAccountData() {
   // Their settings too (google drive's sync among them: the next person
   // here was "synced today", with their drive) — all but the theme
   CLOUD_PREFS.filter(k => k !== 'theme' && k !== 'theme_at').forEach(storageRemove);
+  // (the theme stays as it is, but no longer counts as a pick newer than the
+  // cloud's: the next person in had it written into their own settings)
+  storageRemove('theme_at');
 }
 
 // Nothing is uploaded until this login's data has been downloaded. Logging
@@ -8687,8 +8698,22 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') { hiddenSince = Date.now(); return; }
   const away = hiddenSince ? Date.now() - hiddenSince : 0;
   hiddenSince = 0;
-  if (away >= 5 * 60 * 1000) refreshFromCloud();
+  if (away >= 5 * 60 * 1000 || cloudNewerElsewhere) refreshFromCloud();
 });
+// Another copy of the app open on this device (another tab or window) has
+// just saved to the cloud: this one loads it again — when it's on screen,
+// at once; otherwise when it comes back. Its next change uploaded its old
+// copy over the other's (an import there, a deleted account, gone).
+let cloudNewerElsewhere = false;
+const cloudChannel = typeof BroadcastChannel === 'function' ? new BroadcastChannel('ig-cloud') : null;
+function tellOtherCopies() {
+  try { if (cloudChannel && currentUser) cloudChannel.postMessage({ uid: currentUser.id }); } catch (e) {}
+}
+if (cloudChannel) cloudChannel.onmessage = (e) => {
+  if (!e.data || !currentUser || e.data.uid !== currentUser.id) return;
+  cloudNewerElsewhere = true;
+  if (document.visibilityState === 'visible') refreshFromCloud();
+};
 async function refreshFromCloud() {
   // (not while anything of this device's is still on its way up — that
   // goes first, its own retry — nor mid-import, nor in the demo)
@@ -8706,6 +8731,7 @@ async function refreshFromCloud() {
   // wins: the cloud copy is dropped rather than written over it
   const stillWanted = () => { flushListInputs(); return currentUser && currentUser.id === uid && cloudChangeGen === gen && !hasPendingCloudPush() && !accountsBusy(); };
   let loaded;
+  cloudNewerElsewhere = false;
   try { loaded = await pullFromCloud(false, stillWanted); } catch (err) { console.error('Error refreshing cloud data:', err); return; }
   if (loaded === false) {
     // (dropped for a change made here meanwhile: that change goes up)
@@ -8826,6 +8852,7 @@ async function pushToCloudNow() {
       storageRemove(CLOUD_DIRTY_KEY);
     }
     cloudRetryDelay = 15000;
+    tellOtherCopies();
     return true;
   } catch (err) {
     console.error('Error syncing data to Supabase:', err);
