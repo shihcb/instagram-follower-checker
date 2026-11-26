@@ -292,8 +292,14 @@
     setTimeout(() => {
       offersPending--;
       // (what it changed, for the undo: the lists once its slide is done)
-      if (snap.unfollowed && !snap.cleared && !snap.extraRemoved && snap.acc === accKey()) {
-        snap.after = { unfollowed: state.unfollowed.slice(), starred: state.starred.slice(), dismissed: storageGet(dismissedKey()) };
+      if (snap.unfollowed && !snap.cleared && !snap.extraRemoved) {
+        if (snap.acc === accKey()) snap.after = { unfollowed: state.unfollowed.slice(), starred: state.starred.slice(), dismissed: storageGet(dismissedKey()) };
+        else {
+          // (another account picked meanwhile: its saved lists — without
+          // them the undo put whole old lists back)
+          const read = (k) => { try { const x = JSON.parse(storageGet(k) || '[]'); return Array.isArray(x) ? x : []; } catch (e) { return []; } };
+          snap.after = { unfollowed: read(`unfollowed_users_${snap.acc}`), starred: read(`starred_users_${snap.acc}`), dismissed: storageGet(`hidden_users_${snap.acc}`) };
+        }
       }
       undoStack.push({ snap, message });
       if (undoStack.length > 50) undoStack.shift();
@@ -394,13 +400,15 @@
     ['#list-starred .remove-unfollowed-btn', 'moved back to list 3'],
   ];
   document.addEventListener('click', (e) => {
-    if (selectMode || e.target.closest('.row-select-bar')) return;
+    if (e.target.closest('.row-select-bar')) return;
     // A tap that only closes an open menu does nothing to the row under it
     // (script.js stops it): no step either. (Its listener runs first and has
     // closed the menu already: it marks the tap.)
     const MENUS = '#list-unfollowed, #list-starred, #add-account-dropdown-menu';
     if (e.menuCloseOnly || (document.querySelector(`:is(${MENUS}).show`) && !e.target.closest(MENUS))) return;
     for (const [sel, verb] of ACTIONS) {
+      // (select mode: list 3's taps pick rows — the menus' buttons still act, and get their step)
+      if (selectMode && sel.startsWith('#list-unfollowers')) continue;
       const btn = e.target.closest(sel);
       if (btn) {
         // The row, not the button (submenu buttons carry the username too).
@@ -418,7 +426,7 @@
     // (not from the star rightwards, off the buttons: script.js ignores those taps)
     const star = row ? row.querySelector('.action-star') : null;
     const offButtons = star && e.clientX >= star.getBoundingClientRect().left;
-    if (row && !offButtons && !row.classList.contains('username-exit') && !e.target.closest('.action-arrow, .user-row-actions')) {
+    if (!selectMode && row && !offButtons && !row.classList.contains('username-exit') && !e.target.closest('.action-arrow, .user-row-actions')) {
       const name = row.querySelector('.user-link');
       offerUndo(snapshot(), `${name ? name.textContent.trim() : 'account'} unfollowed`);
     }
@@ -3399,6 +3407,7 @@
   // screen). The highlight is re-placed once the switcher shows again.
   function jumpResultsSub(id) {
     if (!resultsSubnav || subTab.results === id) return;
+    if (selectMode) setSelectMode(false); // (select is per tab, as when one's tapped: it stayed on over the wrong one)
     subTab.results = id;
     storageSet('results_sub', id); pushToCloud();
     const box = resultsSubnav.parentNode;
@@ -3445,6 +3454,10 @@
     const fresh = document.createElement('div');
     fresh.className = 'extra-body';
     fresh.innerHTML = `${sub ? `<div class="insights-sub">${esc(sub)}</div>` : ''}${body}`;
+    // (picks still marked when it's drawn again — an undo, say: the bar said
+    // "2 selected" over rows showing none)
+    const markPicks = (el) => { if (id === 'pending' && selectMode && selectOnPending()) el.querySelectorAll('.user-row').forEach(r => r.classList.toggle('multi-selected', selected.has(r.dataset.username))); };
+    markPicks(fresh);
     pane.querySelectorAll(':scope > .extra-leaving').forEach(el => el.remove());
     const showing = animate && !pageLoading && old && pane.classList.contains('sub-on') && pane.getClientRects().length && typeof old.animate === 'function';
     if (!showing) {
@@ -3453,6 +3466,7 @@
       return;
     }
     swapPendingRows(pane, old, fresh, accSwap);
+    markPicks(pane);
   }
   // Pending requests change like list 3's rows (an account picked, files
   // imported): the boxes on screen slide out, the new ones slide in, each

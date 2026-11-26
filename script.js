@@ -7076,7 +7076,9 @@ function updateInstructionsStepUI() {
       state.pendingAutoOpen = false;
       state.autoOpenCount = 0;
     }
-    if (autoOpenToggle && autoOpenToggle.checked && state.pendingAutoOpen) {
+    // (not in select mode: it unfollowed a picked row, the picks left counting it — kept armed for after)
+    const selecting = !!document.querySelector('#list-unfollowers.select-mode, .results-extra.select-mode');
+    if (autoOpenToggle && autoOpenToggle.checked && state.pendingAutoOpen && !selecting) {
       if (Date.now() - lastAutoOpenReturn < 1500) return;
       lastAutoOpenReturn = Date.now();
       state.pendingAutoOpen = false; // Reset to avoid double execution
