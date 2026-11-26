@@ -2362,6 +2362,10 @@ body.hide-shortcuts #keyboard-hints {
 }
 .instructions-steps > .instructions-step-pane {
   grid-area: 1 / 1;
+  /* (a short window — a phone on its side: the step's words below the
+     picture were cut off, nothing scrolled) */
+  min-height: 0;
+  overflow-y: auto;
   display: flex !important;
   visibility: hidden;
   pointer-events: none;
@@ -3340,6 +3344,10 @@ body.is-capacitor .app-container {
 body.is-capacitor #card-unfollowers {
   height: calc(100vh - max(88px, calc(76px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)))) !important;
   height: calc(100svh - max(88px, calc(76px + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)))) !important;
+}
+/* (an installed copy on a computer: list 3 as tall as lists 1 and 2 — it ran 16px taller, nearly off the bottom) */
+@media (min-width: 1025px) {
+  body.is-capacitor #card-unfollowers { height: auto !important; }
 }
 
 /* -------------------------------------------------------------

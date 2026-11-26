@@ -520,7 +520,7 @@ document.addEventListener('click', (e) => {
 // it, and Enter there started select mode under an open window).
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Tab') return;
-  const open = [...document.querySelectorAll('.modal-overlay.show')];
+  const open = [...document.querySelectorAll('.modal-overlay.show, .love-overlay.show')]; // (the love note too: Tab walked the page behind it)
   if (!open.length) return;
   const top = open.reduce((a, b) => ((+getComputedStyle(b).zIndex || 0) >= (+getComputedStyle(a).zIndex || 0) ? b : a));
   const items = [...top.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
@@ -6644,6 +6644,8 @@ function updateInstructionsStepUI() {
     // forever after closing.
     if (loveOverlay.classList.contains('show')) return;
     loveOverlay.classList.add('show');
+    // (Reduce Motion: no floating hearts — cut to an instant, they sat in a flickering row over the ✕)
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     // Periodically spawn floating hearts
     heartInterval = setInterval(spawnFloatHeart, 300);
     // Spawn initial bunch of hearts immediately
