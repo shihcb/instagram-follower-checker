@@ -596,7 +596,7 @@ function showSiteConfirmNow(title, message, confirmText = 'confirm', cancelText 
       if (e.key === 'Escape' || e.key === 'Esc') {
         e.preventDefault();
         e.stopImmediatePropagation();
-        onCancel();
+        if (!(field && field.stay)) onCancel(); // (a window that mustn't be lost by accident: its cancel only)
       } else if (e.key === 'Enter' && (field ? e.target === input : !overlay.contains(e.target) || !(e.target.closest && e.target.closest('button, a, input, textarea')))) {
         e.preventDefault();
         e.stopImmediatePropagation();
@@ -631,7 +631,7 @@ function showSiteConfirmNow(title, message, confirmText = 'confirm', cancelText 
     }
 
     function onOverlayClick(e) {
-      if (e.target === overlay) {
+      if (e.target === overlay && !(field && field.stay)) {
         onCancel();
       }
     }
@@ -3709,6 +3709,7 @@ function renderAccountChips(animate = false, { force = false } = {}) {
 
 function openAccountModal(index = -1) {
   if (!elements.accountModalOverlay) return;
+  if (!currentUser) return; // (the guest preview: its demo chip was renamed or deleted, the preview left empty)
   if (accountsBusy()) { sayAccountsBusy(); return; }
 
   state.editingAccountIndex = index;
@@ -7539,7 +7540,9 @@ function initAuth() {
       // Opened from a password reset email: logged in, then asked for the
       // new password (the link only ever logged in — the password was never
       // changed, and still unknown)
-      if (event === 'PASSWORD_RECOVERY' && OPENED_FOR_RESET) authQueue = authQueue.then(askNewPassword);
+      let askAgain = false;
+      try { askAgain = event === 'INITIAL_SESSION' && !!session && sessionStorage.getItem('ig_new_password') === '1'; } catch (e) {}
+      if ((event === 'PASSWORD_RECOVERY' && OPENED_FOR_RESET) || askAgain) authQueue = authQueue.then(askNewPassword);
     }, 0);
   });
   // Opened offline with a sign-in kept on this device: in at once, from
@@ -7551,14 +7554,19 @@ function initAuth() {
     if (stored) { openedOffline = true; authQueue = authQueue.then(() => handleAuthChange('INITIAL_SESSION', stored)); }
   }
   async function askNewPassword() {
+    // (kept till it's saved or cancelled: a refresh, the link already used,
+    // never asked again — logged in with a password no one knows)
+    try { sessionStorage.setItem('ig_new_password', '1'); } catch (e) {}
+    const done = () => { try { sessionStorage.removeItem('ig_new_password'); } catch (e) {} };
     let note = '';
     for (;;) {
-      const answer = await showSiteConfirm('new password', note, 'save', 'cancel', { value: '', placeholder: 'new password', type: 'password' });
-      if (answer == null || answer === '') return;
+      const answer = await showSiteConfirm('new password', note, 'save', 'cancel', { value: '', placeholder: 'new password', type: 'password', stay: true });
+      if (!currentUser) return;
+      if (answer == null || answer === '') { done(); return; }
       if (answer.length < 6) { note = 'password couldn’t be saved — it needs at least 6 characters'; continue; }
       let error = null;
       try { ({ error } = await supabaseClient.auth.updateUser({ password: answer })); } catch (err) { error = {}; }
-      if (!error) { if (window.igFeatures && window.igFeatures.showToast) window.igFeatures.showToast('password changed'); return; }
+      if (!error) { done(); if (window.igFeatures && window.igFeatures.showToast) window.igFeatures.showToast('password changed'); return; }
       note = authMessage(error, 'password couldn’t be saved').toLowerCase();
     }
   }
@@ -7570,7 +7578,7 @@ function initAuth() {
     if (params.get('error') || params.get('error_code')) {
       const reason = params.get('error_code') === 'otp_expired' ? 'link couldn’t be used — it has expired' : 'link couldn’t be used'; // (a sign-up's confirm link comes back the same way)
       try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
-      setTimeout(() => { try { showAuthError(reason); } catch (e) {} }, 600);
+      setTimeout(() => { try { if (!currentUser) showAuthError(reason); } catch (e) {} }, 600); // (logged in: said on a hidden card, it showed at the next log-out)
     }
   }
 
@@ -7578,6 +7586,19 @@ function initAuth() {
     const firstCheck = isInitialAuthCheck;
     try {
       const isSameUser = session && currentUser && session.user.id === currentUser.id;
+      // (another person in with no log-out first — another tab, a reset
+      // link: the last one's account, lists and undo steps went on, and
+      // undo wrote their account into this one's cloud)
+      if (session && currentUser && !isSameUser) {
+        Object.assign(state, { following: [], followers: [], unfollowers: [], unfollowed: [], starred: [], instagramAccounts: [], selectedAccountUsername: null, selectedIndex: -1, pendingAutoOpen: false, autoOpenCount: 0 });
+        const f = window.igFeatures;
+        if (f && f.resetUndo) f.resetUndo();
+        if (f && f.resetDrive) f.resetDrive();
+        if (f && f.hideToast) f.hideToast();
+      }
+      // (someone in: the card's old warnings go — they stayed by the spinning
+      // log-in button, and on the card at the next log-out)
+      if (session && !isSameUser) { try { clearAuthAlerts(); } catch (e) {} }
       // (only when who's in changes: supabase reports the same person again
       // every time the app comes back to the front, and every hour — the
       // box being typed in lost its cursor, the phone's keyboard dropped)
@@ -7774,6 +7795,8 @@ function initAuth() {
           if (window.igFeatures && window.igFeatures.resetDrive) window.igFeatures.resetDrive();
           if (window.igFeatures && window.igFeatures.resetUndo) window.igFeatures.resetUndo();
           if (window.igFeatures && window.igFeatures.hideToast) window.igFeatures.hideToast(); // (its "sync" or "retry" acted for the next person in)
+          // (the card comes back clean, on its log-in tab: the last warnings and the sign-up tab stayed)
+          try { clearAuthAlerts({ instant: true }); switchTab(false); } catch (e) {}
 
           elements.inputFollowing.value = '';
           elements.inputFollowers.value = '';

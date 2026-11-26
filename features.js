@@ -4038,6 +4038,8 @@
         if (text) { text.textContent = SORT_LABELS[sortMode]; btn.querySelector('.sort-window').style.width = ''; }
         if (btn) btn.classList.toggle('on', sortMode !== 'default');
       }
+      // (no saved view — logged out, say: back to the results, not the last person's tab)
+      if (!storageGet('list3_view') && currentView !== 'results') safe(() => showView('results'), 'view');
       subTab.stats = savedSub('stats_sub', 'stats');
       const results = savedSub('results_sub', 'results');
       if (results !== subTab.results) jumpResultsSub(results);
