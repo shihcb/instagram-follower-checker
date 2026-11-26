@@ -3502,6 +3502,19 @@ html.is-logged-in .auth-dropdown:not(.show) {
   visibility: hidden !important;
   opacity: 0 !important;
   pointer-events: none !important;
+  /* (and no height once its fade is done: still 600px tall, it let a short
+     phone's page scroll on into blank space below the card) */
+  max-height: 0 !important;
+  overflow: hidden !important;
+  transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0s linear 0.45s,
+              max-height 0s linear 0.45s;
+}
+/* (a number open, so the close can hold it till the fade is done — from
+   "none" it went at once, the panel shrinking as it faded) */
+html.is-logged-in .auth-dropdown.show {
+  max-height: 100000px;
 }
 
 [data-theme="light"] body.auth-logged-out .auth-dropdown {
@@ -7255,6 +7268,14 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
 }
 .app-grid > .mobile-list-nav .changes-nav .insights-tab {
   flex: 1 0 auto;
+}
+/* (a 320px screen: the three tabs a little closer in, so they fit — they
+   scrolled sideways, "followers" cut off) */
+@media (max-width: 340px) {
+  .app-grid > .mobile-list-nav .changes-nav .insights-tab {
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+  }
 }
 
 /* Rows: 8px apart, 10px corners, the boxes' white inside the panel (the
