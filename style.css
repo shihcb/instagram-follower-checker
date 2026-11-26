@@ -3040,7 +3040,7 @@ html.hide-shortcuts .account-chip-badge {
   align-items: center !important;
   justify-content: center !important;
   text-align: center !important;
-  line-height: 1 !important;
+  line-height: 1.4 !important; /* (the app's exact line: at 1 the initials sat a pixel high) */
   padding: 0 !important;
   box-sizing: border-box;
   font-family: var(--font-display);
@@ -5931,7 +5931,7 @@ select,
 }
 #btn-instructions-back:disabled {
   opacity: 0.35;
-  cursor: default;
+  cursor: default !important; /* (over button:disabled’s not-allowed) */
 }
 #btn-instructions-next {
   width: 36px; /* "close": its measured width, set by updateInstructionsStepUI */
@@ -6938,7 +6938,7 @@ b, strong {
 @media (max-width: 1024px) {
   #add-account-dropdown-menu, .compare-menu.dropdown-menu { gap: 2px !important; padding: 6px !important; }
   #add-account-dropdown-menu > *, .compare-menu > * { margin-bottom: 0; }
-  #add-account-dropdown-menu .dropdown-item-btn, .compare-menu .dropdown-item-btn { padding: 10px 12px !important; gap: 8px; }
+  #add-account-dropdown-menu .dropdown-item-btn, .compare-menu .dropdown-item-btn { padding: 10px 12px !important; gap: 8px !important; } /* (!important: the toolbar buttons' 4px took it) */
 }
 /* The narrowest phones (320px): list 3's rows left a username 28px of
    room beside the avatar and the four buttons (it glided through a slot
@@ -7160,7 +7160,7 @@ html.is-logged-in #auth-profile-view > .app-version {
 }
 .btn.drive-sync:disabled:not(.busy) {
   opacity: .45;
-  cursor: default;
+  cursor: default !important; /* (over button:disabled’s not-allowed) */
 }
 
 /* The timeline's dates: the day's figures one width as it rolls (rollDate) */
