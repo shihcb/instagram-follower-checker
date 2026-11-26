@@ -7541,7 +7541,7 @@ function initAuth() {
       // new password (the link only ever logged in — the password was never
       // changed, and still unknown)
       let askAgain = false;
-      try { askAgain = event === 'INITIAL_SESSION' && !!session && sessionStorage.getItem('ig_new_password') === '1'; } catch (e) {}
+      try { askAgain = event === 'INITIAL_SESSION' && !!session && sessionStorage.getItem('ig_new_password') === session.user.id; } catch (e) {}
       if ((event === 'PASSWORD_RECOVERY' && OPENED_FOR_RESET) || askAgain) authQueue = authQueue.then(askNewPassword);
     }, 0);
   });
@@ -7556,7 +7556,7 @@ function initAuth() {
   async function askNewPassword() {
     // (kept till it's saved or cancelled: a refresh, the link already used,
     // never asked again — logged in with a password no one knows)
-    try { sessionStorage.setItem('ig_new_password', '1'); } catch (e) {}
+    try { if (currentUser) sessionStorage.setItem('ig_new_password', currentUser.id); } catch (e) {} // (whose: a later log-in, anyone's, was asked for one)
     const done = () => { try { sessionStorage.removeItem('ig_new_password'); } catch (e) {} };
     let note = '';
     for (;;) {
@@ -7595,6 +7595,7 @@ function initAuth() {
         if (f && f.resetUndo) f.resetUndo();
         if (f && f.resetDrive) f.resetDrive();
         if (f && f.hideToast) f.hideToast();
+        if (elements.searchUnfollowers) elements.searchUnfollowers.value = ''; // (the last person's search too)
       }
       // (someone in: the card's old warnings go — they stayed by the spinning
       // log-in button, and on the card at the next log-out)
@@ -7797,6 +7798,7 @@ function initAuth() {
           if (window.igFeatures && window.igFeatures.hideToast) window.igFeatures.hideToast(); // (its "sync" or "retry" acted for the next person in)
           // (the card comes back clean, on its log-in tab: the last warnings and the sign-up tab stayed)
           try { clearAuthAlerts({ instant: true }); switchTab(false); } catch (e) {}
+          try { sessionStorage.removeItem('ig_new_password'); } catch (e) {} // (logged out: no new password still to ask for)
 
           elements.inputFollowing.value = '';
           elements.inputFollowers.value = '';
