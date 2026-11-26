@@ -2807,7 +2807,8 @@ function ensureAccountSelected(username, { renderResults = true } = {}) {
   // Real files for the demo chip's name turn the demo into that real
   // account (same spot in the chips), unless a real one already exists.
   const demoIndex = state.instagramAccounts.findIndex(acc => isDemoAccount(acc) && acc.username.toLowerCase() === usernameLower);
-  const realExists = state.instagramAccounts.some(acc => !isDemoAccount(acc) && acc.originalUsername.toLowerCase() === usernameLower);
+  // (a chip renamed to that name is the real one too: the export went into the demo instead)
+  const realExists = state.instagramAccounts.some(acc => !isDemoAccount(acc) && (acc.originalUsername.toLowerCase() === usernameLower || String(acc.username || '').toLowerCase() === usernameLower));
   if (demoIndex >= 0 && !realExists) {
     const demoSelected = state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() === DEMO_ID;
     state.instagramAccounts[demoIndex] = { username, originalUsername: username };
@@ -3140,7 +3141,10 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
       // nothing without a word); a profile link is read for its username.
       // Cancelled, or left empty: nothing is imported (it carried on before,
       // replacing the lists of whatever account was on screen).
-      let value = state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() !== DEMO_ID ? state.selectedAccountUsername : '';
+      // (the name its chip shows: a renamed one suggested its old name)
+      const onScreen = state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() !== DEMO_ID
+        ? (state.instagramAccounts || []).find(acc => acc.originalUsername.toLowerCase() === state.selectedAccountUsername.toLowerCase()) : null;
+      let value = onScreen ? (onScreen.username || onScreen.originalUsername) : '';
       let note = 'the files don’t name their instagram account — enter its username';
       for (;;) {
         const answer = await showSiteConfirm("which account is this?", note, 'import', 'cancel', { value, placeholder: '@username' });
@@ -5649,6 +5653,11 @@ function startDemo() {
   // (not mid-import: the rest of it went into the demo, and was wiped with it)
   if (accountsBusy()) { sayAccountsBusy(); return; }
   normalizeInstagramAccounts();
+  // (not under a name a chip already shows: two of the same chip)
+  if ((state.instagramAccounts || []).some(acc => !isDemoAccount(acc) && (String(acc.username || '').toLowerCase() === DEMO_NAME.toLowerCase() || acc.originalUsername.toLowerCase() === DEMO_NAME.toLowerCase()))) {
+    showSiteAlert('demo couldn’t be started', `@${DEMO_NAME.toLowerCase()} is already one of your accounts`);
+    return;
+  }
   if (!(state.instagramAccounts || []).some(isDemoAccount) && state.instagramAccounts.length >= MAX_ACCOUNTS) {
     showAccountLimitAlert();
     return;
@@ -8616,7 +8625,11 @@ async function pullFromCloudNow(uploadLocalFirst, stillWanted) {
       const metaItem = rawStarred.find(item => item && item.__meta);
 
       if (metaItem) {
+        // (a reload while the app is open keeps the demo chip — never saved,
+        // it went whenever another account was on screen)
+        const demoChip = cloudReady ? (state.instagramAccounts || []).find(isDemoAccount) : null;
         state.instagramAccounts = metaItem.instagram_accounts || [];
+        if (demoChip && !state.instagramAccounts.some(acc => isDemoAccount(acc) || String(acc.username || '').toLowerCase() === String(demoChip.username).toLowerCase())) state.instagramAccounts.push(demoChip);
         normalizeInstagramAccounts();
         // This device's last choice first ('' = no account, on purpose),
         // then the one saved with the cloud data (null = no account). Only
