@@ -479,6 +479,8 @@
     // (the account the changes are of: another picked since the toast came
     // up, "view" opened that one's changes on this one's tab)
     if (key && key !== accKey()) {
+      // (not mid-import: the rest of it went into the account picked)
+      if (accountsBusy()) { sayAccountsBusy(); return; }
       const acc = state.instagramAccounts.find(a => a.originalUsername.toLowerCase() === key);
       if (!acc) return;
       ensureAccountSelected(acc.originalUsername);
@@ -610,7 +612,10 @@
     pushToCloud();
     const files = (typeof lastImportFiles !== 'undefined' ? lastImportFiles : []) || [];
     if (!files.length) return;
-    const stored = await Promise.all(files.map(async file => ({ name: file.webkitRelativePath || file.name, data: await file.arrayBuffer() })));
+    // (a whole export's files in a folder in the zip: uploaded again, it's
+    // taken as whole; single files' flat, so it isn't)
+    const whole = typeof lastImportWhole !== 'undefined' && lastImportWhole;
+    const stored = await Promise.all(files.map(async file => { const rel = file.webkitRelativePath || file.name; return { name: whole && !rel.includes('/') ? `export/${rel}` : rel, data: await file.arrayBuffer() }; }));
     if (!cloudLoaded()) {
       // Kept here until you log in, or this user's log has come down from
       // the cloud (moveLocalFilesToCloud uploads them then, under the number
@@ -1183,12 +1188,24 @@
       // An account's newest export brought in before its followers had
       // come into drive (list 2 full, list 1 empty): brought in again, once,
       // now that they're there.
+      // (an export's name is the account's on instagram now: a chip renamed
+      // since keeps its data under its first name — looked up there, the
+      // newer lists were read as none)
+      const keyOf = (name) => {
+        if (!name) return name;
+        const n = String(name).toLowerCase();
+        const acc = (state.instagramAccounts || []).find(a => a.originalUsername.toLowerCase() === n)
+          || (state.instagramAccounts || []).find(a => !a.demo && String(a.username || '').toLowerCase() === n);
+        return acc ? acc.originalUsername.toLowerCase() : n;
+      };
+      let overLimit = false;
       const repaired = new Set(readJSON('drive_repaired', []));
       const newest = new Map();
       all.filter(e => e.who && !e.zip).forEach(e => { if (!newest.has(e.who) || newest.get(e.who).at < e.at) newest.set(e.who, e); });
       newest.forEach((e, who) => {
         if (!seen.has(e.id) || repaired.has(e.id) || fresh.includes(e)) return;
-        if (readJSON(`following_users_${who}`, []).length && !readJSON(`followers_users_${who}`, []).length) { e.repair = true; fresh.push(e); }
+        const k = keyOf(who);
+        if (readJSON(`following_users_${k}`, []).length && !readJSON(`followers_users_${k}`, []).length) { e.repair = true; fresh.push(e); }
       });
       fresh.sort((a, b) => a.at - b.at); // oldest first
       shown = state.selectedAccountUsername;
@@ -1212,11 +1229,15 @@
         if (exp.zip && !who) who = (await peekExport(files[0])).who;
         stillHere();
         // Lists already newer than this export (an import since) stay.
-        const latest = who ? Number(storageGet(dataDateKey(who)) || storageGet(getImportDateKey(who))) || 0 : 0;
+        // (an account that can't be added — 3 already: skipped, not marked
+        // seen, said once at the end — it was an alert per export, and the
+        // exports were never brought in once there was room)
+        if (who && isNewAccountOverLimit(who)) { overLimit = true; continue; }
+        const latest = who ? Number(storageGet(dataDateKey(keyOf(who))) || storageGet(getImportDateKey(keyOf(who)))) || 0 : 0;
         // (a repair — that export brought in with its followers missing: the
         // date it was imported on is later than the export's, and it was
         // never repaired; only an export newer than it, imported since, wins)
-        const newerSince = who ? Number(storageGet(dataDateKey(who))) || 0 : 0;
+        const newerSince = who ? Number(storageGet(dataDateKey(keyOf(who)))) || 0 : 0;
         if (files.length && (exp.repair ? newerSince <= exp.at : latest < exp.at)) {
           importAt = exp.at;
           let ok = false;
@@ -1231,6 +1252,7 @@
       }
       storageSet('drive_checked', String(Date.now()));
       pushToCloud();
+      if (overLimit) showAccountLimitAlert(); // (once, for every export of an account that couldn't be added)
       bar.stage('saving imports', 0.92);
       await Promise.allSettled([...savesRunning]);
       stillHere(); // (logged out while they went up: no toast on the logged-out page)
@@ -3897,7 +3919,7 @@
   else init();
 
   // For the rest of the app (and tests).
-  window.igFeatures = { dropUndo, resetUndo: () => { undoStack.length = 0; safe(refreshUndo, 'undo'); }, resetDrive: () => { driveToken = null; tokenGen++; tokenWaiters.splice(0).forEach(w => w.reject(Object.assign(new Error('stopped'), { cancelled: true }))); if (driveSync) { driveSync.cancelled = true; driveSync = null; } }, driveBusy: () => !!driveSync,
+  window.igFeatures = { dropUndo, hideToast: () => { if (toastEl) { clearTimeout(toastTimer); toastAction = null; hideToast(); } }, resetUndo: () => { undoStack.length = 0; safe(refreshUndo, 'undo'); }, resetDrive: () => { driveToken = null; tokenGen++; tokenWaiters.splice(0).forEach(w => w.reject(Object.assign(new Error('stopped'), { cancelled: true }))); if (driveSync) { driveSync.cancelled = true; driveSync = null; } }, driveBusy: () => !!driveSync,
     refreshView: () => safe(refreshView, 'view'),
     refreshToolbar: () => safe(refreshToolbar, 'toolbar'),
     // (imports' files still going up — logging out waits for them, so their

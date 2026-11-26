@@ -2922,6 +2922,7 @@ async function unzipImportFiles(zip) {
     p += 46 + nameLen + extraLen + commentLen;
     const base = name.split('/').pop();
     if (!base || name.startsWith('__MACOSX/') || !ZIP_WANTED(base.toLowerCase())) continue;
+    if (name.includes('/')) out.nested = true; // (instagram's own: its files in folders)
     const head = await read(local, 30);
     const start = local + 30 + head.getUint16(26, true) + head.getUint16(28, true);
     const raw = zip.slice(start, start + csize);
@@ -2952,6 +2953,7 @@ async function usernameFromPersonalInfo(file) {
 
 // The files of the import that just finished (features.js saves them).
 let lastImportFiles = [];
+let lastImportWhole = false;
 
 // The accounts you unfollowed lately (sent with an export that covers a
 // date range: they come off list 1 when it isn't sent whole).
@@ -3009,6 +3011,7 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
   // A .zip (what Instagram sends): its files are used as if the folder
   // inside it was picked.
   let knownUsername = username;
+  let fromZip = false;
   const zips = Array.from(files).filter(f => /\.zip$/i.test(f.name));
   if (zips.length) {
     if (typeof DecompressionStream === 'undefined') {
@@ -3016,13 +3019,25 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
       return false;
     }
     let inner = [];
+    let nested = false;
     for (const zip of zips) {
-      try { inner = inner.concat(await unzipImportFiles(zip)); } catch (err) { console.error('Could not read zip:', err); }
+      try { const got = await unzipImportFiles(zip); if (got.nested) nested = true; inner = inner.concat(got); } catch (err) { console.error('Could not read zip:', err); }
     }
     const info = inner.find(f => f.name.toLowerCase() === 'personal_information.json');
     if (info) knownUsername = (await usernameFromPersonalInfo(info)) || knownUsername;
     files = Array.from(files).filter(f => !zips.includes(f)).concat(inner.filter(f => f !== info));
-    isFolderUpload = true; // the whole export (one with nothing usable says so, rather than nothing happening)
+    // The whole export — instagram's zip, its files in folders. A saved
+    // import's zip of single files (following and followers only) isn't:
+    // taken as one, it emptied close friends, pending and the rest.
+    if (nested) isFolderUpload = true;
+    fromZip = true; // (one with nothing usable says so, rather than nothing happening)
+  }
+  // (a JSON export picked as a folder or as files: its username is in its
+  // profile file too — only a zip's was read, and "which account is this?"
+  // came up with the one on screen filled in)
+  if (!knownUsername) {
+    const info = Array.from(files).find(f => f.name.toLowerCase() === 'personal_information.json');
+    if (info) knownUsername = (await usernameFromPersonalInfo(info)) || null;
   }
 
   let importedFollowing = false;
@@ -3221,6 +3236,7 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
       calculateUnfollowers({ animate: true });
       // Restart the weekly reset reminder from this fresh import.
       lastImportFiles = validFilesToProcess.map(item => item.file); // kept by features.js (saved imports)
+      lastImportWhole = wholeExport; // (its saved zip is a whole export again when uploaded)
       recordImportDate(state.selectedAccountUsername);
       saveCurrentAccountData();
     } else {
@@ -3237,7 +3253,7 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
   }
 
   // Also when a whole folder had nothing usable (that used to fail silently).
-  if (validFilesToProcess.length === 0 && (invalidFiles.length > 0 || isFolderUpload)) {
+  if (validFilesToProcess.length === 0 && (invalidFiles.length > 0 || isFolderUpload || fromZip)) {
     await showSiteAlert('lists couldn’t be found', 'no followers or following files (html, json or txt) in what you uploaded');
   }
 
@@ -7669,6 +7685,7 @@ function initAuth() {
           // lists into that one's)
           if (window.igFeatures && window.igFeatures.resetDrive) window.igFeatures.resetDrive();
           if (window.igFeatures && window.igFeatures.resetUndo) window.igFeatures.resetUndo();
+          if (window.igFeatures && window.igFeatures.hideToast) window.igFeatures.hideToast(); // (its "sync" or "retry" acted for the next person in)
 
           elements.inputFollowing.value = '';
           elements.inputFollowers.value = '';
@@ -8076,6 +8093,9 @@ function initAuth() {
     // not the page faded out and blank while they went.
     const btn = elements.btnLogout;
     if (btn._leaving) return;
+    // (not mid-import or mid-sync: the rest of it went on after the log-out,
+    // and into the next person's lists and cloud)
+    if (accountsBusy()) { sayAccountsBusy(); return; }
     btn._leaving = true;
     if (window.igFeatures && window.igFeatures.savesPending && window.igFeatures.savesPending()) {
       workButton(btn, true);
@@ -8098,7 +8118,10 @@ function initAuth() {
           userRequestedLogout = true;
           // Only this device: the default ('global') also signed the user
           // out everywhere else they were logged in.
-          await supabaseClient.auth.signOut({ scope: 'local' });
+          // (an expired sign-in with no connection: it says so instead of
+          // throwing — the page stayed faded out, blank, until a reload)
+          const { error } = (await supabaseClient.auth.signOut({ scope: 'local' })) || {};
+          if (error) throw error;
         } catch (err) {
           console.error('Error signing out:', err);
           userRequestedLogout = false;
@@ -8421,8 +8444,15 @@ function mergeOfflineWork(entries) {
 }
 function retryCloudLoadWhenOnline() {
   offlineWork = false;
+  // (and every so often, longer each time: a failed download while the device
+  // was online — a timeout, the server down a moment — waited for an
+  // "online" that never came, and nothing done meanwhile went up)
+  let retryTimer = null;
+  let retryDelay = 15000;
+  const later = () => { clearTimeout(retryTimer); retryTimer = setTimeout(retry, retryDelay); retryDelay = Math.min(retryDelay * 2, 5 * 60 * 1000); };
   const retry = async () => {
     if (!currentUser || cloudReady) return cleanup();
+    clearTimeout(retryTimer);
     try {
       const work = offlineWork ? captureOfflineWork() : null;
       // (a change made while it comes down wasn't in `work`: the download is
@@ -8444,15 +8474,18 @@ function retryCloudLoadWhenOnline() {
       cleanup();
     } catch (err) {
       console.error('Error loading cloud data:', err);
+      if (pendingCloudRetry === retry) later();
     }
   };
   const onVisible = () => { if (document.visibilityState === 'visible') retry(); };
   const cleanup = () => {
-    pendingCloudRetry = null;
+    clearTimeout(retryTimer);
+    if (pendingCloudRetry === retry) pendingCloudRetry = null;
     window.removeEventListener('online', retry);
     document.removeEventListener('visibilitychange', onVisible);
   };
   pendingCloudRetry = retry;
+  later();
   window.addEventListener('online', retry);
   document.addEventListener('visibilitychange', onVisible);
 }
