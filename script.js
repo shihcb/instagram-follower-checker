@@ -3511,6 +3511,8 @@ function createAccountChip(name) {
     const moved = chipTouchAt && t && Math.hypot(t.clientX - chipTouchAt[0], t.clientY - chipTouchAt[1]) > 10;
     chipTouchAt = null;
     if (moved) return;
+    // (a tap with a menu open only closes it, as on a computer: it switched the account too)
+    if ([elements.listUnfollowed, elements.listStarred, elements.addAccountDropdownMenu].some(m => m && m.classList.contains('show'))) return;
     handleChipInteraction(e);
   });
   chip.addEventListener('click', (e) => {
@@ -3840,6 +3842,10 @@ async function tapModalDelete() {
   const index = editingAccountNow();
   const acc = index !== null && index >= 0 ? (state.instagramAccounts || [])[index] : null;
   if (!acc) return;
+  // (not mid-import or mid-sync: the rest of it went into no account's lists)
+  if (accountsBusy()) { sayAccountsBusy(); return; }
+  const key = acc.originalUsername.toLowerCase();
+  const shown = acc.username;
   btn._asking = true;
   let ok = false;
   try {
@@ -3848,7 +3854,11 @@ async function tapModalDelete() {
     btn._asking = false;
   }
   // (still the account the window is open for: one renamed or gone meanwhile is left as it is)
-  if (ok && editingAccountNow() === index && (state.instagramAccounts || [])[index] === acc) deleteAccountFromModal();
+  // (by its name, not the object: a cloud reload while asking made new ones, and the delete did nothing)
+  const now = (state.instagramAccounts || [])[index];
+  if (!ok || editingAccountNow() !== index || !now || now.originalUsername.toLowerCase() !== key || now.username !== shown) return;
+  if (accountsBusy()) { sayAccountsBusy(); return; }
+  deleteAccountFromModal();
 }
 
 function deleteAccountFromModal() {
@@ -5504,7 +5514,7 @@ function saveAccountsList() {
 function clearDemoData() {
   [DEMO_ID, DEMO_COMPARE_ID].forEach(id => {
     ['following', 'followers', 'unfollowed', 'starred', 'hidden'].forEach(type => storageRemove(`${type}_users_${id}`));
-    ['import_date_', 'import_at_', 'import_history_', 'import_diff_', 'import_log_', 'extra_lists_', 'list_reset_'].forEach(prefix => storageRemove(`${prefix}${id}`));
+    ['import_date_', 'import_at_', 'import_history_', 'import_diff_', 'import_log_', 'extra_lists_', 'list_reset_unfollowed_', 'list_reset_starred_'].forEach(prefix => storageRemove(`${prefix}${id}`));
   });
   ['last_active_instagram_account', 'selected_instagram_account'].forEach(key => {
     if (storageGet(key) === DEMO_ID) storageRemove(key);
@@ -5567,6 +5577,8 @@ function startDemo() {
     saveCurrentAccountData();
   }
   seedDemoData();
+  // (the earlier try's undo steps put its lists back over the fresh demo)
+  if (window.igFeatures && window.igFeatures.dropUndo) window.igFeatures.dropUndo(DEMO_ID);
   if (!state.instagramAccounts.some(isDemoAccount)) {
     state.instagramAccounts.push({ username: DEMO_NAME, originalUsername: DEMO_ID, demo: true });
   }
