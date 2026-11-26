@@ -2411,7 +2411,9 @@
   // fades across only when it changes — rollDate)
   const monthOf = (t) => new Date(t).toLocaleDateString('en-US', { month: 'long' }).toLowerCase();
   const dayOf = (t) => String(new Date(t).getDate());
-  const dateSpans = (times) => times.map(t => `<span data-t="${Math.round(t)}"><span class="tl-mon">${monthOf(t)}</span> <span class="tl-day">${dayOf(t)}</span></span>`).join('');
+  // (with its year when it isn't this one's: two imports a year apart both read "september 30")
+  const yearOf = (t) => { const y = new Date(t).getFullYear(); return y === new Date().getFullYear() ? '' : `, ${y}`; };
+  const dateSpans = (times) => times.map(t => `<span data-t="${Math.round(t)}"><span class="tl-mon">${monthOf(t)}</span> <span class="tl-day">${dayOf(t)}</span><span class="tl-yr">${yearOf(t)}</span></span>`).join('');
   // A date rolls from one to another like the numbers count (the list 3
   // slide): its month, if it changes, fades across once — straight to the
   // new one — as its day counts from the old figure to the new. (Walking the
@@ -2422,7 +2424,9 @@
     if (!mon || !day || !Number.isFinite(a) || !Number.isFinite(z)) return;
     const token = (span._roll = {});
     const m = monthOf(z), d0 = new Date(a).getDate(), d1 = new Date(z).getDate();
-    if (!canAnimate(span) || shortDate(a) === shortDate(z)) { mon.textContent = m; day.textContent = String(d1); return; }
+    const yr = span.querySelector('.tl-yr');
+    if (yr && yr.textContent !== yearOf(z)) { if (canAnimate(span)) swapText(yr, yearOf(z), { resize: true }); else yr.textContent = yearOf(z); }
+    if (!canAnimate(span) || (shortDate(a) === shortDate(z) && yearOf(a) === yearOf(z))) { mon.textContent = m; day.textContent = String(d1); return; }
     mon.textContent = monthOf(a);
     day.textContent = String(d0);
     swapText(mon, m, { resize: true });
@@ -2500,7 +2504,7 @@
           <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${grid}${series.map(([k, , c]) => `<path class="tl-line" d="${path(k)}" style="--c:${c}"/>`).join('')}</svg>
           ${dots}
         </div>
-        <div class="timeline-dates">${dateSpans(!real ? [new Date(new Date().getFullYear(), 9, 9).getTime(), new Date(new Date().getFullYear(), 9, 9).getTime()] : single ? [t1] : [t0, t1])}</div>
+        <div class="timeline-dates">${dateSpans(!real ? [new Date(new Date().getFullYear(), 4, 9).getTime(), new Date(new Date().getFullYear(), 9, 9).getTime()] : single ? [t1] : [t0, t1])}</div>
       </div>`;
   }
   // New numbers: the lines bend from where they are into their new shape
@@ -2642,7 +2646,8 @@
       const fset = followersSet();
       const mutual = state.following.filter(u => fset.has(u.username)).length;
       const ratio = following ? (mutual === following ? 100 : Math.min(99, Math.max(mutual ? 1 : 0, Math.round((mutual / following) * 100)))) : 0; // (never 100% with someone not following back, nor 0% with one who does)
-      const counts = [following, followers, null, state.unfollowers.length, state.unfollowed.length, state.starred.length];
+      const notBack = following - mutual; // (everyone not following back — list 3 alone left out the unfollowed and starred, and contradicted the %)
+      const counts = [following, followers, null, notBack, state.unfollowed.length, state.starred.length];
       const hasData = following > 0 || followers > 0;
       const maxCount = Math.max(1, ...counts.filter(c => c !== null));
       // Log scale: next to 1,574 followers a count of 1, 12 or 50 was a
@@ -2653,7 +2658,7 @@
       html = `${subNavHtml(SUB_TABS.stats, subTab.stats)}
         ${pane('overview', `<div class="insights-stats">
           ${stat(following, 'following', 0)}${stat(followers, 'followers', 1)}${stat(`${ratio}%`, 'follow you back', 2)}
-          ${stat(state.unfollowers.length, 'don’t follow you back', 3)}${stat(state.unfollowed.length, 'unfollowed', 4)}${stat(state.starred.length, 'starred', 5)}
+          ${stat(notBack, 'don’t follow you back', 3)}${stat(state.unfollowed.length, 'unfollowed', 4)}${stat(state.starred.length, 'starred', 5)}
         </div>
         <div class="trend-wrap">${hasData ? chartHtml(heights, false) : chartHtml(MOCK_HEIGHTS, true)}</div>`)}
         ${pane('timeline', timelineHtml(key))}`;
@@ -2706,12 +2711,14 @@
         const pick = (v) => `<div class="compare-pick dropdown-wrapper" data-v="${esc(v)}"><button type="button" class="dd-btn compare-pick-btn" aria-label="account" aria-haspopup="true"><span class="compare-pick-label glide-box"><span class="glide-inner">${nameOf(v)}</span></span>${chevron}</button><div class="dropdown-menu compare-menu" inert>${opts(v)}</div></div>`;
         // A side with nobody in it isn't shown at all (its heading on its
         // own read as the other side's heading repeated).
-        const onlyA = fa.filter(u => !sb.has(u.username)), onlyB = fb.filter(u => !sa.has(u.username));
+        // (a side with no followers imported isn't compared: everyone on the other side read as following only that one)
+        const oneEmpty = !fa.length !== !fb.length;
+        const onlyA = oneEmpty ? [] : fa.filter(u => !sb.has(u.username)), onlyB = oneEmpty ? [] : fb.filter(u => !sa.has(u.username));
         const section = (title, users) => (users.length ? `<div class="insights-section"><div class="insights-section-title">${title}</div>${userRowsHtml(users, '')}</div>` : '');
         html = `<div class="compare-pickers">${pick(a)}<span>vs</span>${pick(b)}</div>
           ${section(`follow ${nameOf(a)}, not ${nameOf(b)}`, onlyA)}
           ${section(`follow ${nameOf(b)}, not ${nameOf(a)}`, onlyB)}
-          ${onlyA.length || onlyB.length ? '' : `<div class="dropdown-empty-message">${fa.length || fb.length ? 'same followers' : 'no followers to compare'}</div>`}`;
+          ${onlyA.length || onlyB.length ? '' : `<div class="dropdown-empty-message">${oneEmpty ? `no followers imported for ${nameOf(fa.length ? b : a)}` : fa.length || fb.length ? 'same followers' : 'no followers to compare'}</div>`}`;
       }
     }
     if (dry) return html;
@@ -3748,8 +3755,8 @@
     const fset = followersSet();
     const mutual = state.following.filter(u => fset.has(u.username)).length;
     const ratio = following ? (mutual === following ? 100 : Math.min(99, Math.max(mutual ? 1 : 0, Math.round((mutual / following) * 100)))) : 0; // (never 100% with someone not following back, nor 0% with one who does)
-    const counts = [following, followers, null, state.unfollowers.length, state.unfollowed.length, state.starred.length];
-    const values = [following, followers, `${ratio}%`, state.unfollowers.length, state.unfollowed.length, state.starred.length];
+    const counts = [following, followers, null, following - mutual, state.unfollowed.length, state.starred.length];
+    const values = [following, followers, `${ratio}%`, following - mutual, state.unfollowed.length, state.starred.length];
     const labels = ['following', 'followers', 'follow you back', 'don’t follow you back', 'unfollowed', 'starred'];
     const maxCount = Math.max(1, ...counts.filter(c => c !== null));
     const heights = counts.map(c => (c === null ? Math.max(4, ratio) : Math.max(4, Math.round((Math.log1p(c) / Math.log1p(maxCount)) * 100))));
