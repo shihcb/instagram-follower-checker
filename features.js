@@ -479,9 +479,11 @@
 
   // An account's undo steps gone (new lists imported: they'd put back the
   // ones from before — pending requests too, from an import of just those)
-  function dropUndo(accountUsername) {
+  function dropUndo(accountUsername, { listsOnly = false } = {}) {
     const k = accountUsername ? String(accountUsername).toLowerCase() : '_global_';
-    for (let i = undoStack.length - 1; i >= 0; i--) if (undoStack[i].snap.acc === k) undoStack.splice(i, 1);
+    // (listsOnly, a reset: a cleared list 1 or 2, a ✕ in pending requests — their
+    // steps hold the only copy — stay)
+    for (let i = undoStack.length - 1; i >= 0; i--) if (undoStack[i].snap.acc === k && !(listsOnly && (undoStack[i].snap.cleared || undoStack[i].snap.extraRemoved))) undoStack.splice(i, 1);
     safe(refreshUndo, 'undo');
   }
 

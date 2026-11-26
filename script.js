@@ -1025,11 +1025,13 @@ function parseRawText(text) {
       // (commas always; spaces only between names written with "@" — a
       // lowercase full name, "dan smith", is never two accounts)
       const bySpace = /^@\S+(\s+@\S+)+$/.test(line);
-      // (not a full name written "Smith, John" — it became @Smith; "Alice, Bob, Carl" still splits)
-      const nameShaped = /^\p{Lu}[\p{L}'’-]*,\s*\p{Lu}[\p{L}'’-]*$/u.test(line);
-      if ((line.includes(',') && !nameShaped) || bySpace) {
+      if (line.includes(',') || bySpace) {
         const parts = line.split(line.includes(',') ? /\s*,\s*/ : /\s+/).map(p => p.replace(/^@+/, '')).filter(Boolean);
-        if (parts.length > 1 && parts.every(p => isValidUsername(p))) return parts;
+        // (a comma line with capitals only when it can't be a full name —
+        // three names or more, or each one username-shaped (a dot, _ or a
+        // digit): "Smith, John" and "Smith, J." are names, they became accounts)
+        const usernameLike = bySpace || line === line.toLowerCase() || parts.length > 2 || parts.every(p => /[._\d]/.test(p));
+        if (parts.length > 1 && usernameLike && parts.every(p => isValidUsername(p))) return parts;
       }
       return [line];
     });
@@ -1070,7 +1072,7 @@ function parseRawText(text) {
       // "Verified" line, come before the full name: never the name itself
       // (only the dot itself: a full name of just emoji — "💖" — was taken
       // for it, and the next account was read as that one's name)
-      const isDot = (l) => /^[·•∙⋅|\-–—\s]+$/.test(l);
+      const isDot = (l) => /^[·•∙⋅]+$/.test(l); // (not a dash: a full name of just "—" took the next account's username as its name)
       const filler = (l) => isDot(l) || /^(verified|verificado|vérifié|verifiziert|verificato)$/i.test(l);
       let dotted = false;
       while (j < lines.length && filler(lines[j])) { if (isDot(lines[j])) dotted = true; j++; }
@@ -6826,7 +6828,7 @@ function updateInstructionsStepUI() {
         // it after made the reminder "overdue" again)
         if (!(state.starred || []).length) storageSet(listResetKey('starred'), String(Date.now()));
         // (its undo steps go: they'd put back nothing — the button lit, its taps doing nothing)
-        if (window.igFeatures && window.igFeatures.dropUndo) window.igFeatures.dropUndo(state.selectedAccountUsername);
+        if (window.igFeatures && window.igFeatures.dropUndo) window.igFeatures.dropUndo(state.selectedAccountUsername, { listsOnly: true });
         if (currentAcc) {
           storageSet(`unfollowed_users_${currentAcc}`, JSON.stringify([]));
           // Clean global shared list matching this account
@@ -6870,7 +6872,7 @@ function updateInstructionsStepUI() {
         // it after made the reminder "overdue" again)
         if (!(state.unfollowed || []).length) storageSet(listResetKey('unfollowed'), String(Date.now()));
         // (its undo steps go: they'd put back nothing — the button lit, its taps doing nothing)
-        if (window.igFeatures && window.igFeatures.dropUndo) window.igFeatures.dropUndo(state.selectedAccountUsername);
+        if (window.igFeatures && window.igFeatures.dropUndo) window.igFeatures.dropUndo(state.selectedAccountUsername, { listsOnly: true });
         if (currentAcc) {
           storageSet(`starred_users_${currentAcc}`, JSON.stringify([]));
           // Clean global shared list matching this account
