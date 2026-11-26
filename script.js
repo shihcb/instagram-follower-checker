@@ -8139,6 +8139,9 @@ function initAuth() {
     // imports is stopped by the log-out itself — waited for, a sign-in
     // window left open held the log-out up for good)
     if (importsRunning > 0) { sayAccountsBusy(); return; }
+    // (a sync between its imports stops now: left till the log-out was done,
+    // its next import started meanwhile and went on after it)
+    if (window.igFeatures && window.igFeatures.resetDrive) window.igFeatures.resetDrive();
     btn._leaving = true;
     if (window.igFeatures && window.igFeatures.savesPending && window.igFeatures.savesPending()) {
       workButton(btn, true);
@@ -9192,6 +9195,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if ((window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) || window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
     document.body.classList.add('is-capacitor');
   }
+  // (the iPhone app itself — is-capacitor is any installed copy, a computer's too)
+  if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) document.body.classList.add('is-native');
   normalizeInstagramAccounts();
   initTheme();
   initSettings();

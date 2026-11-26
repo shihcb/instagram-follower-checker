@@ -8098,6 +8098,6 @@ body:has(#auth-dropdown.show) .row-select-bar {
 /* The iPhone app: no "upload folder" — its web view can't pick folders,
    and its picker could offer the camera, which the app has no permission
    for (iOS closes the app) */
-body.is-capacitor #btn-upload-folder {
+body.is-native #btn-upload-folder {
   display: none !important;
 }

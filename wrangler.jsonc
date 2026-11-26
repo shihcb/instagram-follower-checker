@@ -10,6 +10,8 @@
     "directory": "./public",
     // (index.html served as it is, not sent on to "/": the offline copy of
     // a redirect won't open, so the installed app showed an error offline)
-    "html_handling": "none"
+    "html_handling": "none",
+    // (and "/" is index.html — with no html handling it was a 404)
+    "not_found_handling": "single-page-application"
   }
 }
