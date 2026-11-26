@@ -4452,7 +4452,6 @@ body:not(.auth-logged-out) #theme-toggle {
 
 .love-heart-main {
   color: var(--bad);
-  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--bad) 60%, transparent));
   animation: love-heart-beat 1.2s infinite alternate cubic-bezier(0.215, 0.61, 0.355, 1);
 }
 
@@ -7231,7 +7230,7 @@ body.select-active:not(:has(.row-select-bar.over-lists)) .feature-toast {
   box-shadow: inset 0 0 0 1px var(--card-border) !important;
   border-radius: 8px !important;
   font-weight: 500 !important;
-  height: calc(var(--fs-sm) * 1.4 + 4px) !important; /* (the 1.4 line inside, as every pill: CLAUDE.md) */
+  height: calc(var(--fs-sm) * 1.5 + 4px) !important; /* (the dashboard's .pill height; its words on the 1.4 line inside — CLAUDE.md) */
   line-height: 1.4 !important;
   padding: 0 10px !important;
 }

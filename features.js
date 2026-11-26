@@ -455,8 +455,9 @@
     btn.addEventListener('click', () => {
       const ta = kind === 'following' ? elements.inputFollowing : elements.inputFollowers;
       // (by the list as well as the box: a search with no matches empties the box, and the clear went with no undo)
-      if (!ta || (ta.value.trim() === '' && !(state[kind] || []).length)) return;
-      flushListInputs(); // (what was typed just before is in what undo gives back)
+      if (!ta) return;
+      flushListInputs(); // (first: a box just emptied by hand still had its names in the list, and "cleared · undo" came for nothing)
+      if (ta.value.trim() === '' && !(state[kind] || []).length) return;
       const entry = { snap: { acc: accKey(), cleared: kind, list: state[kind].slice() }, message: `${label} cleared` };
       // After the text has faded out (smoothClearTextarea, ROW_MOTION_MS).
       setTimeout(() => {
