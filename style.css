@@ -1275,7 +1275,7 @@ button:disabled *,
   transform: scale(1);
 }
 
-@container card-unfollowers (max-width: 349px) {
+@container card-unfollowers (max-width: 419px) {
   .preview-toggle span.btn-text-full {
     display: none !important;
   }
@@ -2764,6 +2764,8 @@ html.hide-shortcuts .account-chip-badge {
   transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
+/* (pointers that hover only: a tap on a phone left it filled red, glowing) */
+@media (hover: hover) {
 #btn-confirm-ok:hover,
 #btn-modal-delete:hover,
 .btn-danger-soft:hover:not(:disabled),
@@ -2775,6 +2777,7 @@ html.hide-shortcuts .account-chip-badge {
   color: var(--card-bg) !important;
   border-color: var(--bad) !important;
   box-shadow: 0 4px 12px color-mix(in srgb, var(--bad) 35%, transparent) !important;
+}
 }
 
 /* The pop-up's confirm button is red only when it deletes or resets
@@ -6746,6 +6749,12 @@ html.booting .app-container {
     animation-delay: 0s !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
+  }
+  /* (over every rule's own `transition: … !important` too — windows still
+     faded and grew in: two ids' weight, which no rule here has) */
+  *:not(#rm-a):not(#rm-b), *:not(#rm-a):not(#rm-b)::before, *:not(#rm-a):not(#rm-b)::after {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
   }
   .rows-more-spinner, .work-spinner { animation-duration: 0.8s !important; animation-iteration-count: infinite !important; }
   .boot-spinner { animation-duration: 0.8s !important; animation-iteration-count: infinite !important; }

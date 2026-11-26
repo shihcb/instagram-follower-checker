@@ -3746,7 +3746,8 @@ function saveAccountFromModal() {
     refuse('not an instagram username', 'usernames are up to 30 letters, numbers, dots and underscores');
     return;
   }
-  const clash = (state.instagramAccounts || []).some((acc, i) => i !== index && !isDemoAccount(acc)
+  // (a rename to the demo's name too: two "@name" chips)
+  const clash = (state.instagramAccounts || []).some((acc, i) => i !== index && (index >= 0 || !isDemoAccount(acc))
     && (acc.username.toLowerCase() === username || acc.originalUsername.toLowerCase() === username));
   if (clash) {
     refuse('account already added', `@${username} is already one of your accounts`);

@@ -211,6 +211,18 @@
   function restore(snap) {
     if (snap.acc !== accKey()) return;
     if (snap.cleared) { restoreClearedList(snap); return; }
+    if (snap.extraRemoved) {
+      // (a ✕ in pending requests, close friends, blocked or restricted: that one back where it was)
+      const { kind, user, at } = snap.extraRemoved;
+      const lists = readExtraLists(state.selectedAccountUsername);
+      const list = Array.isArray(lists[kind]) ? lists[kind].slice() : [];
+      if (!list.some(u => u.username === user.username)) list.splice(Math.min(at, list.length), 0, user);
+      lists[kind] = list;
+      writeExtraLists(state.selectedAccountUsername, lists);
+      pushToCloud();
+      safe(() => renderExtras(true), 'extra lists');
+      return;
+    }
     if (snap.pending) {
       // Only what the action changed: a request it took out comes back, one
       // it put back (starred / unfollowed again) goes — put back whole, it
@@ -3451,10 +3463,13 @@
     const acc = state.selectedAccountUsername;
     const lists = readExtraLists(acc);
     const before = Array.isArray(lists[kind]) ? lists[kind].slice() : [];
-    if (!before.some(u => u.username === name)) return;
+    const at = before.findIndex(u => u.username === name);
+    if (at < 0) return;
     lists[kind] = before.filter(u => u.username !== name);
     writeExtraLists(acc, lists);
     pushToCloud();
+    // (undoable, like list 3's ✕: it was gone for good)
+    offerUndo({ acc: accKey(), extraRemoved: { kind, user: before[at], at } }, `${name} removed`);
     const done = () => {
       // Still that account on screen: the list is already right (the row
       // has gone), unless it's now empty — then the empty text comes in.
