@@ -1025,8 +1025,9 @@ function parseRawText(text) {
       // (commas always; spaces only between names written with "@" — a
       // lowercase full name, "dan smith", is never two accounts)
       const bySpace = /^@\S+(\s+@\S+)+$/.test(line);
-      // (and commas only in a line with no capitals: "Smith, John" is a full name — it became @Smith)
-      if ((line.includes(',') && line === line.toLowerCase()) || bySpace) {
+      // (not a full name written "Smith, John" — it became @Smith; "Alice, Bob, Carl" still splits)
+      const nameShaped = /^\p{Lu}[\p{L}'’-]*,\s*\p{Lu}[\p{L}'’-]*$/u.test(line);
+      if ((line.includes(',') && !nameShaped) || bySpace) {
         const parts = line.split(line.includes(',') ? /\s*,\s*/ : /\s+/).map(p => p.replace(/^@+/, '')).filter(Boolean);
         if (parts.length > 1 && parts.every(p => isValidUsername(p))) return parts;
       }
@@ -1069,7 +1070,7 @@ function parseRawText(text) {
       // "Verified" line, come before the full name: never the name itself
       // (only the dot itself: a full name of just emoji — "💖" — was taken
       // for it, and the next account was read as that one's name)
-      const isDot = (l) => /^[·•∙⋅]+$/.test(l);
+      const isDot = (l) => /^[·•∙⋅|\-–—\s]+$/.test(l);
       const filler = (l) => isDot(l) || /^(verified|verificado|vérifié|verifiziert|verificato)$/i.test(l);
       let dotted = false;
       while (j < lines.length && filler(lines[j])) { if (isDot(lines[j])) dotted = true; j++; }
@@ -3029,7 +3030,7 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
   }
   // (still coming after 20s: not made now — the download wrote over it, and
   // its files went up in place of the cloud's own import of that number)
-  if (currentUser && cloudPulling) {
+  if (currentUser && cloudPulling && !pendingCloudRetry) { // (a retry after a failed load lets it go ahead: it's merged in)
     await showSiteAlert('import couldn’t be started', 'your data is still loading — try again in a moment');
     return false;
   }
