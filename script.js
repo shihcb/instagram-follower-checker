@@ -4518,6 +4518,7 @@ function dimAtWork(btn, busy) {
 }
 function workButton(btn, busy) {
   if (!btn) return;
+  if (busy && btn._doneT) { clearTimeout(btn._doneT); btn._doneT = null; } // (started again before the last one's check: spinner and check together)
   btn.classList.toggle('at-work', busy);
   dimAtWork(btn, busy);
   if (spinsAtWork(btn)) { if (busy) spinIn(btn); else spinOut(btn); return; }
@@ -4571,7 +4572,7 @@ function workDone(btn, ok = true) {
   dimAtWork(btn, false);
   // (its fill to the end, then its check; failed, its fill fades from where it
   // is and an X comes after its words — the dashboard's)
-  if (spinsAtWork(btn)) { spinOut(btn); setTimeout(() => doneMark(btn, ok ? 'ok' : 'x', ok ? 1600 : 2600), canAnimate(btn) ? ROW_MOTION_MS : 0); return; }
+  if (spinsAtWork(btn)) { spinOut(btn); clearTimeout(btn._doneT); btn._doneT = setTimeout(() => { btn._doneT = null; doneMark(btn, ok ? 'ok' : 'x', ok ? 1600 : 2600); }, canAnimate(btn) ? ROW_MOTION_MS : 0); return; }
   fillDone(btn, { ok }).then(() => doneMark(btn, ok ? 'ok' : 'x', ok ? 1600 : 2600));
 }
 // One switch at a time (the dashboard's gated): a tap while a switch has
@@ -4921,8 +4922,10 @@ function slideRowOut(rowEl, distance, duration, onDone = null) {
     const check = () => {
       if (!slide.onDone) return;
       if (document.visibilityState === 'hidden') {
-        document.addEventListener('visibilitychange', () => setTimeout(check, duration + 1000), { once: true });
+        // (its page-closing listener goes when the page shows again: one per
+        // hidden slide piled up, each holding its row)
         window.addEventListener('pagehide', finish, { once: true });
+        document.addEventListener('visibilitychange', () => { window.removeEventListener('pagehide', finish); setTimeout(check, duration + 1000); }, { once: true });
         return;
       }
       if (slide.start !== null && performance.now() - slide.start < duration + 500) {
@@ -5147,7 +5150,15 @@ function closeExitSpace(spacer, distance, duration, exitDone = () => {}) {
   holdScroll();
   let t0 = null;
   const step = (now) => {
-    if (!spacer.isConnected || !top.isConnected) return;
+    if (!spacer.isConnected || !top.isConnected) {
+      // (the next page's rows took the bottom space away mid-close: the top
+      // blank went on standing, a row's height above the list for good)
+      scroller.removeEventListener('touchstart', release);
+      scroller.removeEventListener('wheel', release);
+      exitDone();
+      if (top.isConnected) dropTopSpacer(top, scroller);
+      return;
+    }
     if (t0 === null) t0 = now;
     const raw = Math.min(1, (now - t0) / duration);
     const moved = distance * rowEase(raw);

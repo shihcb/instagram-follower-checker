@@ -670,6 +670,13 @@
     // taken as whole; single files' flat, so it isn't)
     const whole = typeof lastImportWhole !== 'undefined' && lastImportWhole;
     const stored = await Promise.all(files.map(async file => { const rel = file.webkitRelativePath || file.name; return { name: whole && !rel.includes('/') ? `export/${rel}` : rel, data: await file.arrayBuffer() }; }));
+    // (its account named in it, as instagram's own profile file does: single
+    // files' zip uploaded again asked "which account is this?" with the one
+    // on screen filled in, and went into it)
+    if (key !== '_global_' && !files.some(f => f.name.toLowerCase() === 'personal_information.json')) {
+      const info = JSON.stringify({ profile_user: [{ string_map_data: { Username: { value: key } } }] });
+      stored.push({ name: whole ? 'export/personal_information.json' : 'personal_information.json', data: new TextEncoder().encode(info).buffer });
+    }
     if (!cloudLoaded()) {
       // Kept here until you log in, or this user's log has come down from
       // the cloud (moveLocalFilesToCloud uploads them then, under the number
@@ -902,6 +909,12 @@
   // choice: "=HYPERLINK(…)" ran as a formula in a spreadsheet). The files
   // start with a BOM, so Excel reads names in any script.
   const csvCell = (v) => { let s = String(v ?? ''); if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`; return `"${s.replace(/"/g, '""')}"`; };
+  // The account on screen for a file's name, as its chip shows it ("alpha-"), or nothing
+  const fileAcc = () => {
+    const sel = state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '';
+    const acc = sel && (state.instagramAccounts || []).find(a => a.originalUsername.toLowerCase() === sel);
+    return acc && !acc.demo ? `${String(acc.username || acc.originalUsername).toLowerCase()}-` : '';
+  };
   const fileDate = (t) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
   const longDate = (t) => new Date(t).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toLowerCase();
   async function downloadSaved(key, entry) {
@@ -915,8 +928,7 @@
         failed = !(/not.?found/i.test(String(err && err.message)) || String(err && err.statusCode) === '404' || (err && err.status) === 404);
       }
       if (blob) {
-        saveFile(`instagram-by-s-${who}-import-${entry.n}-${fileDate(entry.date)}.zip`, blob);
-        return true;
+        return saveFile(`instagram-by-s-${who}-import-${entry.n}-${fileDate(entry.date)}.zip`, blob);
       }
       if (failed) { await showSiteAlert('import couldn’t be downloaded', ''); return false; }
       // Not in the cloud yet (saved by an older version on another device
@@ -932,8 +944,7 @@
     const rows = [['change', 'username']];
     [['lost', 'unfollowed you'], ['gained', 'new follower'], ['stopped', 'you stopped following'], ['started', 'you started following']]
       .forEach(([k, label]) => (c[k] || []).forEach(name => rows.push([label, name])));
-    saveFile(`instagram-by-s-${who}-import-${entry.n}-changes-${fileDate(entry.date)}.csv`, new Blob(['\ufeff' + rows.map(r => r.map(cell).join(',')).join('\n')], { type: 'text/csv' }));
-    return true;
+    return saveFile(`instagram-by-s-${who}-import-${entry.n}-changes-${fileDate(entry.date)}.csv`, new Blob(['\ufeff' + rows.map(r => r.map(cell).join(',')).join('\n')], { type: 'text/csv' }));
   }
   let savedOverlay = null;
   let savedKey = null; // whose imports the window is showing (its tab)
@@ -978,7 +989,7 @@
       // (the download starts once the spinner has glided in: saving the file
       // at once — a changes-only import, a quick zip — froze the page as it
       // came, the words snapping over and the spinner popping in)
-      new Promise(resolve => setTimeout(resolve, canAnimate(row) ? ROW_MOTION_MS : 0)).then(() => downloadSaved(key, entry)).then((saved) => workDone(row, !!saved),
+      new Promise(resolve => setTimeout(resolve, canAnimate(row) ? ROW_MOTION_MS : 0)).then(() => downloadSaved(key, entry)).then((saved) => { if (saved === null) workButton(row, false); else workDone(row, !!saved); },
         err => { workDone(row, false); console.error('[features] download failed:', err); showSiteAlert('import couldn’t be downloaded', ''); });
     });
     // (a chip picked from the keyboard too, as the main view's: Enter)
@@ -1391,6 +1402,10 @@
     btn.disabled = true;
     btn.classList.add('busy');
     if (btn._said) { clearTimeout(btn._said); btn._said = null; }
+    // (whose bar it is: the last sync's end, still easing out, put "sync now"
+    // back and faded this one's fill away)
+    const gen = (btn._barGen = (btn._barGen || 0) + 1);
+    const mine = () => btn._barGen === gen;
     const t0 = Date.now();
     let reached = 0, shown = 0, words = 'connecting';
     const paint = () => {
@@ -1412,11 +1427,13 @@
         fill.style.transition = `width ${MOTION.duration}ms ${MOTION.easing}`;
         fill.style.width = '100%';
         await new Promise(r => setTimeout(r, MOTION.duration));
+        if (!mine()) return;
         swapText(label, said || 'sync now');
         if (said) btn._said = setTimeout(() => { btn._said = null; if (label.textContent === said) swapText(label, 'sync now'); }, 3500);
         btn.classList.remove('busy');
         refreshDrive();
         if (canAnimate(fill)) await fill.animate([{ opacity: 1 }, { opacity: 0 }], MOTION).finished.catch(() => {});
+        if (!mine()) return;
         fill.style.opacity = '0';
         fill.style.transition = 'none';
         fill.style.width = '0';
@@ -1481,11 +1498,15 @@
     // (the old one fades out where it was as the new one fades in, the
     // holder's width easing between them — the app's text swap)
     glideWidth(holder, () => {
+      // (one still fading out is gone at once: two changes close together
+      // left the one before both of them, two badges for good)
+      holder.querySelectorAll(':scope > [data-leaving]').forEach(el => el.remove());
       const old = holder.firstElementChild;
       if (old && !first && canAnimate(holder) && holder.offsetParent) {
         const r = old.getBoundingClientRect(), hr = holder.getBoundingClientRect();
         Object.assign(old.style, { position: 'absolute', right: `${hr.right - r.right}px`, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' });
         old.inert = true;
+        old.dataset.leaving = '1';
         holder.appendChild(node);
         const drop = () => old.remove();
         crossOut(old).finished.then(drop, drop);
@@ -3635,9 +3656,11 @@
     if (phone && navigator.canShare && navigator.canShare({ files: [file] })) {
       // Only a cancel is the end of it: a share sheet the phone refused
       // (the tap too long ago, after building the file) saved nothing
-      return navigator.share({ files: [file] }).catch(e => { if (!e || e.name !== 'AbortError') download(); });
+      // (says whether it was saved: a cancelled share sheet put the done check on all the same)
+      return navigator.share({ files: [file] }).then(() => true, e => { if (e && e.name === 'AbortError') return null; download(); return true; }); // (null: cancelled — no check, no X)
     }
     download();
+    return Promise.resolve(true);
     function download() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -3660,7 +3683,10 @@
         rows.push(multi ? [name].concat(row) : row);
       });
     });
-    const file = multi ? 'instagram-by-s-lists.csv' : `instagram-by-s-${kinds[0]}.csv`;
+    // (whose and when, in words: every account's list 3 was "instagram-by-s-list3.csv")
+    const words = { list3: 'list-3', following: 'list-2', followers: 'list-1', closeFriends: 'close-friends' };
+    const what = multi ? 'lists' : (words[kinds[0]] || kinds[0]);
+    const file = `instagram-by-s-${fileAcc()}${what}-${fileDate(Date.now())}.csv`;
     saveFile(file, new Blob(['\ufeff' + rows.map(r => r.map(cell).join(',')).join('\n')], { type: 'text/csv' }));
   }
 
@@ -3694,7 +3720,7 @@
           const image = exportOverlay.querySelector('.export-image').classList.contains('on');
           if (!kinds.length && !image) return;
           if (kinds.length) exportCsv(kinds);
-          if (image) safe(() => { statsImage().then(blob => blob && saveFile('instagram-by-s-stats.png', blob)).catch(err => console.error('[features] stats image failed:', err)); }, 'stats image');
+          if (image) safe(() => { statsImage().then(blob => blob && saveFile(`instagram-by-s-${fileAcc()}stats-${fileDate(Date.now())}.png`, blob)).catch(err => console.error('[features] stats image failed:', err)); }, 'stats image');
           closeExport();
           return;
         }
@@ -3755,7 +3781,7 @@
     const C = { bg: css('--bg-color', dark ? '#111513' : '#f4f5f3'), text: css('--text-main', dark ? '#e8ece9' : '#1b1f1d'), muted: css('--text-muted', dark ? '#9aa49f' : '#66706b') };
     const body = getComputedStyle(document.body).fontFamily || 'sans-serif';
     const display = body; // (the app's own serif)
-    try { if (document.fonts) await Promise.all([document.fonts.load(`800 80px 'Outfit'`), document.fonts.load(`500 30px ${body}`)]); } catch (e) {}
+    try { if (document.fonts) await Promise.all([document.fonts.load(`600 80px ${display}`), document.fonts.load(`400 30px ${body}`)]); } catch (e) {}
     const following = state.following.length, followers = state.followers.length;
     const fset = followersSet();
     const mutual = state.following.filter(u => fset.has(u.username)).length;
@@ -3773,7 +3799,7 @@
     ctx.fillRect(0, 0, W, H);
     ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = C.text;
-    ctx.font = `800 68px ${display}`;
+    ctx.font = `600 68px ${display}`; // (the app's weights only: 400 / 500 / 600)
     ctx.fillText('my instagram stats', P, P + 60);
     ctx.fillStyle = C.muted;
     ctx.font = `500 30px ${body}`;
@@ -3791,10 +3817,10 @@
       ctx.strokeStyle = hexA(solidColor(STAT_COLORS[i]), 0.7);
       ctx.stroke();
       ctx.fillStyle = C.text;
-      ctx.font = `800 64px ${display}`;
+      ctx.font = `600 64px ${display}`;
       ctx.fillText(typeof v === 'number' ? fmtNum(v) : String(v), x + bw / 2, y + 102);
       ctx.fillStyle = C.muted;
-      ctx.font = `500 25px ${body}`;
+      ctx.font = `400 25px ${body}`;
       ctx.fillText(labels[i], x + bw / 2, y + 146);
     });
 
