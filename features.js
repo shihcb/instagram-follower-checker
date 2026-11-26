@@ -120,10 +120,14 @@
           const b = e.currentTarget;
           if (b.classList.contains('at-work')) return;
           clearTimeout(toastTimer);
+          const gen = toastEl._gen;
           b.classList.add('at-work'); spinIn(b);
           Promise.resolve().then(run).then(ok => ok !== false, () => false).then(ok => {
+            // (another toast up meanwhile: it's left as it is)
+            if (toastEl._gen !== gen) return;
             b.classList.remove('at-work'); spinOut(b);
             setTimeout(() => {
+              if (toastEl._gen !== gen) return;
               doneMark(b, ok ? 'ok' : 'x', ok ? 1200 : 2600);
               clearTimeout(toastTimer);
               toastTimer = setTimeout(hideToast, ok ? 1600 + ROW_MOTION_MS : 10000);
@@ -138,10 +142,12 @@
       document.body.appendChild(toastEl);
     }
     clearTimeout(toastTimer);
+    toastEl._gen = (toastEl._gen || 0) + 1;
     const up = toastEl.classList.contains('show');
     // (one line, never wrapped nor cut short with "…": words too long for it glide — the dashboard's, Oct 28, 2026)
     const text = toastEl.querySelector('.feature-toast-text .glide-inner');
     const btn = toastEl.querySelector('.feature-toast-btn');
+    if (btn.classList.contains('at-work')) { btn.classList.remove('at-work'); spinOut(btn); } // (a retry still going: this toast's button works)
     toastEl.classList.toggle('warn', tone === 'warn');
     toastEl.classList.toggle('no-action', !action);
     toastAction = action ? onAction : null;
@@ -397,6 +403,7 @@
     btn.addEventListener('click', () => {
       const ta = kind === 'following' ? elements.inputFollowing : elements.inputFollowers;
       if (!ta || ta.value.trim() === '') return;
+      flushListInputs(); // (what was typed just before is in what undo gives back)
       const entry = { snap: { acc: accKey(), cleared: kind, list: state[kind].slice() }, message: `${label} cleared` };
       // After the text has faded out (smoothClearTextarea, ROW_MOTION_MS).
       setTimeout(() => {
@@ -3914,6 +3921,5 @@
       if (results !== subTab.results) jumpResultsSub(results);
     }, 'settings'),
     renumberKept: (key, moves) => (renumbering = renumbering.then(() => renumberKept(key, moves)).catch(e => console.error('[features] moving kept import files failed:', e))),
-    dropUndo: (acc) => { const k = String(acc || '').toLowerCase(); for (let i = undoStack.length - 1; i >= 0; i--) if (undoStack[i].snap.acc === k) undoStack.splice(i, 1); safe(refreshUndo, 'undo'); },
     markSelected: (list) => { if (selectMode && !selectOnPending()) list.querySelectorAll('.user-row').forEach(r => r.classList.toggle('multi-selected', selected.has(r.dataset.username))); }, showView, showMobileList, showToast, setSelectMode, refreshToolbar, centerEmpties: () => safe(centerEmpties, 'empty texts') };
 })();
