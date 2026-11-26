@@ -3023,6 +3023,12 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
   for (let waited = 0; currentUser && (!cloudReady || cloudPulling) && !pendingCloudRetry && waited < 20000; waited += 200) {
     await new Promise(resolve => setTimeout(resolve, 200));
   }
+  // (still coming after 20s: not made now — the download wrote over it, and
+  // its files went up in place of the cloud's own import of that number)
+  if (currentUser && cloudPulling) {
+    await showSiteAlert('import couldn’t be started', 'your data is still loading — try again in a moment');
+    return false;
+  }
 
   // A .zip (what Instagram sends): its files are used as if the folder
   // inside it was picked.

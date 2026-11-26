@@ -592,7 +592,7 @@
       try { ({ error } = await supabaseClient.storage.from(BUCKET).upload(cloudPath(key, n, uid), blob, { upsert: true, contentType: 'application/zip' })); } catch (err) { error = err; }
       if (!error) return;
       const msg = String(error.message || error.error || error);
-      const expired = /jwt|token|expired|exp claim/i.test(msg);
+      const expired = /jwt|token|expired|exp"? claim/i.test(msg);
       const dropped = /failed to fetch|network|load failed|timed? ?out/i.test(msg) || Number(error.status || error.statusCode) >= 500;
       if (attempt >= 3 || !(expired || dropped)) throw error;
       if (expired) { try { await supabaseClient.auth.refreshSession(); } catch (e) {} }
@@ -669,8 +669,8 @@
     const before0 = readJSON(logKey(key), []).find(x => x.n === n - 1);
     let dropped = false;
     if (before0 && before0.files && !isFullSave(before0.n)) { // (by its number: a renumbered one's stored flag was its old number's)
-      try { await cloudDel(key, before0.n); } catch (err) { console.error('[features] removing old import files failed:', err); }
-      dropped = true;
+      // (only once it's really gone: a failed remove left the zip in the cloud, marked as gone)
+      try { await cloudDel(key, before0.n); dropped = true; } catch (err) { console.error('[features] removing old import files failed:', err); }
     }
     // Read only now, after the waits (a google drive sync goes on meanwhile:
     // the copy from before them wrote over the imports it added)
@@ -688,7 +688,7 @@
   function cloudReason(err) {
     const msg = String((err && (err.message || err.error)) || '');
     if (/bucket not found/i.test(msg)) return 'the imports folder isn’t set up';
-    if (/jwt|token|expired|exp claim/i.test(msg)) return 'log out and in again';
+    if (/jwt|token|expired|exp"? claim/i.test(msg)) return 'log out and in again';
     if (/row-level security|unauthorized|403/i.test(msg)) return 'not allowed';
     if (/payload too large|exceeded the maximum|413/i.test(msg)) return 'files too big';
     if (/failed to fetch|network|load failed/i.test(msg)) return 'no connection';
@@ -709,8 +709,10 @@
       run(tx.objectStore('imports'));
       tx.oncomplete = resolve;
       tx.onerror = () => reject(tx.error);
-    });
-    db.close();
+      // (a full device: only "abort" comes — it waited for ever, the import's
+      // files neither kept nor said to be lost, a sync stuck behind it)
+      tx.onabort = () => reject(tx.error || new Error('the device is full'));
+    }).finally(() => db.close());
   }
   // (with whose they are: logged out, another person logging in here with
   // an account of the same name had them put up into their own imports;
@@ -1098,7 +1100,18 @@
     const client = getTokenClient();
     if (!client) { loadGoogle(true); return Promise.reject(new Error("google's sign-in is still loading, try again")); }
     return new Promise((resolve, reject) => {
-      tokenWaiters.push({ resolve, reject });
+      // (google's window never answering — left open, its close not seen:
+      // given up after 2 minutes, so a tap can ask again; it read
+      // "connecting" for ever and imports were refused)
+      const waiter = {
+        resolve: (v) => { clearTimeout(waiter.timer); resolve(v); },
+        reject: (e) => { clearTimeout(waiter.timer); reject(e); }
+      };
+      waiter.timer = setTimeout(() => {
+        const i = tokenWaiters.indexOf(waiter);
+        if (i >= 0) { tokenWaiters.splice(i, 1); reject(new Error('google’s window didn’t answer')); }
+      }, 120000);
+      tokenWaiters.push(waiter);
       askedGen = tokenGen;
       client.requestAccessToken({ prompt: driveOn() ? '' : 'consent' });
     });
@@ -1134,7 +1147,7 @@
     const zips = await driveList("(mimeType='application/zip' or mimeType='application/x-zip-compressed')");
     const folders = new Map();
     for (const id of [...new Set(zips.flatMap(z => z.parents || []))].slice(0, 25)) {
-      try { folders.set(id, (await driveGet(`/${id}`, { fields: 'name' })).name || ''); } catch (e) { folders.set(id, ''); }
+      try { folders.set(id, (await driveGet(`/${id}`, { fields: 'name' })).name || ''); } catch (e) { if (e.cancelled || !driveToken) throw e; folders.set(id, ''); } // (a sign-in run out: said, not "no new exports")
     }
     zips.filter(z => EXPORT_NAME.test(z.name) || (z.parents || []).some(p => EXPORT_NAME.test(folders.get(p) || '')))
       .forEach(z => { const m = /^instagram-([a-z0-9._]+)-\d{4}-/i.exec(z.name); found.push({ id: z.id, name: z.name, who: m ? m[1].toLowerCase() : null, at: Date.parse(z.createdTime), zip: true }); });
@@ -1266,7 +1279,7 @@
       pushToCloud();
       if (overLimit) showAccountLimitAlert(); // (once, for every export of an account that couldn't be added)
       bar.stage('saving imports', 0.92);
-      await Promise.allSettled([...savesRunning]);
+      await Promise.race([Promise.allSettled([...savesRunning]), new Promise(r => setTimeout(r, 15000))]); // (not for ever: one stuck held the sync — and every import — up till a reload)
       stillHere(); // (logged out while they went up: no toast on the logged-out page)
       const { diffs, unsaved, why } = sync;
       // (the account on screen once it's done: the one you were on, put back below)
