@@ -1727,6 +1727,12 @@
     selectBar.style.top = `${(top + bottom) / 2}px`;
   }
   window.addEventListener('resize', () => { if (selectMode) placeSelectBar(); });
+  // (and as lists 1 and 2 change size: widened past 1024px, it was placed
+  // while they were still coming in, 2px wide, and left half off the screen)
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(() => { if (selectMode) placeSelectBar(); });
+    ['card-following', 'card-followers'].forEach(id => { const el = document.getElementById(id); if (el) ro.observe(el); });
+  }
   // Escape cancels select, like the bar's cancel (unless a pop-up is open,
   // which Escape closes instead).
   // (caught first, before the page's own Escape closes what's open: one

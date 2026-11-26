@@ -496,6 +496,7 @@ function showModalOverlay(overlay) {
   // window, its pictures, the blur) used to eat the fade's first frames,
   // so it looked like a snap.
   const token = (overlay._showToken = {});
+  overlay._shownAt = Date.now();
   // (taps caught from the start: in the two frames before .show, a second
   // tap went through to the page and opened another window over it)
   overlay.style.pointerEvents = 'auto';
@@ -504,6 +505,16 @@ function showModalOverlay(overlay) {
     if (overlay._showToken === token && !overlay.classList.contains('hidden')) overlay.classList.add('show');
   }));
 }
+
+// A double-click's second click, landing on a window's backdrop as it comes
+// in, isn't a tap outside: the window (export, saved imports, a reset's
+// confirm) closed again at once.
+document.addEventListener('click', (e) => {
+  const o = e.target;
+  if (o && o.classList && o.classList.contains('modal-overlay') && o._shownAt && Date.now() - o._shownAt < 500) {
+    e.stopPropagation(); e.preventDefault();
+  }
+}, true);
 
 // Tab stays inside the window on top (it walked on through the page behind
 // it, and Enter there started select mode under an open window).
@@ -3017,6 +3028,7 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
   // inside it was picked.
   let knownUsername = username;
   let fromZip = false;
+  let infoFile = null; // (kept with the saved import's files: its zip, uploaded again, knows its account)
   const zips = Array.from(files).filter(f => /\.zip$/i.test(f.name));
   if (zips.length) {
     if (typeof DecompressionStream === 'undefined') {
@@ -3028,9 +3040,18 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
     for (const zip of zips) {
       try { const got = await unzipImportFiles(zip); if (got.nested) nested = true; inner = inner.concat(got); } catch (err) { console.error('Could not read zip:', err); }
     }
-    const info = inner.find(f => f.name.toLowerCase() === 'personal_information.json');
-    if (info) knownUsername = (await usernameFromPersonalInfo(info)) || knownUsername;
-    files = Array.from(files).filter(f => !zips.includes(f)).concat(inner.filter(f => f !== info));
+    const infos = inner.filter(f => f.name.toLowerCase() === 'personal_information.json');
+    const info = infos[0];
+    // (exports of different accounts picked together: their lists were
+    // put together into the first one's)
+    const names = [...new Set((await Promise.all(infos.map(f => usernameFromPersonalInfo(f)))).filter(Boolean))];
+    if (names.length > 1) {
+      await showSiteAlert('exports couldn’t be imported together', `${names.map(n => `@${n}`).join(' and ')} — import one at a time`);
+      return false;
+    }
+    if (names.length) knownUsername = names[0];
+    infoFile = info || null;
+    files = Array.from(files).filter(f => !zips.includes(f)).concat(inner.filter(f => !infos.includes(f)));
     // The whole export — instagram's zip, its files in folders. A saved
     // import's zip of single files (following and followers only) isn't:
     // taken as one, it emptied close friends, pending and the rest.
@@ -3042,7 +3063,7 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
   // came up with the one on screen filled in)
   if (!knownUsername) {
     const info = Array.from(files).find(f => f.name.toLowerCase() === 'personal_information.json');
-    if (info) knownUsername = (await usernameFromPersonalInfo(info)) || null;
+    if (info) { knownUsername = (await usernameFromPersonalInfo(info)) || null; infoFile = info; }
   }
 
   let importedFollowing = false;
@@ -3240,7 +3261,7 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
       state.freshRows = true; // imported files: the list comes in whole
       calculateUnfollowers({ animate: true });
       // Restart the weekly reset reminder from this fresh import.
-      lastImportFiles = validFilesToProcess.map(item => item.file); // kept by features.js (saved imports)
+      lastImportFiles = validFilesToProcess.map(item => item.file).concat(infoFile ? [infoFile] : []); // kept by features.js (saved imports)
       lastImportWhole = wholeExport; // (its saved zip is a whole export again when uploaded)
       recordImportDate(state.selectedAccountUsername);
       saveCurrentAccountData();
@@ -7968,6 +7989,9 @@ function initAuth() {
       // a reset's confirm — or on the bar at the bottom is that pop-up's or
       // bar's own: its cancel closed settings with it)
       if (e.target.closest('.modal-overlay')) return;
+      // (a saved import's download — the app's own click on a link it made:
+      // taken as a tap outside, it was cancelled, the check showing all the same)
+      if (!e.isTrusted && e.target.matches && e.target.matches('a[download]')) return;
       if (!e.target.closest('#auth-dropdown') && !e.target.closest('#auth-btn')) {
         elements.authDropdown.classList.remove('show');
         clearAuthAlerts();
