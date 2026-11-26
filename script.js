@@ -1026,7 +1026,10 @@ function parseRawText(text) {
     let line = lines[i];
 
     // Clean lines like "@username" or "username's profile picture"
-    if (line.startsWith('@')) {
+    // (a name written with its @ is an account, never a button's word — the
+    // boxes hold "@posts" after an import, and the next edit dropped it)
+    const hadAt = line.startsWith('@');
+    if (hadAt) {
       line = line.substring(1);
     }
     const fromPicture = line.toLowerCase().endsWith("'s profile picture");
@@ -1037,7 +1040,7 @@ function parseRawText(text) {
     const cleanLower = line.toLowerCase();
     
     // Check if line looks like a valid username
-    if (isValidUsername(line) && !EXCLUDE_KEYWORDS.has(cleanLower)) {
+    if (isValidUsername(line) && (hadAt || !EXCLUDE_KEYWORDS.has(cleanLower))) {
       let fullName = '';
       let timestamp = null;
       let advance = 1;

@@ -2578,7 +2578,7 @@
       const following = state.following.length, followers = state.followers.length;
       const fset = followersSet();
       const mutual = state.following.filter(u => fset.has(u.username)).length;
-      const ratio = following ? Math.round((mutual / following) * 100) : 0;
+      const ratio = following ? (mutual === following ? 100 : Math.min(99, Math.max(mutual ? 1 : 0, Math.floor((mutual / following) * 100)))) : 0; // (never 100% with someone not following back, nor 0% with one who does)
       const counts = [following, followers, null, state.unfollowers.length, state.unfollowed.length, state.starred.length];
       const hasData = following > 0 || followers > 0;
       const maxCount = Math.max(1, ...counts.filter(c => c !== null));
@@ -3678,7 +3678,7 @@
     const following = state.following.length, followers = state.followers.length;
     const fset = followersSet();
     const mutual = state.following.filter(u => fset.has(u.username)).length;
-    const ratio = following ? Math.round((mutual / following) * 100) : 0;
+    const ratio = following ? (mutual === following ? 100 : Math.min(99, Math.max(mutual ? 1 : 0, Math.floor((mutual / following) * 100)))) : 0; // (never 100% with someone not following back, nor 0% with one who does)
     const counts = [following, followers, null, state.unfollowers.length, state.unfollowed.length, state.starred.length];
     const values = [following, followers, `${ratio}%`, state.unfollowers.length, state.unfollowed.length, state.starred.length];
     const labels = ['following', 'followers', 'follow you back', 'don’t follow you back', 'unfollowed', 'starred'];
