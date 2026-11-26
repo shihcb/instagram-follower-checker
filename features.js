@@ -247,9 +247,27 @@
       setListBox('following', state.following);
       updateListUI('following');
     }
-    state.unfollowed = snap.unfollowed;
-    state.starred = snap.starred;
-    if (snap.dismissed == null) storageRemove(dismissedKey()); else storageSet(dismissedKey(), snap.dismissed);
+    if (snap.after) {
+      // Only what this step changed: the lists as they were (whole) put
+      // back what was done since without a step of its own too — auto-open's
+      // unfollows, a reset in settings
+      const keyOf = (u) => `${u.account || ''}|${u.username}`;
+      const revert = (before, after, now, keyFn) => {
+        const b = new Set(before.map(keyFn)), a = new Set(after.map(keyFn));
+        const kept = now.filter(u => !(a.has(keyFn(u)) && !b.has(keyFn(u))));
+        const have = new Set(kept.map(keyFn));
+        return [...kept, ...before.filter(u => !a.has(keyFn(u)) && !have.has(keyFn(u)))];
+      };
+      state.unfollowed = revert(snap.unfollowed, snap.after.unfollowed, state.unfollowed, keyOf);
+      state.starred = revert(snap.starred, snap.after.starred, state.starred, keyOf);
+      const list = (v) => { try { const x = JSON.parse(v || '[]'); return Array.isArray(x) ? x : []; } catch (e) { return []; } };
+      const hidden = revert(list(snap.dismissed), list(snap.after.dismissed), list(storageGet(dismissedKey())), x => String(x));
+      if (hidden.length) storageSet(dismissedKey(), JSON.stringify(hidden)); else storageRemove(dismissedKey());
+    } else {
+      state.unfollowed = snap.unfollowed;
+      state.starred = snap.starred;
+      if (snap.dismissed == null) storageRemove(dismissedKey()); else storageSet(dismissedKey(), snap.dismissed);
+    }
     saveCurrentAccountData();
     calculateUnfollowers({ animate: true });
     updateUnfollowedUI();
@@ -273,6 +291,10 @@
     offersPending++;
     setTimeout(() => {
       offersPending--;
+      // (what it changed, for the undo: the lists once its slide is done)
+      if (snap.unfollowed && !snap.cleared && !snap.extraRemoved && snap.acc === accKey()) {
+        snap.after = { unfollowed: state.unfollowed.slice(), starred: state.starred.slice(), dismissed: storageGet(dismissedKey()) };
+      }
       undoStack.push({ snap, message });
       if (undoStack.length > 50) undoStack.shift();
       refreshUndo();
@@ -331,19 +353,25 @@
       // took it out of the restored list 3), then runs — the tap is kept
       // (and a step just taken, not on the stack yet — a select bar's rows
       // don't count as sliding out: the step before it was undone instead)
+      // (every tap kept, in turn: only the first of several quick ones was)
       const busy = () => offersPending > 0 || (typeof rowExitsInFlight !== 'undefined' && rowExitsInFlight > 0);
-      if (busy()) {
+      if (busy() || undoBtn._queued) {
+        undoBtn._queued = (undoBtn._queued || 0) + 1;
         if (!undoBtn._waiting) {
           undoBtn._waiting = true;
           const wait = () => {
             if (busy()) { setTimeout(wait, 50); return; }
-            undoBtn._waiting = false;
-            undoBtn.click();
+            undoBtn._queued--;
+            undoOnce();
+            if (undoBtn._queued > 0) setTimeout(wait, 50); else undoBtn._waiting = false;
           };
           setTimeout(wait, 50);
         }
         return;
       }
+      undoOnce();
+    });
+    function undoOnce() {
       for (let i = undoStack.length - 1; i >= 0; i--) {
         if (undoStack[i].snap.acc !== accKey()) continue;
         const [{ snap }] = undoStack.splice(i, 1);
@@ -351,7 +379,7 @@
         break;
       }
       refreshUndo();
-    });
+    }
     setUndoReady(false);
   }
 
@@ -401,10 +429,14 @@
   function restoreClearedList(snap) {
     const kind = snap.cleared;
     const ta = kind === 'following' ? elements.inputFollowing : elements.inputFollowers;
-    state[kind] = snap.list;
+    flushListInputs();
+    // (with what's been typed since: the old list put back alone lost it)
+    const had = new Set(snap.list.map(u => u.username));
+    const list = [...snap.list, ...(state[kind] || []).filter(u => !had.has(u.username))];
+    state[kind] = list;
     // (from the list, not the box's text then: cleared mid-search, that was
     // only the matches, and the next edit kept just those)
-    setListBox(kind, snap.list);
+    setListBox(kind, list);
     updateListUI(kind);
     saveCurrentAccountData();
     calculateUnfollowers({ animate: true });
@@ -3488,7 +3520,7 @@
     writeExtraLists(acc, lists);
     pushToCloud();
     // (undoable, like list 3's ✕: it was gone for good)
-    offerUndo({ acc: accKey(), extraRemoved: { kind, user: before[at], at } }, `${name} removed`);
+    offerUndo({ acc: accKey(), extraRemoved: { kind, user: before[at], at } }, `@${name} removed`);
     const done = () => {
       // Still that account on screen: the list is already right (the row
       // has gone), unless it's now empty — then the empty text comes in.

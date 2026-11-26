@@ -1025,7 +1025,8 @@ function parseRawText(text) {
       // (commas always; spaces only between names written with "@" — a
       // lowercase full name, "dan smith", is never two accounts)
       const bySpace = /^@\S+(\s+@\S+)+$/.test(line);
-      if (line.includes(',') || bySpace) {
+      // (and commas only in a line with no capitals: "Smith, John" is a full name — it became @Smith)
+      if ((line.includes(',') && line === line.toLowerCase()) || bySpace) {
         const parts = line.split(line.includes(',') ? /\s*,\s*/ : /\s+/).map(p => p.replace(/^@+/, '')).filter(Boolean);
         if (parts.length > 1 && parts.every(p => isValidUsername(p))) return parts;
       }
@@ -1066,9 +1067,12 @@ function parseRawText(text) {
       if (fromPicture && j < lines.length && lines[j].replace(/^@/, '').toLowerCase() === cleanLower) j++;
       // instagram.com's "·" between a name and its Follow button, and a
       // "Verified" line, come before the full name: never the name itself
-      const filler = (l) => !/[\p{L}\p{N}]/u.test(l) || /^(verified|verificado|vérifié|verifiziert|verificato)$/i.test(l);
+      // (only the dot itself: a full name of just emoji — "💖" — was taken
+      // for it, and the next account was read as that one's name)
+      const isDot = (l) => /^[·•∙⋅]+$/.test(l);
+      const filler = (l) => isDot(l) || /^(verified|verificado|vérifié|verifiziert|verificato)$/i.test(l);
       let dotted = false;
-      while (j < lines.length && filler(lines[j])) { if (!/[\p{L}\p{N}]/u.test(lines[j])) dotted = true; j++; }
+      while (j < lines.length && filler(lines[j])) { if (isDot(lines[j])) dotted = true; j++; }
       // instagram.com's layout: "·", its Follow button, then the full name
       // and its Remove button
       if (dotted && j + 2 < lines.length + 1 && EXCLUDE_KEYWORDS.has((lines[j] || '').toLowerCase())
@@ -3463,6 +3467,7 @@ function selectAccount(username) {
 }
 
 let chipClickTimer = null;
+let chipClickRun = null, chipClickFor = null;
 
 // FLIP for account chips after a full re-render: each chip that existed
 // before starts at its old position and slides to its new one.
@@ -3537,14 +3542,21 @@ function createAccountChip(name) {
     if (chipClickTimer) {
       clearTimeout(chipClickTimer);
       chipClickTimer = null;
+      // (another chip's tap still waiting: it happens now — dropped, the tap
+      // after it unselected the account already picked, leaving none)
+      const run = chipClickRun;
+      chipClickRun = null;
+      if (run && chipClickFor !== name) run();
     }
 
-    chipClickTimer = setTimeout(() => {
+    const run = () => {
       const found = current();
       if (found) selectAccount(found.acc.originalUsername);
-      chipClickTimer = null;
       lastChipTapTime = 0;
-    }, 240);
+    };
+    chipClickRun = run;
+    chipClickFor = name;
+    chipClickTimer = setTimeout(() => { chipClickTimer = null; chipClickRun = null; run(); }, 240);
   }
 
   // The entrance only ever plays once (moving a chip would replay it).
