@@ -362,6 +362,7 @@
       // (every tap kept, in turn: only the first of several quick ones was)
       const busy = () => offersPending > 0 || (typeof rowExitsInFlight !== 'undefined' && rowExitsInFlight > 0);
       if (busy() || undoBtn._queued) {
+        afterSubmenusClose(() => {}); // (an open menu starts closing at the tap: it stayed up a second while the undo waited)
         undoBtn._queued = (undoBtn._queued || 0) + 1;
         if (!undoBtn._waiting) {
           undoBtn._waiting = true;
