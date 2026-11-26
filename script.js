@@ -2147,8 +2147,10 @@ function updateResultsUI({ animate = false, matchRenames = false } = {}) {
     if (freshSwap && !listWasHidden && previousRows.size > 0) {
       listEl.innerHTML = '';
       keptExits.forEach(row => listEl.appendChild(row));
-      animateResultsExits(listEl, previousRows);
+      // (the token first: a row's slide finished inside animateResultsExits
+      // redrew list 3 straight away, and the swap then put every row in again — each twice)
       const token = (listEl._swapToken = {});
+      animateResultsExits(listEl, previousRows);
       setTimeout(() => {
         if (listEl._swapToken !== token) return;
         listEl._swapToken = null;
@@ -6379,7 +6381,7 @@ function updateInstructionsStepUI() {
   // menu's button still opens that menu; a pop-up or the bottom bar works.
   document.addEventListener('click', (e) => {
     const open = [elements.listUnfollowed, elements.listStarred, elements.addAccountDropdownMenu].some(m => m && m.classList.contains('show'));
-    const passThrough = e.target.closest('#toggle-preview-unfollowed, #list-unfollowed, #toggle-preview-starred, #list-starred, #btn-add-account, #add-account-dropdown-menu, .modal-overlay, .feature-toast, .row-select-bar');
+    const passThrough = e.target.closest('#toggle-preview-unfollowed, #list-unfollowed, #toggle-preview-starred, #list-starred, #btn-add-account, #add-account-dropdown-menu, .modal-overlay, .feature-toast, .row-select-bar, #btn-undo'); // (undo closes the menu and plays out — afterSubmenusClose — not just closing it)
     if (open && !passThrough) { e.preventDefault(); e.stopPropagation(); e.menuCloseOnly = true; } // (features.js: no undo step for it)
     if (!e.target.closest('#toggle-preview-unfollowed') && !e.target.closest('#list-unfollowed')) {
       elements.listUnfollowed.classList.remove('show');
