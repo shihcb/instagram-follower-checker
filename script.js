@@ -242,6 +242,9 @@ function applyCloudPrefs(prefs) {
   CLOUD_PREFS.forEach(k => {
     if (k === 'theme' || k === 'theme_at') return;
     if (typeof prefs[k] === 'string') storageSet(k, prefs[k]);
+    // (removed on another device — google drive's remove: kept here, the next
+    // upload put it back, and a new drive skipped the first sync's limit)
+    else if (!(k in prefs)) storageRemove(k);
   });
   if (takeCloudTheme) {
     storageSet('theme', cloudTheme);
@@ -956,7 +959,9 @@ function parseHTML(text) {
           }
         }
         
-        if (EXCLUDE_KEYWORDS.has(username.toLowerCase())) return;
+        // (a name with its own profile link is an account, even one called
+        // "follower" or "posts": the button words are for pasted text)
+        if (!(href && isProfileHref(href)) && EXCLUDE_KEYWORDS.has(username.toLowerCase())) return;
         const norm = normalizeUsername(username);
         if (seenUsernames.has(norm)) return;
         seenUsernames.add(norm);
@@ -3169,7 +3174,8 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
     if (unfollowedFiles.length && !wholeFollowing) {
       const gone = new Map();
       for (const item of unfollowedFiles) {
-        (parseInput(await readFileText(item.file)) || []).forEach(u => gone.set(u.username, u.timestamp ? new Date(u.timestamp).getTime() : Infinity));
+        // (the latest unfollow, when one's listed more than once)
+        (parseInput(await readFileText(item.file)) || []).forEach(u => { const t = u.timestamp ? new Date(u.timestamp).getTime() : Infinity; gone.set(u.username, Math.max(gone.has(u.username) ? gone.get(u.username) : -Infinity, t)); });
       }
       const kept = state.following.filter(u => {
         if (!gone.has(u.username)) return true;
@@ -8177,23 +8183,26 @@ function initAuth() {
   }
 
   // Handle Drag & Drop files anywhere on document
+  // (files only: dragged text — a username into list 1 or 2, a search box — drops as it should)
+  const dragsFiles = (e) => !!(e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files'));
   document.addEventListener('dragover', (e) => {
-    e.preventDefault();
+    if (dragsFiles(e)) e.preventDefault();
   });
   document.addEventListener('drop', async (e) => {
+    if (!dragsFiles(e)) return;
     e.preventDefault();
     if (e.dataTransfer && e.dataTransfer.items && e.dataTransfer.items.length > 0) {
       // (every entry taken before the first wait: the browser empties the
       // drop's data then, and only the first of several files was imported)
       const entries = Array.from(e.dataTransfer.items).map(item => item.webkitGetAsEntry && item.webkitGetAsEntry()).filter(Boolean);
+      // (a dropped folder is a whole export, as when it's picked: it was taken as loose files)
+      const isFolder = entries.some(en => en.isDirectory);
       let files = [];
       for (const entry of entries) {
-        {
-          const entryFiles = await getFilesFromEntry(entry);
-          files = files.concat(entryFiles);
-        }
+        const entryFiles = await getFilesFromEntry(entry);
+        files = files.concat(entryFiles);
       }
-      await processImportFiles(files);
+      await processImportFiles(files, isFolder);
     } else if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const files = Array.from(e.dataTransfer.files);
       await processImportFiles(files);

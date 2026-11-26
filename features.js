@@ -993,11 +993,12 @@
     refreshSavedImports();
     // Once logged in (the session loads after this), move any files an
     // older version left on this device up to the cloud.
-    let tries = 0;
-    const timer = setInterval(() => {
-      if (++tries > 60) { clearInterval(timer); return; }
-      if (!cloudLoaded()) return; // (the log down from the cloud first: read before it came, every kept file was skipped)
-      clearInterval(timer);
+    // (every log-in: it gave up after 2 minutes, and ran for the first person only)
+    let doneFor = null;
+    setInterval(() => {
+      if (!currentUser) { doneFor = null; return; }
+      if (doneFor === currentUser.id || !cloudLoaded()) return; // (the log down from the cloud first: read before it came, every kept file was skipped)
+      doneFor = currentUser.id;
       moveLocalFilesToCloud().catch(err => console.error('[features] moving import files failed:', err));
     }, 2000);
   }
@@ -1410,11 +1411,12 @@
     refreshDrive();
     // Once logged in with the cloud data in: connected and not synced
     // today, offer the tap that syncs.
-    let tries = 0;
-    const timer = setInterval(() => {
-      if (++tries > 60) { clearInterval(timer); return; }
-      if (!canCloud() || !cloudReady) return;
-      clearInterval(timer);
+    // (every log-in: it gave up after 2 minutes, and asked the first person only)
+    let doneFor = null;
+    setInterval(() => {
+      if (!currentUser) { doneFor = null; return; }
+      if (doneFor === currentUser.id || !canCloud() || !cloudReady) return;
+      doneFor = currentUser.id;
       refreshDrive();
       const at = Number(storageGet('drive_checked')) || 0;
       if (driveReady() && driveOn() && !sameDay(at, Date.now())) {
@@ -3322,6 +3324,8 @@
     box.classList.toggle('sub-extra', id !== 'unfollowers');
     resultsPanes().forEach(p => { p.classList.remove('pane-out'); clearPin(p); p.classList.toggle('sub-on', p.classList.contains('results-extra') ? p.dataset.sub === id : id === 'unfollowers'); });
     refreshToolbar();
+    // (on screen — a tab from the cloud after a reload: the highlight stayed under the old tab)
+    placeSubIndicator(resultsSubnav.querySelector('.changes-nav'));
   }
   function extraContent(id) {
     const text = EXTRA_TEXT[id];
