@@ -6809,8 +6809,12 @@ function updateInstructionsStepUI() {
     settingsResetUnfollowedBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
       if (settingsResetUnfollowedBtn.disabled || state.unfollowed.length === 0) return;
+      // (not mid-import or mid-sync, and only the account it was asked for:
+      // one picked meanwhile had its list emptied, two lists lost)
+      if (accountsBusy()) { sayAccountsBusy(); return; }
       const currentAcc = state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '';
-      const confirmed = await showSiteConfirm('reset unfollowed list?', '', 'reset', 'cancel');
+      const confirmed = await showSiteConfirm('reset unfollowed list?', '', 'reset', 'cancel')
+        && !accountsBusy() && (state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '') === currentAcc;
       if (confirmed) {
         const wasDue = settingsResetUnfollowedBtn.classList.contains('reset-due'); // (before the lists empty: their redraw already eases it to "reset")
         // (ones that came from pending requests go back there, as when
@@ -6818,6 +6822,11 @@ function updateInstructionsStepUI() {
         state.unfollowed.filter(u => u.fromPending).forEach(returnToPending);
         state.unfollowed = [];
         storageSet(listResetKey('unfollowed'), String(Date.now()));
+        // (the other list, empty, counts as reset too: the first name put in
+        // it after made the reminder "overdue" again)
+        if (!(state.starred || []).length) storageSet(listResetKey('starred'), String(Date.now()));
+        // (its undo steps go: they'd put back nothing — the button lit, its taps doing nothing)
+        if (window.igFeatures && window.igFeatures.dropUndo) window.igFeatures.dropUndo(state.selectedAccountUsername);
         if (currentAcc) {
           storageSet(`unfollowed_users_${currentAcc}`, JSON.stringify([]));
           // Clean global shared list matching this account
@@ -6846,13 +6855,22 @@ function updateInstructionsStepUI() {
     settingsResetStarredBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
       if (settingsResetStarredBtn.disabled || state.starred.length === 0) return;
+      // (not mid-import or mid-sync, and only the account it was asked for:
+      // one picked meanwhile had its list emptied, two lists lost)
+      if (accountsBusy()) { sayAccountsBusy(); return; }
       const currentAcc = state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '';
-      const confirmed = await showSiteConfirm('reset starred list?', '', 'reset', 'cancel');
+      const confirmed = await showSiteConfirm('reset starred list?', '', 'reset', 'cancel')
+        && !accountsBusy() && (state.selectedAccountUsername ? state.selectedAccountUsername.toLowerCase() : '') === currentAcc;
       if (confirmed) {
         const wasDue = settingsResetStarredBtn.classList.contains('reset-due'); // (before the lists empty: their redraw already eases it to "reset")
         state.starred.filter(u => u.fromPending).forEach(returnToPending); // (back to pending requests, as when taken out one at a time)
         state.starred = [];
         storageSet(listResetKey('starred'), String(Date.now()));
+        // (the other list, empty, counts as reset too: the first name put in
+        // it after made the reminder "overdue" again)
+        if (!(state.unfollowed || []).length) storageSet(listResetKey('unfollowed'), String(Date.now()));
+        // (its undo steps go: they'd put back nothing — the button lit, its taps doing nothing)
+        if (window.igFeatures && window.igFeatures.dropUndo) window.igFeatures.dropUndo(state.selectedAccountUsername);
         if (currentAcc) {
           storageSet(`starred_users_${currentAcc}`, JSON.stringify([]));
           // Clean global shared list matching this account

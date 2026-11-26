@@ -1443,6 +1443,7 @@
       btn.disabled = !on || !!driveSync || btn.classList.contains('busy'); // (never looking tappable while it runs)
     }
     if (!holder) return;
+    holder.querySelectorAll('.drive-remove').forEach(b => { b.disabled = !!driveSync; }); // (during a sync: it did nothing, looking as if it would)
     const email = storageGet('drive_email') || '';
     const want = on ? `on:${email}` : 'off';
     if (holder.dataset.state === want) return;
@@ -1466,6 +1467,7 @@
       remove.className = 'btn btn-sm btn-danger-soft drive-remove';
       remove.textContent = 'remove';
       remove.addEventListener('click', (e) => { e.stopPropagation(); if (!driveSync) disconnectDrive(); });
+      remove.disabled = !!driveSync; // (during a sync: it did nothing, looking as if it would)
       node.append(badge, remove);
     } else {
       node = document.createElement('button');
