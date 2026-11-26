@@ -6383,11 +6383,13 @@ function updateInstructionsStepUI() {
     const open = [elements.listUnfollowed, elements.listStarred, elements.addAccountDropdownMenu].some(m => m && m.classList.contains('show'));
     const passThrough = e.target.closest('#toggle-preview-unfollowed, #list-unfollowed, #toggle-preview-starred, #list-starred, #btn-add-account, #add-account-dropdown-menu, .modal-overlay, .feature-toast, .row-select-bar, #btn-undo'); // (undo closes the menu and plays out — afterSubmenusClose — not just closing it)
     if (open && !passThrough) { e.preventDefault(); e.stopPropagation(); e.menuCloseOnly = true; } // (features.js: no undo step for it)
-    if (!e.target.closest('#toggle-preview-unfollowed') && !e.target.closest('#list-unfollowed')) {
+    // (undo closes the two menus itself, then plays out: closed here, it ran at once, the open menu jumping)
+    const viaUndo = !!e.target.closest('#btn-undo');
+    if (!viaUndo && !e.target.closest('#toggle-preview-unfollowed') && !e.target.closest('#list-unfollowed')) {
       elements.listUnfollowed.classList.remove('show');
       elements.togglePreviewUnfollowed.classList.remove('active');
     }
-    if (!e.target.closest('#toggle-preview-starred') && !e.target.closest('#list-starred')) {
+    if (!viaUndo && !e.target.closest('#toggle-preview-starred') && !e.target.closest('#list-starred')) {
       elements.listStarred.classList.remove('show');
       elements.togglePreviewStarred.classList.remove('active');
     }

@@ -382,8 +382,10 @@
         if (undoStack[i].snap.acc !== accKey()) continue;
         const [{ snap }] = undoStack.splice(i, 1);
         afterSubmenusClose(() => restore(snap));
-        break;
+        refreshUndo();
+        return;
       }
+      afterSubmenusClose(() => {}); // (nothing to undo: a menu still closes)
       refreshUndo();
     }
     setUndoReady(false);
