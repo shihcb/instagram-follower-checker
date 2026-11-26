@@ -3105,6 +3105,18 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
       await showAccountLimitAlert();
       return false;
     }
+    // (read before the account is made or picked: files that couldn't be
+    // read left a new, empty account chip, selected)
+    for (const item of mainFiles) {
+      const text = await readFileText(item.file);
+      item.text = text;
+      item.parsed = parseInput(text) || [];
+    }
+    const unreadable = mainFiles.filter(item => !item.parsed.length && (!item.text.trim() || /instagram\.com\/|string_list_data/.test(item.text)));
+    if (unreadable.length) {
+      await showSiteAlert('lists couldn’t be read', unreadable.map(item => item.file.name).join(', '));
+      return false;
+    }
     if (extractedUsername) {
       // List 3 isn't redrawn with the account's old data first: it goes
       // straight to the imported result below, with each username's
@@ -3128,17 +3140,6 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
     // one that couldn't be read (or whose usernames couldn't be found — a
     // changed export) used to leave its list emptied, list 3 then showing
     // everyone, and that saved to the cloud.
-    for (const item of mainFiles) {
-      const text = await readFileText(item.file);
-      item.text = text;
-      item.parsed = parseInput(text) || [];
-    }
-    const unreadable = mainFiles.filter(item => !item.parsed.length && (!item.text.trim() || /instagram\.com\/|string_list_data/.test(item.text)));
-    if (unreadable.length) {
-      await showSiteAlert('lists couldn’t be read', unreadable.map(item => item.file.name).join(', '));
-      if (switchedAccount) calculateUnfollowers({ animate: true }); // (list 3 shows the account now picked)
-      return false;
-    }
     const partial = { following: false, followers: false };
     for (const type of ['following', 'followers']) {
       const ofType = mainFiles.filter(item => item.type === type);
@@ -3186,16 +3187,20 @@ async function processImportFilesNow(files, isFolderUpload = false, { username =
     const listsChanged = mainFiles.length > 0 || unfollowedLately;
 
     const found = {};
+    const unreadableKinds = new Set(); // (a file whose usernames couldn't be found leaves its list as it was — it was emptied)
     for (const item of extraFiles) {
-      const parsed = parseInput(await readFileText(item.file)) || [];
+      const text = await readFileText(item.file);
+      const parsed = parseInput(text) || [];
+      if (!parsed.length && (!text.trim() || /instagram\.com\/|string_list_data/.test(text))) { unreadableKinds.add(item.kind); continue; }
       found[item.kind] = (found[item.kind] || []).concat(parsed);
     }
     const lists = readExtraLists(state.selectedAccountUsername);
+    const savedExtras = { ...lists };
     // A whole export folder is the full picture: a list it doesn't have is
     // empty now. Single files only replace their own list. An export of
     // just what's new adds to them.
     const wholeExport = isFolderUpload && mainFiles.length > 0 && !anyPartial;
-    if (wholeExport) EXTRA_LIST_KINDS.forEach(kind => { lists[kind] = []; });
+    if (wholeExport) EXTRA_LIST_KINDS.forEach(kind => { lists[kind] = unreadableKinds.has(kind) && !found[kind] ? savedExtras[kind] || [] : []; });
     Object.keys(found).forEach(kind => { lists[kind] = deduplicateEntries([...(anyPartial ? lists[kind] || [] : []), ...found[kind]]).map(cleanExtraEntry); });
     const extrasChanged = extraFiles.length > 0 || wholeExport;
     // Pending requests already starred or unfollowed stay out (they came back on every import)
@@ -3553,9 +3558,10 @@ function renderAccountChips(animate = false, { force = false } = {}) {
     if (accounts.length === 0 && !accountMgmtRow.classList.contains('empty-chips') && accountMgmtRow.offsetHeight > 0) {
       accountMgmtRow.style.setProperty('--chip-row-height', `${accountMgmtRow.offsetHeight}px`);
     }
-    accountMgmtRow.classList.toggle('empty-chips', accounts.length === 0);
   }
+  // (before the toggle below: it takes empty-chips off, so this was never true)
   const rowOpening = !!accountMgmtRow && accountMgmtRow.classList.contains('empty-chips') && accounts.length > 0;
+  if (accountMgmtRow) accountMgmtRow.classList.toggle('empty-chips', accounts.length === 0);
 
   // Updated in place: chips that stay keep their element — only the chips
   // that are new are created (and fade in), gone ones are removed, and a
@@ -6603,10 +6609,16 @@ function updateInstructionsStepUI() {
       // start clearing the lists without waiting, so a file read in the
       // meantime could be wiped, and read the files in parallel, so the
       // pending-requests file could overwrite the following list.
+      // (its subfolders too: an export keeps its lists in connections/… —
+      // only the top level was read, so a whole export imported nothing)
       const files = [];
-      for await (const entry of dirHandle.values()) {
-        if (entry.kind === 'file') files.push(await entry.getFile());
-      }
+      const collect = async (dir) => {
+        for await (const entry of dir.values()) {
+          if (entry.kind === 'file') files.push(await entry.getFile());
+          else if (entry.kind === 'directory') await collect(entry);
+        }
+      };
+      await collect(dirHandle);
       const importedAny = await processImportFiles(files, true);
       if (importedAny) doneCheck(title);
     } catch (err) {
@@ -7633,6 +7645,7 @@ function initAuth() {
           // (see pullFromCloud). Anyone else logging in clears it first.
           if (!storageGet(CLOUD_DIRTY_KEY)) clearLocalAccountData();
           if (window.igFeatures && window.igFeatures.applyPrefs) window.igFeatures.applyPrefs(); // (the last person's sort and tabs don't carry over)
+          { const t = document.getElementById('auto-open-toggle'); if (t) t.checked = storageGet('auto_open') === '1'; } // (the last person's auto-open was left switched on)
           // Their google sign-in, held in memory, goes either way — and their
           // undo steps (undone after the next log-in, they put this person's
           // lists into that one's)
@@ -8502,6 +8515,7 @@ async function pullFromCloudNow(uploadLocalFirst, stillWanted) {
             // Restore the weekly reset reminder's anchor date so it reflects real elapsed time on login.
             if (itemData.importDate) storageSet(`import_date_${key}`, itemData.importDate);
             else if (itemData.importDate === null) storageRemove(`import_date_${key}`); // (cleared on another device: an old one here came back)
+            if (itemData.importAt) storageSet(`import_at_${key}`, itemData.importAt);
             if (itemData.history) storageSet(`import_history_${key}`, JSON.stringify(itemData.history));
             if (itemData.diff) storageSet(`import_diff_${key}`, JSON.stringify(itemData.diff));
             else if (itemData.diff === null) storageRemove(`import_diff_${key}`);
@@ -8794,7 +8808,9 @@ async function pushToCloudNow() {
       const resets = { unfollowed: storageGet(`list_reset_unfollowed_${key}`), starred: storageGet(`list_reset_starred_${key}`) };
 
       const hidden = JSON.parse(storageGet(`hidden_users_${key}`) || '[]');
-      accountDataMap[key] = { following, followers, unfollowed, starred, importDate, history, diff, extras, imports, resets, hidden };
+      // (when the export itself was made — google drive's sync goes by it: lost on every reload, a newer export was skipped)
+      const importAt = storageGet(`import_at_${key}`) || null;
+      accountDataMap[key] = { following, followers, unfollowed, starred, importDate, importAt, history, diff, extras, imports, resets, hidden };
 
       unfollowed.forEach(u => {
         const itemAcc = u.account || key;
