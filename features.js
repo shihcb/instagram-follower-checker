@@ -454,7 +454,8 @@
     if (!btn) return;
     btn.addEventListener('click', () => {
       const ta = kind === 'following' ? elements.inputFollowing : elements.inputFollowers;
-      if (!ta || ta.value.trim() === '') return;
+      // (by the list as well as the box: a search with no matches empties the box, and the clear went with no undo)
+      if (!ta || (ta.value.trim() === '' && !(state[kind] || []).length)) return;
       flushListInputs(); // (what was typed just before is in what undo gives back)
       const entry = { snap: { acc: accKey(), cleared: kind, list: state[kind].slice() }, message: `${label} cleared` };
       // After the text has faded out (smoothClearTextarea, ROW_MOTION_MS).
@@ -3928,7 +3929,8 @@
     [['following', elements.inputFollowing], ['followers', elements.inputFollowers]].forEach(([kind, ta]) => {
       const btn = document.getElementById(`btn-export-${kind}`);
       if (!btn || !ta) return;
-      const off = ta.value.trim() === '';
+      // (the list too: a search with no matches empties the box — the button went, and stayed gone after it)
+      const off = ta.value.trim() === '' && !(state[kind] || []).length;
       if (btn.classList.contains('export-off') === off) return;
       const wrap = btn.parentElement;
       if (!animate) { btn.classList.add('no-anim'); wrap.classList.add('no-anim'); }
