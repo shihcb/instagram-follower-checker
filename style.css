@@ -1275,7 +1275,7 @@ button:disabled *,
   transform: scale(1);
 }
 
-@container card-unfollowers (max-width: 419px) {
+@container card-unfollowers (max-width: 349px) {
   .preview-toggle span.btn-text-full {
     display: none !important;
   }
@@ -1306,6 +1306,44 @@ button:disabled *,
   }
   .results-dropdowns-group .import-button-row {
     min-width: 0;
+  }
+}
+
+/* (a computer's 350-419px card — 1150-1350px windows — too: the words
+   spilled past the buttons. Not phones: their 390-430px cards keep the arrows) */
+@media (min-width: 1025px) {
+  @container card-unfollowers (max-width: 419px) {
+    .preview-toggle span.btn-text-full {
+      display: none !important;
+    }
+    .preview-toggle span.btn-text-short {
+      display: inline !important;
+    }
+    .preview-toggle span.btn-text-compact {
+      display: none !important;
+    }
+    /* (width: 100%, inside their share of the row: auto let them grow past
+       it, over the button beside them, at 1025-1200px) — the row shared by
+       how long each label is, and the two menus without their arrows, so
+       the words fit */
+    #toggle-preview-unfollowed,
+    #toggle-preview-starred {
+      width: 100% !important;
+      min-width: 0 !important;
+      padding: 0 6px !important;
+      overflow: hidden;
+    }
+    .results-dropdowns-group .dropdown-wrapper {
+      flex: 1 1 auto;
+    }
+    #toggle-preview-unfollowed .chevron-icon,
+    #toggle-preview-starred .chevron-icon,
+    #btn-add-account .chevron-icon {
+      display: none;
+    }
+    .results-dropdowns-group .import-button-row {
+      min-width: 0;
+    }
   }
 }
 

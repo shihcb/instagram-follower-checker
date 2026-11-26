@@ -244,7 +244,9 @@ function applyCloudPrefs(prefs) {
     if (typeof prefs[k] === 'string') storageSet(k, prefs[k]);
     // (removed on another device — google drive's remove: kept here, the next
     // upload put it back, and a new drive skipped the first sync's limit)
-    else if (!(k in prefs)) storageRemove(k);
+    // (only when it says so — null: a key it doesn't have at all may be one
+    // an older copy of the app doesn't know, and it removed it everywhere)
+    else if (prefs[k] === null) storageRemove(k);
   });
   if (takeCloudTheme) {
     storageSet('theme', cloudTheme);
@@ -8108,9 +8110,11 @@ function initAuth() {
     // not the page faded out and blank while they went.
     const btn = elements.btnLogout;
     if (btn._leaving) return;
-    // (not mid-import or mid-sync: the rest of it went on after the log-out,
-    // and into the next person's lists and cloud)
-    if (accountsBusy()) { sayAccountsBusy(); return; }
+    // (not mid-import: the rest of it went on after the log-out, and into
+    // the next person's lists and cloud. A google drive sync between its
+    // imports is stopped by the log-out itself — waited for, a sign-in
+    // window left open held the log-out up for good)
+    if (importsRunning > 0) { sayAccountsBusy(); return; }
     btn._leaving = true;
     if (window.igFeatures && window.igFeatures.savesPending && window.igFeatures.savesPending()) {
       workButton(btn, true);
@@ -8916,7 +8920,7 @@ async function pushToCloudNow() {
       selected_account: (state.selectedAccountUsername && state.selectedAccountUsername.toLowerCase() !== DEMO_ID) ? state.selectedAccountUsername : null,
       accounts_data: accountDataMap,
       // This user's settings travel too (nothing is kept on the device).
-      prefs: Object.fromEntries(CLOUD_PREFS.map(k => [k, storageGet(k)]).filter(([, v]) => v !== null))
+      prefs: Object.fromEntries(CLOUD_PREFS.map(k => [k, storageGet(k)])) // (a removed one as null, so other devices remove it too)
     };
 
     const cloudStarred = [metaHeader, ...allStarredArray];
