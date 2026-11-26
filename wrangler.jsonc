@@ -7,6 +7,9 @@
     "command": "npm run build"
   },
   "assets": {
-    "directory": "./public"
+    "directory": "./public",
+    // (index.html served as it is, not sent on to "/": the offline copy of
+    // a redirect won't open, so the installed app showed an error offline)
+    "html_handling": "none"
   }
 }
