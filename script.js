@@ -228,7 +228,7 @@ const appGridLandingHome = elements.appGrid ? elements.appGrid.parentElement : n
 // Settings kept in the cloud with the rest (see pushToCloud).
 // drive_*: the google drive connection (features.js) — on or off, the
 // exports already brought in, and when it was last synced.
-const CLOUD_PREFS = ['theme', 'theme_at', 'list3_sort', 'list3_view', 'stats_sub', 'results_sub', 'mobile_list', 'drive_on', 'drive_seen', 'drive_checked', 'drive_email', 'auto_open'];
+const CLOUD_PREFS = ['theme', 'theme_at', 'list3_sort', 'list3_view', 'stats_sub', 'results_sub', 'mobile_list', 'drive_on', 'drive_seen', 'drive_checked', 'drive_email', 'auto_open', 'drive_repaired'];
 function applyCloudPrefs(prefs) {
   // The light/dark choice: whichever was picked last wins — this device's
   // or the cloud's. The cloud's copy can be behind (a reload right after
@@ -3915,6 +3915,17 @@ function deleteAccountFromModal() {
     storageRemove(`followers_users_${acc}`);
     storageRemove(`import_date_${acc}`);
     storageRemove(`extra_lists_${acc}`); // (pending, close friends, blocked… — imported lists too: they came back with the next import's single files)
+    // (and the copies of them kept with its imports: its last import's full
+    // lists, in its history, went up to the cloud on every upload after)
+    storageRemove(`import_at_${acc}`);
+    storageRemove(`import_diff_${acc}`);
+    try {
+      const history = JSON.parse(storageGet(`import_history_${acc}`) || '[]');
+      if (Array.isArray(history) && history.some(h => h && (h.followingList || h.followersList))) {
+        history.forEach(h => { if (h) { delete h.followingList; delete h.followersList; } });
+        storageSet(`import_history_${acc}`, JSON.stringify(history));
+      }
+    } catch (e) {}
 
     // 2. Remove from current state arrays
     state.starred = (state.starred || []).filter(u => !u.account || u.account.toLowerCase() !== acc);
