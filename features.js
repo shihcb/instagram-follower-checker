@@ -1409,6 +1409,7 @@
     const t0 = Date.now();
     let reached = 0, shown = 0, words = 'connecting';
     const paint = () => {
+      if (btn._barGen !== gen) return;
       const byClock = Math.min(0.97, (Date.now() - t0) / 60000);
       shown = Math.max(shown, Math.min(0.99, reached), byClock);
       fill.style.width = `${(shown * 100).toFixed(1)}%`;
@@ -1420,6 +1421,9 @@
     if (canAnimate(fill)) fill.animate([{ opacity: 0 }, { opacity: 1 }], MOTION);
     paint();
     const tick = setInterval(paint, 500);
+    // (the last bar's ticking stops: still painting its old words after this one ended, "sync now" never came back)
+    clearInterval(btn._barTick);
+    btn._barTick = tick;
     return {
       stage(text, frac) { words = text; reached = Math.max(reached, frac || 0); paint(); },
       async stop(said = null) {
