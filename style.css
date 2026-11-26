@@ -7196,6 +7196,12 @@ html.is-logged-in #auth-profile-view > .app-version {
 .timeline-dates .tl-day {
   font-variant-numeric: tabular-nums;
 }
+/* (the year after a date: its own box, so it eases in and out as the month does) */
+.timeline-dates .tl-yr {
+  display: inline-block;
+  vertical-align: top;
+  white-space: pre;
+}
 .timeline-dates .tl-mon {
   display: inline-block;
   vertical-align: top; /* (clipped while its width glides, a box sat on its own bottom edge: the row grew 5px and the graph jumped up) */

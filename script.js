@@ -8627,7 +8627,7 @@ async function pullFromCloudNow(uploadLocalFirst, stillWanted) {
       if (metaItem) {
         // (a reload while the app is open keeps the demo chip — never saved,
         // it went whenever another account was on screen)
-        const demoChip = cloudReady ? (state.instagramAccounts || []).find(isDemoAccount) : null;
+        const demoChip = cloudReady && (metaItem.instagram_accounts || []).length < MAX_ACCOUNTS ? (state.instagramAccounts || []).find(isDemoAccount) : null; // (only with room: 4 chips, over the limit)
         state.instagramAccounts = metaItem.instagram_accounts || [];
         if (demoChip && !state.instagramAccounts.some(acc => isDemoAccount(acc) || String(acc.username || '').toLowerCase() === String(demoChip.username).toLowerCase())) state.instagramAccounts.push(demoChip);
         normalizeInstagramAccounts();

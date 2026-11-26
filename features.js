@@ -2425,7 +2425,12 @@
     const token = (span._roll = {});
     const m = monthOf(z), d0 = new Date(a).getDate(), d1 = new Date(z).getDate();
     const yr = span.querySelector('.tl-yr');
-    if (yr && yr.textContent !== yearOf(z)) { if (canAnimate(span)) swapText(yr, yearOf(z), { resize: true }); else yr.textContent = yearOf(z); }
+    if (yr && yr.textContent !== yearOf(z)) {
+      // (a year coming in fades in — swapText has nothing to cross from, it snapped)
+      if (!canAnimate(span)) yr.textContent = yearOf(z);
+      else if (!yr.textContent) { yr.textContent = yearOf(z); fadeEmptyIn(yr); }
+      else swapText(yr, yearOf(z), { resize: true });
+    }
     if (!canAnimate(span) || (shortDate(a) === shortDate(z) && yearOf(a) === yearOf(z))) { mon.textContent = m; day.textContent = String(d1); return; }
     mon.textContent = monthOf(a);
     day.textContent = String(d0);
