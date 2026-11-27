@@ -4591,15 +4591,12 @@ function workDone(btn, ok = true) {
   if (spinsAtWork(btn)) { spinOut(btn); clearTimeout(btn._doneT); btn._doneT = setTimeout(() => { btn._doneT = null; doneMark(btn, ok ? 'ok' : 'x', ok ? 1600 : 2600); }, canAnimate(btn) ? ROW_MOTION_MS : 0); return; }
   fillDone(btn, { ok }).then(() => doneMark(btn, ok ? 'ok' : 'x', ok ? 1600 : 2600));
 }
-// One switch at a time (the dashboard's gated): a tap while a switch has
-// only just begun waits until it's 40% through its time — well over half
-// way across on the curve — then goes, carrying on from where things are
-// drawn; only the last tap counts (several quick taps never pile up into
-// half-slides). It was the dashboard's 70% (315ms): going through tabs one
-// after the other, each tap sat that long with nothing moving — "it feels
-// laggy when swiping thru tabs or clicking thru tabs" (the owner's, Nov 11,
-// 2026). At 180ms, taps a person makes one after the other hardly ever wait.
-const SWITCH_WAIT = 0.4;
+// Every tap switches at once (the owner's, Nov 27, 2026: "still laggy" —
+// quick taps got stuck): a tap mid-push takes over from where things are
+// drawn, at the speed they're going (slideSpeed / slideTiming), so it's one
+// continuous glide, never a cut-short slide. It used to wait until the push
+// was 40% through (the dashboard's 70%); nothing moved for that moment.
+const SWITCH_WAIT = 0;
 const SWITCH_SETTLE = Math.round(ROW_MOTION_MS * SWITCH_WAIT);
 const switchGates = {};
 function gated(name, run) {
@@ -6007,7 +6004,7 @@ window.indicatorBetween = (...a) => indicatorBetween(...a); // (the swipe in fea
 // easing. The browser's own smooth scroll starts much faster than the
 // highlight's ease-in, so the highlight was first dragged back with the
 // tabs and then swung forward — the choppy part of the switch.
-const instructionsEase = cubicBezierEasing(0.25, 0.45, 0.15, 1); // the highlight's (IND_EASE)
+const instructionsEase = cubicBezierEasing(0.2, 0.6, 0.2, 1); // the highlight's (IND_EASE)
 let instructionsInstant = false; // opening: jump straight there
 function scrollInstructionsNav(nav, target) {
   const max = nav.scrollWidth - nav.clientWidth;
@@ -6045,12 +6042,12 @@ function scrollInstructionsNav(nav, target) {
 // edges meet on whole screen pixels: no seam.
 // The tab highlight's own timing (the owner's, Nov 27, 2026: "the select box
 // just feels slow to move when i click a tab", then of a quick 350ms one: "it
-// feels too quick. i want it to slide and glide"): it sets off at the tap —
-// half way in about 120ms, where the list 3 slide's slow start took 160 — and
-// glides in softly over 600ms. The panes keep the 450ms push; the tab bar's
-// own scroll goes with the highlight.
-const IND_MS = 600;
-const IND_EASE = 'cubic-bezier(0.25, 0.45, 0.15, 1)';
+// feels too quick. i want it to slide and glide", then of a 600ms one that
+// was still moving after the page had landed: "still laggy"): 450ms, landing
+// with the page, on a curve that sets off at once (half way in about 110ms)
+// and glides the rest of the way in.
+const IND_MS = 450;
+const IND_EASE = 'cubic-bezier(0.2, 0.6, 0.2, 1)';
 const IND_CAP = 10, IND_BASE = 100;
 function indicatorPill(indicator) {
   if (indicator._parts) return indicator._parts;

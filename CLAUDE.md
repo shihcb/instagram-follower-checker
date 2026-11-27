@@ -46,9 +46,7 @@ motion, wording style. Never leave one updated and the other behind.
   it stays different until they say otherwise — but say so when it comes up,
   and ask whether the dashboard should take it too. Today: fields, search
   boxes, buttons, username rows and count pills are white in light mode
-  (the dashboard's are the page grey); and going through tabs one after the
-  other waits less here (see the motion notes: 40%, the dashboard's 70%) —
-  the dashboard should take it if the owner says so; and the phone's lists
+  (the dashboard's are the page grey); and the phone's lists
   have no sideways swipe here — the owner took it out, Nov 15, 2026 ("i think
   its making tapping on tab views in the switcher laggy and slow"): tabs are
   tapped only. Nothing else differs.
@@ -64,11 +62,12 @@ exactly the instructions modal's open/close timing: every animation in the
 app (entering, leaving, resizing, sliding, tab switches, counters, charts)
 uses it unless told otherwise — hover/press/focus color changes too. Only
 loading spinners and looping decorations are exempt. The tab highlight (the box
-under a switcher's tab) is the other: its own 600ms `cubic-bezier(0.25, 0.45,
-0.15, 1)` (IND_MS / IND_EASE — set off at the tap, then a long soft glide in; the
-owner's, Nov 27, 2026: "the select box just feels slow to move when i click a
-tab", then of a quick 350ms one: "it feels too quick. i want it to slide and
-glide"), a bar's own scroll with it; the panes keep the 450ms push. Shapes are shared
+under a switcher's tab) lands with the page — 450ms — on its own curve,
+`cubic-bezier(0.2, 0.6, 0.2, 1)` (IND_MS / IND_EASE: off at once, half way in
+about 110ms, then a soft glide in; the owner's, Nov 27, 2026: "the select box
+just feels slow to move when i click a tab", of a 350ms one "it feels too
+quick. i want it to slide and glide", of a 600ms one still moving after the
+page landed "still laggy"), a bar's own scroll with it; the panes keep the 450ms push. Shapes are shared
 too: pop-ups (and the log-in card, account chips) come in from 14px down at
 95% scale and leave the same way back; the bottom bars (toast, select) from
 16px at 96%; the app itself (after logging in / out) from 16px at 97%;
@@ -77,8 +76,11 @@ then in); presses and hovers only change colour; switching light / dark
 eases every colour (theme-fade); spinners turn every 0.8s; usernames and banners use list 3's row engine
 (slideRowIn/slideRowOut, rows around them shifting); a search's results are the dashboard's search: a moment after typing stops, matches that stay glide to their places, new ones pop in from 14px down at 95%, hidden ones pop out the same way, all on that same engine (popRowIn/popRowOut — a row coming back mid-pop carries on from where it's drawn), "no matches" fading in under the last ones; tab switches are the
 sideways push (slideSub / TAB_MOTION), the area easing to the new pane's
-height (easeBoxHeight) — a tap during a push waits only until it's 40% through
-(gated, SWITCH_WAIT; the dashboard's is 70%) — no swipe between the phone's
+height (easeBoxHeight) — a tab switches the moment a finger comes down on
+it (pointerdown; a bar that scrolls sideways waits for the tap on a touch
+screen), and a tap during a push never waits: it takes over at once
+(gated, SWITCH_WAIT 0; the owner's, Nov 27, 2026: "still laggy" — quick taps
+stuck, nothing moving at first) — no swipe between the phone's
 lists (taken out, Nov 15, 2026) — and a push taking over starts at the speed
 things already had (slideSpeed / slideTiming) — the owner's, Nov 11, 2026:
 "it feels laggy when swiping thru tabs or clicking thru tabs"; texts just fade (fadeEmptyIn), and text that changes

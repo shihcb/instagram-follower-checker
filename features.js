@@ -2068,6 +2068,30 @@
   // looked broken. One gate for every switcher here (list 3's views, the
   // tabs inside them, the phone's lists).
   function queueSwitch(gate, run) { gated('view', run); }
+  // A tab switches the moment a finger (or the mouse) comes down on it, not
+  // when it lifts — the lift's click came a tap's length later, with nothing
+  // moving meanwhile (the owner's, Nov 27, 2026: "still laggy", "nothing
+  // moves at first"). The click that follows is dropped. A bar that scrolls
+  // sideways still waits for the click on a touch screen, so a swipe along
+  // it never switches. (Keys still click as before.)
+  let downTab = null, downAt = 0;
+  document.addEventListener('pointerdown', (e) => {
+    if (!e.isPrimary || e.button !== 0) return;
+    const tab = e.target.closest && e.target.closest('.insights-tab');
+    if (!tab || tab.disabled) return;
+    const nav = tab.parentElement;
+    if (e.pointerType !== 'mouse' && nav && nav.scrollWidth > nav.clientWidth + 1) return;
+    downTab = tab; downAt = performance.now();
+    tab.click();
+    downTab = tab; downAt = performance.now();
+  }, true);
+  document.addEventListener('click', (e) => {
+    if (!downTab || !e.isTrusted) return;
+    const tab = e.target.closest && e.target.closest('.insights-tab');
+    const ours = tab === downTab && performance.now() - downAt < 1500;
+    downTab = null;
+    if (ours) { e.stopPropagation(); e.preventDefault(); }
+  }, true);
   // Shared by every switcher (list 3's views and the tabs inside them): a
   // view tapped right after a tab inside it waits too, or the bar slid away
   // while its own tabs were still gliding back across it.
