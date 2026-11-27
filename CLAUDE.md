@@ -63,7 +63,12 @@ in `script.js` (in CSS: `0.45s cubic-bezier(0.4, 0, 0.2, 1)`). That's also
 exactly the instructions modal's open/close timing: every animation in the
 app (entering, leaving, resizing, sliding, tab switches, counters, charts)
 uses it unless told otherwise — hover/press/focus color changes too. Only
-loading spinners and looping decorations are exempt. Shapes are shared
+loading spinners and looping decorations are exempt. The tab highlight (the box
+under a switcher's tab) is the other: its own 600ms `cubic-bezier(0.25, 0.45,
+0.15, 1)` (IND_MS / IND_EASE — set off at the tap, then a long soft glide in; the
+owner's, Nov 27, 2026: "the select box just feels slow to move when i click a
+tab", then of a quick 350ms one: "it feels too quick. i want it to slide and
+glide"), a bar's own scroll with it; the panes keep the 450ms push. Shapes are shared
 too: pop-ups (and the log-in card, account chips) come in from 14px down at
 95% scale and leave the same way back; the bottom bars (toast, select) from
 16px at 96%; the app itself (after logging in / out) from 16px at 97%;

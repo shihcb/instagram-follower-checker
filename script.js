@@ -6007,7 +6007,7 @@ window.indicatorBetween = (...a) => indicatorBetween(...a); // (the swipe in fea
 // easing. The browser's own smooth scroll starts much faster than the
 // highlight's ease-in, so the highlight was first dragged back with the
 // tabs and then swung forward — the choppy part of the switch.
-const instructionsEase = cubicBezierEasing(0.2, 0.8, 0.2, 1); // the highlight's (IND_EASE)
+const instructionsEase = cubicBezierEasing(0.25, 0.45, 0.15, 1); // the highlight's (IND_EASE)
 let instructionsInstant = false; // opening: jump straight there
 function scrollInstructionsNav(nav, target) {
   const max = nav.scrollWidth - nav.clientWidth;
@@ -6044,12 +6044,13 @@ function scrollInstructionsNav(nav, target) {
 // between them stretches sideways only (its lines keep their weight). Their
 // edges meet on whole screen pixels: no seam.
 // The tab highlight's own timing (the owner's, Nov 27, 2026: "the select box
-// just feels slow to move when i click a tab"): it sets off the moment a tab
-// is tapped and settles softly, 350ms — on the list 3 slide's slow start it
-// had barely moved in the first 50ms and was only half way at 170ms. The
-// panes keep the 450ms push; the tab bar's own scroll goes with the highlight.
-const IND_MS = 350;
-const IND_EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
+// just feels slow to move when i click a tab", then of a quick 350ms one: "it
+// feels too quick. i want it to slide and glide"): it sets off at the tap —
+// half way in about 120ms, where the list 3 slide's slow start took 160 — and
+// glides in softly over 600ms. The panes keep the 450ms push; the tab bar's
+// own scroll goes with the highlight.
+const IND_MS = 600;
+const IND_EASE = 'cubic-bezier(0.25, 0.45, 0.15, 1)';
 const IND_CAP = 10, IND_BASE = 100;
 function indicatorPill(indicator) {
   if (indicator._parts) return indicator._parts;
