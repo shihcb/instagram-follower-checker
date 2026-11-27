@@ -366,16 +366,24 @@ const TAB_MOTION = {
   in: { duration: 450, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }
 };
 TAB_MOTION.out = TAB_MOTION.in;
+// What a pane being pushed dims to on its way (the dashboard's 35%). On a
+// touch screen it stays as it is: a pane fading while it slides is drawn
+// off screen whole on every frame on an iPhone (it holds layers of its own —
+// the gliding names, the highlight), and the push ran at a low frame rate
+// there while a Mac's was smooth (the owner's, Nov 27, 2026: "it feels low
+// fps on mobile but fast on mac"). Transform alone, it's only moved.
+const PUSH_DIM = window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches ? 1 : 0.35;
+window.PUSH_DIM = PUSH_DIM;
 TAB_MOTION.slide = TAB_MOTION.in; // (older name, kept for callers)
 function tabSlideOut(el, dx) {
   return el.animate([
     { transform: 'translateX(0)', opacity: 1 },
-    { transform: `translateX(${dx}px)`, opacity: 0.35 }
+    { transform: `translateX(${dx}px)`, opacity: PUSH_DIM }
   ], { ...TAB_MOTION.in, fill: 'forwards' });
 }
 function tabSlideIn(el, dx) {
   return el.animate([
-    { transform: `translateX(${dx}px)`, opacity: 0.35 },
+    { transform: `translateX(${dx}px)`, opacity: PUSH_DIM },
     { transform: 'translateX(0)', opacity: 1 }
   ], TAB_MOTION.in);
 }
@@ -6184,7 +6192,7 @@ function updateInstructionsStepUI() {
     const D = TAB_MOTION.in.duration;
     const timing = slideTiming; // every trip, an interrupted one too, takes the full 450ms (the dashboard's push) — begun at the speed it had
     let longest = 0;
-    const from = at.get(newPane) || { x: dir * w, o: 0.35 };
+    const from = at.get(newPane) || { x: dir * w, o: PUSH_DIM };
     const tIn = timing(-from.x, from.v); longest = tIn.duration;
     newPane.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: 'translateX(0)', opacity: 1 }], tIn);
     const stepOf = (p) => parseInt(p.id.replace('instructions-step-', ''), 10);
@@ -6192,7 +6200,7 @@ function updateInstructionsStepUI() {
       const f = at.get(p) || { x: 0, o: 1 };
       const to = stepOf(p) < currentInstructionStep ? -w : w; // carousel order
       const t = timing(to - f.x, f.v); longest = Math.max(longest, t.duration);
-      p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
+      p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: PUSH_DIM }], { ...t, fill: 'forwards' });
     });
     updateInstructionsStepUI._timer = setTimeout(() => panes.forEach(p => { if (p !== [...panes].find(q => q.classList.contains('active'))) settleStepOut(p); }), longest + 30);
   } else {
@@ -8009,7 +8017,7 @@ function initAuth() {
       ghost.inert = true;
       Object.assign(ghost.style, { position: 'absolute', top: `${form.offsetTop}px`, left: `${form.offsetLeft}px`, width: `${form.offsetWidth}px`, margin: '0', pointerEvents: 'none' });
       card.appendChild(ghost);
-      ghost.animate([{ transform: `translateX(${at}px)`, opacity: 1 }, { transform: `translateX(${-dir * width}px)`, opacity: 0.35 }],
+      ghost.animate([{ transform: `translateX(${at}px)`, opacity: 1 }, { transform: `translateX(${-dir * width}px)`, opacity: PUSH_DIM }],
         { ...TAB_MOTION.in, fill: 'forwards' }).finished.then(() => ghost.remove(), () => ghost.remove());
       setTimeout(() => ghost.remove(), TAB_MOTION.in.duration + 300);
     }
@@ -8027,7 +8035,7 @@ function initAuth() {
     }
     clearAuthAlerts({ instant: true });
     if (typeof form.animate === 'function') {
-      form.animate([{ transform: `translateX(${dir * width}px)`, opacity: 0.35 }, { transform: 'translateX(0)', opacity: 1 }], TAB_MOTION.in);
+      form.animate([{ transform: `translateX(${dir * width}px)`, opacity: PUSH_DIM }, { transform: 'translateX(0)', opacity: 1 }], TAB_MOTION.in);
     }
 
     // The card: clipped while the two slide across it, easing to the new

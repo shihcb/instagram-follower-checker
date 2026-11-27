@@ -75,7 +75,10 @@ nothing is staggered, and what replaces something crosses it (never out,
 then in); presses and hovers only change colour; switching light / dark
 eases every colour (theme-fade); spinners turn every 0.8s; usernames and banners use list 3's row engine
 (slideRowIn/slideRowOut, rows around them shifting); a search's results are the dashboard's search: a moment after typing stops, matches that stay glide to their places, new ones pop in from 14px down at 95%, hidden ones pop out the same way, all on that same engine (popRowIn/popRowOut — a row coming back mid-pop carries on from where it's drawn), "no matches" fading in under the last ones; tab switches are the
-sideways push (slideSub / TAB_MOTION), the area easing to the new pane's
+sideways push (slideSub / TAB_MOTION; the pane leaving dims to 35% — on a
+touch screen it doesn't dim, transform only: PUSH_DIM, the owner's, Nov 27,
+2026: "it feels low fps on mobile but fast on mac" — and a tab bar is masked
+only while it has an edge to fade), the area easing to the new pane's
 height (easeBoxHeight) — a tab switches the moment a finger comes down on
 it (pointerdown; a bar that scrolls sideways waits for the tap on a touch
 screen), and a tap during a push never waits: it takes over at once

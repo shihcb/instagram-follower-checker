@@ -2176,11 +2176,11 @@
         // Pages still on their way out inside the box finish leaving from
         // where they're drawn (relative to the box's new place).
         altView.querySelectorAll(':scope > .insights-pane.pane-leaving').forEach(p => {
-          const f = at.get(p) || { x: 0, o: 0.35 };
+          const f = at.get(p) || { x: 0, o: PUSH_DIM };
           const rel = f.x - (a ? a.x : 0);
           // (the whole width at .35, the financial dashboard's push)
           const to = rel < 0 ? rel - w : rel + w;
-          if (typeof p.animate === 'function') p.animate([{ transform: `translateX(${rel}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { duration: 450, easing: TAB_MOTION.in.easing, fill: 'forwards' });
+          if (typeof p.animate === 'function') p.animate([{ transform: `translateX(${rel}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: PUSH_DIM }], { duration: 450, easing: TAB_MOTION.in.easing, fill: 'forwards' });
           else p.remove();
         });
       }
@@ -2215,7 +2215,7 @@
     {
     let longest = 0;
     incoming.forEach(el => {
-      const from = at.has(el) ? at.get(el) : { x: dir * w, o: 0.35 };
+      const from = at.has(el) ? at.get(el) : { x: dir * w, o: PUSH_DIM };
       const t = timing(-from.x, from.v);
       longest = Math.max(longest, t.duration);
       el.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: 'translateX(0)', opacity: 1 }], t);
@@ -2234,7 +2234,7 @@
       const to = (o >= 0 ? o < targetOrder : dir > 0) ? -w : w;
       const t = timing(to - from.x, from.v);
       longest = Math.max(longest, t.duration);
-      el.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
+      el.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: `translateX(${to}px)`, opacity: PUSH_DIM }], { ...t, fill: 'forwards' });
     });
     const token = ++viewToken;
     switchTimer = setTimeout(() => { if (token === viewToken) finishSwitch(); }, longest + 30);
@@ -3229,7 +3229,7 @@
     {
     let longest = 0;
     targets.filter(t => t.getClientRects().length).forEach(t => {
-      const from = at.get(t) || { x: dir * w, o: 0.35 };
+      const from = at.get(t) || { x: dir * w, o: PUSH_DIM };
       const tIn = timing(-from.x, from.v);
       longest = Math.max(longest, tIn.duration);
       t.animate([{ transform: `translateX(${from.x}px)`, opacity: from.o }, { transform: 'translateX(0)', opacity: 1 }], tIn);
@@ -3240,7 +3240,7 @@
       const to = orderOf(p) < targetOrder ? -w : w; // carousel order
       const t = timing(to - f.x, f.v);
       longest = Math.max(longest, t.duration);
-      p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: 0.35 }], { ...t, fill: 'forwards' });
+      p.animate([{ transform: `translateX(${f.x}px)`, opacity: f.o }, { transform: `translateX(${to}px)`, opacity: PUSH_DIM }], { ...t, fill: 'forwards' });
     });
     host._subTimer = setTimeout(() => settleSub(host), longest + 30);
     }
@@ -4029,8 +4029,16 @@
     const NAV = '.instructions-steps-nav';
     const update = nav => {
       const max = nav.scrollWidth - nav.clientWidth;
+      const had = nav.classList.contains('fade-left') || nav.classList.contains('fade-right');
       nav.classList.toggle('fade-left', max > 1 && nav.scrollLeft > 1);
       nav.classList.toggle('fade-right', max > 1 && nav.scrollLeft < max - 1);
+      // (its last fade easing back to solid keeps the mask till it's done —
+      // the mask is only there while there's something to fade: style.css)
+      if (had && !nav.classList.contains('fade-left') && !nav.classList.contains('fade-right')) {
+        nav.classList.add('fade-easing');
+        clearTimeout(nav._fadeT);
+        nav._fadeT = setTimeout(() => nav.classList.remove('fade-easing'), ROW_MOTION_MS + 50);
+      }
     };
     let queued = false;
     const updateAll = () => {

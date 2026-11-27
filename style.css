@@ -2258,7 +2258,10 @@ body.hide-shortcuts #keyboard-hints {
    off the side reads as "scroll for more" instead of cut off (the classes
    come from setupNavOverflow in features.js). Three mask layers: the
    border ring stays solid (border-box minus padding-box), and only the
-   inside fades. */
+   inside fades. Only while there's an edge to fade (or one is fading back
+   in, .fade-easing): a bar masked for nothing had its highlight and tabs
+   drawn through the mask on every frame of a glide — low fps on an iPhone
+   (the owner's, Nov 27, 2026). */
 @property --nav-fade-l { syntax: '<length>'; inherits: false; initial-value: 0px; }
 @property --nav-fade-r { syntax: '<length>'; inherits: false; initial-value: 0px; }
 .instructions-steps-nav {
@@ -2268,7 +2271,7 @@ body.hide-shortcuts #keyboard-hints {
 }
 .instructions-steps-nav.fade-left { --nav-fade-l: 28px; }
 .instructions-steps-nav.fade-right { --nav-fade-r: 28px; }
-.instructions-steps-nav {
+.instructions-steps-nav:is(.fade-left, .fade-right, .fade-easing) {
   -webkit-mask-image:
     linear-gradient(to right, transparent 0, #000 var(--nav-fade-l), #000 calc(100% - var(--nav-fade-r)), transparent 100%),
     linear-gradient(#000, #000),
