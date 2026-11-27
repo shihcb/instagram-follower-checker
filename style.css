@@ -3126,7 +3126,8 @@ html.hide-shortcuts .account-chip-badge {
 
 .action-arrow {
   transform: rotate(0deg);
-  will-change: transform;
+  /* (no will-change: one in every row kept sixty layers for the screen to
+     sort out on every frame of a tab's push; its turn gets one as it runs) */
   transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), color 0.45s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
@@ -6749,10 +6750,13 @@ html.booting .app-container {
 .user-fullname.glides {
   animation: glide-fade var(--glide-time, 6s) ease-in-out infinite alternate;
 }
-/* (off screen: waiting where it is — measureGlide's watchGlide) */
+/* (off screen: still — measureGlide's watchGlide; back in view it starts
+   over from its rest, which it pauses at first anyway. Stopped rather than
+   paused: a paused glide kept a layer of its own for the screen to sort out
+   every frame) */
 .glides.glide-off,
 .glides.glide-off > .glide-inner {
-  animation-play-state: paused !important;
+  animation: none !important;
 }
 
 /* Switching light / dark: every colour eases across on the list 3 slide

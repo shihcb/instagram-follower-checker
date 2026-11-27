@@ -4035,7 +4035,15 @@
     }, { passive: false });
     window.addEventListener('resize', updateAll);
     // Bars are built, re-filled and shown/hidden as views change.
-    new MutationObserver(updateAll).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    // (only for a change that's a bar's own, or brings one in, or shows or
+    // hides one: any class changing anywhere — a row sliding, a name gliding
+    // — measured every bar again, laying the page out on nearly every frame)
+    const touchesBar = (node) => node && node.nodeType === 1 && (node.closest(NAV) || node.querySelector(NAV));
+    new MutationObserver((records) => {
+      for (const r of records) {
+        if (r.type === 'childList' ? [...r.addedNodes].some(touchesBar) : touchesBar(r.target)) { updateAll(); return; }
+      }
+    }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(updateAll);
     updateAll();
   }
