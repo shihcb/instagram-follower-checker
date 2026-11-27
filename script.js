@@ -6007,7 +6007,7 @@ window.indicatorBetween = (...a) => indicatorBetween(...a); // (the swipe in fea
 // easing. The browser's own smooth scroll starts much faster than the
 // highlight's ease-in, so the highlight was first dragged back with the
 // tabs and then swung forward — the choppy part of the switch.
-const instructionsEase = cubicBezierEasing(0.4, 0, 0.2, 1); // the highlight's (IND_EASE)
+const instructionsEase = cubicBezierEasing(0.2, 0.8, 0.2, 1); // the highlight's (IND_EASE)
 let instructionsInstant = false; // opening: jump straight there
 function scrollInstructionsNav(nav, target) {
   const max = nav.scrollWidth - nav.clientWidth;
@@ -6043,8 +6043,13 @@ function scrollInstructionsNav(nav, target) {
 // shimmered on a slow swipe). The two rounded ends slide; the straight middle
 // between them stretches sideways only (its lines keep their weight). Their
 // edges meet on whole screen pixels: no seam.
-const IND_MS = 450;
-const IND_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
+// The tab highlight's own timing (the owner's, Nov 27, 2026: "the select box
+// just feels slow to move when i click a tab"): it sets off the moment a tab
+// is tapped and settles softly, 350ms — on the list 3 slide's slow start it
+// had barely moved in the first 50ms and was only half way at 170ms. The
+// panes keep the 450ms push; the tab bar's own scroll goes with the highlight.
+const IND_MS = 350;
+const IND_EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 const IND_CAP = 10, IND_BASE = 100;
 function indicatorPill(indicator) {
   if (indicator._parts) return indicator._parts;
@@ -6113,7 +6118,10 @@ function moveInstructionsIndicator(indicator, tab, timing) {
   const moved = from && (Math.abs(from.x - x) > 0.5 || Math.abs(from.w - w) > 0.5);
   if (!moved || indicator.classList.contains('no-transition') || typeof parts.m.animate !== 'function') return;
   const fr = indicatorFrames(from.x, from.w);
-  const t = timing || slideTiming((x + w / 2) - (from.x + from.w / 2), v);
+  // (its own quick start — already moving fast, a tap mid-glide carries on
+  // without a hitch; v is kept for a timing given by the caller)
+  void v;
+  const t = timing || { duration: IND_MS, easing: IND_EASE };
   indicator._anims = Object.keys(parts).map(k => parts[k].animate([fr[k], to[k]], { duration: t.duration || IND_MS, easing: t.easing || IND_EASE }));
 }
 
