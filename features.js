@@ -3196,7 +3196,7 @@
     targets.forEach(t => { t.classList.remove('pane-out'); clearPin(t); t.classList.add(on); });
     // The area eases from the height it's drawn at to the new pane's (the
     // dashboard's tab push); a box that keeps one size doesn't move.
-    easeBoxHeight(host, startH);
+    easeBoxHeight(host, startH, { quick: true });
     followSub(host, targets[0]);
     const w = (host.clientWidth || 320) + PANE_GAP; // (mid-push the two keep a gap, never touching — the dashboard's)
     const D = TAB_MOTION.in.duration;
@@ -4014,7 +4014,17 @@
       queued = true;
       requestAnimationFrame(() => { queued = false; document.querySelectorAll(NAV).forEach(update); });
     };
-    document.addEventListener('scroll', e => { if (e.target.matches && e.target.matches(NAV)) update(e.target); }, true);
+    // (at the next frame, with everything else that frame reads: read straight
+    // away, a tab bar's scroll as a tab was tapped laid the page out an extra time)
+    const pending = new Set();
+    let framed = false;
+    const later = nav => {
+      pending.add(nav);
+      if (framed) return;
+      framed = true;
+      requestAnimationFrame(() => { framed = false; const navs = [...pending]; pending.clear(); navs.forEach(update); });
+    };
+    document.addEventListener('scroll', e => { if (e.target.matches && e.target.matches(NAV)) later(e.target); }, true);
     document.addEventListener('wheel', e => {
       const nav = e.target.closest && e.target.closest(NAV);
       if (!nav || e.ctrlKey || Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;

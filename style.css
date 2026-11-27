@@ -6749,6 +6749,11 @@ html.booting .app-container {
 .user-fullname.glides {
   animation: glide-fade var(--glide-time, 6s) ease-in-out infinite alternate;
 }
+/* (off screen: waiting where it is — measureGlide's watchGlide) */
+.glides.glide-off,
+.glides.glide-off > .glide-inner {
+  animation-play-state: paused !important;
+}
 
 /* Switching light / dark: every colour eases across on the list 3 slide
    while it changes (the financial dashboard's theme-fade) — ones without

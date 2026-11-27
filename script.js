@@ -1783,6 +1783,19 @@ function swapCount(el, n, word) {
 const GLIDE_NAMES = '.user-link > .glide-box, .compare-pick-label.glide-box, .parsed-username, .user-fullname'; // (full names too: never "…")
 const glideQueue = new Set();
 let glideFrame = 0;
+// Only a name on screen glides: its faded edges are drawn by the page itself
+// every frame (not by the graphics chip), so every glide in a list — rows
+// scrolled away, a list off to the side — was redrawn on every frame, and
+// with sixty of them a tab's push dropped frames on a phone. Off screen it
+// waits where it is (paused), and carries on once it's back in view.
+const glideSeen = typeof IntersectionObserver === 'function'
+  ? new IntersectionObserver((entries) => entries.forEach(e => e.target.classList.toggle('glide-off', !e.isIntersecting)))
+  : null;
+function watchGlide(box, on) {
+  if (!glideSeen) return;
+  if (on && !box._glideWatched) { box._glideWatched = true; glideSeen.observe(box); }
+  else if (!on && box._glideWatched) { box._glideWatched = false; glideSeen.unobserve(box); box.classList.remove('glide-off'); }
+}
 function measureGlide(box) {
   const inner = box.firstElementChild;
   if (!inner || !inner.classList.contains('glide-inner') || !box.clientWidth) return;
@@ -1821,6 +1834,7 @@ function measureGlide(box) {
     return;
   }
   box.classList.toggle('glides', over > 1);
+  watchGlide(box, over > 1);
   box.style.setProperty('--glide', glide);
   box.style.setProperty('--glide-time', `${Math.max(3, over / 20).toFixed(1)}s`);
 }
@@ -4753,9 +4767,15 @@ else setupPageGlide();
 // The box ease: a box whose content changed size eases from the height it
 // was drawn at (`from`, read before the change) to its new one — one ease
 // from where it's drawn, so taps in quick succession never overshoot.
-function easeBoxHeight(box, from) {
+function easeBoxHeight(box, from, { quick = false } = {}) {
   if (!box || !Number.isFinite(from)) return;
   if (box._boxEase) { box._boxEase.cancel(); box._boxEase = null; }
+  // (quick — a tab's push, its new pane just shown: measured as drawn first,
+  // and only when that's another size is everything easing inside looked at.
+  // Looking at every animation in the box — the names gliding in all its
+  // rows — on every tap held each push's first frames up on a phone, where
+  // the lists' box keeps one size anyway)
+  if (quick && Math.abs(box.getBoundingClientRect().height - from) < 0.5) return;
   const [to, laid] = atEnds(box, () => [box.getBoundingClientRect().height, box.offsetHeight]); // (where what's easing inside lands)
   if (!canAnimate(box) || Math.abs(to - from) < 0.5 || rowMotion.has(box)) return;
   const k = laid ? to / laid : 1;
