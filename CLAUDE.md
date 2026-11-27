@@ -95,7 +95,9 @@ the stage it's at ("finding exports", "importing 1 of 2", "saving imports"),
 crossing over (swapText), then what it did ("2 exports imported"). A username too long
 for its row glides sideways to show the rest and back, on a loop, its
 passing edge fading (the dashboard's marquee: .glides, measureGlide) —
-never wrapped, never "…". With the
+never wrapped, never "…" — only while it's on screen (watchGlide: off
+screen it stands still, starting over once it's back in view; sixty fades
+redrawn every frame dropped a tab push's frames on a phone, Nov 27, 2026). With the
 phone's Reduce Motion on, everything goes straight to where it's headed
 (spinners keep turning). These come from the financial dashboard.
 
