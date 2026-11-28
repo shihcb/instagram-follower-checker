@@ -6056,6 +6056,8 @@ function scrollInstructionsNav(nav, target) {
 // and glides the rest of the way in.
 const IND_MS = 450;
 const IND_EASE = 'cubic-bezier(0.2, 0.6, 0.2, 1)';
+const IND_TRAIL = cubicBezierEasing(0.5, 0.05, 0.25, 1); // (the edge behind: a beat later, landing with the lead)
+const IND_STEPS = 30;
 const IND_CAP = 10, IND_BASE = 100;
 function indicatorPill(indicator) {
   if (indicator._parts) return indicator._parts;
@@ -6127,8 +6129,31 @@ function moveInstructionsIndicator(indicator, tab, timing) {
   // (its own quick start — already moving fast, a tap mid-glide carries on
   // without a hitch; v is kept for a timing given by the caller)
   void v;
-  const t = timing || { duration: IND_MS, easing: IND_EASE };
-  indicator._anims = Object.keys(parts).map(k => parts[k].animate([fr[k], to[k]], { duration: t.duration || IND_MS, easing: t.easing || IND_EASE }));
+  if (timing) {
+    indicator._anims = Object.keys(parts).map(k => parts[k].animate([fr[k], to[k]], { duration: timing.duration || IND_MS, easing: timing.easing || IND_EASE }));
+    return;
+  }
+  // Liquid: the edge it's heading for leaves at once and the one behind
+  // follows a beat later, so the glass stretches out toward its new tab and
+  // draws itself in as it lands (the owner's, Nov 28, 2026: "liquid glass and
+  // have it glide smoothly to its new tab"). Both ends land together, 450ms.
+  // Drawn as frames of all three pieces from the same two curves, so they
+  // stay joined the whole way.
+  const kf = glassFrames(from, { x, w });
+  indicator._anims = Object.keys(parts).map(k => parts[k].animate(kf[k], { duration: IND_MS, easing: 'linear' }));
+}
+function glassFrames(a, b) {
+  const right = (b.x + b.w / 2) >= (a.x + a.w / 2);
+  const lead = instructionsEase, trail = IND_TRAIL;
+  const out = { l: [], m: [], r: [] };
+  for (let i = 0; i <= IND_STEPS; i++) {
+    const p = i / IND_STEPS;
+    const fl = right ? trail(p) : lead(p), fr = right ? lead(p) : trail(p);
+    const left = a.x + (b.x - a.x) * fl, end = (a.x + a.w) + ((b.x + b.w) - (a.x + a.w)) * fr;
+    const f = indicatorFrames(left, end - left);
+    out.l.push(f.l); out.m.push(f.m); out.r.push(f.r);
+  }
+  return out;
 }
 
 function settleStepOut(pane) {

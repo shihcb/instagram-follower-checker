@@ -118,6 +118,14 @@ html, body {
   --highlight-border: rgba(0, 0, 0, 0.18);
   --highlight-shadow: rgba(0, 0, 0, 0.03);
   --text-main: #1b1f1d;
+  /* the tab highlight's liquid glass (the owner's, Nov 28, 2026: "make the
+     tab select box be liquid glass"): a lit pane — bright at its top, clearer
+     below — a hairline edge, a shine along its top and a shade along its foot */
+  --glass-top: rgba(255, 255, 255, 0.96);
+  --glass-bottom: rgba(255, 255, 255, 0.6);
+  --glass-edge: rgba(27, 31, 29, 0.12);
+  --glass-shine: rgba(255, 255, 255, 1);
+  --glass-shade: rgba(27, 31, 29, 0.06);
   --text-muted: #66706b;
   --text-inverse: #f4f5f3;
   --input-bg: #ffffff;
@@ -175,6 +183,11 @@ html, body {
   --highlight-border: rgba(255, 255, 255, 0.15);
   --highlight-shadow: rgba(0, 0, 0, 0.5);
   --text-main: #e8ece9;
+  --glass-top: rgba(255, 255, 255, 0.17);
+  --glass-bottom: rgba(255, 255, 255, 0.05);
+  --glass-edge: rgba(255, 255, 255, 0.16);
+  --glass-shine: rgba(255, 255, 255, 0.24);
+  --glass-shade: rgba(0, 0, 0, 0.28);
   --text-muted: #9aa49f;
   --text-inverse: #111513;
   --input-bg: #111513;
@@ -5841,7 +5854,7 @@ select,
   color: var(--stat);
 }
 
-/* The tab highlight: one outlined piece (see moveInstructionsIndicator). */
+/* The tab highlight: a pane of liquid glass (see moveInstructionsIndicator). */
 .instructions-nav-indicator.ind-split {
   border: none !important;
   background: none !important;
@@ -5855,7 +5868,14 @@ select,
   left: 0;
   height: 100%;
   box-sizing: border-box;
-  border: 1.5px solid var(--text-main);
+  /* liquid glass: lit from above, a hairline edge, a shine along its top and
+     a shade along its foot — all running across, so the middle piece's
+     sideways stretch never thickens them (the owner's, Nov 28, 2026). No
+     blur behind it: the bar under it is one colour, and a blur redrawn on
+     every frame of a glide was what made phones drop frames */
+  border: 1px solid var(--glass-edge);
+  background: linear-gradient(to bottom, var(--glass-top), var(--glass-bottom));
+  box-shadow: inset 0 1px 0 var(--glass-shine), inset 0 -1px 0 var(--glass-shade);
   will-change: transform;
   transform-origin: left center;
   backface-visibility: hidden;

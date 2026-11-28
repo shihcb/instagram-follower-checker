@@ -67,7 +67,14 @@ under a switcher's tab) lands with the page — 450ms — on its own curve,
 about 110ms, then a soft glide in; the owner's, Nov 27, 2026: "the select box
 just feels slow to move when i click a tab", of a 350ms one "it feels too
 quick. i want it to slide and glide", of a 600ms one still moving after the
-page landed "still laggy"), a bar's own scroll with it; the panes keep the 450ms push. Shapes are shared
+page landed "still laggy"), a bar's own scroll with it. It's a pane of liquid glass
+(the owner's, Nov 28, 2026: "make the tab select box be liquid glass and have
+it glide smoothly to its new tab"): lit from above, a hairline edge, a shine
+along its top and a shade along its foot (`--glass-*` tokens; no blur behind
+it — the bar's one colour, and a blur redrawn every frame drops a phone's
+frames); as it glides the edge it's heading for leaves at once and the one
+behind follows a beat later (IND_TRAIL), so it stretches toward its new tab
+and draws itself in as it lands (glassFrames); the panes keep the 450ms push. Shapes are shared
 too: pop-ups (and the log-in card, account chips) come in from 14px down at
 95% scale and leave the same way back; the bottom bars (toast, select) from
 16px at 96%; the app itself (after logging in / out) from 16px at 97%;
@@ -118,7 +125,8 @@ every one a squircle on the small buttons' and search box's 8px corners
 (the dashboard's `--r-sm`; the dashboard is the same). Only spinners and the
 timeline's points stay round.
 
-Shadows are the dashboard's three only: small buttons' (`--shadow-btn`,
+Shadows are the dashboard's three only (the tab highlight's glass has its
+own shine and shade inside it, nothing outside): small buttons' (`--shadow-btn`,
 0 1px 3px), anything floating (`--shadow-float`: menus, the toast and the
 select bar) and windows (`--shadow-modal`). Cards, the log-in card and
 whatever sits inside a window have none, and nothing glows.
